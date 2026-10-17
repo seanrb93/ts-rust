@@ -176,6 +176,25 @@ impl ts_game::AvOptions for PortAv {
         config::get().save();
     }
 
+    fn audio_rows(&self) -> Vec<ts_game::AvRow> {
+        let c = config::get();
+        let values = || (0..=10).map(|t| if t == 0 { "Off".to_string() } else { (t * 10).to_string() }).collect::<Vec<_>>();
+        ["Weapon Volume", "Impact Volume", "Voice Volume", "Ambience Volume", "Effects Volume"]
+            .iter()
+            .enumerate()
+            .map(|(i, label)| ts_game::AvRow { label: (*label).into(), values: values(), index: c.sound_mix[i].min(10) as usize })
+            .collect()
+    }
+
+    fn set_audio(&self, row: usize, index: usize) {
+        config::update(|c| {
+            if let Some(v) = c.sound_mix.get_mut(row) {
+                *v = index.min(10) as u8;
+            }
+        });
+        config::get().save();
+    }
+
     fn set_mapmaker_unlimited(&self, on: bool) {
         config::update(|c| c.mapmaker_unlimited = on);
         config::get().save();

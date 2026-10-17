@@ -12,7 +12,8 @@ mod adpcm;
 mod music;
 mod spu;
 
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::{Arc, Mutex};
 
 pub use music::MusicCmd;
 
@@ -26,6 +27,36 @@ struct Engine {
 }
 
 static ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
+
+/// Groups of sound effects with a volume of their own (set by the port's Audio Options): a classifier supplied by the game says which
+/// group the sample at an SPU address belongs to.
+pub const GROUPS: usize = 5;
+
+static GAINS: [AtomicU32; GROUPS] = [const { AtomicU32::new(0x3f80_0000) }; GROUPS];
+
+type Classifier = Arc<dyn Fn(u32) -> u8 + Send + Sync>;
+static CLASSIFIER: Mutex<Option<Classifier>> = Mutex::new(None);
+
+/// Volume of a group of effects as a factor (1 = as the game has it).
+pub fn set_group_volume(group: usize, volume: f32) {
+    if let Some(g) = GAINS.get(group) {
+        g.store(volume.clamp(0.0, 4.0).to_bits(), Ordering::Relaxed);
+    }
+}
+
+fn group_gain(group: u8) -> f32 {
+    GAINS.get(group as usize).map_or(1.0, |g| f32::from_bits(g.load(Ordering::Relaxed)))
+}
+
+/// Tell which group the sample that starts at an SPU address belongs to (asked when a voice starts).
+pub fn set_classifier(f: impl Fn(u32) -> u8 + Send + Sync + 'static) {
+    *CLASSIFIER.lock().unwrap() = Some(Arc::new(f));
+}
+
+fn classify(ssa: u32) -> u8 {
+    let f = CLASSIFIER.lock().unwrap().clone();
+    f.map_or(u8::MAX, |f| f(ssa))
+}
 
 fn with<R>(f: impl FnOnce(&mut Engine) -> R) -> R {
     let mut g = ENGINE.lock().unwrap();

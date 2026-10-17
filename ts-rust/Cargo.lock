@@ -2131,6 +2131,7 @@ version = "0.1.0"
 name = "ts-game"
 version = "0.1.0"
 dependencies = [
+ "ts-audio",
  "ts-rt",
  "ts-sdk",
 ]

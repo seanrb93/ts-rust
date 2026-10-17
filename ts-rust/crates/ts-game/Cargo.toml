@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 ts-rt = { path = "../ts-rt" }
 ts-sdk = { path = "../ts-sdk" }
+ts-audio = { path = "../ts-audio" }
 
 [features]
 calltrace = ["ts-rt/calltrace"]

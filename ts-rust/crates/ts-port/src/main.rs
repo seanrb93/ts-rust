@@ -655,6 +655,7 @@ SLUS_200.90 has to be in the same folder as the program:
     ts_sdk::set_disc_root(&game_dir);
     mods::load(&exe_dir(), &exe);
     ts_game::native_text_init();
+    ts_game::sound_mix_init();
     // test aid: TS_BUTTONS=xbox|switch|keyboard names the buttons of that device in the texts (headless runs have no device)
     match std::env::var("TS_BUTTONS").as_deref() {
         Ok("xbox") => ts_sdk::pad::set_input_style(1),

@@ -70,6 +70,8 @@ pub struct Config {
     pub mapmaker_unlimited: bool,
     /// 0 controller, 1 keyboard and mouse
     pub input_method: u8,
+    /// volume of the groups of sound effects in tenths (weapons, impacts, voices, ambience, the rest), 10 = as the game has it
+    pub sound_mix: [u8; 5],
 }
 
 impl Default for Config {
@@ -100,6 +102,7 @@ impl Default for Config {
             look_sensitivity: 1.0,
             mapmaker_unlimited: false,
             input_method: 1,
+            sound_mix: [10; 5],
         }
     }
 }
@@ -163,6 +166,13 @@ look_sensitivity = 1
 
 # which device plays a level: controller or keyboard (and mouse); also a row of the Controls page
 input_method = keyboard
+
+# volume of the kinds of sound effects, 0 to 100 (the game's own Sound volume applies to all of them); also rows of the Audio Options page, second page
+volume_weapons = 100
+volume_impacts = 100
+volume_voices = 100
+volume_ambience = 100
+volume_effects = 100
 
 # the MapMaker has no limit of what a map holds (the FREE bar is not shown); also a row of the MapMaker's Options page
 mapmaker_unlimited = false
@@ -233,6 +243,10 @@ impl Config {
                     "keyboard" | "mouse" | "keyboard_mouse" | "auto" => 1,
                     _ => return Err(bad()),
                 }
+            }
+            "volume_weapons" | "volume_impacts" | "volume_voices" | "volume_ambience" | "volume_effects" => {
+                let k = ["volume_weapons", "volume_impacts", "volume_voices", "volume_ambience", "volume_effects"].iter().position(|n| *n == key).unwrap_or(0);
+                self.sound_mix[k] = (value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.0, 100.0) / 10.0).round() as u8;
             }
             "mouse_sensitivity" => self.mouse_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.05, 10.0),
             "stick_sensitivity" | "stick_gain" => self.stick_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.5, 3.0),
@@ -322,6 +336,7 @@ pub fn load(overrides: &[(String, String)]) {
     ts_sdk::set_bots_punch(c.bot_punch);
     ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
     ts_game::set_mm_unlimited(c.mapmaker_unlimited);
+    apply_sound_mix(&c);
     *CONFIG.lock().unwrap() = Some(c);
 }
 
@@ -337,6 +352,13 @@ pub fn update(f: impl FnOnce(&mut Config)) {
         ts_sdk::set_dual_all(c.dual_all);
         ts_sdk::set_bots_punch(c.bot_punch);
         ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
+        apply_sound_mix(c);
+    }
+}
+
+fn apply_sound_mix(c: &Config) {
+    for (group, &tenths) in c.sound_mix.iter().enumerate() {
+        ts_audio::set_group_volume(group, tenths as f32 / 10.0);
     }
 }
 
@@ -395,7 +417,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 25] = [
+        let vals: [(&str, String); 30] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -421,6 +443,11 @@ impl Config {
             ("look_sensitivity", format!("{}", self.look_sensitivity)),
             ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),
             ("input_method", ["controller", "keyboard"][self.input_method.min(1) as usize].to_string()),
+            ("volume_weapons", (self.sound_mix[0] as u32 * 10).to_string()),
+            ("volume_impacts", (self.sound_mix[1] as u32 * 10).to_string()),
+            ("volume_voices", (self.sound_mix[2] as u32 * 10).to_string()),
+            ("volume_ambience", (self.sound_mix[3] as u32 * 10).to_string()),
+            ("volume_effects", (self.sound_mix[4] as u32 * 10).to_string()),
         ];
         let mut out = String::new();
         for line in TEMPLATE.lines() {

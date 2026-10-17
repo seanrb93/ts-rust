@@ -204,6 +204,12 @@ in use: Xbox letters and LB / RB / LT / RT, the Switch's letters and L / R / ZL 
 original pictures (`nativetext.rs`, `Pads::styles`).  The same file replaces the texts that mention the PS2 memory card, so the saves read as the
 program's own saved data.
 
+The **Audio Options** page has a second page (Left / Right): the volume of the kinds of sound effects, **Weapon**, **Impact** (bullet hits, ricochets, bodies falling),
+**Voice** (characters, announcers), **Ambience** (room tones, wind, machines, distant gunfire) and **Effects** (pickups, menus, the rest), from Off to 100 in steps of
+ten (`volume_weapons` ... `volume_effects` in `ts-port.ini`).  The game's own Sound volume still applies to all of them.  The mixer (`ts-audio`) asks, when a voice
+starts, which group the sample at its address is in; `manual/soundmix.rs` finds the sound in the game's table of sounds and sorts it by the words in its file name.
+The **FPS Counter** row of Game Options (or F3) shows just the frame rate in a corner.
+
 The MapMaker's Options page works like the others (X edits the Grid Intensity slider, arrows show) and has **No Limit** (Yes / No): Yes removes the
 limit on what a map can hold and hides the FREE bar (`mmoptions.rs`, `mapmaker_unlimited` in `ts-port.ini`).
 

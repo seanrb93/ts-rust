@@ -34,6 +34,8 @@ struct Voice {
     hist: [f32; 4],
     state: State,
     ended: bool,
+    /// group of effects of the sample (its volume is the player's), 255 for none
+    group: u8,
 }
 
 impl Voice {
@@ -57,6 +59,7 @@ impl Voice {
             hist: [0.0; 4],
             state: State::default(),
             ended: false,
+            group: u8::MAX,
         }
     }
 }
@@ -208,8 +211,9 @@ impl Spu {
     fn key_on(&mut self, idx: usize) {
         let v = &mut self.voices[idx];
         if std::env::var_os("TS_SPULOG").is_some() {
-            eprintln!("[spu] key on voice {idx}: ssa={:#x} pitch={:#x} vol=({},{}) adsr={:#06x},{:#06x}", v.ssa, v.pitch, v.vol_l, v.vol_r, v.adsr1, v.adsr2);
+            eprintln!("[spu] key on voice {idx}: ssa={:#x} group={} pitch={:#x} vol=({},{}) adsr={:#06x},{:#06x}", v.ssa, crate::classify(v.ssa), v.pitch, v.vol_l, v.vol_r, v.adsr1, v.adsr2);
         }
+        v.group = crate::classify(v.ssa);
         v.phase = Phase::Attack;
         v.addr = v.ssa;
         v.env = 0;
@@ -297,8 +301,9 @@ impl Spu {
                 if v.phase == Phase::Off {
                     continue;
                 }
-                let vl = v.vol_l as f32 / 16384.0 * ml;
-                let vr = v.vol_r as f32 / 16384.0 * mr;
+                let group = crate::group_gain(v.group);
+                let vl = v.vol_l as f32 / 16384.0 * ml * group;
+                let vr = v.vol_r as f32 / 16384.0 * mr * group;
                 let step = v.pitch as f32 / 4096.0 * ratio;
                 let stepfx = (step * 4096.0) as u32;
                 for frame in out.chunks_exact_mut(2) {

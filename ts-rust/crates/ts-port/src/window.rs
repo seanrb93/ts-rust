@@ -158,8 +158,7 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
     }
     // (the FPS / timing figures: the Game Options row, F3 too)
     p.renderer.overlay_text = if cfg.show_fps {
-        format!("{}
-{}", ts_sdk::perf::report(), p.renderer.gpu_name)
+        ts_sdk::perf::fps()
     } else {
         String::new()
     };

@@ -37,6 +37,11 @@ pub trait AvOptions: Send + Sync {
     }
     fn set_control(&self, _row: usize, _index: usize) {}
     fn set_mapmaker_unlimited(&self, _on: bool) {}
+    /// the rows of the port's own settings on the Audio Options page's second page (the volumes of the kinds of sound effects)
+    fn audio_rows(&self) -> Vec<AvRow> {
+        Vec::new()
+    }
+    fn set_audio(&self, _row: usize, _index: usize) {}
 }
 
 static PROVIDER: OnceLock<Box<dyn AvOptions>> = OnceLock::new();
@@ -198,7 +203,8 @@ fn page_shown() -> usize {
 /// Is the item with this number shown (the audio items only on the audio page; on a paged layout only the rows of the page shown).
 fn item_shown(id: i32) -> bool {
     if id < FIRST_ID {
-        return mode() == Mode::Audio;
+        // (the audio items are the first page of the Audio Options)
+        return mode() == Mode::Audio && (!layout().paged || page_shown() == 0);
     }
     let l = layout();
     !l.paged || l.row_page((id - FIRST_ID) as usize) == page_shown()
@@ -223,6 +229,11 @@ const SPLIT_ONE: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], heade
 const FRONT_CUSTOM: Layout = Layout { pitch: 15, columns: &[(-49, 250, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 24, paged: true };
 const PAUSE_CUSTOM: Layout = Layout { pitch: 13, columns: &[(-49, 250, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: true };
 const SPLIT_CUSTOM: Layout = Layout { pitch: 18, columns: &[(-49, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 0, 0), (10, 0, 0), (15, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
+/// the Audio Options: the game's own items on the first page, the volumes of the kinds of effects on the second (the rows of the second
+/// page start at the first row: the first page has no rows)
+const FRONT_AUDIO: Layout = Layout { pitch: 15, columns: &[(-19, 300, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (0, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: true };
+const PAUSE_AUDIO: Layout = Layout { pitch: 13, columns: &[(-19, 300, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0), (0, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: true };
+const SPLIT_AUDIO: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (0, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
 /// line slots of the audio items (a slider takes two lines)
 const AUDIO_SLOTS: [i32; 4] = [0, 1, 3, 4];
 const AUDIO_FLAGS: [i32; 4] = [0x04, 0x0c, 0x04, 0x0c];
@@ -245,6 +256,15 @@ fn layout() -> &'static Layout {
             &SPLIT_CUSTOM
         } else {
             &PAUSE_CUSTOM
+        };
+    }
+    if mode() == Mode::Audio && PROVIDER.get().is_some() {
+        return if !in_game() {
+            &FRONT_AUDIO
+        } else if lw(g::lvnumplayers) > 1 {
+            &SPLIT_AUDIO
+        } else {
+            &PAUSE_AUDIO
         };
     }
     if mode() == Mode::Controls {
@@ -359,6 +379,8 @@ enum Src {
     Page(i32),
     /// a setting of the port on the Controls page
     Port(usize),
+    /// the volume of a kind of sound effects (the Audio Options page's second page)
+    Sound(usize),
 }
 
 /// The rows as they were given last time (the values, to see what the player changed, and what each stands for).
@@ -370,6 +392,7 @@ fn apply(src: Src, value: usize) {
         (Src::Video(r), Some(p)) => p.set(r, value),
         (Src::Game(r), Some(p)) => p.set_game(r, value),
         (Src::Port(r), Some(p)) => p.set_control(r, value),
+        (Src::Sound(r), Some(p)) => p.set_audio(r, value),
         (Src::Prof(r), _) => prof_set(r, value),
         (Src::Custom(k), _) => custom_set(k, value),
         _ => {}
@@ -598,6 +621,7 @@ fn rows_now() -> Vec<(AvRow, Src)> {
             rows
         }
         (Mode::Custom, _) => custom_rows(),
+        (Mode::Audio, Some(p)) => p.audio_rows().into_iter().enumerate().map(|(i, r)| (r, Src::Sound(i))).collect(),
         _ => Vec::new(),
     }
 }
@@ -857,7 +881,7 @@ fn navigate(page: i32, n: usize) {
         let pages = layout().pages();
         let to = if lw(front + 16) > 0 { (page_shown() + 1) % pages } else { (page_shown() + pages - 1) % pages };
         PAGE.store(to, order);
-        let first = FIRST_ID + (0..n as i32).find(|&i| layout().row_page(i as usize) == to).unwrap_or(0);
+        let first = if mode() == Mode::Audio && to == 0 { 1 } else { FIRST_ID + (0..n as i32).find(|&i| layout().row_page(i as usize) == to).unwrap_or(0) };
         sh(page + 4, first);
         soundStart(140, 0);
         sw(front + 12, flags & -61);

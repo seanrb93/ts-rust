@@ -296,6 +296,7 @@ pub mod perf {
         draws: usize,
         verts: usize,
         report: String,
+        fps: String,
         // since the previous frame (for spike logging)
         f_wait: f64,
         f_sync: f64,
@@ -322,6 +323,7 @@ pub mod perf {
         draws: 0,
         verts: 0,
         report: String::new(),
+        fps: String::new(),
         f_wait: 0.0,
         f_sync: 0.0,
         f_gfx: 0.0,
@@ -411,6 +413,7 @@ pub mod perf {
             let n = a.frames as f64;
             let ms = |v: f64| v / n * 1000.0;
             let logic = (el - a.wait - a.sync).max(0.0);
+            a.fps = format!("{:.0} FPS", a.dframes as f64 / el);
             a.report = format!(
                 "{:.0} display FPS | {:.1} game FPS  (frame {:.1} ms, worst {:.1} ms)
 game {:.1}  waiting for gfx {:.1}  idle {:.1} ms
@@ -446,6 +449,11 @@ ticks/s {:.0}  draws {}  verts {}
             a.worker = 0.0;
             a.worst = 0.0;
         }
+    }
+
+    /// Just the frame rate, for the FPS Counter of the options.
+    pub fn fps() -> String {
+        ACC.lock().unwrap().fps.clone()
     }
 
     pub fn report() -> String {
