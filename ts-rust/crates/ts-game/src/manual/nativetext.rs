@@ -162,19 +162,10 @@ pub fn button_text(text: i32) -> i32 {
     if style == 0 || text == 0 {
         return text;
     }
-    // (a quick look for a ^, or for the texts that name the controller's buttons: the help of the MapMaker)
-    let mut at = text;
-    let mut has = false;
-    let mut help = false;
-    while lbu(at) != 0 && at - text < 600 {
-        if lbu(at) == 94 {
-            has = true;
-        }
-        if lbu(at) == b'a' as i32 && lbu(at + 1) == b'n' as i32 && lbu(at + 2) == b'a' as i32 && lbu(at + 3) == b'l' as i32 && lbu(at + 4) == b'o' as i32 {
-            help = true;
-        }
-        at += 1;
-    }
+    // (a quick look for a ^, or for the texts that name the controller's buttons: the help of the MapMaker, each line of it)
+    let src = read(text);
+    let has = src.contains('^');
+    let help = src.contains("analog") || src.contains(" button - ") || src.contains("PRESS START");
     if !has && !help {
         return text;
     }
@@ -203,6 +194,13 @@ pub fn button_text(text: i32) -> i32 {
             _ => ("Left Shift", "Right Shift", "Left Ctrl", "Right Ctrl"),
         };
         out = out.replace("analog stick", "stick").replace("L1", l1).replace("L2", l2).replace("R1", r1).replace("R2", r2);
+        // (the title screen: the start button)
+        let start = match style {
+            1 => "START",
+            2 => "+",
+            _ => "ESC",
+        };
+        out = out.replace("PRESS START BUTTON", &if style == 3 { format!("PRESS {start}") } else { format!("PRESS {start} BUTTON") });
     }
     if let Some(&(_, dst, _)) = cache.0.iter().find(|e| e.0 == text && e.2 == style) {
         if read(dst) == out {

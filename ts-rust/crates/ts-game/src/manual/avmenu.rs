@@ -579,6 +579,24 @@ fn custom_set(k: usize, value: usize) {
 
 /// The rows of the Game Options page that open a page of the game: View Credits (once the game is completed) and View Statistics, the
 /// items of the game type page that the front end's main menu used to have.  (label, page)
+/// "page" of the View Credits row: selecting it starts the credits (the level 105), as the game type page does
+const CREDITS_START: i32 = -105;
+
+/// Start the credits the way the game type page does when View Credits is chosen there.
+fn start_credits() {
+    frontmpgStoreGoodies();
+    let at = BASE + 0xe000;
+    for i in (0..112).step_by(4) {
+        sw(at + i, 0);
+    }
+    sw(at + 64, 105);
+    sw(at + 4, 1);
+    sw(at, 1);
+    sw(at + 72, 0);
+    gameDeferedReset(at);
+    sw(0x1fc11f8, 6);
+}
+
 fn info_pages() -> Vec<(&'static str, i32)> {
     let menu = g::gamemode_menu;
     // (the credits are there once the game has been completed or everything is unlocked: the game type page's tick decides it the same
@@ -588,7 +606,8 @@ fn info_pages() -> Vec<(&'static str, i32)> {
         .filter_map(|(id, label)| {
             let it = (0..lw(menu)).map(|k| menu + 16 + 32 * k).find(|&it| lhu(it + 8) == id)?;
             let shown = if id == 4 { levelAvail(105) != 0 } else { lw(it) != 0 };
-            (shown && lw(it + 12) != 0).then(|| (label, lw(it + 12)))
+            // (the credits are not a page: the game type page starts them as a level; the item's page is the statistics page for both items)
+            (shown && lw(it + 12) != 0).then(|| (label, if id == 4 { CREDITS_START } else { lw(it + 12) }))
         })
         .collect()
 }
@@ -873,8 +892,12 @@ fn navigate(page: i32, n: usize) {
     }
     if pressed & 64 != 0 {
         if let Some(target) = row_page_target(id) {
-            frontPageSet(0, target);
-            pageIn(page);
+            if target == CREDITS_START {
+                start_credits();
+            } else {
+                frontPageSet(0, target);
+                pageIn(page);
+            }
             joyClearAll(player);
             return;
         }
