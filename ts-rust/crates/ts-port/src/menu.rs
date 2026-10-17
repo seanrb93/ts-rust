@@ -301,7 +301,7 @@ impl ts_game::AvOptions for PortAv {
         vec![
             ts_game::AvRow { label: "Look Sensitivity".into(), values: values(), index: pct(c.look_sensitivity) },
             ts_game::AvRow { label: "Mouse Sensitivity".into(), values: values(), index: pct(c.mouse_sensitivity) },
-            ts_game::AvRow { label: "Control Method".into(), values: vec!["Auto".into(), "Controller".into(), "Keyboard & Mouse".into()], index: c.input_method.min(2) as usize },
+            ts_game::AvRow { label: "Control Method".into(), values: vec!["Controller".into(), "Keyboard & Mouse".into()], index: c.input_method.min(1) as usize },
         ]
     }
 
@@ -309,7 +309,7 @@ impl ts_game::AvOptions for PortAv {
         config::update(|c| match row {
             0 => c.look_sensitivity = SENS[index.min(SENS.len() - 1)],
             1 => c.mouse_sensitivity = SENS[index.min(SENS.len() - 1)],
-            2 => c.input_method = index.min(2) as u8,
+            2 => c.input_method = index.min(1) as u8,
             _ => {}
         });
         config::get().save();

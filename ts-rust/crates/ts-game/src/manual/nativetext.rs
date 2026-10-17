@@ -42,6 +42,11 @@ fn native(s: &str) -> Option<String> {
         t = t.replace(legend, "");
     }
     for (from, to) in [
+        // (the longer texts first: the shorter ones are parts of them)
+        ("No Memory Card (PS2) inserted\nPlease insert Memory Card (PS2)", "No saved data found"),
+        ("No Memory Card (PS2) inserted.", "No saved data found."),
+        ("No Memory Card (PS2) inserted\n", "No saved data found\n"),
+        ("No Memory Card (PS2) inserted", "No saved data found"),
         ("free space on the Memory Card (PS2).", "free space for saving."),
         ("already exists on Memory Card (PS2)", "already exists in the saved data"),
         ("from Memory Card (PS2) in", "from the saved data in"),
@@ -49,11 +54,9 @@ fn native(s: &str) -> Option<String> {
         ("Memory Card (PS2) in", "Saved data in"),
         ("DO NOT REMOVE MEMORY CARD (PS2)!", "SAVING - DO NOT CLOSE THE GAME!"),
         ("Insert Memory Card (PS2) and press ^4.", "The saved data could not be found."),
-        ("No Memory Card (PS2) inserted\nPlease insert Memory Card (PS2)", "No saved data found"),
         ("Please insert Memory Card (PS2) containing", "Please restore the saved data containing"),
         ("There is no Memory Card (PS2)", "There is no saved data"),
         ("There is no MEMORY CARD", "There is no saved data"),
-        ("No Memory Card (PS2) inserted", "No saved data found"),
         ("Select Memory Card (PS2)", "Select Saved Data"),
         ("MEMORY CARD (PS2)", "SAVED DATA"),
         ("MEMORY CARD slot", "SAVE SLOT"),
@@ -62,6 +65,16 @@ fn native(s: &str) -> Option<String> {
     ] {
         t = t.replace(from, to);
     }
+    // (what the console's cards asked: a card that is not formatted, taken out and put in again)
+    t = match t.as_str() {
+        "is unformatted." => "has no saved data.".to_string(),
+        "Do you want to format ?" => "Do you want to create it ?".to_string(),
+        "Formatting" => "Preparing".to_string(),
+        "from memory ?" => "from the saved data ?".to_string(),
+        "has been removed." => "Can't be found".to_string(),
+        "Control Pad" => "Controller".to_string(),
+        _ => t,
+    };
     (t != s).then_some(t)
 }
 
@@ -75,6 +88,9 @@ pub fn native_text_init() {
             continue;
         }
         let s = read(p);
+        if std::env::var_os("TS_TEXTDUMP").is_some() {
+            eprintln!("[textdump] {i}: {:?}", native(&s).unwrap_or_else(|| s.clone()));
+        }
         if let Some(t) = native(&s) {
             if std::env::var_os("TS_TEXTLOG").is_some() {
                 eprintln!("[text] {i}: {s:?} -> {t:?}");

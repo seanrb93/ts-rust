@@ -1450,10 +1450,10 @@ impl Renderer {
                         if hi - lo >= pw * 0.9 && (st.tex.is_none() || (members.len() > 20 && yhi - ylo >= LOGICAL_H * 0.4)) {
                             // the pane's borders and the flashes and fades that fill it (the pain vignette is a ring of triangles as high as the pane; a line of text is not) reach its edges
                             Box::new(move |x| if x < c { p0 + (x - p0) / k } else { p1 - (p1 - x) / k })
-                        } else if !frame.in_game || frame.scores_open || self.settings.hud == HudMode::Center || hi - lo > pw * 0.5 || (st.tex.is_none() && small && mid > p0 + pw * 0.25 && mid < p0 + pw * 0.75 && {
+                        } else if !frame.in_game || frame.scores_open || self.settings.hud == HudMode::Center || hi - lo > pw * 0.5 || (st.tex.is_none() && small && (members.len() == 8 || (mid > p0 + pw * 0.25 && mid < p0 + pw * 0.75 && {
                             let rel = ((ylo + yhi) * 0.5 - sc[1] as f32) / (sc[3] - sc[1] + 1) as f32;
                             rel > 0.35 && rel < 0.65
-                        }) {
+                        }))) {
                             // (menus, big art, the aiming crosshair)
                             Box::new(move |x| c + (x - c) / k)
                         } else if mid < p0 + pw / 3.0 {
@@ -1478,16 +1478,17 @@ impl Renderer {
                         } else {
                             Box::new(centre)
                         }
-                    } else if frame.in_game && st.tex.is_none() && hi - lo < 60.0 && yhi - ylo < 40.0 && ylo > 60.0 && yhi < 390.0 {
-                        // the aiming crosshair: it follows the aim over the whole picture, so it is placed like the picture is (not
-                        // by the screen third it is in, which would make it jump whenever it crosses one)
+                    } else if frame.in_game && st.tex.is_none() && hi - lo < 60.0 && yhi - ylo < 40.0 && ((ylo > 60.0 && yhi < 390.0) || members.len() == 8) {
+                        // the aiming crosshair (four lines, eight triangles, so it is found also in the rows of the HUD): it follows the aim
+                        // over the whole picture, so it is placed like the picture is (not by the screen third it is in, which would make it
+                        // jump whenever it crosses one)
                         Box::new(centre)
                     } else if hi - lo > LOGICAL_W * 0.5 {
                         // big art (scope overlays) stays centred
                         Box::new(centre)
-                    } else if mm_grid && !mm_modal && !((yhi < 62.0) || (yhi < 90.0 && (hi < 72.0 || lo > 440.0)) || (lo > 440.0 && ylo > 125.0)) {
+                    } else if mm_grid && !mm_modal && (members.len() == 2 && st.tex.map_or(false, |t| t.tw <= 4 && t.th <= 4) || !((yhi < 62.0) || (yhi < 90.0 && (hi < 72.0 || lo > 440.0)) || (lo > 440.0 && ylo > 125.0))) {
                         // MapMaker map screen: everything that is not part of the screen's HUD (the placed tiles, the held
-                        // tile, the cursor) belongs to the map and moves with the grid, whichever third it is in
+                        // tile, the cursor: a small picture of 16x16 texels, wherever it is, also under the right side's legend) belongs to the map and moves with the grid, whichever third it is in
                         Box::new(centre)
                     } else if edges {
                         if mid < LOGICAL_W / 3.0 {

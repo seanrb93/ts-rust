@@ -1,5 +1,5 @@
 //! The Options page of the MapMaker (`settings_pageTick`): the Grid Intensity slider works like the sliders of the other option pages (X
-//! starts changing it, left and right then move it and show their arrows, X or triangle ends it), and a new row, Unlimited Placement
+//! starts changing it, left and right then move it and show their arrows, X or triangle ends it), and a new row, No Limit
 //! (Yes / No), takes away the limit of what a map can hold: the FREE bar is not drawn then and no placing is refused for the cost.
 
 use crate::*;
@@ -88,7 +88,7 @@ pub fn mm_options_menu() -> i32 {
     sw(item(0) + 16, if edit == SLIDER_ID { (SLIDER_ID << 16) | SLIDER_ID } else { SELECT_ID << 16 });
     // the new row: a copy of a selector of the game with the list No / Yes
     let mut at = TEXT_AT;
-    let label = put_str(&mut at, "Unlimited");
+    let label = put_str(&mut at, "No Limit");
     let no = put_str(&mut at, "No");
     let yes = put_str(&mut at, "Yes");
     for i in 0..12 {

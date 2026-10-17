@@ -316,33 +316,28 @@ impl App {
         if SCRIPTED.load(std::sync::atomic::Ordering::Relaxed) {
             return;
         }
-        let method = crate::config::get().input_method;
+        // (0 controller, 1 keyboard and mouse: the other device does nothing while a level is played; the menus take both, so the choice can
+        // always be changed)
+        let keyboard_method = crate::config::get().input_method == 1;
+        let in_level = ts_game::level_running();
         let mut kb = self.kbm.state(&self.keys);
-        if method == 1 {
-            // (controller only: the keyboard and mouse do nothing)
+        if !keyboard_method && in_level {
             kb = PadState::idle(true);
         }
         let mut pads = [Some(kb), None];
         if let Some(gp) = self.pads.as_mut() {
             let mut states = gp.poll();
             let styles = gp.styles();
-            if method == 2 {
-                // (keyboard and mouse only: the first controller does nothing, the others are the other players')
+            if let Some(&style) = styles.first() {
+                LAST_STYLE.store(style, std::sync::atomic::Ordering::Relaxed);
+            }
+            if keyboard_method && in_level {
+                // (the first controller does nothing, the others are the other players')
                 if let Some(first) = states.first_mut() {
                     *first = PadState::idle(true);
                 }
             }
             for (slot, state) in states.iter().copied().take(2).enumerate() {
-                // a controller that is being used (a button or a stick out of the middle) takes over from the keyboard and mouse
-                let used = state.buttons != 0 || state.sticks.iter().any(|&v| (v as i32 - 0x80).abs() > 40);
-                if used {
-                    LAST_STYLE.store(styles.get(slot).copied().unwrap_or(1), std::sync::atomic::Ordering::Relaxed);
-                }
-                if (slot == 0 || ts_game::single_player_level()) && used && method != 2 {
-                    ts_sdk::pad::set_mkb_active(false);
-                    // (the aim the mouse turned on is let go: it would otherwise stay pressed alongside the controller)
-                    self.kbm.aiming = false;
-                }
                 pads[slot] = Some(match pads[slot] {
                     Some(k) => merge(k, state),
                     None => state,
@@ -367,11 +362,9 @@ impl App {
         for (port, p) in pads.iter().enumerate() {
             ts_sdk::set_pad_state(port, p.unwrap_or(PadState::idle(false)));
         }
-        // what the buttons are called in the game's texts
-        if method == 2 {
-            ts_sdk::pad::set_mkb_active(true);
-        }
-        ts_sdk::pad::set_input_style(if ts_sdk::pad::mkb_active() { 3 } else { LAST_STYLE.load(std::sync::atomic::Ordering::Relaxed) });
+        // what the buttons are called in the game's texts, and whether the mouse is the player's
+        ts_sdk::pad::set_mkb_active(keyboard_method);
+        ts_sdk::pad::set_input_style(if keyboard_method { 3 } else { LAST_STYLE.load(std::sync::atomic::Ordering::Relaxed) });
     }
 }
 
@@ -461,9 +454,6 @@ impl ApplicationHandler for App {
                                 }
                             }
                             self.keys.insert(code);
-                            if !matches!(code, KeyCode::F1 | KeyCode::F2 | KeyCode::F3 | KeyCode::F10 | KeyCode::F11) {
-                                ts_sdk::pad::set_mkb_active(true);
-                            }
                         }
                         ElementState::Released => {
                             self.keys.remove(&code);
@@ -496,9 +486,6 @@ impl ApplicationHandler for App {
                 let down = state == ElementState::Pressed;
                 // (only a level takes the mouse's buttons: in the menus a click does nothing)
                 let live = ts_game::mouse_look_active() && self.focused;
-                if live {
-                    ts_sdk::pad::set_mkb_active(true);
-                }
                 match button {
                     MouseButton::Left => self.kbm.left = down && live,
                     MouseButton::Right => self.kbm.right = down && live,
@@ -538,9 +525,6 @@ impl ApplicationHandler for App {
     fn device_event(&mut self, _el: &ActiveEventLoop, _id: winit::event::DeviceId, event: winit::event::DeviceEvent) {
         if let winit::event::DeviceEvent::MouseMotion { delta } = event {
             if self.grabbed {
-                if delta.0 != 0.0 || delta.1 != 0.0 {
-                    ts_sdk::pad::set_mkb_active(true);
-                }
                 let k = crate::config::get().mouse_sensitivity as f64;
                 ts_sdk::pad::mouse_move(delta.0 * k, delta.1 * k);
             }

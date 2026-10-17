@@ -66,7 +66,7 @@ pub struct Config {
     pub look_sensitivity: f32,
     /// the MapMaker has no limit of what a map holds
     pub mapmaker_unlimited: bool,
-    /// 0 auto (what was used last), 1 controller, 2 keyboard and mouse
+    /// 0 controller, 1 keyboard and mouse
     pub input_method: u8,
 }
 
@@ -96,7 +96,7 @@ impl Default for Config {
             bot_punch: true,
             look_sensitivity: 1.0,
             mapmaker_unlimited: false,
-            input_method: 0,
+            input_method: 1,
         }
     }
 }
@@ -155,8 +155,8 @@ bots_punch = true
 # turning speed of the right stick (1 = as the game has it); also a row of the Controls page
 look_sensitivity = 1
 
-# which device plays: auto (the one used last), controller or keyboard; also a row of the Controls page
-input_method = auto
+# which device plays a level: controller or keyboard (and mouse); also a row of the Controls page
+input_method = keyboard
 
 # the MapMaker has no limit of what a map holds (the FREE bar is not shown); also a row of the MapMaker's Options page
 mapmaker_unlimited = false
@@ -222,9 +222,8 @@ impl Config {
             "look_sensitivity" => self.look_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.1, 5.0),
             "input_method" => {
                 self.input_method = match value.trim().to_ascii_lowercase().as_str() {
-                    "auto" => 0,
-                    "controller" | "gamepad" => 1,
-                    "keyboard" | "mouse" | "keyboard_mouse" => 2,
+                    "controller" | "gamepad" => 0,
+                    "keyboard" | "mouse" | "keyboard_mouse" | "auto" => 1,
                     _ => return Err(bad()),
                 }
             }
@@ -413,7 +412,7 @@ impl Config {
             ("bots_punch", self.bot_punch.to_string()),
             ("look_sensitivity", format!("{}", self.look_sensitivity)),
             ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),
-            ("input_method", ["auto", "controller", "keyboard"][self.input_method.min(2) as usize].to_string()),
+            ("input_method", ["controller", "keyboard"][self.input_method.min(1) as usize].to_string()),
         ];
         let mut out = String::new();
         for line in TEMPLATE.lines() {

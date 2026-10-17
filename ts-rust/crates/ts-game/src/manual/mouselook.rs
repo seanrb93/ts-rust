@@ -15,6 +15,11 @@ pub fn mouse_look_active() -> bool {
     lw(g::gamestate) == 3 && lw(g::lvfirstframe_130) == 0 && lw(g::gamepaused) == 0 && lw(g::replaymode) == 0 && lw(lw(g::front) + 20) == 0 && lw(g::players) != 0
 }
 
+/// A level is being played (a pause or a menu on top of it does not matter).
+pub fn level_running() -> bool {
+    lw(g::gamestate) == 3
+}
+
 /// A one-player level is being played: any controller can be the player's then.
 pub fn single_player_level() -> bool {
     lw(g::gamestate) == 3 && lw(g::lvnumplayers) <= 1
