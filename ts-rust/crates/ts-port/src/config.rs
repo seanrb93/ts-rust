@@ -70,8 +70,8 @@ pub struct Config {
     pub mapmaker_unlimited: bool,
     /// 0 controller, 1 keyboard and mouse
     pub input_method: u8,
-    /// volume of the groups of sound effects in tenths (weapons, impacts, voices, ambience, the rest), 10 = as the game has it
-    pub sound_mix: [u8; 5],
+    /// volume of the groups of sound effects in percent (weapons, voices, environment), 100 = as the game has it
+    pub sound_mix: [u8; 3],
 }
 
 impl Default for Config {
@@ -102,7 +102,7 @@ impl Default for Config {
             look_sensitivity: 1.0,
             mapmaker_unlimited: false,
             input_method: 1,
-            sound_mix: [10; 5],
+            sound_mix: [100; 3],
         }
     }
 }
@@ -158,7 +158,7 @@ dual_wield_all = true
 # bots that have no weapon (Always start with gun: No, and none to pick up) go after their target and punch it, instead of standing still; also a row of the Game Options page
 bots_punch = true
 
-# the frame rate and timing figures drawn over the picture (F3 switches them too); also a row of the Game Options page
+# the frame rate drawn in a corner of the picture; also a row of the Game Options page
 show_fps = false
 
 # turning speed of the right stick (1 = as the game has it); also a row of the Controls page
@@ -167,12 +167,11 @@ look_sensitivity = 1
 # which device plays a level: controller or keyboard (and mouse); also a row of the Controls page
 input_method = keyboard
 
-# volume of the kinds of sound effects, 0 to 100 (the game's own Sound volume applies to all of them); also rows of the Audio Options page, second page
+# volume of the kinds of sound effects, 0 to 100: weapons (and what they hit), voices, the environment (everything else); the game's own Sound volume applies
+# to all of them; also sliders of the Audio Options page, second page
 volume_weapons = 100
-volume_impacts = 100
 volume_voices = 100
-volume_ambience = 100
-volume_effects = 100
+volume_environment = 100
 
 # the MapMaker has no limit of what a map holds (the FREE bar is not shown); also a row of the MapMaker's Options page
 mapmaker_unlimited = false
@@ -244,10 +243,12 @@ impl Config {
                     _ => return Err(bad()),
                 }
             }
-            "volume_weapons" | "volume_impacts" | "volume_voices" | "volume_ambience" | "volume_effects" => {
-                let k = ["volume_weapons", "volume_impacts", "volume_voices", "volume_ambience", "volume_effects"].iter().position(|n| *n == key).unwrap_or(0);
-                self.sound_mix[k] = (value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.0, 100.0) / 10.0).round() as u8;
+            "volume_weapons" | "volume_voices" | "volume_environment" => {
+                let k = ["volume_weapons", "volume_voices", "volume_environment"].iter().position(|n| *n == key).unwrap_or(0);
+                self.sound_mix[k] = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.0, 100.0).round() as u8;
             }
+            // (the first version had five kinds)
+            "volume_impacts" | "volume_ambience" | "volume_effects" => {}
             "mouse_sensitivity" => self.mouse_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.05, 10.0),
             "stick_sensitivity" | "stick_gain" => self.stick_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.5, 3.0),
             "fov" => self.fov = value.trim().parse().map_err(|_| bad())?,
@@ -358,7 +359,7 @@ pub fn update(f: impl FnOnce(&mut Config)) {
 
 fn apply_sound_mix(c: &Config) {
     for (group, &tenths) in c.sound_mix.iter().enumerate() {
-        ts_audio::set_group_volume(group, tenths as f32 / 10.0);
+        ts_audio::set_group_volume(group, tenths as f32 / 100.0);
     }
 }
 
@@ -417,7 +418,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 30] = [
+        let vals: [(&str, String); 28] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -443,11 +444,9 @@ impl Config {
             ("look_sensitivity", format!("{}", self.look_sensitivity)),
             ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),
             ("input_method", ["controller", "keyboard"][self.input_method.min(1) as usize].to_string()),
-            ("volume_weapons", (self.sound_mix[0] as u32 * 10).to_string()),
-            ("volume_impacts", (self.sound_mix[1] as u32 * 10).to_string()),
-            ("volume_voices", (self.sound_mix[2] as u32 * 10).to_string()),
-            ("volume_ambience", (self.sound_mix[3] as u32 * 10).to_string()),
-            ("volume_effects", (self.sound_mix[4] as u32 * 10).to_string()),
+            ("volume_weapons", self.sound_mix[0].to_string()),
+            ("volume_voices", self.sound_mix[1].to_string()),
+            ("volume_environment", self.sound_mix[2].to_string()),
         ];
         let mut out = String::new();
         for line in TEMPLATE.lines() {

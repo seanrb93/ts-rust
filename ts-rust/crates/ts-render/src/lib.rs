@@ -1299,6 +1299,10 @@ impl Renderer {
                     // anchored to the screen's side on the map screen and stays in the middle in a panel
                     let (lo, hi) = r.iter().fold((f32::MAX, f32::MIN), |(l, h), v| (l.min(v.pos[0]), h.max(v.pos[0])));
                     let mid = (lo + hi) * 0.5;
+                    if std::env::var_os("TS_MAPDBG").is_some() {
+                        let (ylo, yhi) = r.iter().fold((f32::MAX, f32::MIN), |(l, h), v| (l.min(v.pos[1]), h.max(v.pos[1])));
+                        eprintln!("[map] 3d draw {i} {:?} x {lo:.0}..{hi:.0} y {ylo:.0}..{yhi:.0} tris {} tex {:?} modal {mm_modal}", d.topology, r.len() / 3, st.tex.map(|t| (t.tbp0, t.tw, t.th)));
+                    }
                     for v in r.iter_mut() {
                         v.pos[0] = if mm_modal || (LOGICAL_W / 3.0..=LOGICAL_W * 2.0 / 3.0).contains(&mid) {
                             LOGICAL_W * 0.5 + (v.pos[0] - LOGICAL_W * 0.5) / k
@@ -1486,9 +1490,10 @@ impl Renderer {
                     } else if hi - lo > LOGICAL_W * 0.5 {
                         // big art (scope overlays) stays centred
                         Box::new(centre)
-                    } else if mm_grid && !mm_modal && (members.len() == 2 && st.tex.map_or(false, |t| t.tw <= 4 && t.th <= 4) || !((yhi < 62.0) || (yhi < 90.0 && (hi < 72.0 || lo > 440.0)) || (lo > 440.0 && ylo > 125.0))) {
+                    } else if mm_grid && !mm_modal && (members.len() == 2 && st.tex.map_or(false, |t| t.tw <= 4 && t.th <= 4) || (st.tex.is_none() && yhi - ylo >= 12.0) || !((yhi < 62.0) || (yhi < 90.0 && (hi < 72.0 || lo > 440.0)) || (lo > 440.0 && ylo > 125.0))) {
                         // MapMaker map screen: everything that is not part of the screen's HUD (the placed tiles, the held
-                        // tile, the cursor: a small picture of 16x16 texels, wherever it is, also under the right side's legend) belongs to the map and moves with the grid, whichever third it is in
+                        // tile, the cursor: a small picture of 16x16 texels; the held tile and the placed ones are shapes without a texture that are
+                        // not a thin bar like FREE; wherever they are, also under the right side's legend) belongs to the map and moves with the grid, whichever third it is in
                         Box::new(centre)
                     } else if edges {
                         if mid < LOGICAL_W / 3.0 {

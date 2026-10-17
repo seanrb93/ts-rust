@@ -156,7 +156,7 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
         p.config.present_mode = want_mode;
         p.surface.configure(p.renderer.device(), &p.config);
     }
-    // (the FPS / timing figures: the Game Options row, F3 too)
+    // (the frame rate: the FPS Counter row of Game Options)
     p.renderer.overlay_text = if cfg.show_fps {
         ts_sdk::perf::fps()
     } else {
@@ -455,10 +455,6 @@ impl ApplicationHandler for App {
                                 }
                                 if code == KeyCode::F2 && crate::config::get().debug_menu {
                                     ts_game::request_debug_menu();
-                                }
-                                if code == KeyCode::F3 {
-                                    crate::config::update(|c| c.show_fps = !c.show_fps);
-                                    crate::config::get().save();
                                 }
                                 if code == KeyCode::F10 {
                                     std::process::exit(0);

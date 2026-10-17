@@ -1,4 +1,5 @@
-//! Separate volumes for kinds of sound effects (Audio Options, second page): weapons, impacts, voices, ambience and the rest.
+//! Separate volumes for kinds of sound effects (Audio Options, second page): weapons (with what they hit), voices, and the environment (the
+//! rest: ambience, pickups, menus).
 //!
 //! The game plays every effect from one sample memory and has a single Sound volume.  The mixer (`ts-audio`) asks, when a voice
 //! starts, which group the sample at its address belongs to; the answer is found from the game's table of sounds (`g::sounds`: 36
@@ -9,11 +10,12 @@ use crate::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+/// gunfire, explosions, reloads, punches, and what they hit (bullet impacts, ricochets, bodies falling, glass)
 pub const WEAPONS: u8 = 0;
-pub const IMPACTS: u8 = 1;
-pub const VOICES: u8 = 2;
-pub const AMBIENCE: u8 = 3;
-pub const EFFECTS: u8 = 4;
+/// characters and announcers
+pub const VOICES: u8 = 1;
+/// everything else: ambience, machines, pickups, menus
+pub const ENVIRONMENT: u8 = 2;
 
 /// number of sounds in the game's table
 const SOUNDS: i32 = 0xaadc / 36;
@@ -27,7 +29,7 @@ pub fn group_of(path: &str) -> u8 {
     let name = path.rsplit(['/', ':']).next().unwrap_or(path).to_ascii_lowercase();
     let name = name.trim_end_matches(".vag");
     if has(name, &["bullet_hit", "bullet_impact", "ricochet", "spacerico", "bodyfall", "bonecrack", "bounce", "brickhit", "dyingfall", "smashglass"]) {
-        IMPACTS
+        WEAPONS
     } else if name.starts_with("fem_")
         || name.starts_with("male")
         || name.starts_with("female")
@@ -35,19 +37,19 @@ pub fn group_of(path: &str) -> u8 {
     {
         VOICES
     } else if has(name, &["pickup", "getgun", "drop_gun", "bag_", "respawn", "level_", "countdown", "timeup", "headsup", "map0", "map1", "map2", "front/", "blank01", "placeholder", "timed_mine_count"]) {
-        EFFECTS
+        ENVIRONMENT
     } else if has(
         name,
         &["roomtone", "_hum", "fan", "wind", "waterfall", "lorry", "plane", "jet", "clock", "chime", "gong", "neonsign", "pub_sign", "door", "chain_fence", "camera_alarm", "chopper", "hovering", "steam", "pulsing", "wolf", "feathers", "gunshots", "launch_engine", "tone", "crow", "elecloop", "lab_spark", "roomhum"],
     ) {
-        AMBIENCE
+        ENVIRONMENT
     } else if has(
         name,
         &["gun", "colt", "uzi", "m16", "walther", "sniper", "shotgun", "laser", "rocket", "grenade", "hybrid", "turok", "handgun", "mine", "tnt", "zippo", "brick", "throw", "blast", "fireball", "compound", "reload", "cock", "swipe", "punch", "_me_", "scifi_sniper", "withbullet", "with_bullet"],
     ) {
         WEAPONS
     } else {
-        EFFECTS
+        ENVIRONMENT
     }
 }
 

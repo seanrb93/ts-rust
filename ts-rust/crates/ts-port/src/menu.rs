@@ -177,19 +177,19 @@ impl ts_game::AvOptions for PortAv {
     }
 
     fn audio_rows(&self) -> Vec<ts_game::AvRow> {
+        // (sliders: the value is the volume in percent)
         let c = config::get();
-        let values = || (0..=10).map(|t| if t == 0 { "Off".to_string() } else { (t * 10).to_string() }).collect::<Vec<_>>();
-        ["Weapon Volume", "Impact Volume", "Voice Volume", "Ambience Volume", "Effects Volume"]
+        ["Weapon Volume", "Voice Volume", "Environment Volume"]
             .iter()
             .enumerate()
-            .map(|(i, label)| ts_game::AvRow { label: (*label).into(), values: values(), index: c.sound_mix[i].min(10) as usize })
+            .map(|(i, label)| ts_game::AvRow { label: (*label).into(), values: Vec::new(), index: c.sound_mix[i].min(100) as usize })
             .collect()
     }
 
-    fn set_audio(&self, row: usize, index: usize) {
+    fn set_audio(&self, row: usize, percent: usize) {
         config::update(|c| {
             if let Some(v) = c.sound_mix.get_mut(row) {
-                *v = index.min(10) as u8;
+                *v = percent.min(100) as u8;
             }
         });
         config::get().save();

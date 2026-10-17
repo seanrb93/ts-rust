@@ -30,7 +30,7 @@ static ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
 
 /// Groups of sound effects with a volume of their own (set by the port's Audio Options): a classifier supplied by the game says which
 /// group the sample at an SPU address belongs to.
-pub const GROUPS: usize = 5;
+pub const GROUPS: usize = 3;
 
 static GAINS: [AtomicU32; GROUPS] = [const { AtomicU32::new(0x3f80_0000) }; GROUPS];
 

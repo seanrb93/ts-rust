@@ -699,11 +699,13 @@ pub fn av_menu(page: i32) -> i32 {
     let mut srcs = Vec::with_capacity(entries.len());
     for (i, (row, src_of)) in entries.iter().enumerate() {
         let gv = GV_AT + 0x40 * i as i32;
-        copy(gv, g::gv_playsound, 0x30);
-        let index = row.index.min(row.values.len().saturating_sub(1));
+        // (a volume is a slider like the game's own: its value is the percent, the bar is drawn by the item)
+        let slider = matches!(src_of, Src::Sound(_));
+        copy(gv, if slider { g::gv_soundvolume } else { g::gv_playsound }, 0x30);
+        let index = if slider { row.index.min(100) } else { row.index.min(row.values.len().saturating_sub(1)) };
         sw(gv, index as i32);
         sw(gv + 4, 0);
-        sw(gv + 8, row.values.len() as i32 - 1);
+        sw(gv + 8, if slider { 100 } else { row.values.len() as i32 - 1 });
         sw(gv + 12, 0); // wraps around at the ends
         sw(gv + 16, lists);
         sw(gv + 20, 0);
@@ -721,15 +723,21 @@ pub fn av_menu(page: i32) -> i32 {
         let label = put_str(&mut strs, &row.label);
         let it = item(4 + i as i32);
         let (col, slot) = layout().row_pos(i);
+        if slider {
+            // (made from the game's own volume item: a label with the bar under it, two lines)
+            copy(it, src + 16 + 32, 32);
+        }
         sw(it, label);
-        place(it, col, if item_shown(FIRST_ID + i as i32) { slot } else { OFF_SCREEN });
-        sw(it + 8, (0x04 << 16) | (FIRST_ID + i as i32));
+        place(it, col, if item_shown(FIRST_ID + i as i32) { slot * if slider { 2 } else { 1 } } else { OFF_SCREEN });
+        sw(it + 8, ((if slider { 0x0c } else { 0x04 }) << 16) | (FIRST_ID + i as i32));
         sw(it + 12, gv);
         sw(it + 16, nav(FIRST_ID + i as i32));
-        sw(it + 20, 0);
-        sw(it + 24, 0);
-        sw(it + 28, 0);
-        fit_arrows(gv, value_ptrs.get(index).copied().unwrap_or(label), col, arrows_shown(FIRST_ID + i as i32));
+        if !slider {
+            sw(it + 20, 0);
+            sw(it + 24, 0);
+            sw(it + 28, 0);
+        }
+        fit_arrows(gv, value_ptrs.get(index).copied().unwrap_or(label), col, !slider && arrows_shown(FIRST_ID + i as i32));
         shown.push(index);
         srcs.push(*src_of);
     }
@@ -813,7 +821,7 @@ fn navigate(page: i32, n: usize) {
     let id = lhu(page + 4) as i32;
     let flags = lw(front + 12);
     let pressed = joyNewBut(lw(front));
-    let slider = id == 2 || id == 4;
+    let slider = id == 2 || id == 4 || (id >= FIRST_ID && mode() == Mode::Audio);
     let gv = match id {
         1 => Some(g::gv_playmusic),
         2 => Some(g::gv_musicvolume),
