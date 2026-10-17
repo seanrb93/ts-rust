@@ -83,6 +83,7 @@ pub fn dual_combo(_place: i32, combo: i32) -> i32 {
 
 /// A game starts (`gameReset`).
 pub fn dual_reset() {
+    own_clear_all();
     PUNCHES.lock().unwrap().clear();
 }
 

@@ -295,6 +295,17 @@ pub fn present_frame() {
         let owned: Vec<i32> = (0..combo_count()).filter(|&c| own_get(s, c) != 0).collect();
         eprintln!("[combo] f{} combo {} next {} owned {:?} left {} right {}", ts_sdk::frame_count(), lw(s + 260), lw(s + 264), owned, lw(s + 376), lw(s + 268));
     }
+    // test aid: TS_GIVE=<frame>:<combo> gives player 1 the weapon at that frame of a level
+    if let (Ok(v), true) = (std::env::var("TS_GIVE"), lw(g::gamestate) == 3) {
+        if let Some((f, c)) = v.split_once(':') {
+            if f.parse::<u64>().ok() == Some(ts_sdk::frame_count() as u64) {
+                let s = lw(lw(lw(g::players) + 384) + 352);
+                let c: i32 = c.parse().unwrap_or(0);
+                own_set(s, c);
+                gunSetAmmoToMax(s, c);
+            }
+        }
+    }
     if std::env::var_os("TS_TEAMPLAY").is_some() && lw(g::gamestate) != 3 {
         sw(g::gv_teamplay, 1);
     }

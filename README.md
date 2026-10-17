@@ -216,11 +216,21 @@ limit on what a map can hold and hides the FREE bar (`mmoptions.rs`, `mapmaker_u
 ## Dual versions of every weapon, and story with more players
 
 The weapon page of the custom weapon sets lists a dual version ("Uzi (x2)") after the weapons for each weapon that the game only has in one hand
-(`manual/dualwield.rs`).  The game's weapon combinations are indexed everywhere (what a player owns, ammo, statistics, pickups), so the new
-entries are not combinations: an entry of a set that is a dual version is given to the game as the single weapon, and for that match the single
-weapon's combination has a left gun as well, so the weapon is dual wielded wherever it is (the pickups of it in the level are the pair).  The
-game's own pairs (Pistol (x2), ...) are unchanged and so are the presets.  Left hands: `gunUpdate` only let a hand take its turn when the weapon had a clip, so rockets, the blunderbuss, mines, TNT and the brick fired from the right hand only; the turn is now taken from the hands' timers for those weapons too (patch), and the dynamite and the brick are rolled over by 95 degrees in the left hand (their models are not mirrored by the attachment).  The weapon page's list box is wider and the selected-weapons box (with the set's value and arrows) is 24 units further right; the message of a pickup shows the dual name for a weapon that is dual in the match (`pickup_name`).  STORY can be started with three and four players
-(`gametype_pageTick` patch).  With four players the black frame around the panes is only the gap between them.
+(`manual/dualwield.rs`, `manual/weapontable.rs`).  The dual versions are weapon combinations of their own, like the game's own pairs
+(Pistol (x2), ...): the table of the combinations (`guncombos`, 33 entries, with `gunsinventory` right behind it) is moved to the port's memory
+(`GUNCOMBOS` / `GUNSINV`, `tools/patches.py` GLOBAL) with room for 64, and a combination with the same gun in both hands is added for each of the
+16 weapons that have none (numbers 33 to 48, the rank a little below the single weapon's, after it in the order of the cycling, the name with
+" (x2)").  A set can therefore have a weapon and its dual version, with separate pickups.  What the game keeps per combination in other places had
+room for 33 only: what a character owns (`chr + 488`, right before the ammo) is kept for the added ones in a table of the port (`own_get`, `own_set`,
+`own_clear`, patched into `gunShouldSwitchTo`, `gunPickedUpAmmo`, `pickupPropTick`, `playerSetStartGun`, `chrClearGuns`), the statistics count a
+dual version with its single weapon (`stats_combo`), the cycling (`getnextcombo`, `getprevcombo`, `getmostpowerfulcombo`) and the range checks of
+`pickupPropTick`, `propDrop` and `playerSetStartGun` use `combo_count()`.  With the **Dual Wield Everything** option off the added versions are not
+listed and an entry of a set that is one is the single weapon.  Test aids: `TS_COMBOLOG` (the table, the weapon and what player 1 owns, and every
+pickup of an added version), `TS_GIVE=<frame>:<combo>`.  Left hands: `gunUpdate` only let a hand take its turn when the weapon had a clip, so rockets,
+the blunderbuss, mines, TNT and the brick fired from the right hand only; the turn is now taken from the hands' timers for those weapons too (patch),
+and the dynamite and the brick are rolled over by 95 degrees in the left hand (their models are not mirrored by the attachment).  The weapon page's
+list box is wider and the selected-weapons box (with the set's value and arrows) is 24 units further right.  With four players the black frame around
+the panes is only the gap between them.
 
 ## Two fists
 

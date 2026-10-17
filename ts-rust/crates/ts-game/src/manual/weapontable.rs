@@ -116,6 +116,11 @@ pub fn own_set(chr: i32, combo: i32) {
     *OWNED.lock().unwrap().get_or_insert_with(HashMap::new).entry(chr).or_insert(0) |= 1 << bit;
 }
 
+/// A game starts: nobody owns an added pair.
+pub fn own_clear_all() {
+    *OWNED.lock().unwrap() = None;
+}
+
 /// The character has no guns (`chrClearGuns`).
 pub fn own_clear(chr: i32) {
     if let Some(m) = OWNED.lock().unwrap().as_mut() {
