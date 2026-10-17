@@ -105,7 +105,44 @@ FUNCS = {
         ('            s7_1 = g::window;'+chr(10)+'            s2_1 = s5_1;', '            if s3_1 == g::gv_weaponset && weapons_page_active() {'+chr(10)+'                s5_1 = s5_1 + 24;'+chr(10)+'            }'+chr(10)+'            s7_1 = g::window;'+chr(10)+'            s2_1 = s5_1;', 1),
     ],
     # the name of a dual weapon in the message of its pickup
-    'pickupPropTick': [('a2_9 = lw(a3_4);', 'a2_9 = pickup_name(lw(s4_1 + 12), lw(a3_4));', 1)],
+    'pickupPropTick': [
+        ('a2_9 = lw(a3_4);', 'a2_9 = pickup_name(lw(s4_1 + 12), lw(a3_4));', 1),
+        # the weapon table with the added pairs (manual/weapontable.rs): the combinations go up to combo_count() - 1, what a character owns of
+        # the added ones is kept by own_get / own_set
+        (' '*16+'if ((a0_24 - 1) as u32) >= (32 as u32) {', ' '*16+'if ((a0_24 - 1) as u32) >= ((combo_count() - 1) as u32) {', 1),
+        (' '*20+'if ((a0_25 - 1) as u32) >= (32 as u32) {', ' '*20+'if ((a0_25 - 1) as u32) >= ((combo_count() - 1) as u32) {', 1),
+        (' '*28+'s0_5 = lw(v1_7);', ' '*28+'s0_5 = own_get(s6_1, lw(s4_1 + 12));', 1),
+        (' '*28+'sw(v1_7, 1);', ' '*28+'own_set(s6_1, lw(s4_1 + 12));', 1),
+        (' '*36+'if (lw(a1_19 * 400 + (g::guns + 28)) & 2) != 0 {', ' '*36+'if (if a1_19 < 33 { lw(a1_19 * 400 + (g::guns + 28)) } else { 0 } & 2) != 0 {', 1),
+    ],
+    # the weapon table with the added pairs (manual/weapontable.rs)
+    'getnextcombo': [
+        (' '*8+'if s2_1 >= 33 {', ' '*8+'if s2_1 >= combo_count() {', 1),
+        (' '*8+'s0_3 = if s0_2 >= 33 { s4_1 } else { s0_2 };', ' '*8+'s0_3 = if s0_2 >= combo_count() { s4_1 } else { s0_2 };', 1),
+    ],
+    'getprevcombo': [
+        (' '*8+'if s2_1 >= 33 {', ' '*8+'if s2_1 >= combo_count() {', 1),
+        (' '*4+'s0_3 = if s0_2 < s4_1 { 32 } else { s0_2 };', ' '*4+'s0_3 = if s0_2 < s4_1 { combo_count() - 1 } else { s0_2 };', 1),
+        (' '*8+'s0_3 = if s0_4 < s4_1 { 32 } else { s0_4 };', ' '*8+'s0_3 = if s0_4 < s4_1 { combo_count() - 1 } else { s0_4 };', 1),
+    ],
+    'getmostpowerfulcombo': [(' '*8+'if s0_1 >= 33 {', ' '*8+'if s0_1 >= combo_count() {', 1)],
+    'gunShouldSwitchTo': [(' '*12+'if lw(a0 + (a1 << 2) + 488) == 0 {', ' '*12+'if own_get(a0, a1) == 0 {', 1)],
+    'gunPickedUpAmmo': [
+        (' '*28+'if lw(a5_1) != 0 {', ' '*28+'if own_get(a0, a6_1) != 0 {', 1),
+        (' '*24+'if a6_1 >= 33 {', ' '*24+'if a6_1 >= combo_count() {', 1),
+    ],
+    'playerSetStartGun': [
+        (' '*4+'if (v0_2 as u32) >= (32 as u32) {', ' '*4+'if (v0_2 as u32) >= ((combo_count() - 1) as u32) {', 1),
+        (' '*4+'sw(s0_1 + (a2_1 << 2) + 488, 1);', ' '*4+'own_set(s0_1, a2_1);', 1),
+    ],
+    'chrClearGuns': [(' '*12+'sw(a0 + 260, 0);', ' '*12+'own_clear(a0);'+chr(10)+' '*12+'sw(a0 + 260, 0);', 1)],
+    'propDrop': [
+        (' '*12+'if ((a0_2 - 1) as u32) < (32 as u32) {', ' '*12+'if ((a0_2 - 1) as u32) < ((combo_count() - 1) as u32) {', 1),
+        (' '*16+'if ((a0_3 - 1) as u32) < (32 as u32) {', ' '*16+'if ((a0_3 - 1) as u32) < ((combo_count() - 1) as u32) {', 1),
+    ],
+    'StatsGetGun': [('pub fn StatsGetGun(mut a0: i32, mut a1: i32, mut a2: i32) -> f32 {'+chr(10), 'pub fn StatsGetGun(mut a0: i32, mut a1: i32, mut a2: i32) -> f32 {'+chr(10)+'    a2 = stats_combo(a2);'+chr(10), 1)],
+    'StatsSetGun': [('pub fn StatsSetGun(mut a0: i32, mut a1: i32, mut a2: i32, mut f12: f32) {'+chr(10), 'pub fn StatsSetGun(mut a0: i32, mut a1: i32, mut a2: i32, mut f12: f32) {'+chr(10)+'    a2 = stats_combo(a2);'+chr(10), 1)],
+    'StatsAddGun': [('pub fn StatsAddGun(mut a0: i32, mut a1: i32, mut a2: i32, mut f12: f32) {'+chr(10), 'pub fn StatsAddGun(mut a0: i32, mut a1: i32, mut a2: i32, mut f12: f32) {'+chr(10)+'    a2 = stats_combo(a2);'+chr(10), 1)],
     # the prompt that asks whether to save the game's data after a match is answered with Yes (X)
     # (and so is the message that follows it, "Save completed", which has only an OK)
     # the title of the pause menu's pages: the name of the page

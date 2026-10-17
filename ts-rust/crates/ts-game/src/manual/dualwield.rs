@@ -1,54 +1,20 @@
 //! Dual versions of the weapons that have none: "Uzi (x2)" next to "Uzi", for the weapons that the game only has in one hand.
 //!
-//! The game's weapon combinations (`guncombos`, 8 bytes each: rank, left gun, right gun, name) name the gun of each hand; a combination with
-//! a left gun is a pair ("Pistol (x2)").  Everything else in the game (what a player owns, the ammo, the statistics, the pickups in the
-//! levels) is indexed by the 33 combinations, so the new pairs are not combinations of their own: they are entries of the weapon
-//! lists of the custom weapon sets, with the numbers from 33 up (`weapons_list_extend` adds them to the list the weapon page shows,
-//! `combo_name` gives the name).  When a match starts the game asks for the combinations of the set (`frontmpgGetGunComboNum`): an entry
-//! that is a pair is given as its single weapon and the weapon is remembered; while a match is played the single weapon's combination
-//! has a left gun too, so the weapon is dual wielded wherever it is: the pickups of the weapon in the level are the pair.
+//! The pairs are combinations of their own (`weapontable.rs`: numbers 33 and up), so a set of weapons can have a weapon and its pair, the
+//! weapon page lists them after the single weapons (`weapons_list_extend`), `combo_name` gives their names.  With the Dual Wield
+//! Everything option off the pairs are not listed, and an entry of a set that is a pair is the single weapon (`dual_combo`).
 
 use crate::*;
 use std::sync::Mutex;
 
-/// the first number of the new entries
-const FIRST: i32 = 33;
-/// the number of combinations that are single or paired weapons (the entries after them are the game's own special ones)
-const COMBOS: i32 = 33;
+/// the first number of the added pairs
+const FIRST: i32 = GAME_COMBOS;
 /// the game's list of the weapons of the weapon page and its count
 const LIST: i32 = 0x1fc2a00;
 const COUNT: i32 = 0x3aff4c;
 const NAME_AT: i32 = 0x240_0000 + 0xb000;
 
-struct State {
-    /// the combinations as the game has them: (left gun, right gun, name) of each
-    original: Vec<(i32, i32, i32)>,
-    /// the single combinations that have no pair: entry `FIRST + k` is the pair of `singles[k]`
-    singles: Vec<i32>,
-    /// the combinations that are dual wielded in the match that is set up
-    dual: [bool; COMBOS as usize],
-}
-
-static STATE: Mutex<Option<State>> = Mutex::new(None);
-
-fn with<R>(f: impl FnOnce(&mut State) -> R) -> R {
-    let mut g = STATE.lock().unwrap();
-    let st = g.get_or_insert_with(|| {
-        let original: Vec<(i32, i32, i32)> = (0..COMBOS).map(|k| (lhu(GUNCOMBOS + 8 * k + 2), lhu(GUNCOMBOS + 8 * k + 4), lhu(GUNCOMBOS + 8 * k + 6))).collect();
-        let paired: Vec<i32> = original.iter().filter(|c| c.0 != 0xffff && c.0 == c.1).map(|c| c.1).collect();
-        // (the fists have no gun; a single weapon whose pair is another combination has its pair already)
-        let singles = (1..COMBOS).filter(|&k| original[k as usize].0 == 0xffff && original[k as usize].1 != 0xffff && !paired.contains(&original[k as usize].1)).collect();
-        State { original, singles, dual: [false; COMBOS as usize] }
-    });
-    f(st)
-}
-
-/// The number of the weapon of a new entry (the single combination), if the entry is one.
-fn single_of(id: i32) -> Option<i32> {
-    with(|s| s.singles.get((id - FIRST) as usize).copied()).filter(|_| id >= FIRST)
-}
-
-/// The name of a combination or of a new entry ("Uzi (x2)"), as text in memory.
+/// The name of a combination or of an added pair ("Uzi (x2)"), as text in memory.
 pub fn combo_name(id: i32) -> i32 {
     let lang = lw(g::cur_language);
     let table = lw(g::languages + 4 * lang);
@@ -76,17 +42,16 @@ pub fn weapons_page_active() -> bool {
     at != 0 && (ts_sdk::frame_count() as u64) <= at + 2
 }
 
-/// The name that the message of a pickup of the weapon `combo` shows: `name` (the game's) or, when the weapon is dual wielded in this
-/// match, the name of its dual version.
+/// The name that the message of a pickup of the weapon `combo` shows: `name` (the game's) or, for an added pair, its own.
 pub fn pickup_name(combo: i32, name: i32) -> i32 {
-    let dual = with(|s| (combo >= 0 && combo < COMBOS && s.dual[combo as usize]).then(|| s.singles.iter().position(|&c| c == combo)).flatten());
-    match dual.filter(|_| ts_sdk::dual_all()) {
-        Some(k) => combo_name(FIRST + k as i32),
-        None => name,
+    if single_of(combo).is_some() {
+        combo_name(combo)
+    } else {
+        name
     }
 }
 
-/// `weapons_pageTick`, after it made the list of the weapons that can be chosen: the new pairs follow the singles they are made from.
+/// `weapons_pageTick`, after it made the list of the weapons that can be chosen: the added pairs follow the singles they are made from.
 pub fn weapons_list_extend() {
     WEAPONS_PAGE.store(ts_sdk::frame_count() as u64, std::sync::atomic::Ordering::Relaxed);
     let n = lw(COUNT).clamp(0, 40);
@@ -94,7 +59,7 @@ pub fn weapons_list_extend() {
     if !ts_sdk::dual_all() {
         return;
     }
-    let extra: Vec<i32> = with(|s| (0..s.singles.len() as i32).filter(|&k| have.contains(&s.singles[k as usize])).map(|k| FIRST + k).collect());
+    let extra: Vec<i32> = (0..dual_count()).filter(|&k| single_of(FIRST + k).map_or(false, |s| have.contains(&s))).map(|k| FIRST + k).collect();
     let mut count = n;
     for id in extra {
         if !have.contains(&id) && count < 64 {
@@ -105,41 +70,20 @@ pub fn weapons_list_extend() {
     sw(COUNT, count);
 }
 
-/// `frontmpgGetGunComboNum`: the combination the set has at place `place`, `combo` as the game found it.  An entry that is a pair of a
-/// single weapon is given as the single weapon (and the weapon is dual wielded in the match).
-pub fn dual_combo(place: i32, combo: i32) -> i32 {
-    with(|s| {
-        if place == 0 {
-            s.dual = [false; COMBOS as usize];
-        }
-        match (combo >= FIRST).then(|| s.singles.get((combo - FIRST) as usize).copied()).flatten() {
-            Some(single) => {
-                s.dual[single as usize] = ts_sdk::dual_all();
-                single
-            }
-            None => combo,
-        }
-    })
+/// `frontmpgGetGunComboNum`: the combination the set has at place `place`, `combo` as the game found it.  An added pair is the single
+/// weapon when the pairs are switched off.
+pub fn dual_combo(_place: i32, combo: i32) -> i32 {
+    match single_of(combo) {
+        Some(single) if !ts_sdk::dual_all() => single,
+        Some(_) => combo,
+        None if combo >= FIRST => 0,
+        None => combo,
+    }
 }
 
-/// A game starts (`gameReset`): no weapon is dual wielded yet.
+/// A game starts (`gameReset`).
 pub fn dual_reset() {
     PUNCHES.lock().unwrap().clear();
-    with(|s| s.dual = [false; COMBOS as usize]);
-}
-
-/// Called every frame: while a match is played the weapons that the set has as pairs have a left gun; otherwise the table is the game's own.
-pub fn dual_wield_tick() {
-    let playing = lw(g::gamestate) != 1;
-    with(|s| {
-        for k in 0..COMBOS as usize {
-            let a = GUNCOMBOS + 8 * k as i32;
-            let want = if playing && s.dual[k] { s.original[k].1 } else { s.original[k].0 };
-            if lhu(a + 2) != want {
-                sh(a + 2, want);
-            }
-        }
-    });
 }
 
 // ---- the left fist ------------------------------------------------------------------------------------------------------------

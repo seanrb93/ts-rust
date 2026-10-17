@@ -246,7 +246,6 @@ pub fn present_frame() {
     } else if UNLOCKED.swap(false, Ordering::Relaxed) {
         sw(g::val1, 0);
     }
-    dual_wield_tick();
     // test aid: TS_SCORE=<frame> keeps every player's score box shown from then on
     if let Ok(v) = std::env::var("TS_SCORE") {
         if v.parse::<u64>().map_or(false, |f| ts_sdk::frame_count() as u64 >= f) && lw(g::gamestate) == 3 {
@@ -293,7 +292,7 @@ pub fn present_frame() {
     if std::env::var_os("TS_COMBOLOG").is_some() && lw(g::gamestate) == 3 && ts_sdk::frame_count() % 120 == 0 {
         // test aid: the weapon combination and what player 1 owns
         let s = lw(lw(lw(g::players) + 384) + 352);
-        let owned: Vec<i32> = (0..70).filter(|&c| c < 33 && lw(s + 488 + 4 * c) != 0).collect();
+        let owned: Vec<i32> = (0..combo_count()).filter(|&c| own_get(s, c) != 0).collect();
         eprintln!("[combo] f{} combo {} next {} owned {:?} left {} right {}", ts_sdk::frame_count(), lw(s + 260), lw(s + 264), owned, lw(s + 376), lw(s + 268));
     }
     if std::env::var_os("TS_TEAMPLAY").is_some() && lw(g::gamestate) != 3 {
