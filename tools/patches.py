@@ -122,6 +122,9 @@ FUNCS = {
         ('sw(s1_3 + 292, lw(g::updateframesi));', 'swc1(s1_3 + 292, lwc1(g::updateframesf));', 1),
         ('if v0_8 > 0 {\n                sw(s1_3 + 340, v0_8);', 'if f32::from_bits(v0_8 as u32) > 0.0_f32 {\n                sw(s1_3 + 340, v0_8);', 1),
         ('lwc1(s1_9 + 340).to_bits() as i32 as f32', 'lwc1(s1_9 + 340)', 1),
+        # the right stick turns the view as fast as the Controls option says
+        ('f31_1 * lwc1(0x3ad054) * (lwc1(s1_8 + 260) / 6e+01_f32) * f3_6', 'f31_1 * lwc1(0x3ad054) * ts_sdk::pad::look_sensitivity() * (lwc1(s1_8 + 260) / 6e+01_f32) * f3_6', 1),
+        ('f22_1 * lwc1(0x3ad05c) * (lwc1(s1_8 + 260) / 6e+01_f32) * lwc1(g::updateframesf)', 'f22_1 * lwc1(0x3ad05c) * ts_sdk::pad::look_sensitivity() * (lwc1(s1_8 + 260) / 6e+01_f32) * lwc1(g::updateframesf)', 1),
     ],
     'gunTick': [
         ('if v0_5 > 0 {', 'if f32::from_bits(v0_5 as u32) > 0.0_f32 {', 1),
@@ -233,6 +236,20 @@ FUNCS = {
     # a bot without a weapon in a level that has none to pick up goes after its target (bare handed) instead of standing still
     'findweapon': [(' '*32+'a0_6 = a0;'+chr(10)+' '*32+'enemySetIdleAnimation(a0_6);'+chr(10)+' '*32+'return;'+chr(10), ' '*32+'if ts_sdk::bots_punch() {'+chr(10)+' '*36+'sw(s0_1 + 2720, lw(s0_1 + 2716));'+chr(10)+' '*36+'sw(s0_1 + 2716, 128);'+chr(10)+' '*36+'sw(s0_1 + 2892, 0);'+chr(10)+' '*36+'return;'+chr(10)+' '*32+'}'+chr(10)+' '*32+'a0_6 = a0;'+chr(10)+' '*32+'enemySetIdleAnimation(a0_6);'+chr(10)+' '*32+'return;'+chr(10), 1)],
     'enemyTick': [('pub fn enemyTick(mut a0: i32) {'+chr(10), 'pub fn enemyTick(mut a0: i32) {'+chr(10)+'    bot_punch(a0);'+chr(10), 1)],
+    # the buttons in the texts are named for the device in use (manual/nativetext.rs)
+    'textPrint': [('pub fn textPrint(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32) {'+chr(10), 'pub fn textPrint(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
+    'textSize': [('pub fn textSize(mut a0: i32, mut a1: i32, mut a2: i32) {'+chr(10), 'pub fn textSize(mut a0: i32, mut a1: i32, mut a2: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
+    # the MapMaker's Options page (manual/mmoptions.rs): a slider changed with X, a row that takes the limit of the map away
+    'settings_pageTick': [
+        ('pub fn settings_pageTick(mut a0: i32) {'+chr(10), 'pub fn settings_pageTick(mut a0: i32) {'+chr(10)+'    mm_options_tick(a0);'+chr(10), 1),
+        ('s0_1 = g::settings_menu;', 's0_1 = mm_options_menu();', 1),
+    ],
+    # the slider of the MapMaker's menus shows arrows while it is being changed
+    'draw_mi': [(' '*12+'draw_slider(a0_1, a1_1, a2_1, a3_1, a4_2);'+chr(10)+' '*12+'return;', ' '*12+'draw_slider(a0_1, a1_1, a2_1, a3_1, a4_2);'+chr(10)+' '*12+'slider_arrows(a0, a0_1, a1_1);'+chr(10)+' '*12+'return;', 1)],
+    'mmUpdateMapCost': [('< 0x1389', '< mm_limit()', 1)],
+    'mmPlaceObject': [('< 0x1389', '< mm_limit()', 1)],
+    'padact_pageTick': [('< 0x1389', '< mm_limit()', 1)],
+    'mmDrawMemFree': [('pub fn mmDrawMemFree(mut a0: i32, mut a1: i32) {'+chr(10), 'pub fn mmDrawMemFree(mut a0: i32, mut a1: i32) {'+chr(10)+'    if mm_unlimited() {'+chr(10)+'        return;'+chr(10)+'    }'+chr(10), 1)],
     'weaponSetInc': [('pub fn weaponSetInc() {'+chr(10), 'pub fn weaponSetInc() {'+chr(10)+'    weapon_set_step(1);'+chr(10)+'    return;'+chr(10), 1)],
     'weaponSetDec': [('pub fn weaponSetDec() {'+chr(10), 'pub fn weaponSetDec() {'+chr(10)+'    weapon_set_step(-1);'+chr(10)+'    return;'+chr(10), 1)],
     # test aid (TS_FORCEPLAYERS=<n>): the match has n players, whatever the front end set up

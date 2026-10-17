@@ -43,6 +43,9 @@ pub struct MonitorInfo {
 
 static MONITOR: Mutex<MonitorInfo> = Mutex::new(MonitorInfo { desktop: (0, 0), modes: Vec::new() });
 
+/// The style of the controller that was used last (see `ts_sdk::pad::input_style`)
+static LAST_STYLE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
 pub fn monitor_info() -> MonitorInfo {
     MONITOR.lock().unwrap().clone()
 }
@@ -313,13 +316,29 @@ impl App {
         if SCRIPTED.load(std::sync::atomic::Ordering::Relaxed) {
             return;
         }
-        let kb = self.kbm.state(&self.keys);
+        let method = crate::config::get().input_method;
+        let mut kb = self.kbm.state(&self.keys);
+        if method == 1 {
+            // (controller only: the keyboard and mouse do nothing)
+            kb = PadState::idle(true);
+        }
         let mut pads = [Some(kb), None];
         if let Some(gp) = self.pads.as_mut() {
-            let states = gp.poll();
+            let mut states = gp.poll();
+            let styles = gp.styles();
+            if method == 2 {
+                // (keyboard and mouse only: the first controller does nothing, the others are the other players')
+                if let Some(first) = states.first_mut() {
+                    *first = PadState::idle(true);
+                }
+            }
             for (slot, state) in states.iter().copied().take(2).enumerate() {
                 // a controller that is being used (a button or a stick out of the middle) takes over from the keyboard and mouse
-                if (slot == 0 || ts_game::single_player_level()) && (state.buttons != 0 || state.sticks.iter().any(|&v| (v as i32 - 0x80).abs() > 40)) {
+                let used = state.buttons != 0 || state.sticks.iter().any(|&v| (v as i32 - 0x80).abs() > 40);
+                if used {
+                    LAST_STYLE.store(styles.get(slot).copied().unwrap_or(1), std::sync::atomic::Ordering::Relaxed);
+                }
+                if (slot == 0 || ts_game::single_player_level()) && used && method != 2 {
                     ts_sdk::pad::set_mkb_active(false);
                     // (the aim the mouse turned on is let go: it would otherwise stay pressed alongside the controller)
                     self.kbm.aiming = false;
@@ -348,6 +367,11 @@ impl App {
         for (port, p) in pads.iter().enumerate() {
             ts_sdk::set_pad_state(port, p.unwrap_or(PadState::idle(false)));
         }
+        // what the buttons are called in the game's texts
+        if method == 2 {
+            ts_sdk::pad::set_mkb_active(true);
+        }
+        ts_sdk::pad::set_input_style(if ts_sdk::pad::mkb_active() { 3 } else { LAST_STYLE.load(std::sync::atomic::Ordering::Relaxed) });
     }
 }
 

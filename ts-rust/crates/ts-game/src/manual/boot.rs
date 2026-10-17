@@ -269,6 +269,8 @@ pub fn present_frame() {
         let ids: Vec<i32> = v.split(',').filter_map(|x| x.trim().parse().ok()).collect();
         for k in 0..10 {
             sb(0x1fc2b28 + k, ids.get(k as usize).copied().unwrap_or(-1));
+            sw(0x1fc2a88 + 16 * k, ids.get(k as usize).copied().unwrap_or(-1));
+            sw(0x1fc2a88 + 16 * k + 12, 1);
         }
         sw(g::gv_chrset, 8);
     }
@@ -286,7 +288,7 @@ pub fn present_frame() {
     }
     if std::env::var_os("TS_BOTLOG").is_some() && lw(g::gamestate) == 3 && ts_sdk::frame_count() % 120 == 0 {
         let b = lw(g::chrinfo) + 0x1210;
-        eprintln!("[bot] f{} state {:#x} prev {:#x} flags {:#x} {:#x} mode {} target {:#x} gun {} combo {} pos {:.1},{:.1}", ts_sdk::frame_count(), lw(b + 2716), lw(b + 2720), lw(b + 2704), lw(b + 2708), lw(b + 2724), lw(b + 2788), lw(lw(lw(b + 3020) + 352) + 376), lw(lw(lw(b + 3020) + 352) + 260), lwc1(lw(b + 3020) + 48), lwc1(lw(b + 3020) + 56));
+        eprintln!("[bot] chars {} f{} state {:#x} prev {:#x} flags {:#x} {:#x} mode {} target {:#x} gun {} combo {} pos {:.1},{:.1}", lw(g::numactivechars), ts_sdk::frame_count(), lw(b + 2716), lw(b + 2720), lw(b + 2704), lw(b + 2708), lw(b + 2724), lw(b + 2788), lw(lw(lw(b + 3020) + 352) + 376), lw(lw(lw(b + 3020) + 352) + 260), lwc1(lw(b + 3020) + 48), lwc1(lw(b + 3020) + 56));
     }
     if std::env::var_os("TS_TEAMPLAY").is_some() && lw(g::gamestate) != 3 {
         sw(g::gv_teamplay, 1);

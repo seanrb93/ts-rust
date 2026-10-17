@@ -31,6 +31,12 @@ pub trait AvOptions: Send + Sync {
         Vec::new()
     }
     fn set_game(&self, _row: usize, _index: usize) {}
+    /// the rows of the port's own settings that are on the Controls page after the profile's (the control method, the sensitivities)
+    fn control_rows(&self) -> Vec<AvRow> {
+        Vec::new()
+    }
+    fn set_control(&self, _row: usize, _index: usize) {}
+    fn set_mapmaker_unlimited(&self, _on: bool) {}
 }
 
 static PROVIDER: OnceLock<Box<dyn AvOptions>> = OnceLock::new();
@@ -208,6 +214,10 @@ const PAUSE_ONE: Layout = Layout { pitch: 13, columns: &[(-19, 300, 390)], heade
 /// where the page says) and every picture is at most half as high, so there is room for five lines of a readable height.  The rows
 /// are on pages of five.  (A quarter-size picture of four players is narrower still: everything stays in the left half.)
 const SPLIT_PAGED: Layout = Layout { pitch: 18, columns: &[(-49, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
+/// the Controls page: twelve rows (the profile's controls, then the port's settings), on pages
+const FRONT_CTRL: Layout = Layout { pitch: 15, columns: &[(-19, 300, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (8, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: true };
+const PAUSE_CTRL: Layout = Layout { pitch: 13, columns: &[(-19, 300, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0), (8, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: true };
+const SPLIT_CTRL: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 0, 0), (10, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
 const SPLIT_ONE: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: false };
 /// the buttons of the Custom configuration: eighteen rows, on pages
 const FRONT_CUSTOM: Layout = Layout { pitch: 15, columns: &[(-49, 250, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 24, paged: true };
@@ -237,9 +247,18 @@ fn layout() -> &'static Layout {
             &PAUSE_CUSTOM
         };
     }
+    if mode() == Mode::Controls {
+        return if !in_game() {
+            &FRONT_CTRL
+        } else if lw(g::lvnumplayers) > 1 {
+            &SPLIT_CTRL
+        } else {
+            &PAUSE_CTRL
+        };
+    }
     if in_game() {
         if lw(g::lvnumplayers) > 1 {
-            if mode() == Mode::Video || mode() == Mode::Controls {
+            if mode() == Mode::Video {
                 &SPLIT_PAGED
             } else {
                 &SPLIT_ONE
@@ -258,6 +277,22 @@ fn layout() -> &'static Layout {
 
 /// Item number of the row being edited (selected with X: left and right then change its value), 0 for none.
 static EDIT: AtomicI32 = AtomicI32::new(0);
+
+/// The row being edited on the MapMaker's Options page (the same mark: the slider shows its arrows then).
+pub fn editing_row() -> i32 {
+    EDIT.load(Ordering::Relaxed)
+}
+
+pub fn set_editing_row(id: i32) {
+    EDIT.store(id, Ordering::Relaxed);
+}
+
+/// The MapMaker's limit was switched off or on (told to the port, which keeps it).
+pub fn mm_unlimited_changed(on: bool) {
+    if let Some(p) = PROVIDER.get() {
+        p.set_mapmaker_unlimited(on);
+    }
+}
 
 fn editing() -> i32 {
     EDIT.load(Ordering::Relaxed)
@@ -322,6 +357,8 @@ enum Src {
     Custom(usize),
     /// a row that opens a page of the game (View Credits, View Statistics)
     Page(i32),
+    /// a setting of the port on the Controls page
+    Port(usize),
 }
 
 /// The rows as they were given last time (the values, to see what the player changed, and what each stands for).
@@ -332,6 +369,7 @@ fn apply(src: Src, value: usize) {
     match (src, PROVIDER.get()) {
         (Src::Video(r), Some(p)) => p.set(r, value),
         (Src::Game(r), Some(p)) => p.set_game(r, value),
+        (Src::Port(r), Some(p)) => p.set_control(r, value),
         (Src::Prof(r), _) => prof_set(r, value),
         (Src::Custom(k), _) => custom_set(k, value),
         _ => {}
@@ -479,12 +517,12 @@ fn custom_rows() -> Vec<(AvRow, Src)> {
     let text = |id: i32| read_str(lw(lw(g::languages + 4 * lang) + 4 * id));
     (0..CUSTOM_ROWS as usize)
         .map(|k| {
-            let label = text(lw(g::controlsmenu_items + 32 * k as i32));
+            let label = style_words(&text(lw(g::controlsmenu_items + 32 * k as i32)));
             let cur = lw(prof + 4 + 4 * custom_idx(k));
             let (values, index): (Vec<String>, usize) = if k < 8 {
-                (vec![text(lw(g::disp_analogstick + 4)), text(lw(g::disp_analogstick + 12))], (cur >= 2) as usize)
+                (vec![style_words(&text(lw(g::disp_analogstick + 4))), style_words(&text(lw(g::disp_analogstick + 12)))], (cur >= 2) as usize)
             } else {
-                let names = (0..14).map(|i| text(lw(g::disp_buttons + 8 * i + 4))).collect();
+                let names = (0..14).map(|i| style_words(&text(lw(g::disp_buttons + 8 * i + 4)))).collect();
                 (names, (0..14).find(|&i| lw(g::gc_buttons + 4 * i) == cur).unwrap_or(0) as usize)
             };
             (AvRow { label, values, index }, Src::Custom(k))
@@ -552,7 +590,13 @@ fn rows_now() -> Vec<(AvRow, Src)> {
             rows.extend(info_pages().into_iter().map(|(label, page)| (AvRow { label: label.into(), values: vec![String::new()], index: 0 }, Src::Page(page))));
             rows
         }
-        (Mode::Controls, _) => controls_rows(),
+        (Mode::Controls, p) => {
+            let mut rows = controls_rows();
+            if let Some(p) = p {
+                rows.extend(p.control_rows().into_iter().enumerate().map(|(i, r)| (r, Src::Port(i))));
+            }
+            rows
+        }
         (Mode::Custom, _) => custom_rows(),
         _ => Vec::new(),
     }

@@ -657,6 +657,14 @@ SLUS_200.90 has to be in the same folder as the program:
     config::load(&overrides);
     ts_sdk::set_disc_root(&game_dir);
     mods::load(&exe_dir(), &exe);
+    ts_game::native_text_init();
+    // test aid: TS_BUTTONS=xbox|switch|keyboard names the buttons of that device in the texts (headless runs have no device)
+    match std::env::var("TS_BUTTONS").as_deref() {
+        Ok("xbox") => ts_sdk::pad::set_input_style(1),
+        Ok("switch") => ts_sdk::pad::set_input_style(2),
+        Ok("keyboard") => ts_sdk::pad::set_input_style(3),
+        _ => {}
+    }
     // the saves (the virtual memory card) are in the program's folder too
     let save_dir = save_dir.unwrap_or_else(|| exe_dir().join("saves"));
     eprintln!("[port] save directory: {}", save_dir.display());

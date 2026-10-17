@@ -198,6 +198,15 @@ View Statistics, and View Credits once the game has been completed).  All of the
 (its arrows appear), left / right change the value, X or triangle ends it; left / right otherwise move between the columns or the pages.
 Choosing X on the Custom configuration of the Controls page (after editing it) opens the page where each button is chosen.  `avmenu.rs` builds the tables.
 
+The Controls page also has **Look Sensitivity** (right stick), **Mouse Sensitivity** and **Control Method** (Auto, Controller, Keyboard; `input_method`
+in `ts-port.ini`).  The sensitivities scale the look speed in `playerTick`.  Button names in legends and in the Custom controls page follow the device
+in use: Xbox letters and LB / RB / LT / RT, the Switch's letters and L / R / ZL / ZR, or the keys of the keyboard; a PlayStation controller keeps the
+original pictures (`nativetext.rs`, `Pads::styles`).  The same file replaces the texts that mention the PS2 memory card, so the saves read as the
+program's own saved data.
+
+The MapMaker's Options page works like the others (X edits the Grid Intensity slider, arrows show) and has **Unlimited** (Yes / No): Yes removes the
+limit on what a map can hold and hides the FREE bar (`mmoptions.rs`, `mapmaker_unlimited` in `ts-port.ini`).
+
 ## Dual versions of every weapon, and story with more players
 
 The weapon page of the custom weapon sets lists a dual version ("Uzi (x2)") after the weapons for each weapon that the game only has in one hand

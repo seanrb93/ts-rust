@@ -180,3 +180,26 @@ pub fn set_mkb_active(on: bool) {
 pub fn mkb_active() -> bool {
     MKB_ACTIVE.load(std::sync::atomic::Ordering::Relaxed)
 }
+
+/// What the buttons of the game are called on the device being used: 0 the game's own pictures of the PlayStation's buttons (a PlayStation
+/// controller, or nothing used yet), 1 Xbox (A, B, X, Y), 2 Nintendo Switch (the same places, other letters), 3 keyboard.
+static INPUT_STYLE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+pub fn set_input_style(style: u8) {
+    INPUT_STYLE.store(style, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn input_style() -> u8 {
+    INPUT_STYLE.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// How fast the right stick (and the keys that stand for it) turns the view, as a factor (1 = as the game has it).
+static LOOK_SENS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0x3f80_0000);
+
+pub fn set_look_sensitivity(k: f32) {
+    LOOK_SENS.store(k.to_bits(), std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn look_sensitivity() -> f32 {
+    f32::from_bits(LOOK_SENS.load(std::sync::atomic::Ordering::Relaxed))
+}

@@ -54,6 +54,19 @@ impl Pads {
         }
     }
 
+    /// What the buttons of each connected controller are called (in the order of `poll`): 0 PlayStation, 1 Xbox, 2 Nintendo Switch.
+    pub fn styles(&self) -> Vec<u8> {
+        use sdl3::gamepad::GamepadType as T;
+        self.open
+            .iter()
+            .map(|(_, g)| match g.r#type() {
+                T::PS3 | T::PS4 | T::PS5 => 0,
+                T::NintendoSwitchPro | T::NintendoSwitchJoyconLeft | T::NintendoSwitchJoyconRight | T::NintendoSwitchJoyconPair => 2,
+                _ => 1,
+            })
+            .collect()
+    }
+
     /// The state of every connected controller, in the order they were connected.
     pub fn poll(&mut self) -> Vec<PadState> {
         // (events carry the plug and unplug; the pump also reads the controllers)

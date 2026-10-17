@@ -232,6 +232,9 @@ fn names<T>(list: &[T], f: impl Fn(&T) -> String) -> Vec<String> {
     list.iter().map(f).collect()
 }
 
+/// the values of the sensitivity rows of the Controls page (1 = as the game has it)
+const SENS: [f32; 10] = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0];
+
 impl ts_game::AvOptions for PortAv {
     fn rows(&self) -> Vec<ts_game::AvRow> {
         use ts_game::AvRow;
@@ -289,6 +292,32 @@ impl ts_game::AvOptions for PortAv {
             ts_game::AvRow { label: "Dual Wield Everything".into(), values: onoff(), index: c.dual_all as usize },
             ts_game::AvRow { label: "Bots Punch".into(), values: onoff(), index: c.bot_punch as usize },
         ]
+    }
+
+    fn control_rows(&self) -> Vec<ts_game::AvRow> {
+        let c = config::get();
+        let pct = |k: f32| SENS.iter().position(|&s| (s - k).abs() < 0.001).unwrap_or_else(|| SENS.iter().enumerate().min_by(|a, b| (a.1 - k).abs().partial_cmp(&(b.1 - k).abs()).unwrap()).map_or(3, |x| x.0));
+        let values = || SENS.iter().map(|s| format!("{}x", s)).collect::<Vec<_>>();
+        vec![
+            ts_game::AvRow { label: "Look Sensitivity".into(), values: values(), index: pct(c.look_sensitivity) },
+            ts_game::AvRow { label: "Mouse Sensitivity".into(), values: values(), index: pct(c.mouse_sensitivity) },
+            ts_game::AvRow { label: "Control Method".into(), values: vec!["Auto".into(), "Controller".into(), "Keyboard & Mouse".into()], index: c.input_method.min(2) as usize },
+        ]
+    }
+
+    fn set_control(&self, row: usize, index: usize) {
+        config::update(|c| match row {
+            0 => c.look_sensitivity = SENS[index.min(SENS.len() - 1)],
+            1 => c.mouse_sensitivity = SENS[index.min(SENS.len() - 1)],
+            2 => c.input_method = index.min(2) as u8,
+            _ => {}
+        });
+        config::get().save();
+    }
+
+    fn set_mapmaker_unlimited(&self, on: bool) {
+        config::update(|c| c.mapmaker_unlimited = on);
+        config::get().save();
     }
 
     fn set_game(&self, row: usize, index: usize) {

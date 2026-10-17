@@ -62,6 +62,12 @@ pub struct Config {
     pub dual_all: bool,
     /// bots without a weapon chase and punch
     pub bot_punch: bool,
+    /// turning speed of the right stick as a factor
+    pub look_sensitivity: f32,
+    /// the MapMaker has no limit of what a map holds
+    pub mapmaker_unlimited: bool,
+    /// 0 auto (what was used last), 1 controller, 2 keyboard and mouse
+    pub input_method: u8,
 }
 
 impl Default for Config {
@@ -88,6 +94,9 @@ impl Default for Config {
             debug_menu: false,
             dual_all: true,
             bot_punch: true,
+            look_sensitivity: 1.0,
+            mapmaker_unlimited: false,
+            input_method: 0,
         }
     }
 }
@@ -142,6 +151,15 @@ dual_wield_all = true
 
 # bots that have no weapon (Always start with gun: No, and none to pick up) go after their target and punch it, instead of standing still; also a row of the Game Options page
 bots_punch = true
+
+# turning speed of the right stick (1 = as the game has it); also a row of the Controls page
+look_sensitivity = 1
+
+# which device plays: auto (the one used last), controller or keyboard; also a row of the Controls page
+input_method = auto
+
+# the MapMaker has no limit of what a map holds (the FREE bar is not shown); also a row of the MapMaker's Options page
+mapmaker_unlimited = false
 
 [graphics]
 # internal resolution relative to the window (1.0 = native, 2.0 = supersampling, 0.5 = half)
@@ -200,6 +218,16 @@ impl Config {
             "unlock_all" => self.unlock_all = parse_bool(value).ok_or_else(bad)?,
             "dual_wield_all" => self.dual_all = parse_bool(value).ok_or_else(bad)?,
             "bots_punch" => self.bot_punch = parse_bool(value).ok_or_else(bad)?,
+            "mapmaker_unlimited" => self.mapmaker_unlimited = parse_bool(value).ok_or_else(bad)?,
+            "look_sensitivity" => self.look_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.1, 5.0),
+            "input_method" => {
+                self.input_method = match value.trim().to_ascii_lowercase().as_str() {
+                    "auto" => 0,
+                    "controller" | "gamepad" => 1,
+                    "keyboard" | "mouse" | "keyboard_mouse" => 2,
+                    _ => return Err(bad()),
+                }
+            }
             "mouse_sensitivity" => self.mouse_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.05, 10.0),
             "stick_sensitivity" | "stick_gain" => self.stick_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.5, 3.0),
             "fov" => self.fov = value.trim().parse().map_err(|_| bad())?,
@@ -286,6 +314,8 @@ pub fn load(overrides: &[(String, String)]) {
     ts_sdk::set_unlock_all(c.unlock_all);
     ts_sdk::set_dual_all(c.dual_all);
     ts_sdk::set_bots_punch(c.bot_punch);
+    ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
+    ts_game::set_mm_unlimited(c.mapmaker_unlimited);
     *CONFIG.lock().unwrap() = Some(c);
 }
 
@@ -300,6 +330,7 @@ pub fn update(f: impl FnOnce(&mut Config)) {
         ts_sdk::set_unlock_all(c.unlock_all);
         ts_sdk::set_dual_all(c.dual_all);
         ts_sdk::set_bots_punch(c.bot_punch);
+        ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
     }
 }
 
@@ -358,7 +389,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 21] = [
+        let vals: [(&str, String); 24] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -380,6 +411,9 @@ impl Config {
             ("debug_menu", self.debug_menu.to_string()),
             ("dual_wield_all", self.dual_all.to_string()),
             ("bots_punch", self.bot_punch.to_string()),
+            ("look_sensitivity", format!("{}", self.look_sensitivity)),
+            ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),
+            ("input_method", ["auto", "controller", "keyboard"][self.input_method.min(2) as usize].to_string()),
         ];
         let mut out = String::new();
         for line in TEMPLATE.lines() {
