@@ -1,17 +1,8 @@
-//! F1 settings menu: drawn with the debug text overlay, driven by the keyboard (arrows, Enter, Esc / F1 to close).
-//! Changes apply immediately; closing the menu writes them to `ts-port.ini`.
+//! The port's settings as rows of the game's own option pages (Video Options, Game Options, Controls).
 
 use crate::config::{self, Config, WindowMode};
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Mutex;
-use winit::keyboard::KeyCode;
 
-pub struct Menu {
-    pub open: bool,
-    pub sel: usize,
-}
-
-pub static MENU: Mutex<Menu> = Mutex::new(Menu { open: false, sel: 0 });
 /// MSAA sample counts the GPU offers, as a bit mask (set by the window once the renderer exists)
 pub static MAX_MSAA: AtomicU32 = AtomicU32::new(1 << 1);
 
@@ -20,22 +11,8 @@ const ASPECTS: [i64; 5] = [0, 1333, 1600, 1778, 2333];
 const FOVS: [f32; 8] = [0.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0];
 const SCALES: [f32; 7] = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0];
 const AF: [u16; 5] = [1, 2, 4, 8, 16];
-const ITEMS: usize = 11;
 /// game frame rates (0 = the monitor's refresh rate)
 const RATES: [u32; 8] = [60, 90, 120, 144, 165, 240, 360, 0];
-
-fn step<T: PartialEq + Copy>(list: &[T], cur: T, dir: i32) -> T {
-    let i = list.iter().position(|x| *x == cur).unwrap_or(0) as i32;
-    list[(i + dir).rem_euclid(list.len() as i32) as usize]
-}
-
-fn nearest_f32(list: &[f32], cur: f32) -> f32 {
-    *list.iter().min_by(|a, b| (**a - cur).abs().partial_cmp(&(**b - cur).abs()).unwrap()).unwrap()
-}
-
-fn nearest_i64(list: &[i64], cur: i64) -> i64 {
-    *list.iter().min_by_key(|a| (**a - cur).abs()).unwrap()
-}
 
 /// Window sizes offered in windowed mode (those larger than the desktop are left out).
 const WINDOW_SIZES: [(u32, u32); 12] = [
@@ -86,126 +63,6 @@ fn resolution_name(size: (u32, u32)) -> String {
     } else {
         format!("{}x{}", size.0, size.1)
     }
-}
-
-fn step_resolution(c: &mut Config, dir: i32) {
-    let (list, cur) = resolutions(c);
-    if list.is_empty() {
-        return;
-    }
-    let i = list.iter().position(|&r| r == cur).unwrap_or(0) as i32;
-    set_resolution(c, list[(i + dir).rem_euclid(list.len() as i32) as usize]);
-}
-
-fn step_window_mode(c: &mut Config, dir: i32) {
-    use WindowMode::*;
-    let all = [Windowed, Borderless, Fullscreen];
-    let i = all.iter().position(|&m| m == c.window_mode).unwrap_or(0) as i32;
-    c.window_mode = all[(i + dir).rem_euclid(3) as usize];
-}
-
-fn on_off(b: bool) -> &'static str {
-    if b {
-        "on"
-    } else {
-        "off"
-    }
-}
-
-pub fn text(c: &Config, sel: usize) -> String {
-    let max = MAX_MSAA.load(Ordering::Relaxed);
-    let fov = if c.fov > 1.0 { format!("{:.0}", c.fov) } else { "game default".into() };
-    let aa = if c.msaa_eff(max) <= 1 { "off".to_string() } else { format!("{}x", c.msaa_eff(max)) };
-    let rows: [(&str, String); ITEMS] = [
-        ("Aspect ratio", c.aspect_name()),
-        ("Field of view", fov),
-        ("HUD placement", config::hud_name(c.hud).into()),
-        ("Window mode", c.window_mode.name().into()),
-        ("Resolution", if c.window_mode == WindowMode::Borderless { "desktop".into() } else { resolution_name(resolutions(c).1) }),
-        ("VSync", on_off(c.vsync).into()),
-        ("Game frame rate", if c.framerate == 0 { "monitor".into() } else if c.framerate == 60 { "60 (original)".into() } else { c.framerate.to_string() }),
-        ("Render scale", format!("{}x", c.render_scale)),
-        ("Anti-aliasing", aa),
-        ("Texture filter", config::filter_name(c.filter).into()),
-        ("Anisotropic", if c.aniso > 1 { format!("{}x", c.aniso) } else { "off".into() }),
-    ];
-    let mut s = String::from("SETTINGS    up/down select, left/right change, F1 or Esc closes\n");
-    for (i, (k, v)) in rows.iter().enumerate() {
-        s.push_str(&format!("{} {:<16}{}\n", if i == sel { '>' } else { ' ' }, k, v));
-    }
-    s
-}
-
-fn adjust(c: &mut Config, idx: usize, dir: i32) {
-    let max = MAX_MSAA.load(Ordering::Relaxed);
-    match idx {
-        0 => {
-            let cur = c.aspect.map(|v| (v * 1000.0).round() as i64).unwrap_or(0);
-            let next = step(&ASPECTS, nearest_i64(&ASPECTS, cur), dir);
-            c.aspect = if next == 0 { None } else { Some(next as f32 / 1000.0) };
-        }
-        1 => c.fov = step(&FOVS, nearest_f32(&FOVS, c.fov), dir),
-        2 => {
-            use ts_render::HudMode::*;
-            c.hud = match (c.hud, dir > 0) {
-                (Edges, true) | (Stretch, false) => Center,
-                (Center, true) | (Edges, false) => Stretch,
-                _ => Edges,
-            };
-        }
-        3 => step_window_mode(c, dir),
-        4 => step_resolution(c, dir),
-        5 => c.vsync = !c.vsync,
-        6 => c.framerate = step(&RATES, RATES.iter().copied().min_by_key(|v| (*v as i64 - c.framerate as i64).abs()).unwrap_or(60), dir),
-        7 => c.render_scale = step(&SCALES, nearest_f32(&SCALES, c.render_scale), dir),
-        8 => {
-            let opts: Vec<u32> = [1u32, 2, 4, 8].into_iter().filter(|&n| (max >> n) & 1 != 0).collect();
-            c.msaa = step(&opts, c.msaa_eff(max), dir);
-        }
-        9 => {
-            use ts_render::Filter::*;
-            c.filter = step(&[Nearest, Bilinear, Trilinear], c.filter, dir);
-        }
-        10 => c.aniso = step(&AF, c.aniso, dir),
-        _ => {}
-    }
-}
-
-/// Handle a key press; returns true when the menu consumed it.
-pub fn key(code: KeyCode) -> bool {
-    let mut m = MENU.lock().unwrap();
-    if !m.open {
-        if code == KeyCode::F1 {
-            m.open = true;
-            return true;
-        }
-        return false;
-    }
-    match code {
-        KeyCode::F1 | KeyCode::Escape => {
-            m.open = false;
-            drop(m);
-            config::get().save();
-        }
-        KeyCode::ArrowUp => m.sel = (m.sel + ITEMS - 1) % ITEMS,
-        KeyCode::ArrowDown => m.sel = (m.sel + 1) % ITEMS,
-        KeyCode::ArrowLeft | KeyCode::ArrowRight | KeyCode::Enter => {
-            let (sel, dir) = (m.sel, if code == KeyCode::ArrowLeft { -1 } else { 1 });
-            drop(m);
-            config::update(|c| adjust(c, sel, dir));
-        }
-        _ => {}
-    }
-    true
-}
-
-pub fn is_open() -> bool {
-    MENU.lock().unwrap().open
-}
-
-pub fn current_text() -> String {
-    let sel = MENU.lock().unwrap().sel;
-    text(&config::get(), sel)
 }
 
 // ---- the same settings as rows of the game's Audio / Video Options page --------------------------------------------------
@@ -291,6 +148,7 @@ impl ts_game::AvOptions for PortAv {
             ts_game::AvRow { label: "Debug Menu".into(), values: onoff(), index: c.debug_menu as usize },
             ts_game::AvRow { label: "Dual Wield Everything".into(), values: onoff(), index: c.dual_all as usize },
             ts_game::AvRow { label: "Bots Punch".into(), values: onoff(), index: c.bot_punch as usize },
+            ts_game::AvRow { label: "FPS Counter".into(), values: onoff(), index: c.show_fps as usize },
         ]
     }
 
@@ -309,7 +167,10 @@ impl ts_game::AvOptions for PortAv {
         config::update(|c| match row {
             0 => c.look_sensitivity = SENS[index.min(SENS.len() - 1)],
             1 => c.mouse_sensitivity = SENS[index.min(SENS.len() - 1)],
-            2 => c.input_method = index.min(1) as u8,
+            2 => {
+                crate::window::method_chosen(c.input_method, index.min(1) as u8);
+                c.input_method = index.min(1) as u8;
+            }
             _ => {}
         });
         config::get().save();
@@ -327,6 +188,7 @@ impl ts_game::AvOptions for PortAv {
                 1 => c.debug_menu = index != 0,
                 2 => c.dual_all = index != 0,
                 3 => c.bot_punch = index != 0,
+                4 => c.show_fps = index != 0,
                 _ => {}
             }
         });

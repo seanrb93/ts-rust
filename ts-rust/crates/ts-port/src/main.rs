@@ -250,9 +250,6 @@ fn process_frame(n: u64, list: i32, world: Vec<(i32, i32)>) {
         }
         r.overlay_text = std::env::var("TS_OVERLAY").unwrap_or_default().replace("\n", "
 ");
-        if std::env::var_os("TS_MENUSHOT").is_some() {
-            r.overlay_text = menu::text(&config::get(), 0);
-        }
         if std::env::var_os("TS_NOSHIFT").is_some() {
             r.no_shift = true;
             let px = r.screenshot(&shot_frame, w, h);

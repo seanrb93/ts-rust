@@ -62,6 +62,8 @@ pub struct Config {
     pub dual_all: bool,
     /// bots without a weapon chase and punch
     pub bot_punch: bool,
+    /// the frame rate and timing figures are drawn over the picture
+    pub show_fps: bool,
     /// turning speed of the right stick as a factor
     pub look_sensitivity: f32,
     /// the MapMaker has no limit of what a map holds
@@ -94,6 +96,7 @@ impl Default for Config {
             debug_menu: false,
             dual_all: true,
             bot_punch: true,
+            show_fps: false,
             look_sensitivity: 1.0,
             mapmaker_unlimited: false,
             input_method: 1,
@@ -151,6 +154,9 @@ dual_wield_all = true
 
 # bots that have no weapon (Always start with gun: No, and none to pick up) go after their target and punch it, instead of standing still; also a row of the Game Options page
 bots_punch = true
+
+# the frame rate and timing figures drawn over the picture (F3 switches them too); also a row of the Game Options page
+show_fps = false
 
 # turning speed of the right stick (1 = as the game has it); also a row of the Controls page
 look_sensitivity = 1
@@ -218,6 +224,7 @@ impl Config {
             "unlock_all" => self.unlock_all = parse_bool(value).ok_or_else(bad)?,
             "dual_wield_all" => self.dual_all = parse_bool(value).ok_or_else(bad)?,
             "bots_punch" => self.bot_punch = parse_bool(value).ok_or_else(bad)?,
+            "show_fps" => self.show_fps = parse_bool(value).ok_or_else(bad)?,
             "mapmaker_unlimited" => self.mapmaker_unlimited = parse_bool(value).ok_or_else(bad)?,
             "look_sensitivity" => self.look_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.1, 5.0),
             "input_method" => {
@@ -388,7 +395,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 24] = [
+        let vals: [(&str, String); 25] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -410,6 +417,7 @@ impl Config {
             ("debug_menu", self.debug_menu.to_string()),
             ("dual_wield_all", self.dual_all.to_string()),
             ("bots_punch", self.bot_punch.to_string()),
+            ("show_fps", self.show_fps.to_string()),
             ("look_sensitivity", format!("{}", self.look_sensitivity)),
             ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),
             ("input_method", ["controller", "keyboard"][self.input_method.min(1) as usize].to_string()),

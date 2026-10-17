@@ -296,6 +296,8 @@ RETURNING_CALLBACKS = {
     'getviewfloors', 'getviewwalls', 'getviewvolumes', 'getviewguns', 'getviewbg', 'getpadlinkedit', 'getpropedit',
     'getturtlecpu', 'getturtlegs', 'getdisplayspeed', 'getdisplayperfstats', 'getdisplayrooms', 'getdisplaypos',
     'getinvincible', 'getinvisible', 'getcollisions',
+    # the callbacks of the MapMaker's confirmation boxes (mmStartMessage): 1 = yes, 2 = no, 0 = not answered yet
+    'confirmyesno', 'CircleYesTriangleNo', 'quitconfirmfunc', 'clearmapconfirmfunc', 'confirmPasteTileNoItems',
 }
 
 

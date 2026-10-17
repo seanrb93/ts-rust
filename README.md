@@ -40,13 +40,13 @@ Level names: Prison, Village, NSA1, Outskirts, Chemical Plant, Asylum, Mansion, 
 Warzone, Site, Cyberden, Bank, Graveyard, Spaceship, Mall, Chinese, Castle, Tomb, Docks, ...
 
 Keyboard (port 0): WASD move, arrows look, Space cross, E square, F circle, Q triangle, Left Shift L1, Left Ctrl L2,
-R/Enter R1, G R2, Tab select, Esc/P start, IJKL d-pad, F11 window / borderless, F2 the game's developer (debug) menu in a level, once it is switched on in Game Options (see "Developer menu"), F3 FPS/timing overlay (off at start), F1 settings menu, F10 quit. Gamepads (any, via SDL3) map to
+R/Enter R1, G R2, Tab select, Esc/P start, IJKL d-pad, F11 window / borderless, F2 the game's developer (debug) menu in a level, once it is switched on in Game Options (see "Developer menu"), F3 FPS/timing overlay (off at start; also the FPS Counter row of Game Options), F10 quit. Gamepads (any, via SDL3) map to
 the virtual DualShock 2; the first two feed ports 0 and 1.
 
 ## Display and graphics options
 
 The settings are rows of the game's own **Audio / Video Options** page (main menu, "Audio / Video Options"), below the music and
-sound settings; the old "Screen Adjust" row is gone.  (**F1** in the game still opens the same settings as a quick text menu.)
+sound settings; the old "Screen Adjust" row is gone.
 Changes apply at once and are saved to `ts-port.ini` next to the executable (created on first start, commented; `--set key=value` on the command line overrides it for one run).
 
 | Option | What it does |
@@ -193,13 +193,13 @@ test) is skipped for the player's own move.  Everything the menu changes is rese
 
 The game type page (and the SETUP page of the pause menu) lead to separate pages: **Controls** (configuration, inverse look, aim mode, crouch
 mode, auto lookahead, auto aim, weapon change, vibration, vibration mode: the game's Setup Controls and Preferences pages in one),
-**Audio Options**, **Video Options** (the port's graphics settings) and, in the front end only, **Game Options** (Unlock Everything, Debug Menu,
+**Audio Options**, **Video Options** (the port's graphics settings) and, in the front end only, **Game Options** (Unlock Everything, Debug Menu, Dual Wield Everything, Bots Punch, FPS Counter,
 View Statistics, and View Credits once the game has been completed).  All of them work the same way: X starts editing the row under the cursor
 (its arrows appear), left / right change the value, X or triangle ends it; left / right otherwise move between the columns or the pages.
 Choosing X on the Custom configuration of the Controls page (after editing it) opens the page where each button is chosen.  `avmenu.rs` builds the tables.
 
 The Controls page also has **Look Sensitivity** (right stick), **Mouse Sensitivity** and **Control Method** (Controller or Keyboard & Mouse; `input_method`
-in `ts-port.ini`; the other device does nothing in a level, the menus take both).  The sensitivities scale the look speed in `playerTick`.  Button names in legends and in the Custom controls page follow the device
+in `ts-port.ini`; both devices always work, and the method follows the one used last; choosing the other one by hand holds until that device is used).  The sensitivities scale the look speed in `playerTick`.  Button names in legends and in the Custom controls page follow the device
 in use: Xbox letters and LB / RB / LT / RT, the Switch's letters and L / R / ZL / ZR, or the keys of the keyboard; a PlayStation controller keeps the
 original pictures (`nativetext.rs`, `Pads::styles`).  The same file replaces the texts that mention the PS2 memory card, so the saves read as the
 program's own saved data.
