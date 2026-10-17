@@ -143,7 +143,7 @@ framerate = 60
 stick_deadzone = 0
 stick_sensitivity = 1.33
 
-# mouse look: 1 = 0.12 degrees for a count of the mouse (a zoomed view turns less)
+# mouse look: 1 = 0.12 degrees for a count of the mouse (a zoomed view turns less); the mouse also follows look_sensitivity below
 mouse_sensitivity = 1
 
 # everything the game keeps locked (levels, characters, bot sets, challenges, cheats) is open; also a row of the Audio / Video Options page
@@ -161,7 +161,7 @@ bots_punch = true
 # the frame rate drawn in a corner of the picture; also a row of the Game Options page
 show_fps = false
 
-# turning speed of the right stick (1 = as the game has it); also a row of the Controls page
+# turning speed of the right stick and the mouse (1 = as the game has it); also a row of the Controls page
 look_sensitivity = 1
 
 # which device plays a level: controller or keyboard (and mouse); also a row of the Controls page

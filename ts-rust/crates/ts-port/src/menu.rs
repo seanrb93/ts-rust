@@ -158,7 +158,6 @@ impl ts_game::AvOptions for PortAv {
         let values = || SENS.iter().map(|s| format!("{}x", s)).collect::<Vec<_>>();
         vec![
             ts_game::AvRow { label: "Look Sensitivity".into(), values: values(), index: pct(c.look_sensitivity) },
-            ts_game::AvRow { label: "Mouse Sensitivity".into(), values: values(), index: pct(c.mouse_sensitivity) },
             ts_game::AvRow { label: "Control Method".into(), values: vec!["Controller".into(), "Keyboard & Mouse".into()], index: c.input_method.min(1) as usize },
         ]
     }
@@ -166,8 +165,7 @@ impl ts_game::AvOptions for PortAv {
     fn set_control(&self, row: usize, index: usize) {
         config::update(|c| match row {
             0 => c.look_sensitivity = SENS[index.min(SENS.len() - 1)],
-            1 => c.mouse_sensitivity = SENS[index.min(SENS.len() - 1)],
-            2 => {
+            1 => {
                 crate::window::method_chosen(c.input_method, index.min(1) as u8);
                 c.input_method = index.min(1) as u8;
             }

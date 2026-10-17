@@ -541,7 +541,9 @@ impl ApplicationHandler for App {
                 if delta.0 != 0.0 || delta.1 != 0.0 {
                     note_device(true);
                 }
-                let k = crate::config::get().mouse_sensitivity as f64;
+                let cfg = crate::config::get();
+                // (the Look Sensitivity of the Controls page turns the mouse as well as the right stick; `mouse_sensitivity` is the mouse's own scale)
+                let k = (cfg.mouse_sensitivity * cfg.look_sensitivity) as f64;
                 ts_sdk::pad::mouse_move(delta.0 * k, delta.1 * k);
             }
         }
