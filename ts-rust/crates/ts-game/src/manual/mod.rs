@@ -16,6 +16,7 @@ pub mod dualwield;
 pub mod botsets;
 pub mod randomiser;
 pub mod weaponsets;
+pub mod weapontable;
 
 pub use avmenu::*;
 pub use boot::*;
@@ -31,3 +32,4 @@ pub use dualwield::*;
 pub use botsets::*;
 pub use randomiser::*;
 pub use weaponsets::*;
+pub use weapontable::*;

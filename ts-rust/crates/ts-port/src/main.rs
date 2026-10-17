@@ -654,6 +654,7 @@ SLUS_200.90 has to be in the same folder as the program:
     config::load(&overrides);
     ts_sdk::set_disc_root(&game_dir);
     mods::load(&exe_dir(), &exe);
+    ts_game::weapon_table_init();
     ts_game::native_text_init();
     ts_game::sound_mix_init();
     // test aid: TS_BUTTONS=xbox|switch|keyboard names the buttons of that device in the texts (headless runs have no device)

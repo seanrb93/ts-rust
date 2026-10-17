@@ -290,6 +290,12 @@ pub fn present_frame() {
         let b = lw(g::chrinfo) + 0x1210;
         eprintln!("[bot] chars {} f{} state {:#x} prev {:#x} flags {:#x} {:#x} mode {} target {:#x} gun {} combo {} pos {:.1},{:.1}", lw(g::numactivechars), ts_sdk::frame_count(), lw(b + 2716), lw(b + 2720), lw(b + 2704), lw(b + 2708), lw(b + 2724), lw(b + 2788), lw(lw(lw(b + 3020) + 352) + 376), lw(lw(lw(b + 3020) + 352) + 260), lwc1(lw(b + 3020) + 48), lwc1(lw(b + 3020) + 56));
     }
+    if std::env::var_os("TS_COMBOLOG").is_some() && lw(g::gamestate) == 3 && ts_sdk::frame_count() % 120 == 0 {
+        // test aid: the weapon combination and what player 1 owns
+        let s = lw(lw(lw(g::players) + 384) + 352);
+        let owned: Vec<i32> = (0..70).filter(|&c| c < 33 && lw(s + 488 + 4 * c) != 0).collect();
+        eprintln!("[combo] f{} combo {} next {} owned {:?} left {} right {}", ts_sdk::frame_count(), lw(s + 260), lw(s + 264), owned, lw(s + 376), lw(s + 268));
+    }
     if std::env::var_os("TS_TEAMPLAY").is_some() && lw(g::gamestate) != 3 {
         sw(g::gv_teamplay, 1);
     }

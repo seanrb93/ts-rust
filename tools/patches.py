@@ -18,6 +18,9 @@ GLOBAL = [
     ('lw(g::gv_weaponset)', 'weaponset_effective()'),
     # five custom bot sets (manual/botsets.rs)
     ('lw(g::gv_chrset)', 'chrset_effective()'),
+    # the weapon combinations in the port's memory, with room for the dual versions (manual/weapontable.rs)
+    ('g::guncombos', 'GUNCOMBOS'),
+    ('g::gunsinventory', 'GUNSINV'),
 ]
 
 # `updateframesi` (whole ticks this frame) is 0 only while the game is paused in the original, so many tests of it mean
@@ -210,8 +213,8 @@ FUNCS = {
     'chrplayer_pageTick': [('pub fn chrplayer_pageTick(mut a0: i32) {'+chr(10), 'pub fn chrplayer_pageTick(mut a0: i32) {'+chr(10)+'    char_randomise(a0);'+chr(10), 1)],
     'weapons_pageDraw': [
         # the names of the weapons of the weapon page (the new dual entries have names of their own)
-        ('lw((lh((s0_2 << 3) + (g::guncombos + 6)) << 2) + lw((v1_1 << 2) + g::languages))', 'combo_name(s0_2)', 1),
-        ('lw((lh((a1_13 << 3) + (g::guncombos + 6)) << 2) + lw((v1_4 << 2) + a0_17))', 'combo_name(a1_13)', 1),
+        ('lw((lh((s0_2 << 3) + (GUNCOMBOS + 6)) << 2) + lw((v1_1 << 2) + g::languages))', 'combo_name(s0_2)', 1),
+        ('lw((lh((a1_13 << 3) + (GUNCOMBOS + 6)) << 2) + lw((v1_4 << 2) + a0_17))', 'combo_name(a1_13)', 1),
         # the box of the available weapons is wider (the names of the dual weapons are long)
         ('a2_8 = 263;', 'a2_8 = 287;', 1), ('a2_9 = 263;', 'a2_9 = 287;', 1), ('a2_10 = 263;', 'a2_10 = 287;', 1), ('a2_12 = 263;', 'a2_12 = 287;', 1),
         ('a2_14 = 264;', 'a2_14 = 288;', 1), ('a0_19 = 200 - v0_5;', 'a0_19 = 224 - v0_5;', 1),

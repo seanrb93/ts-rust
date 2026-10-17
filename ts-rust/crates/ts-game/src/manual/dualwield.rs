@@ -34,7 +34,7 @@ static STATE: Mutex<Option<State>> = Mutex::new(None);
 fn with<R>(f: impl FnOnce(&mut State) -> R) -> R {
     let mut g = STATE.lock().unwrap();
     let st = g.get_or_insert_with(|| {
-        let original: Vec<(i32, i32, i32)> = (0..COMBOS).map(|k| (lhu(g::guncombos + 8 * k + 2), lhu(g::guncombos + 8 * k + 4), lhu(g::guncombos + 8 * k + 6))).collect();
+        let original: Vec<(i32, i32, i32)> = (0..COMBOS).map(|k| (lhu(GUNCOMBOS + 8 * k + 2), lhu(GUNCOMBOS + 8 * k + 4), lhu(GUNCOMBOS + 8 * k + 6))).collect();
         let paired: Vec<i32> = original.iter().filter(|c| c.0 != 0xffff && c.0 == c.1).map(|c| c.1).collect();
         // (the fists have no gun; a single weapon whose pair is another combination has its pair already)
         let singles = (1..COMBOS).filter(|&k| original[k as usize].0 == 0xffff && original[k as usize].1 != 0xffff && !paired.contains(&original[k as usize].1)).collect();
@@ -53,9 +53,9 @@ pub fn combo_name(id: i32) -> i32 {
     let lang = lw(g::cur_language);
     let table = lw(g::languages + 4 * lang);
     match single_of(id) {
-        None => lw(table + 4 * lh(g::guncombos + 8 * id + 6)),
+        None => lw(table + 4 * lh(GUNCOMBOS + 8 * id + 6)),
         Some(single) => {
-            let base = lw(table + 4 * lh(g::guncombos + 8 * single + 6));
+            let base = lw(table + 4 * lh(GUNCOMBOS + 8 * single + 6));
             let mut name = String::new();
             let mut at = base;
             while lbu(at) != 0 && name.len() < 40 {
@@ -133,7 +133,7 @@ pub fn dual_wield_tick() {
     let playing = lw(g::gamestate) != 1;
     with(|s| {
         for k in 0..COMBOS as usize {
-            let a = g::guncombos + 8 * k as i32;
+            let a = GUNCOMBOS + 8 * k as i32;
             let want = if playing && s.dual[k] { s.original[k].1 } else { s.original[k].0 };
             if lhu(a + 2) != want {
                 sh(a + 2, want);
