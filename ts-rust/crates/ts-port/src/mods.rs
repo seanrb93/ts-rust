@@ -1,0 +1,268 @@
+//! Mod loader.  Every folder in `mods/` next to the program is a mod.  What a mod can hold:
+//!
+//! * `PACK.PAK/<path inside the pack>`: a file that replaces the one of that name in the game's pack `PACK.PAK` (`ANIM.PAK`, `BG.PAK`,
+//!   `FRONTEND.PAK`, `MISC.PAK`, `OB.PAK`, `SFX.PAK`), or is added to it (textures, models, animations, sounds, level files: whatever
+//!   the game reads by name from a pack).  A path that does not start with a pack's name replaces the file of that name in whichever
+//!   pack has it.
+//! * `MUSIC/<name>.MSC`: replaces a music stream.
+//! * `patches.txt`: changes to the game's data in memory when it starts (tables such as the weapons or characters).  One per line:
+//!   `<symbol or 0xADDRESS>[+offset] <b|h|w|f> <value>[ <value>...]` (byte, halfword, word, float; `#` starts a comment).
+//! * `mod.ini` with `enabled = false` to switch the mod off.
+//!
+//! The packs are not changed: the changed packs are built in `mods/.cache/` when the mods change, and the game reads those.  Mods are
+//! applied in alphabetical order of their folders; a later mod wins.
+
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+
+const PACKS: [&str; 6] = ["ANIM.PAK", "BG.PAK", "FRONTEND.PAK", "MISC.PAK", "OB.PAK", "SFX.PAK"];
+
+struct Mod {
+    name: String,
+    dir: PathBuf,
+}
+
+fn mods_in(dir: &Path) -> Vec<Mod> {
+    let mut v: Vec<Mod> = std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .filter_map(|e| {
+            let name = e.file_name().to_string_lossy().into_owned();
+            if name.starts_with('.') || name.starts_with('_') {
+                return None;
+            }
+            let ini = std::fs::read_to_string(e.path().join("mod.ini")).unwrap_or_default();
+            let off = ini.lines().any(|l| {
+                let l = l.replace(' ', "").to_ascii_lowercase();
+                l == "enabled=false" || l == "enabled=0" || l == "enabled=no"
+            });
+            (!off).then(|| Mod { name, dir: e.path() })
+        })
+        .collect();
+    v.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase()));
+    v
+}
+
+fn files_under(dir: &Path, prefix: &str, out: &mut Vec<(String, PathBuf)>) {
+    let Ok(rd) = std::fs::read_dir(dir) else { return };
+    let mut entries: Vec<_> = rd.flatten().collect();
+    entries.sort_by_key(|e| e.file_name());
+    for e in entries {
+        let n = e.file_name().to_string_lossy().into_owned();
+        let rel = if prefix.is_empty() { n.clone() } else { format!("{prefix}/{n}") };
+        if e.path().is_dir() {
+            files_under(&e.path(), &rel, out);
+        } else {
+            out.push((rel, e.path()));
+        }
+    }
+}
+
+/// One entry of a pack's directory: 48 bytes of name, then the offset and size of the file in the pack, then a word of zero.
+struct Entry {
+    name: Vec<u8>,
+    offset: u32,
+    size: u32,
+}
+
+fn read_pack(path: &Path) -> Option<(Vec<u8>, Vec<Entry>)> {
+    let d = std::fs::read(path).ok()?;
+    if d.len() < 16 || &d[0..4] != b"P4CK" {
+        return None;
+    }
+    let dir_at = u32::from_le_bytes(d[4..8].try_into().ok()?) as usize;
+    let dir_len = u32::from_le_bytes(d[8..12].try_into().ok()?) as usize;
+    if dir_at + dir_len > d.len() {
+        return None;
+    }
+    let entries = d[dir_at..dir_at + dir_len]
+        .chunks_exact(60)
+        .map(|e| {
+            let n = e[..48].iter().position(|&c| c == 0).unwrap_or(48);
+            Entry { name: e[..n].to_vec(), offset: u32::from_le_bytes(e[48..52].try_into().unwrap()), size: u32::from_le_bytes(e[52..56].try_into().unwrap()) }
+        })
+        .collect();
+    Some((d, entries))
+}
+
+/// Build `out` from the pack `src` with the files of `changes` (name in the pack -> host file) replaced or added.
+fn build_pack(src: &Path, changes: &BTreeMap<String, PathBuf>, out: &Path) -> Result<(), String> {
+    let (d, entries) = read_pack(src).ok_or_else(|| format!("{} is not a pack", src.display()))?;
+    let dir_at = u32::from_le_bytes(d[4..8].try_into().unwrap()) as usize;
+    let mut data = d[..dir_at].to_vec();
+    let mut entries: Vec<(Vec<u8>, u32, u32)> = entries.into_iter().map(|e| (e.name, e.offset, e.size)).collect();
+    for (name, host) in changes {
+        let bytes = std::fs::read(host).map_err(|e| format!("{}: {e}", host.display()))?;
+        if name.len() > 47 {
+            return Err(format!("{name}: a name in a pack has at most 47 characters"));
+        }
+        while data.len() % 2048 != 0 {
+            data.push(0);
+        }
+        let offset = data.len() as u32;
+        data.extend_from_slice(&bytes);
+        match entries.iter_mut().find(|e| e.0 == name.as_bytes()) {
+            Some(e) => {
+                e.1 = offset;
+                e.2 = bytes.len() as u32;
+            }
+            None => entries.push((name.as_bytes().to_vec(), offset, bytes.len() as u32)),
+        }
+    }
+    while data.len() % 2048 != 0 {
+        data.push(0);
+    }
+    let new_dir_at = data.len() as u32;
+    for (name, offset, size) in &entries {
+        let mut e = [0u8; 60];
+        e[..name.len()].copy_from_slice(name);
+        e[48..52].copy_from_slice(&offset.to_le_bytes());
+        e[52..56].copy_from_slice(&size.to_le_bytes());
+        data.extend_from_slice(&e);
+    }
+    data[4..8].copy_from_slice(&new_dir_at.to_le_bytes());
+    data[8..12].copy_from_slice(&((entries.len() * 60) as u32).to_le_bytes());
+    std::fs::write(out, data).map_err(|e| format!("{}: {e}", out.display()))
+}
+
+fn stamp(files: &BTreeMap<String, PathBuf>) -> String {
+    let mut s = String::new();
+    for (name, p) in files {
+        let m = std::fs::metadata(p).ok();
+        let t = m.as_ref().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_nanos());
+        s.push_str(&format!("{name} {} {} {t}\n", p.display(), m.map_or(0, |m| m.len())));
+    }
+    s
+}
+
+/// Load the mods: set up the file overlay of the virtual disc and apply the memory patches.
+pub fn load(game_dir: &Path, exe: &Path) {
+    let root = game_dir.join("mods");
+    let mods = mods_in(&root);
+    if mods.is_empty() {
+        return;
+    }
+    let cache = root.join(".cache");
+    let _ = std::fs::create_dir_all(&cache);
+    let mut pack_changes: BTreeMap<&str, BTreeMap<String, PathBuf>> = BTreeMap::new();
+    let mut overlay: Vec<(String, PathBuf)> = Vec::new();
+    let mut patches: Vec<(String, String)> = Vec::new();
+    // the packs' contents, to find where a file without a pack name belongs
+    let contents: Vec<(&str, Vec<Vec<u8>>)> = PACKS
+        .iter()
+        .filter_map(|p| read_pack(&game_dir.join("PAK").join(p)).map(|(_, e)| (*p, e.into_iter().map(|e| e.name).collect())))
+        .collect();
+    for m in &mods {
+        let mut files = Vec::new();
+        files_under(&m.dir, "", &mut files);
+        let mut count = 0;
+        for (rel, host) in files {
+            let lower = rel.to_ascii_lowercase();
+            let first = lower.split('/').next().unwrap_or("");
+            if lower == "mod.ini" || lower == "patches.txt" || lower.ends_with(".md") || lower == "readme.txt" {
+                if lower == "patches.txt" {
+                    patches.push((m.name.clone(), host.to_string_lossy().into_owned()));
+                }
+                continue;
+            }
+            if first == "music" && lower.contains('/') {
+                overlay.push((lower, host));
+                count += 1;
+            } else if let Some(pack) = PACKS.iter().find(|p| p.eq_ignore_ascii_case(first)) {
+                let inner = lower[first.len() + 1..].to_string();
+                pack_changes.entry(pack).or_default().insert(inner, host);
+                count += 1;
+            } else {
+                match contents.iter().find(|(_, names)| names.iter().any(|n| *n == lower.as_bytes())) {
+                    Some((pack, _)) => {
+                        pack_changes.entry(pack).or_default().insert(lower, host);
+                        count += 1;
+                    }
+                    None => eprintln!("[mods] {}: {rel} is not in any pack (put it in a folder named after the pack, e.g. OB.PAK/{rel})", m.name),
+                }
+            }
+        }
+        eprintln!("[mods] {}: {count} file(s)", m.name);
+    }
+    for (pack, changes) in &pack_changes {
+        let out = cache.join(pack);
+        let key = cache.join(format!("{pack}.key"));
+        let want = stamp(changes);
+        if std::fs::read_to_string(&key).ok().as_deref() != Some(want.as_str()) || !out.is_file() {
+            eprintln!("[mods] building {pack} ({} file(s))...", changes.len());
+            if let Err(e) = build_pack(&game_dir.join("PAK").join(pack), changes, &out) {
+                eprintln!("[mods] {pack}: {e}");
+                continue;
+            }
+            let _ = std::fs::write(&key, want);
+        }
+        overlay.push((format!("pak/{}", pack.to_ascii_lowercase()), out));
+    }
+    ts_sdk::set_disc_overlay(overlay);
+    apply_patches(exe, &patches);
+}
+
+fn apply_patches(exe: &Path, patches: &[(String, String)]) {
+    if patches.is_empty() {
+        return;
+    }
+    let symbols = ts_rt::loader::read_symbols(exe).unwrap_or_default();
+    for (name, file) in patches {
+        let text = std::fs::read_to_string(file).unwrap_or_default();
+        for (n, line) in text.lines().enumerate() {
+            let line = line.split('#').next().unwrap_or("").trim();
+            if line.is_empty() {
+                continue;
+            }
+            let mut it = line.split_whitespace();
+            let (Some(target), Some(kind)) = (it.next(), it.next()) else {
+                eprintln!("[mods] {name}/patches.txt line {}: expected `<address> <b|h|w|f> <values>`", n + 1);
+                continue;
+            };
+            let (base, off) = match target.split_once('+') {
+                Some((b, o)) => (b, parse_num(o).unwrap_or(0)),
+                None => (target, 0),
+            };
+            let addr = parse_num(base).or_else(|| symbols.iter().find(|s| s.name == base).map(|s| s.addr as i64));
+            let Some(mut addr) = addr.map(|a| a + off) else {
+                eprintln!("[mods] {name}/patches.txt line {}: unknown symbol {base}", n + 1);
+                continue;
+            };
+            for v in it {
+                use ts_rt::*;
+                match kind {
+                    "b" => {
+                        sb(addr as i32, parse_num(v).unwrap_or(0) as i32);
+                        addr += 1;
+                    }
+                    "h" => {
+                        sh(addr as i32, parse_num(v).unwrap_or(0) as i32);
+                        addr += 2;
+                    }
+                    "f" => {
+                        swc1(addr as i32, v.parse::<f32>().unwrap_or(0.0));
+                        addr += 4;
+                    }
+                    _ => {
+                        sw(addr as i32, parse_num(v).unwrap_or(0) as i32);
+                        addr += 4;
+                    }
+                }
+            }
+        }
+        eprintln!("[mods] {name}: patches applied");
+    }
+}
+
+fn parse_num(s: &str) -> Option<i64> {
+    let s = s.trim();
+    if let Some(h) = s.strip_prefix("0x") {
+        i64::from_str_radix(h, 16).ok()
+    } else if let Some(h) = s.strip_prefix("-0x") {
+        i64::from_str_radix(h, 16).ok().map(|v| -v)
+    } else {
+        s.parse().ok()
+    }
+}

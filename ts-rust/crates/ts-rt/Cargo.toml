@@ -1,0 +1,15 @@
+[package]
+name = "ts-rt"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[features]
+# Records every store (with the overwritten bytes) so a verifier can compare / roll back memory effects.
+trace = []
+
+# Per-function entry tracing for hang diagnosis.
+calltrace = []
+watch = []
+shadow = ["trace"]

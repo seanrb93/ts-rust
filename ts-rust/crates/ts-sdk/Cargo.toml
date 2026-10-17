@@ -1,0 +1,12 @@
+[package]
+name = "ts-sdk"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ts-rt = { path = "../ts-rt" }
+ts-audio = { path = "../ts-audio" }
+
+[features]
+calltrace = ["ts-rt/calltrace"]
+shadow = ["ts-rt/shadow"]

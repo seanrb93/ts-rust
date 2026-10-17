@@ -1,0 +1,13 @@
+[package]
+name = "ts-verify"
+version = "0.1.0"
+edition = "2021"
+description = "Development-only differential tester: runs original machine code in a tiny interpreter and compares it with the decompiled Rust. Not part of the port."
+
+[dependencies]
+ts-rt = { path = "../ts-rt", features = ["trace"] }
+ts-sdk = { path = "../ts-sdk" }
+ts-game = { path = "../ts-game" }
+
+[features]
+shadow-hook = ["ts-rt/shadow"]

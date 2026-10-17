@@ -1,0 +1,13 @@
+[package]
+name = "ts-gfx"
+version = "0.1.0"
+edition = "2021"
+description = "Render front-end for the decompiled TimeSplitters: display list -> VU1 data memory -> native programs -> GIF vertex stream -> modern draw list."
+
+[dependencies]
+ts-rt = { path = "../ts-rt" }
+
+[features]
+vutrace = []
+# run every VU1 program twice, with the reference copy of the original translation, and compare (see programs::run)
+vucheck = []

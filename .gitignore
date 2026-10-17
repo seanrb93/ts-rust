@@ -1,0 +1,32 @@
+# build output (target/release also holds the game's files: PAK/, MUSIC/, SLUS_200.90)
+target/
+target_dev/
+
+# the game's own files, wherever they are
+Game Files/
+PAK/
+MUSIC/
+SLUS_200.90
+*.PAK
+*.MSC
+*.ELF
+
+# the player's own data and settings
+saves/
+mods/
+ts-port.ini
+ts-port-hang.txt
+ts-port-crash.log
+weapon_sets.txt
+bot_sets.txt
+
+# code that tools/ generates from the game's executable (python tools/gen_rust.py, python tools/vu1dec.py): it is the game's code
+# translated, so it is made on your own machine from your own copy of the game instead of being shared
+ts-rust/crates/ts-game/src/dec/
+ts-rust/crates/ts-gfx/src/vu1_gen.rs
+ts-rust/crates/ts-gfx/src/vu1_gen_ref.rs
+
+# scratch
+__pycache__/
+*.pyc
+demo.bin

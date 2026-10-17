@@ -1,0 +1,10 @@
+0x200008 _start: write to gp
+0x2a7a50 vtxlistcolour: pmulth
+0x2b4080 quaternionSlerp: vu0
+0x2b4340 quaternionSlerp2: vu0
+0x2b4868 vafmt: manual
+0x2b48f8 bubbleSort: write to sp
+0x2b54c8 matrixVecMulAligned: vu0
+0x2b5570 matrixVec3Mul4Aligned: vu0
+0x2b5638 matrixVecRotAligned: vu0
+0x2b5970 matrixToQuaternionNew: vu0

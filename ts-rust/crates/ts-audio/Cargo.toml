@@ -1,0 +1,5 @@
+[package]
+name = "ts-audio"
+version = "0.1.0"
+edition = "2021"
+description = "Native SPU2-style voice mixer and music streamer for the TimeSplitters port."

@@ -1,0 +1,398 @@
+//! User settings: `ts-port.ini` next to the executable (created with defaults on first run), overridable with
+//! `--set key=value` on the command line.  Everything is read once at start-up; the F-keys in `window.rs` change a few
+//! options live.
+
+use std::path::PathBuf;
+use std::sync::Mutex;
+
+/// How the game's window is shown.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WindowMode {
+    /// an ordinary window of `width` x `height`
+    Windowed,
+    /// a window without borders that covers the desktop (the desktop's resolution)
+    Borderless,
+    /// the monitor is switched to `fullscreen_width` x `fullscreen_height`
+    Fullscreen,
+}
+
+impl WindowMode {
+    pub fn name(self) -> &'static str {
+        match self {
+            WindowMode::Windowed => "windowed",
+            WindowMode::Borderless => "borderless",
+            WindowMode::Fullscreen => "fullscreen",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Config {
+    /// window size in windowed mode
+    pub width: u32,
+    pub height: u32,
+    pub window_mode: WindowMode,
+    /// resolution in fullscreen mode (0 = the desktop's)
+    pub fs_width: u32,
+    pub fs_height: u32,
+    pub vsync: bool,
+    /// "auto" (window shape), or a ratio such as 4:3 / 16:9 / 1.78
+    pub aspect: Option<f32>,
+    pub render_scale: f32,
+    pub msaa: u32,
+    pub filter: ts_render::Filter,
+    pub aniso: u16,
+    /// horizontal field of view in degrees at the chosen aspect; 0 = the game's own
+    pub fov: f32,
+    /// placement of HUD and menus in a picture wider than 4:3
+    pub hud: ts_render::HudMode,
+    /// frame rate of the game itself while a level is played: 60 = the original, higher = the game logic really runs at
+    /// that rate, 0 = the refresh rate of the monitor
+    pub framerate: u32,
+    /// gamepad sticks as PCSX2 treats them by default: dead zone (0 = none) and sensitivity (1.33 = the stick's range is stretched by a third)
+    pub stick_deadzone: f32,
+    pub stick_sensitivity: f32,
+    /// turning with the mouse: 1 = 0.12 degrees for a count of the mouse (at the game's normal field of view)
+    pub mouse_sensitivity: f32,
+    /// everything the game keeps locked is open
+    pub unlock_all: bool,
+    /// F2 opens the developer menu in a level
+    pub debug_menu: bool,
+    /// the dual versions of the weapons (and the two fists) are on
+    pub dual_all: bool,
+    /// bots without a weapon chase and punch
+    pub bot_punch: bool,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            width: 1280,
+            height: 960,
+            window_mode: WindowMode::Windowed,
+            fs_width: 0,
+            fs_height: 0,
+            vsync: false,
+            aspect: None,
+            render_scale: 1.0,
+            msaa: 1,
+            filter: ts_render::Filter::Bilinear,
+            aniso: 1,
+            fov: 0.0,
+            hud: ts_render::HudMode::Edges,
+            framerate: 60,
+            stick_deadzone: 0.0,
+            stick_sensitivity: 1.33,
+            mouse_sensitivity: 1.0,
+            unlock_all: false,
+            debug_menu: false,
+            dual_all: true,
+            bot_punch: true,
+        }
+    }
+}
+
+const TEMPLATE: &str = "\
+# TimeSplitters native port - settings.  Delete this file to get the defaults back.
+# Command line: --set key=value (e.g. --set msaa=4) overrides the file for one run.
+
+[display]
+# window size in pixels in windowed mode
+width = 1280
+height = 960
+# windowed, borderless (a window without borders over the whole desktop) or fullscreen (the monitor is switched to the
+# resolution below)
+window_mode = windowed
+# resolution in fullscreen mode (0 = the desktop's)
+fullscreen_width = 0
+fullscreen_height = 0
+# aspect ratio of the picture: auto (follows the window), 4:3, 16:9, 16:10, 21:9, or a number such as 1.78
+# anything wider than 4:3 shows more of the world to the sides (the original had no widescreen mode)
+aspect = auto
+# horizontal field of view in degrees at the chosen aspect; 0 = the game's own value
+fov = 0
+# HUD and menus in a widescreen picture: edges (original proportions, in-game HUD sticks to the screen edges),
+# center (original proportions, centred) or stretch (the original layout stretched with the picture)
+hud = edges
+# wait for the monitor refresh before showing each frame (stops tearing)
+vsync = false
+
+# frame rate of the game while a level is played: 60 (the original), a higher number (the game logic itself then runs at
+# that rate, so movement, animation and aiming are as smooth as the monitor allows; menus and loading stay at 60), or
+# display (the refresh rate of the monitor).  A fast PC is needed: every frame costs as much as one at 60.
+framerate = 60
+
+# gamepad sticks, with the defaults of PCSX2 (the console game was made for a pad with a nearly square gate, and the emulator's
+# stretch of 1.33 makes a modern pad reach the same values): dead zone 0..1 (0 = none; the game has its own) and sensitivity
+# (1 = as the pad reports)
+stick_deadzone = 0
+stick_sensitivity = 1.33
+
+# mouse look: 1 = 0.12 degrees for a count of the mouse (a zoomed view turns less)
+mouse_sensitivity = 1
+
+# everything the game keeps locked (levels, characters, bot sets, challenges, cheats) is open; also a row of the Audio / Video Options page
+unlock_all = false
+
+# the developer menu (F2 in a level: camera views, invincible, invisible, noclip); also a row of the Game Options page
+debug_menu = false
+
+# the dual (x2) versions of the weapons in the weapon sets, and the left fist when unarmed; also a row of the Game Options page
+dual_wield_all = true
+
+# bots that have no weapon (Always start with gun: No, and none to pick up) go after their target and punch it, instead of standing still; also a row of the Game Options page
+bots_punch = true
+
+[graphics]
+# internal resolution relative to the window (1.0 = native, 2.0 = supersampling, 0.5 = half)
+render_scale = 1.0
+# multisample anti-aliasing: 1 (off), 2, 4, 8
+msaa = 1
+# texture filtering: nearest, bilinear, trilinear
+texture_filter = bilinear
+# anisotropic filtering 1 (off) .. 16 (needs bilinear or trilinear; adds mip maps)
+anisotropy = 1
+";
+
+fn parse_bool(v: &str) -> Option<bool> {
+    match v.trim().to_ascii_lowercase().as_str() {
+        "1" | "true" | "yes" | "on" => Some(true),
+        "0" | "false" | "no" | "off" => Some(false),
+        _ => None,
+    }
+}
+
+fn parse_aspect(v: &str) -> Option<Option<f32>> {
+    let v = v.trim().to_ascii_lowercase();
+    if v == "auto" {
+        return Some(None);
+    }
+    if let Some((a, b)) = v.split_once(':').or_else(|| v.split_once('/')) {
+        let (a, b): (f32, f32) = (a.trim().parse().ok()?, b.trim().parse().ok()?);
+        return (a > 0.0 && b > 0.0).then_some(Some(a / b));
+    }
+    let r: f32 = v.parse().ok()?;
+    (r > 0.1).then_some(Some(r))
+}
+
+impl Config {
+    pub fn set(&mut self, key: &str, value: &str) -> Result<(), String> {
+        let bad = || format!("bad value '{value}' for {key}");
+        match key.trim().to_ascii_lowercase().as_str() {
+            "width" => self.width = value.trim().parse().map_err(|_| bad())?,
+            "height" => self.height = value.trim().parse().map_err(|_| bad())?,
+            "window_mode" | "window" => {
+                self.window_mode = match value.trim().to_ascii_lowercase().as_str() {
+                    "windowed" | "window" => WindowMode::Windowed,
+                    "borderless" => WindowMode::Borderless,
+                    "fullscreen" | "exclusive" => WindowMode::Fullscreen,
+                    _ => return Err(bad()),
+                }
+            }
+            // the old on / off setting: a window over the desktop
+            "fullscreen" => self.window_mode = if parse_bool(value).ok_or_else(bad)? { WindowMode::Borderless } else { WindowMode::Windowed },
+            "fullscreen_width" => self.fs_width = value.trim().parse().map_err(|_| bad())?,
+            "fullscreen_height" => self.fs_height = value.trim().parse().map_err(|_| bad())?,
+            "vsync" => self.vsync = parse_bool(value).ok_or_else(bad)?,
+            "aspect" => self.aspect = parse_aspect(value).ok_or_else(bad)?,
+            "stick_deadzone" => self.stick_deadzone = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.0, 0.95),
+            "debug_menu" => self.debug_menu = parse_bool(value).ok_or_else(bad)?,
+            "unlock_all" => self.unlock_all = parse_bool(value).ok_or_else(bad)?,
+            "dual_wield_all" => self.dual_all = parse_bool(value).ok_or_else(bad)?,
+            "bots_punch" => self.bot_punch = parse_bool(value).ok_or_else(bad)?,
+            "mouse_sensitivity" => self.mouse_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.05, 10.0),
+            "stick_sensitivity" | "stick_gain" => self.stick_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.5, 3.0),
+            "fov" => self.fov = value.trim().parse().map_err(|_| bad())?,
+            // settings of the removed frame interpolation (the game itself runs at the higher rate now)
+            "interpolation" | "interpolation_method" | "fps_cap" => {}
+            "framerate" | "fps" => {
+                self.framerate = match value.trim().to_ascii_lowercase().as_str() {
+                    "display" | "monitor" | "auto" => 0,
+                    v => v.parse::<u32>().map_err(|_| bad())?.clamp(60, 1000),
+                }
+            }
+            "hud" => {
+                self.hud = match value.trim().to_ascii_lowercase().as_str() {
+                    "edges" | "edge" => ts_render::HudMode::Edges,
+                    "center" | "centre" => ts_render::HudMode::Center,
+                    "stretch" => ts_render::HudMode::Stretch,
+                    _ => return Err(bad()),
+                }
+            }
+            "render_scale" => self.render_scale = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.25, 8.0),
+            "msaa" => {
+                let n: u32 = value.trim().parse().map_err(|_| bad())?;
+                self.msaa = if matches!(n, 1 | 2 | 4 | 8) { n } else { return Err(bad()) };
+            }
+            "texture_filter" => {
+                self.filter = match value.trim().to_ascii_lowercase().as_str() {
+                    "nearest" | "point" => ts_render::Filter::Nearest,
+                    "bilinear" | "linear" => ts_render::Filter::Bilinear,
+                    "trilinear" => ts_render::Filter::Trilinear,
+                    _ => return Err(bad()),
+                }
+            }
+            "anisotropy" | "aniso" => self.aniso = value.trim().parse::<u16>().map_err(|_| bad())?.clamp(1, 16),
+            // (the removed setting: the picture is always filtered when it is scaled)
+            "smooth_output" => {}
+            other => return Err(format!("unknown setting '{other}'")),
+        }
+        Ok(())
+    }
+
+    fn parse(&mut self, text: &str) {
+        for line in text.lines() {
+            let line = line.split('#').next().unwrap_or("").trim();
+            if line.is_empty() || line.starts_with('[') {
+                continue;
+            }
+            if let Some((k, v)) = line.split_once('=') {
+                if let Err(e) = self.set(k, v) {
+                    eprintln!("[config] {e}");
+                }
+            }
+        }
+    }
+
+    /// The renderer's share of the settings.
+    pub fn render_settings(&self) -> ts_render::Settings {
+        ts_render::Settings { render_scale: self.render_scale, msaa: self.msaa, filter: self.filter, aniso: self.aniso, aspect: self.aspect, hud: self.hud }
+    }
+}
+
+fn ini_path() -> PathBuf {
+    std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("ts-port.ini"))).unwrap_or_else(|| PathBuf::from("ts-port.ini"))
+}
+
+pub static CONFIG: Mutex<Option<Config>> = Mutex::new(None);
+
+/// Load the settings (file, then command-line overrides).  Call once at start.
+pub fn load(overrides: &[(String, String)]) {
+    let mut c = Config::default();
+    let path = ini_path();
+    match std::fs::read_to_string(&path) {
+        Ok(t) => c.parse(&t),
+        Err(_) => {
+            std::fs::write(&path, TEMPLATE).ok();
+        }
+    }
+    for (k, v) in overrides {
+        if let Err(e) = c.set(k, v) {
+            eprintln!("[config] {e}");
+        }
+    }
+    ts_sdk::set_view(c.aspect.unwrap_or(4.0 / 3.0), c.fov);
+    ts_sdk::set_logic_hz(c.logic_hz(None));
+    ts_sdk::set_unlock_all(c.unlock_all);
+    ts_sdk::set_dual_all(c.dual_all);
+    ts_sdk::set_bots_punch(c.bot_punch);
+    *CONFIG.lock().unwrap() = Some(c);
+}
+
+pub fn get() -> Config {
+    CONFIG.lock().unwrap().clone().unwrap_or_default()
+}
+
+/// Change a setting while the game runs (hotkeys).
+pub fn update(f: impl FnOnce(&mut Config)) {
+    if let Some(c) = CONFIG.lock().unwrap().as_mut() {
+        f(c);
+        ts_sdk::set_unlock_all(c.unlock_all);
+        ts_sdk::set_dual_all(c.dual_all);
+        ts_sdk::set_bots_punch(c.bot_punch);
+    }
+}
+
+fn aspect_name(a: Option<f32>) -> String {
+    match a {
+        None => "auto".into(),
+        Some(r) if (r - 4.0 / 3.0).abs() < 0.005 => "4:3".into(),
+        Some(r) if (r - 16.0 / 9.0).abs() < 0.005 => "16:9".into(),
+        Some(r) if (r - 16.0 / 10.0).abs() < 0.005 => "16:10".into(),
+        Some(r) if (r - 21.0 / 9.0).abs() < 0.005 => "21:9".into(),
+        Some(r) => format!("{r:.3}"),
+    }
+}
+
+pub fn filter_name(f: ts_render::Filter) -> &'static str {
+    match f {
+        ts_render::Filter::Nearest => "nearest",
+        ts_render::Filter::Bilinear => "bilinear",
+        ts_render::Filter::Trilinear => "trilinear",
+    }
+}
+
+pub fn hud_name(h: ts_render::HudMode) -> &'static str {
+    match h {
+        ts_render::HudMode::Edges => "edges",
+        ts_render::HudMode::Center => "center",
+        ts_render::HudMode::Stretch => "stretch",
+    }
+}
+
+impl Config {
+    /// the MSAA level that will actually be used on a GPU supporting up to `max` samples
+    pub fn msaa_eff(&self, max: u32) -> u32 {
+        self.render_settings().msaa_for(max)
+    }
+
+    /// the frame rate to run the game at, given the refresh rate of the monitor (if known)
+    pub fn logic_hz(&self, monitor_hz: Option<f32>) -> f32 {
+        if self.framerate == 0 {
+            let hz = monitor_hz.unwrap_or(60.0).max(60.0);
+            // with vsync the monitor sets the pace (the game waits for the picture before it, and its frame time is the
+            // measured one); the game's own timer must not compete with it
+            if self.vsync {
+                hz * 1.03
+            } else {
+                hz
+            }
+        } else {
+            self.framerate as f32
+        }
+    }
+
+    pub fn aspect_name(&self) -> String {
+        aspect_name(self.aspect)
+    }
+
+    /// Write the current values back into the settings file, keeping the template's comments.
+    pub fn save(&self) {
+        let vals: [(&str, String); 21] = [
+            ("width", self.width.to_string()),
+            ("height", self.height.to_string()),
+            ("window_mode", self.window_mode.name().to_string()),
+            ("fullscreen_width", self.fs_width.to_string()),
+            ("fullscreen_height", self.fs_height.to_string()),
+            ("aspect", aspect_name(self.aspect)),
+            ("fov", format!("{}", self.fov)),
+            ("hud", hud_name(self.hud).into()),
+            ("vsync", self.vsync.to_string()),
+            ("framerate", if self.framerate == 0 { "display".to_string() } else { self.framerate.to_string() }),
+            ("render_scale", format!("{}", self.render_scale)),
+            ("msaa", self.msaa.to_string()),
+            ("texture_filter", filter_name(self.filter).into()),
+            ("anisotropy", self.aniso.to_string()),
+            ("stick_deadzone", format!("{}", self.stick_deadzone)),
+            ("stick_sensitivity", format!("{}", self.stick_sensitivity)),
+            ("mouse_sensitivity", format!("{}", self.mouse_sensitivity)),
+            ("unlock_all", self.unlock_all.to_string()),
+            ("debug_menu", self.debug_menu.to_string()),
+            ("dual_wield_all", self.dual_all.to_string()),
+            ("bots_punch", self.bot_punch.to_string()),
+        ];
+        let mut out = String::new();
+        for line in TEMPLATE.lines() {
+            let key = line.split('=').next().unwrap_or("").trim();
+            let hit = if line.starts_with('#') || !line.contains('=') { None } else { vals.iter().find(|(k, _)| *k == key) };
+            match hit {
+                Some((k, v)) => out.push_str(&format!("{k} = {v}\n")),
+                None => {
+                    out.push_str(line);
+                    out.push('\n');
+                }
+            }
+        }
+        std::fs::write(ini_path(), out).ok();
+    }
+}

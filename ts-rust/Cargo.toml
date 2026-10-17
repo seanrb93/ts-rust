@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = ["crates/ts-audio", "crates/ts-rt", "crates/ts-sdk", "crates/ts-game", "crates/ts-port", "crates/ts-verify", "crates/ts-gfx", "crates/ts-render"]
+
+# The decompiled code relies on two's-complement wrapping arithmetic (as the original MIPS code does).
+[profile.dev]
+opt-level = 1
+overflow-checks = false
+
+[profile.release]
+opt-level = 3
+overflow-checks = false
+lto = "thin"
+codegen-units = 16
+debug = 1
+
+# the VU1 microcode translation is the hot loop of the graphics thread

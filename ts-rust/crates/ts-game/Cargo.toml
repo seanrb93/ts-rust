@@ -1,0 +1,13 @@
+[package]
+name = "ts-game"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ts-rt = { path = "../ts-rt" }
+ts-sdk = { path = "../ts-sdk" }
+
+[features]
+calltrace = ["ts-rt/calltrace"]
+watch = ["ts-rt/watch"]
+shadow = ["ts-rt/shadow", "ts-sdk/shadow"]

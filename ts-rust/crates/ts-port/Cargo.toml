@@ -1,0 +1,23 @@
+[package]
+name = "ts-port"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ts-rt = { path = "../ts-rt" }
+ts-sdk = { path = "../ts-sdk" }
+ts-game = { path = "../ts-game" }
+ts-gfx = { path = "../ts-gfx" }
+ts-render = { path = "../ts-render" }
+wgpu = "22"
+winit = "0.30"
+pollster = "0.3"
+sdl3 = { version = "0.20", default-features = false, features = ["build-from-source-static"] }
+cpal = "0.15"
+ts-audio = { path = "../ts-audio" }
+ts-verify = { path = "../ts-verify", optional = true, features = ["shadow-hook"] }
+
+[features]
+calltrace = ["ts-game/calltrace", "ts-rt/calltrace", "ts-sdk/calltrace"]
+watch = ["ts-game/watch", "ts-rt/watch"]
+shadow = ["ts-game/shadow", "ts-rt/shadow", "dep:ts-verify"]

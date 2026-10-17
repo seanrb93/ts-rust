@@ -1,0 +1,13 @@
+[package]
+name = "ts-render"
+version = "0.1.0"
+edition = "2021"
+description = "wgpu renderer for the draw lists produced by ts-gfx."
+
+[dependencies]
+ts-gfx = { path = "../ts-gfx" }
+wgpu = "22"
+winit = "0.30"
+pollster = "0.3"
+bytemuck = { version = "1", features = ["derive"] }
+log = "0.4"
