@@ -116,6 +116,10 @@ FUNCS = {
         (' '*36+'if (lw(a1_19 * 400 + (g::guns + 28)) & 2) != 0 {', ' '*36+'if (if a1_19 < 33 { lw(a1_19 * 400 + (g::guns + 28)) } else { 0 } & 2) != 0 {', 1),
     ],
     # the weapon table with the added pairs (manual/weapontable.rs)
+    # the triangle button on the page of the number of players asks whether to exit the game
+    # the ammo of the left hand sits as close to the edge as the right hand's does (its block started 36 units in, the right one's ends 26 from the edge)
+    'hudGfx': [(' '*28+'a2_11 = if lw(g::window + 88) != 0 { a2_10 + 60 } else { a2_10 + 80 };', ' '*28+'a2_11 = if lw(g::window + 88) != 0 { a2_10 + 50 } else { a2_10 + 70 };', 1)],
+    'nplayers_pageTick': [('    v0_1 = joyUpdatePorts();'+chr(10), '    if av_nplayers_exit(a0) {'+chr(10)+'        return;'+chr(10)+'    }'+chr(10)+'    v0_1 = joyUpdatePorts();'+chr(10), 1)],
     'getnextcombo': [
         (' '*8+'if s2_1 >= 33 {', ' '*8+'if s2_1 >= combo_count() {', 1),
         (' '*8+'s0_3 = if s0_2 >= 33 { s4_1 } else { s0_2 };', ' '*8+'s0_3 = if s0_2 >= combo_count() { s4_1 } else { s0_2 };', 1),

@@ -280,10 +280,15 @@ pub fn present_frame() {
     // test aid: TS_WSET=a,b,c,d,e uses these weapon combinations as the custom weapon set (outside levels)
     if let (Ok(v), true) = (std::env::var("TS_WSET"), lw(g::gamestate) != 3) {
         let ids: Vec<i32> = v.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+        // (the sets are set up on the first ask: that must not come after the ids are written)
+        let _ = weaponset_effective();
         for k in 0..5 {
             sw(g::gunzpack + 4 * k, ids.get(k as usize).copied().unwrap_or(-1));
         }
         sw(g::gv_weaponset, 0);
+        if std::env::var_os("TS_COMBOLOG").is_some() && ts_sdk::frame_count() % 300 == 0 {
+            eprintln!("[combo] TS_WSET applied at f{} state {} ids {:?}", ts_sdk::frame_count(), lw(g::gamestate), ids);
+        }
     }
     if std::env::var_os("TS_BOTLOG").is_some() && lw(g::gamestate) == 3 && ts_sdk::frame_count() % 120 == 0 {
         let b = lw(g::chrinfo) + 0x1210;

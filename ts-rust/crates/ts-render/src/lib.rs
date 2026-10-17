@@ -1420,17 +1420,6 @@ impl Renderer {
                 }
                 for (lo, hi, members) in clusters {
                     let mid = (lo + hi) * 0.5;
-                    // Things that reach (nearly) both screen edges stretch with the picture: backgrounds (meshes), flat
-                    // bars and fades, the red pain flash.  Wide single glows stay proportional.
-                    if lo <= 40.0 && hi >= LOGICAL_W - 40.0 && hi - lo >= LOGICAL_W * 0.9 && (st.tex.is_none() || members.len() > 20 || (lo >= -20.0 && hi <= LOGICAL_W + 20.0)) {
-                        continue;
-                    }
-                    if !frame.in_game && lo < -4.0 && hi > LOGICAL_W + 4.0 {
-                        // a front-end sprite that overhangs both sides of the picture (a glow of the title screen): its far edges
-                        // were off screen on the console, but in the wider picture the texture's last texels can be seen as a thin
-                        // line, so its alpha fades out over the outer texels (`trim` in the shader)
-                        params[i].mode[2] |= 32;
-                    }
                     // vertical position of the cluster (the menu title row sits at the top)
                     let (mut ylo, mut yhi) = (f32::MAX, f32::MIN);
                     for &t in &members {
@@ -1439,13 +1428,30 @@ impl Renderer {
                             yhi = yhi.max(v.pos[1]);
                         }
                     }
+                    // Things that reach (nearly) both screen edges stretch with the picture: backgrounds (meshes), flat
+                    // bars and fades, the red pain flash.  Wide single glows stay proportional.
+                    let bottom_strip = !frame.in_game && !mm_grid && ylo >= 211.0 && yhi <= 225.0;
+                    if !bottom_strip && lo <= 40.0 && hi >= LOGICAL_W - 40.0 && hi - lo >= LOGICAL_W * 0.9 && (st.tex.is_none() || members.len() > 20 || (lo >= -20.0 && hi <= LOGICAL_W + 20.0)) {
+                        continue;
+                    }
+                    if !frame.in_game && lo < -4.0 && hi > LOGICAL_W + 4.0 {
+                        // a front-end sprite that overhangs both sides of the picture (a glow of the title screen): its far edges
+                        // were off screen on the console, but in the wider picture the texture's last texels can be seen as a thin
+                        // line, so its alpha fades out over the outer texels (`trim` in the shader)
+                        params[i].mode[2] |= 32;
+                    }
                     let centre = move |x: f32| LOGICAL_W * 0.5 + (x - LOGICAL_W * 0.5) / k;
                     let left = move |x: f32| x / k;
                     let right = move |x: f32| LOGICAL_W - (LOGICAL_W - x) / k;
                     if std::env::var_os("TS_MAPDBG").is_some() {
                         eprintln!("[map] draw {i} {:?}: x {lo:.0}..{hi:.0} y {ylo:.0}..{yhi:.0} edges {edges} centre_all {centre_all} viewport {viewport} members {} clamp {:#x} stq {} tex {:?} blend {:?}", d.topology, members.len(), st.clamp, st.use_stq, st.tex.map(|t| (t.tbp0, t.tw, t.th)), st.blend);
                     }
-                    let map: Box<dyn Fn(f32) -> f32> = if viewport {
+                    let map: Box<dyn Fn(f32) -> f32> = if bottom_strip {
+                        // the strip at the bottom of the character select screens (the bars of the teams, the icons of the players and bots
+                        // under them): stretched to the edges of the picture (the bars start 16 units in and end 16 before the edge), bars and icons
+                        // the same way, so each icon stays on its bar
+                        Box::new(|x| (x - 16.0) * LOGICAL_W / (LOGICAL_W - 32.0))
+                    } else if viewport {
                         // a pane of the split screen (the left or the right half): things are placed within the pane, as the whole picture
                         // is for one player
                         let (p0, p1) = if mid < LOGICAL_W * 0.5 { (0.0, LOGICAL_W * 0.5) } else { (LOGICAL_W * 0.5, LOGICAL_W) };

@@ -198,7 +198,7 @@ View Statistics, and View Credits once the game has been completed).  All of the
 (its arrows appear), left / right change the value, X or triangle ends it; left / right otherwise move between the columns or the pages.
 Choosing X on the Custom configuration of the Controls page (after editing it) opens the page where each button is chosen.  `avmenu.rs` builds the tables.
 
-The Controls page also has **Look Sensitivity** (the right stick and the mouse) and **Control Method** (Controller or Keyboard & Mouse; `input_method`
+The Controls page also has **Look / Mouse Sensitivity** (the right stick and the mouse) and **Control Method** (Controller or Keyboard & Mouse; `input_method`
 in `ts-port.ini`; both devices always work, and the method follows the one used last; choosing the other one by hand holds until that device is used).  The sensitivities scale the look speed in `playerTick`.  Button names in legends and in the Custom controls page follow the device
 in use: Xbox letters and LB / RB / LT / RT, the Switch's letters and L / R / ZL / ZR, or the keys of the keyboard; a PlayStation controller keeps the
 original pictures (`nativetext.rs`, `Pads::styles`).  The same file replaces the texts that mention the PS2 memory card, so the saves read as the

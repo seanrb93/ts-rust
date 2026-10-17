@@ -955,6 +955,21 @@ const EXIT_PAGE: i32 = BASE + 0x6500;
 const GAMEMODE_AT: i32 = BASE + 0x6600;
 const EXIT_TEXT_AT: i32 = BASE + 0x6a00;
 
+/// The page where the number of players is chosen (1up, 2up, 3up, 4up), at its tick: the triangle button asks whether to exit the game
+/// (the same question as the Exit Game item).  True when the page was left for it.
+pub fn av_nplayers_exit(page: i32) -> bool {
+    CONFIRM.store(false, std::sync::atomic::Ordering::Relaxed);
+    let player = lw(lw(g::currentplayer));
+    if joyNewBut(player) & 16 == 0 {
+        return false;
+    }
+    joyClearAll(player);
+    EDIT.store(0, Ordering::Relaxed);
+    frontPageSet(0, EXIT_PAGE);
+    pageIn(page);
+    true
+}
+
 /// Selecting Exit Game asks first: the item opens a page of the same kind as the audio / video one (it ticks with
 /// `audiovideo_pageTick`, which builds this page's table while `CONFIRM` is set) with a Yes item, which opens `EXIT_NOW_PAGE`,
 /// and a No item.

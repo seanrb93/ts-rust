@@ -73,6 +73,9 @@ pub fn weapons_list_extend() {
 /// `frontmpgGetGunComboNum`: the combination the set has at place `place`, `combo` as the game found it.  An added pair is the single
 /// weapon when the pairs are switched off.
 pub fn dual_combo(_place: i32, combo: i32) -> i32 {
+    if std::env::var_os("TS_COMBOLOG").is_some() {
+        eprintln!("[combo] set place {_place} combo {combo} set {} gunzpack {} state {}", weaponset_effective(), lw(g::gunzpack + 4 * _place), lw(g::gamestate));
+    }
     match single_of(combo) {
         Some(single) if !ts_sdk::dual_all() => single,
         Some(_) => combo,

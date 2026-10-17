@@ -157,7 +157,7 @@ impl ts_game::AvOptions for PortAv {
         let pct = |k: f32| SENS.iter().position(|&s| (s - k).abs() < 0.001).unwrap_or_else(|| SENS.iter().enumerate().min_by(|a, b| (a.1 - k).abs().partial_cmp(&(b.1 - k).abs()).unwrap()).map_or(3, |x| x.0));
         let values = || SENS.iter().map(|s| format!("{}x", s)).collect::<Vec<_>>();
         vec![
-            ts_game::AvRow { label: "Look Sensitivity".into(), values: values(), index: pct(c.look_sensitivity) },
+            ts_game::AvRow { label: "Look / Mouse Sensitivity".into(), values: values(), index: pct(c.look_sensitivity) },
             ts_game::AvRow { label: "Control Method".into(), values: vec!["Controller".into(), "Keyboard & Mouse".into()], index: c.input_method.min(1) as usize },
         ]
     }
