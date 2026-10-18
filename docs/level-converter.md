@@ -75,6 +75,8 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   upside down is not drawn, and is not a floor).  This was the cause of the missing ground in the first Station Square mods.
 - **Light.**  Every vertex gets the light of the map's lightmap at its place; a face whose light varies much is cut along the lightmap's grid (`--light-detail`, luxels between cuts, default 16; 0 gives each
   face one brightness).
+- **Visibility.**  A compiled Source map has its own visibility data (which clusters see which), but no portals, and the game works with rooms and portals, so the converter makes its own: a grid of rooms
+  (`--room-size`) split where too full, with portals between touching rooms.  The map's visibility data is not used.
 - **Portals** are low openings (14 units) at the heights where both rooms have a floor.
 
 ## Limits worth knowing
