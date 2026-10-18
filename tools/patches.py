@@ -23,6 +23,12 @@ GLOBAL = [
     ('g::gunsinventory', 'GUNSINV'),
     # the level table in the port's memory, with the levels of mods (manual/customlevels.rs)
     ('g::lvinfo', 'LVINFO'),
+    # the table of props and that of their walls and floors, with room for 480 rooms (manual/proptable.rs)
+    ('g::proptable', 'PROPTABLE'),
+    ('g::PropWallsFloors', 'PWFTAB'),
+    # the lists of the props of each room (the game's held 213 rooms)
+    ('0x1fe9598', 'ROOM_PROP_COUNTS'),
+    ('0x1fd48c8', 'ROOM_PROP_LISTS'),
 ]
 
 # `updateframesi` (whole ticks this frame) is 0 only while the game is paused in the original, so many tests of it mean
@@ -254,6 +260,23 @@ FUNCS = {
     'obinstCalcAmbientLight': [('                \'l17: loop {\n                    #[cfg(feature = "calltrace")]\n                    ts_rt::calltrace::poll();\n                    v0_13 = lw(g::bgNumRooms);\n', '                let mut rooms_tried = 0;\n                \'l17: loop {\n                    #[cfg(feature = "calltrace")]\n                    ts_rt::calltrace::poll();\n                    // an object with an invalid position (NaN) would pass from room to room for ever (the console\'s FPU has no NaN)\n                    rooms_tried += 1;\n                    if rooms_tried > 64 {\n                        break;\n                    }\n                    v0_13 = lw(g::bgNumRooms);\n', 1)],
     # one more arcade level, Ron (the console game has an arcade set-up for it, but it is not in its list): the list is in `av_arcade_levels`, MapMaker keeps its place (index 18), it goes after it
     'arcade_pageTick': [('s1_3 = if s1_2 >= 19 { 0 } else { s1_2 };', 's1_3 = if s1_2 >= av_arcade_count() { 0 } else { s1_2 };', 1), ('lw((s1_3 << 2) + g::arcadelevels)', 'lw((s1_3 << 2) + av_arcade_levels())', 1), ('lw((s0_3 << 2) + g::arcadelevels)', 'lw((s0_3 << 2) + av_arcade_levels())', 1), ('s0_3 = if -1 >= s0_2 { 18 } else { s0_2 };', 's0_3 = if -1 >= s0_2 { av_arcade_count() - 1 } else { s0_2 };', 1), ('lw((a1_5 << 2) + g::arcadelevels)', 'lw((a1_5 << 2) + av_arcade_levels())', 1)],
+    # the lists of rooms by depth (what the player can see) held 200 rooms of one byte each: 512 rooms of two bytes now, in the port's memory (a level
+    # of a mod can have more than 255 rooms); the debug string of the rooms drawn, a stack buffer a room longer than the frame, is not written
+    'propGfxRoomPreproc': [('a6_1 = 212;', 'a6_1 = MAX_ENTRIES - 1;', 1), ('v0_1 = 0x1fe98e8;', 'v0_1 = ROOM_PROP_COUNTS + 4 * (MAX_ENTRIES - 1);', 1), ('(a3_1 as u32) < (214 as u32)', '(a3_1 as u32) < (MAX_ENTRIES as u32)', 1)],
+    # (the instances of models: a room has one too)
+    'obReset': [('{ 20 } else { 300 }', '{ 20 } else { 1000 }', 1)],
+    'propReset': [('a0_9 = 712;', 'a0_9 = MAX_ENTRIES - 1;', 1), ('a0_10 = 712;', 'a0_10 = MAX_ENTRIES - 1;', 1),
+                  # (a level's props, the rooms' among them: 300 of them were room for 200 rooms and the rest)
+                  ('{ 20 } else { 300 }', '{ 20 } else { 1000 }', 1)],
+    'bgGfx': [
+        ('sb(v1_3 + a2_1 * 200 + 0x1fc4a78, s0_1);', 'sh((v1_3 << 1) + a2_1 * 1024 + 0x2500000, s0_1);', 1),
+        ('s0_2 = lbu(s2_2 * 200 + s1_1 + 0x1fc4a78);', 's0_2 = lhu(s2_2 * 1024 + (s1_1 << 1) + 0x2500000);', 1),
+        ('sb(a1_2, v0_3);', '', 1),
+    ],
+    'bgGetRoomsTick': [
+        ('sb(v1_3 + a2_1 * 200 + 0x1fc4a78, a5_1);', 'sh((v1_3 << 1) + a2_1 * 1024 + 0x2500000, a5_1);', 1),
+        ('a5_2 = lbu(a4_2 * 200 + a3_2 + 0x1fc4a78);', 'a5_2 = lhu(a4_2 * 1024 + (a3_2 << 1) + 0x2500000);', 1),
+    ],
     'levelAvail': [('pub fn levelAvail(mut a0: i32) -> i32 {\n', 'pub fn levelAvail(mut a0: i32) -> i32 {\n    if a0 == 25 || (31..=99).contains(&a0) {\n        return 1;\n    }\n', 1)],
     'gmKnockOutTick': [('                if v1_2 == 0 {\n                    trap("break");\n                }\n', '                if v1_2 == 0 {\n                    // no bag spawn points in the level (Ron has none): nothing to put a bag on\n                    return;\n                }\n', 1)],
     # Square on the character select page picks a random character; on the weapon set page it fills the custom set

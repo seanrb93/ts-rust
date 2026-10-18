@@ -60,7 +60,7 @@ import lvimport  # noqa: E402
 CHUNK_VERTS = 64          # the most vertices one chunk can draw (the VU1 buffer)
 FLOOR_NY = 0.5            # a face whose normal points up more than this is a floor
 MAX_TEX = 256             # the largest side of a texture file (65536 pixels in all)
-MAX_ROOMS = 180          # the game's tables hold about 200 rooms (a crash on more)
+MAX_ROOMS = 480          # the tables hold 512 rooms (the game's own held 200)
 MODES = {'dm': 1, 'bagtag': 2, 'ctb': 4, 'escort': 8, 'ko': 16, 'ls': 32}
 
 

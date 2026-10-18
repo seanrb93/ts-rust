@@ -18,6 +18,7 @@ pub mod dualwield;
 pub mod botsets;
 pub mod randomiser;
 pub mod weaponsets;
+pub mod proptable;
 pub mod weapontable;
 pub mod texhook;
 
@@ -37,5 +38,6 @@ pub use dualwield::*;
 pub use botsets::*;
 pub use randomiser::*;
 pub use weaponsets::*;
+pub use proptable::*;
 pub use weapontable::*;
 pub use texhook::*;

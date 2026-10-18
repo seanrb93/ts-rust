@@ -53,9 +53,12 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
 - **Light.**  Both engines light surfaces with lightmaps; the converter averages each face's lightmap into one brightness for the face.
 - **What is left out.**  Props, doors and other brush entities, the 3D skybox, sky, trigger, clip and other tool faces.  Parts that are not connected to the main level (a
   skybox room, a room of tools) are dropped.
-- **Size.**  The game's own levels have at most 70,000 vertices and 109 rooms.  A level of 6 MB with 130 rooms (30,000 polygons) was played.  About 200 rooms is the most (the game crashes on more: `--room-size` is made larger by itself until there are 180 at the
-  most).  A big map is made smaller by choosing a part of it: `--radius 70 --center x,z` (game units, a square; the first spawn is the default centre) keeps what is within
-  70 units (a Source map of 16000 units is 400 units across).
+- **Size.**  The game's own levels have at most 70,000 vertices and 109 rooms.  The port's tables were made larger (`manual/proptable.rs` and the patches of
+  `tools/patches.py`: the props, the models' instances, the lists of rooms by depth, the props of each room): a level can have up to 480 rooms, and the full
+  Station Square of Garry's Mod (7.6 MB, 35,000 polygons, 214 rooms) and a 400 room version of it were played.  `--room-size` is made larger by itself when there
+  would be more than 480 rooms.  Props in the rooms numbered 205 to 212 (a level with more than 204 rooms) are drawn in the passes the game keeps for those numbers
+  (the player's weapon, ...), which may show as a prop drawn through a wall.  A big map can also be made smaller by choosing a part of it: `--radius 70 --center x,z`
+  (game units, a square; the first spawn is the default centre) keeps what is within 70 units (a Source map of 16000 units is 400 units across).
 - **Rooms.**  `--room-size 25` splits the level into rooms of 25 x 25 units joined by portals: what is far away is not drawn.  A map of Source or GoldSrc size wants it.
 
 ## Limits worth knowing
