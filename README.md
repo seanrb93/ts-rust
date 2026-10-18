@@ -216,11 +216,11 @@ from 0 to 100 (`volume_weapons`, `volume_voices`, `volume_environment` in `ts-po
 asks, when a voice starts, which group the sample at its address is in; `manual/soundmix.rs` finds the sound in the game's table of sounds and sorts it by the words in its file
 name.  The **FPS Counter** row of Game Options shows the frame rate in a corner.
 
-The same page has **Level Music**: *Level's Own* (what each level plays, the default), *Random* (a different track each time a level starts, never the same one twice in a
-row) or one of the 27 tracks (`MUSIC@1.MSC` to `1027.MSC`, each named after the first level that uses it).  It is `level_music` in `ts-port.ini` (`own`, `random` or a track
-number) and applies to the levels, MapMaker maps included; the pages of the front end keep their own music.  Changed from the pause menu it takes effect at once.  The level table
-(`lvinfo`) says which tune a level plays; `musicRestart` is patched to call `av_level_music` (`avmenu.rs`) on the tune it asks the table for.  In a split screen the row is on a
-page of its own.
+The **Options** page of an arcade match (the page with the match's settings, before GO!) has **Level Music** after Bot Set: *Level's Own* (what each level plays, the default), *Random*
+(a different track each time a level starts, never the same one twice in a row) or one of the 27 tracks (`MUSIC\1001.MSC` to `1027.MSC`, each named after the first level that uses it).
+It is `level_music` in `ts-port.ini` (`own`, `random` or a track number) and applies to every level, MapMaker maps included; the pages of the front end keep their own music.  The level
+table (`lvinfo`) says which tune a level plays; `musicRestart` is patched to call `av_level_music` on the tune it asks the table for (`manual/arcadeopts.rs`, which also adds the row: the
+page's table is a copy in the port's memory, as it has no room for another item).
 
 The MapMaker's Options page works like the others (X edits the Grid Intensity slider, arrows show) and has **No Limit** (Yes / No): Yes removes the
 limit on what a map can hold and hides the FREE bar (`mmoptions.rs`, `mapmaker_unlimited` in `ts-port.ini`).
@@ -330,6 +330,10 @@ text header (`Q8`, `width height`, ...), a palette of 256 entries (alpha 0..128)
 a texture is read from the table at the start of the model's file (`tools/pakls.py` lists a pack).  The pictures are the game's: do not put
 them in a repository (the folder `ts-rust/target/release/textures_extracted` is inside the ignored `target/`).  `TS_FILELOG` lists the files the
 game loads, in order.
+
+The PlayStation button pictures of the menus are textures of `MISC.PAK` too: `mm_button01` to `mm_button04` (circle, cross, triangle, square, 24x24), `mm_button05` (Select) and
+`mm_cursor13` / `mm_cursor14` (L1, L2), all in the `misc/mapmaker` folder of the extraction (the other buttons, such as R1, R2 and Start, are drawn as text).  A mod can replace them like any
+texture.
 
 ## Unlock Everything
 

@@ -304,8 +304,11 @@ FUNCS = {
     # test aid (TS_FORCEPLAYERS=<n>): the match has n players, whatever the front end set up
     'gameReset': [('    v1_7 = lw(g::curgameparms);'+chr(10), '    dual_reset();'+chr(10)+'    v1_7 = test_players(lw(g::curgameparms));'+chr(10), 1)],
     # a particle stream emits in proportion to the elapsed time
-    'particleStreamTick': [('lwc1(g::updateframesi).to_bits() as i32 as f32', 'lwc1(g::updateframesf)', 1)],    # the music of a level: the player's choice on the Audio Options page instead of the level's own
+    'particleStreamTick': [('lwc1(g::updateframesi).to_bits() as i32 as f32', 'lwc1(g::updateframesf)', 1)],
+    # the music of a level: the player's choice on the arcade options page instead of the level's own
     'musicRestart': [('    v0_1 = lvGetTuneNum();'+chr(10), '    v0_1 = av_level_music(lvGetTuneNum());'+chr(10), 1)],
+    # the arcade options page has a row more (Level Music): its table is a copy in the port's memory, which has room for it; the hint line says Edit for it as for Weapon Set and Bot Set
+    'arcadeoptions_pageTick': [('g::i0410', '(av_opt_menu() + 16)', 7), ('    s0_1 = g::arcadeoptions_menu;'+chr(10), '    s0_1 = av_opt_ready();'+chr(10), 1), ('            if v1_5 < 14 {'+chr(10), '            if v1_5 < 14 || v1_5 == 15 {'+chr(10), 1)],
 }
 
 used = set()

@@ -3,9 +3,12 @@
 # or          <symbol or 0xADDRESS>[+offset]  s  <text>                              (the text and a zero byte; it has to fit)
 # The symbols are those of the game's executable (guns, guncombos, ...).
 
-# `guns` has 400 bytes for each gun.  Gun 0 is the pistol: +20 is the size of its clip, +24 the most ammo it can carry.
+# `guns` has 400 bytes for each gun.  Gun 0 is the pistol: +20 is the size of its clip.
 guns+20 w 15
-guns+24 w 100
+
+# The most ammo a kind of ammo can be carried in is not in the gun but in `ammoinfo`: 8 bytes for each kind of ammo (a word with the most, then a pointer).
+# Kind 1 is the pistol's, so its most is at ammoinfo+8 (it was 500).  A level that gives "full ammo" gives this much.
+ammoinfo+8 w 250
 
 # The name of a game mode in the menus (16 bytes of room there).
 0x3855a8 s Knock-Out!

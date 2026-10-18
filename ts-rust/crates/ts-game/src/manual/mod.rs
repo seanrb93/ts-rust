@@ -1,6 +1,7 @@
 //! Hand-written replacements for functions the decompiler cannot translate automatically, and the platform glue.
 //! A function defined here wins over the generated one of the same name (the generator skips it).
 
+pub mod arcadeopts;
 pub mod avmenu;
 pub mod boot;
 pub mod boot_gen;
@@ -18,6 +19,7 @@ pub mod randomiser;
 pub mod weaponsets;
 pub mod weapontable;
 
+pub use arcadeopts::*;
 pub use avmenu::*;
 pub use boot::*;
 pub use boot_gen::*;

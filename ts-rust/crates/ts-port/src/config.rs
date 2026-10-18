@@ -78,7 +78,7 @@ pub struct Config {
     pub keys: Vec<Vec<String>>,
     /// volume of the groups of sound effects in percent (weapons, voices, environment), 100 = as the game has it
     pub sound_mix: [u8; 3],
-    /// the music of the levels: 0 = the level's own, 1 = a random track each time, n + 1 = track n (1 to 27); the same numbers as the Audio Options page
+    /// the music of the levels: 0 = the level's own, 1 = a random track each time, n + 1 = track n (1 to 27); the same numbers as the row of the arcade Options page
     pub level_music: i32,
 }
 
@@ -205,7 +205,7 @@ volume_voices = 100
 volume_environment = 100
 
 # the music of the levels: own (the level's), random (a new track each time a level starts) or a track number, 1 to 27 (MUSIC/100N.MSC, or the .opus beside it);
-# also a row of the Audio Options page, second page
+# also a row of the arcade Options page (the page before GO!)
 level_music = own
 
 # the MapMaker has no limit of what a map holds (the FREE bar is not shown); also a row of the MapMaker's Options page

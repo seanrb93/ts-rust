@@ -9,7 +9,7 @@
 //! on the next tick and handed on.
 
 use crate::*;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicU8, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU8, AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 pub struct AvRow {
@@ -42,7 +42,7 @@ pub trait AvOptions: Send + Sync {
         Vec::new()
     }
     fn set_audio(&self, _row: usize, _index: usize) {}
-    /// the music chosen for the levels: 0 = the level's own, 1 = a random track each time, n + 2 = track n + 1
+    /// the music chosen for the levels (a row of the arcade options page): 0 = the level's own, 1 = a random track each time, n + 1 = track n
     fn level_music(&self) -> i32 {
         0
     }
@@ -50,6 +50,11 @@ pub trait AvOptions: Send + Sync {
 }
 
 static PROVIDER: OnceLock<Box<dyn AvOptions>> = OnceLock::new();
+
+/// The port's options (the settings the pages show), once it has handed them over.
+pub(crate) fn provider() -> Option<&'static dyn AvOptions> {
+    PROVIDER.get().map(|p| p.as_ref())
+}
 
 pub fn set_av_options(p: Box<dyn AvOptions>) {
     let _ = PROVIDER.set(p);
@@ -83,7 +88,7 @@ pub(crate) fn put_str(at: &mut i32, s: &str) -> i32 {
     start
 }
 
-fn read_str(mut at: i32) -> String {
+pub(crate) fn read_str(mut at: i32) -> String {
     let mut s = String::new();
     while lbu(at) != 0 && s.len() < 60 {
         s.push(lbu(at) as u8 as char);
@@ -235,11 +240,10 @@ const FRONT_CUSTOM: Layout = Layout { pitch: 15, columns: &[(-49, 250, 390)], he
 const PAUSE_CUSTOM: Layout = Layout { pitch: 13, columns: &[(-49, 250, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: true };
 const SPLIT_CUSTOM: Layout = Layout { pitch: 18, columns: &[(-49, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 0, 0), (10, 0, 0), (15, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
 /// the Audio Options: the game's own items on the first page, the volumes of the kinds of effects on the second (the rows of the second
-/// page start at the first row: the first page has no rows), the level music after them (on a page of its own in a split screen, which
-/// has no room for another line)
+/// page start at the first row: the first page has no rows)
 const FRONT_AUDIO: Layout = Layout { pitch: 15, columns: &[(-19, 300, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (0, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: true };
 const PAUSE_AUDIO: Layout = Layout { pitch: 13, columns: &[(-19, 300, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0), (0, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: true };
-const SPLIT_AUDIO: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (0, 0, 0), (3, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
+const SPLIT_AUDIO: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (0, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
 /// line slots of the audio items (a slider takes two lines)
 const AUDIO_SLOTS: [i32; 4] = [0, 1, 3, 4];
 const AUDIO_FLAGS: [i32; 4] = [0x04, 0x0c, 0x04, 0x0c];
@@ -387,8 +391,6 @@ enum Src {
     Port(usize),
     /// the volume of a kind of sound effects (the Audio Options page's second page)
     Sound(usize),
-    /// the music of the levels (the row after the volumes)
-    Music,
 }
 
 /// The rows as they were given last time (the values, to see what the player changed, and what each stands for).
@@ -401,87 +403,10 @@ fn apply(src: Src, value: usize) {
         (Src::Game(r), Some(p)) => p.set_game(r, value),
         (Src::Port(r), Some(p)) => p.set_control(r, value),
         (Src::Sound(r), Some(p)) => p.set_audio(r, value),
-        (Src::Music, Some(p)) => set_level_music(p.as_ref(), value as i32),
         (Src::Prof(r), _) => prof_set(r, value),
         (Src::Custom(k), _) => custom_set(k, value),
         _ => {}
     }
-}
-
-// ---- the music of the levels ---------------------------------------------------------------------------------------------------
-//
-// Each level names its music (a tune number: `MUSIC@N.MSC`) in the level table `lvinfo`.  The Audio Options page has a row that
-// replaces it: the level's own, a random track each time a level starts, or one of the tracks.  The track a level plays is asked for
-// by `musicRestart` (patched to call `av_level_music`).
-
-/// the number of tracks (`MUSIC@1.MSC` .. `1027.MSC`)
-const TRACKS: i32 = 27;
-
-/// The name of the first level that plays a track, if there is one.
-fn track_level(track: i32) -> Option<String> {
-    let texts = lw((lw(g::cur_language) << 2) + g::languages);
-    let mut rec = g::lvinfo;
-    // (the table ends with the entry whose name is no text)
-    while lw((lh(rec) << 2) + texts) != 0 {
-        if lw(rec + 8) == track && lw(rec + 4) < 100 {
-            return Some(read_str(lw((lh(rec) << 2) + texts)));
-        }
-        rec += 24;
-    }
-    None
-}
-
-fn level_music_row(choice: i32) -> AvRow {
-    let mut values = vec!["Level's Own".to_string(), "Random".to_string()];
-    for t in 1..=TRACKS {
-        values.push(match track_level(t) {
-            Some(name) => format!("{t} {name}"),
-            None => format!("{t}"),
-        });
-    }
-    AvRow { label: "Level Music".into(), values, index: (choice.max(0) as usize).min(TRACKS as usize + 1) }
-}
-
-fn set_level_music(p: &dyn AvOptions, choice: i32) {
-    p.set_level_music(choice);
-    if in_game() {
-        // (the page is the pause menu's: the music changes at once)
-        musicRestart();
-    }
-}
-
-static LAST_RANDOM: AtomicI32 = AtomicI32::new(0);
-
-/// The tune of the level that starts (`own` is the level's): the one the player chose on the Audio Options page.
-pub fn av_level_music(own: i32) -> i32 {
-    let choice = PROVIDER.get().map_or(0, |p| p.level_music());
-    // (levels 101 .. 105 are the pages of the front end, which keep their own music)
-    if choice <= 0 || ((lw(g::lvlevelnum) - 101) as u32) < 5 {
-        return own;
-    }
-    if choice == 1 {
-        static SEED: AtomicU32 = AtomicU32::new(0);
-        let mut x = SEED.load(Ordering::Relaxed);
-        if x == 0 {
-            x = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0x9e37_79b9, |d| d.subsec_nanos() ^ d.as_secs() as u32) | 1;
-        }
-        let last = LAST_RANDOM.load(Ordering::Relaxed);
-        let mut track;
-        loop {
-            x ^= x << 13;
-            x ^= x >> 17;
-            x ^= x << 5;
-            track = (x >> 8) as i32 % TRACKS + 1;
-            // (not the track of the last time)
-            if track != last {
-                break;
-            }
-        }
-        SEED.store(x, Ordering::Relaxed);
-        LAST_RANDOM.store(track, Ordering::Relaxed);
-        return track;
-    }
-    (choice - 1).clamp(1, TRACKS)
 }
 
 // ---- the controls and preferences of the profile ---------------------------------------------------------------------------
@@ -725,11 +650,7 @@ fn rows_now() -> Vec<(AvRow, Src)> {
             rows
         }
         (Mode::Custom, _) => custom_rows(),
-        (Mode::Audio, Some(p)) => {
-            let mut rows: Vec<(AvRow, Src)> = p.audio_rows().into_iter().enumerate().map(|(i, r)| (r, Src::Sound(i))).collect();
-            rows.push((level_music_row(p.level_music()), Src::Music));
-            rows
-        }
+        (Mode::Audio, Some(p)) => p.audio_rows().into_iter().enumerate().map(|(i, r)| (r, Src::Sound(i))).collect(),
         _ => Vec::new(),
     }
 }
@@ -836,9 +757,7 @@ pub fn av_menu(page: i32) -> i32 {
             copy(it, src + 16 + 32, 32);
         }
         sw(it, label);
-        // (a slider takes two lines: the rows after the sliders move down by one line for each)
-        let sliders_before = entries[..i].iter().enumerate().filter(|(j, e)| matches!(e.1, Src::Sound(_)) && layout().row_page(*j) == layout().row_page(i)).count() as i32;
-        place(it, col, if item_shown(FIRST_ID + i as i32) { if slider { slot * 2 } else { slot + sliders_before } } else { OFF_SCREEN });
+        place(it, col, if item_shown(FIRST_ID + i as i32) { slot * if slider { 2 } else { 1 } } else { OFF_SCREEN });
         sw(it + 8, ((if slider { 0x0c } else { 0x04 }) << 16) | (FIRST_ID + i as i32));
         sw(it + 12, gv);
         sw(it + 16, nav(FIRST_ID + i as i32));
