@@ -41,6 +41,9 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   alike colour among the rest (`--max-textures`).
 - Axes and size: Source and GoldSrc maps are z up and 72 units tall for a player: they are turned and scaled by 0.025 (`--scale`, `--up`).  A model is taken as it
   is: the game's rooms are about 20 units across and a player about 1.8 high.  `--flip` turns the faces round if the level comes out inside out.
+- **Music.**  `--music song.mp3` (any audio file; ffmpeg is needed, `pip install imageio-ffmpeg` will do, unless it is already `.opus`) makes the level play that song: it is
+  written to the mod as `MUSIC/10<number>.opus` and the level's `tune` is its number.  A mod can also give any level of the game's a tune above 27 in `levels.txt` (`tune <1..99>`) and
+  put `MUSIC/10<tune>.opus` in the mod.  The file loops when it ends.  `--tune 1..27` picks one of the game's own tracks instead.
 - `--like <1..30>` chooses the level whose sky, fog and light the new one has (a level of the game's is used for the arcade modes, the music and these).
 
 ## Source and GoldSrc maps

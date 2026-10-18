@@ -306,7 +306,7 @@ A mod can hold:
   (byte, halfword, word, float, `#` comments), or `<symbol or 0xADDRESS>[+offset] s <text>` (a text and a zero byte, in the room of the old text).  The symbols are those of the game's executable (`guncombos`, `guns`, ...).  This is how a table (the
   weapon combinations, the guns' stats) is changed.
 
-Levels: a mod can add levels to the arcade list with a `levels.txt` (see `examples/levels_sample/`): `level <number 31..99> "<name>" like <game level 1..30> [tune <track>] [modes dm,bagtag,ctb,escort,ko,ls] [setup <file>]`.
+Levels: a mod can add levels to the arcade list with a `levels.txt` (see `examples/levels_sample/`): `level <number 31..99> "<name>" like <game level 1..30> [tune <track 1..99>] [modes dm,bagtag,ctb,escort,ko,ls] [setup <file>]`.
 `manual/customlevels.rs` copies the level table (`lvinfo`) and the tables of texts into the port's memory with the new levels (up to 28), and the arcade page lists them after Ron
 (`av_arcade_levels`); a new level has the record, the arcade set-up and the data files of the level it is `like` unless the mod has files of its own under its number.  Story and Challenge
 are not changed.  A level's own files (the formats are in `docs/level-formats.md`) can be supplied, and `tools/obj2level.py` makes them from a Blender file, glTF, OBJ, a Source engine map (Half-Life 2, Garry's Mod, ...) or a GoldSrc map (see `docs/level-converter.md` and

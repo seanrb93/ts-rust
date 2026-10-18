@@ -477,7 +477,7 @@ fn add_levels(game_dir: &Path, cache: &Path, lists: &[(String, PathBuf)], pack_c
             while i + 1 < words.len() {
                 match words[i].as_str() {
                     "like" => lv.like = words[i + 1].parse().unwrap_or(0),
-                    "tune" => lv.tune = words[i + 1].parse::<i32>().unwrap_or(0).clamp(0, 27),
+                    "tune" => lv.tune = words[i + 1].parse::<i32>().unwrap_or(0).clamp(0, 99),
                     "modes" => {
                         let mut mask = 0;
                         for m in words[i + 1].split(',') {

@@ -36,7 +36,8 @@ Options:
     --room-size R    split the level into rooms of R x R units, joined by portals (default 0: one room; large levels draw faster split)
     --pad-spacing D  distance of the pads bots walk by (default 5); --max-pads N makes it larger when there would be more pads (default 450)
     --modes LIST     the modes the level offers: dm,bagtag,ctb,escort,ko,ls (default dm,bagtag,ctb,ko)
-    --tune N         the music track 1..27 (default: the level `like` plays)
+    --tune N         the music track 1..27 of the game's (default: the level `like` plays)
+    --music FILE     music of its own for the level: any audio file (needs ffmpeg unless it is .opus); it is made Opus and the level plays it
     --max-textures N the most textures (default 90)
     --materials DIR  a `materials` folder (Source: the game's own pictures; may be given more than once); --wad FILE|DIR for GoldSrc
     --blender EXE    the Blender to use for .blend files
@@ -609,6 +610,24 @@ def split_rooms(polys, args):
 
 # ---------------------------------------------------------------- main
 
+def make_music(src, dst):
+    """The audio file `src` as an Ogg Opus file `dst` (the port decodes and loops it)."""
+    import shutil
+    import subprocess
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if src.lower().endswith('.opus'):
+        shutil.copyfile(src, dst)
+        return
+    exe = shutil.which('ffmpeg')
+    if not exe:
+        try:
+            import imageio_ffmpeg
+            exe = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:
+            sys.exit('--music needs ffmpeg (put it on the PATH, or pip install imageio-ffmpeg), or an .opus file')
+    subprocess.run([exe, '-y', '-loglevel', 'error', '-i', src, '-vn', '-ac', '2', '-ar', '48000', '-c:a', 'libopus', '-b:a', '112k', '-vbr', 'on', dst], check=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('input')
@@ -625,6 +644,7 @@ def main():
     ap.add_argument('--step', type=float, default=1.0, help='the highest step a link may climb')
     ap.add_argument('--modes', default='dm,bagtag,ctb,ko')
     ap.add_argument('--tune', type=int, default=0)
+    ap.add_argument('--music', default=None, help='an audio file (mp3, ogg, wav, flac, opus, ...) the level plays')
     ap.add_argument('--max-textures', type=int, default=90)
     ap.add_argument('--materials', action='append', default=[])
     ap.add_argument('--wad', action='append', default=[])
@@ -727,6 +747,10 @@ def main():
         m = re.match(r'pickup(-?\d+)', k.lower())
         if m:
             setup.append(f'pickup {m.group(1)} {1001 + nearest_pad(pads, v)}')
+    if args.music:
+        # (the level's tune is a number the game turns into the file MUSIC<number>: a number above the game's 27 tracks is the mod's own)
+        args.tune = args.number
+        make_music(args.music, os.path.join(out, 'MUSIC', f'{1000 + args.tune}.opus'))
     open(os.path.join(out, 'setup.txt'), 'w').write('\n'.join(setup) + '\n')
     line = f'level {args.number} "{args.name}" like {args.like}' + (f' tune {args.tune}' if args.tune else '') + f' modes {args.modes} setup setup.txt\n'
     open(os.path.join(out, 'levels.txt'), 'w').write(line)
