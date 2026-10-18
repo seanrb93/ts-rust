@@ -25,7 +25,9 @@ const GO_ID: i32 = 14;
 const NEW_ID: i32 = 15;
 /// the lines between Bot Set and the new row, and between the new row and GO!
 const ROW_GAP: i32 = 13;
-const GO_GAP: i32 = 11;
+const GO_GAP: i32 = 14;
+/// room for the left arrow beside a long value (in the units of the page)
+const ARROW_ROOM: i32 = 34;
 /// how much higher the page's items are than the game has them
 const UP: i32 = 6;
 
@@ -67,6 +69,12 @@ fn track_name(track: i32) -> String {
     for v in 1..24 {
         if lbu(g::disptunenums + v) == track {
             let name = read_str(lw(texts + 4 * lw(g::disp_tunes + 8 * v + 4)));
+            // (shorter names: the row has only so much room)
+            let name = match name.as_str() {
+                "The Bank" => "Bank".to_string(),
+                "Building Site" => "Site".to_string(),
+                _ => name,
+            };
             return if (1..=5).contains(&track) { format!("{name} Tile Set") } else { name };
         }
     }
@@ -93,17 +101,24 @@ pub fn av_opt_ready() -> i32 {
     // the value names: Level's Own, Random, the tracks
     let mut at = TEXT_AT;
     let label = put_str(&mut at, "Level Music");
-    let mut names = vec!["Level's Own".to_string(), "Random".to_string()];
+    let mut names = vec!["Default".to_string(), "Random".to_string()];
     for t in 1..=TRACKS {
         names.push(track_name(t));
     }
     let mut list = LIST_AT;
+    let mut width_of_value = 0;
+    // (the value is drawn in the big font of the rows; its width says where the left arrow goes)
+    let font = textSelect(lw(g::menuitem_bigfont));
     for (v, name) in names.iter().enumerate() {
         let s = put_str(&mut at, name);
         sw(list, v as i32);
         sw(list + 4, s);
         list += 8;
+        if v as i32 == choice {
+            width_of_value = textWidth(s);
+        }
     }
+    textSelect(font);
     sw(list, 0);
     sw(list + 4, 0);
     // the value is kept like the ones of the game: a copy of Weapon Set's with this row's list
@@ -116,6 +131,8 @@ pub fn av_opt_ready() -> i32 {
     sw(GV_AT + 12, 0);
     sw(GV_AT + 16, LIST_AT);
     sw(GV_AT + 20, 0);
+    // the left arrow is where the other rows have it, or left of a long value
+    sw(GV_AT + 32, -(256.max(width_of_value + ARROW_ROOM)));
     // the item: a copy of Bot Set's, a line lower, and GO! one line lower than that
     for i in 0..8 {
         sw(item(NEW) + 4 * i, lw(item(BOT) + 4 * i));

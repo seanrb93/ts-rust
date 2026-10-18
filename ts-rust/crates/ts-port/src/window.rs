@@ -305,7 +305,8 @@ impl App {
     /// The pointer belongs to the game while a level is played (hidden and held in the window); the menus have it back.
     fn update_mouse_capture(&mut self) {
         let Some(w) = self.window.clone() else { return };
-        let want = self.focused && ts_game::mouse_look_active();
+        // (the window has to have the focus as the system sees it: a window that was started from a console and not clicked yet has not, and the pointer is the user's)
+        let want = w.has_focus() && ts_game::mouse_look_active();
         if !want {
             self.kbm.aiming = false;
             self.kbm.left = false;
@@ -491,7 +492,7 @@ impl ApplicationHandler for App {
                 use winit::event::MouseButton;
                 let down = state == ElementState::Pressed;
                 // (only a level takes the mouse's buttons: in the menus a click does nothing)
-                let live = ts_game::mouse_look_active() && self.focused;
+                let live = ts_game::mouse_look_active() && self.window.as_ref().map_or(false, |w| w.has_focus());
                 if live {
                     note_device(true);
                 }
