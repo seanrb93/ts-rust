@@ -36,6 +36,8 @@ const UP: i32 = 6;
 /// the number of tracks (`MUSIC\1001.MSC` .. `1027.MSC`)
 const TRACKS: i32 = 27;
 
+/// an arcade match is being set up or played (the options page was shown since the main menu was): only those take the player's choice of music
+pub(crate) static ARCADE: AtomicBool = AtomicBool::new(false);
 static BUILT: AtomicBool = AtomicBool::new(false);
 /// the value of the row the last time it was looked at (-1: not yet): a different one is what the player chose
 static LAST: AtomicI32 = AtomicI32::new(-1);
@@ -86,6 +88,7 @@ fn track_name(track: i32) -> String {
 /// The table, with the new row made, for the page's menu (called by the tick after it has put the game's rows where they go).
 pub fn av_opt_ready() -> i32 {
     let m = av_opt_menu();
+    ARCADE.store(true, Ordering::Relaxed);
     let item = |k: i32| m + 16 + 32 * k;
     let Some(p) = provider() else {
         return m;
@@ -164,7 +167,7 @@ pub fn av_opt_ready() -> i32 {
 pub fn av_level_music(own: i32) -> i32 {
     let choice = provider().map_or(0, |p| p.level_music());
     // (levels 101 .. 105 are the pages of the front end, which keep their own music)
-    if choice <= 0 || ((lw(g::lvlevelnum) - 101) as u32) < 5 {
+    if choice <= 0 || !ARCADE.load(Ordering::Relaxed) || ((lw(g::lvlevelnum) - 101) as u32) < 5 {
         return own;
     }
     if choice == 1 {

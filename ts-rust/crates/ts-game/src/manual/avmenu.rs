@@ -1267,6 +1267,7 @@ pub fn av_mainsetup_menu() -> i32 {
 /// The table of the front end's game type page (STORY, ARCADE, ...): the small items below them are Controls, Audio Options, Video
 /// Options, Game Options (with View Credits and View Statistics) and Exit Game.
 pub fn av_gamemode_menu() -> i32 {
+    super::arcadeopts::ARCADE.store(false, Ordering::Relaxed);
     CONFIRM.store(false, Ordering::Relaxed);
     let src = g::gamemode_menu;
     let n = lw(src);
