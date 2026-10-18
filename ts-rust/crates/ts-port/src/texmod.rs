@@ -28,6 +28,40 @@ pub fn read_png(path: &Path) -> Result<(usize, usize, Vec<[u8; 4]>), String> {
     Ok((w, h, px))
 }
 
+/// A picture of a mod as the renderer takes it: RGBA8 with the console's alpha (0 to 128, 128 = opaque), whatever its size.
+pub fn load_hd(path: &Path) -> Option<(u32, u32, Vec<u8>)> {
+    let (w, h, px) = match read_png(path) {
+        Ok(x) => x,
+        Err(e) => {
+            eprintln!("[mods] {e}");
+            return None;
+        }
+    };
+    let mut rgba = Vec::with_capacity(w * h * 4);
+    for p in &px[..w * h] {
+        rgba.extend_from_slice(&[p[0], p[1], p[2], ((p[3] as u32 * 128 + 127) / 255) as u8]);
+    }
+    // (a picture longer than the limit of the settings is halved until it fits)
+    let limit = crate::config::get().hd_texture_max as usize;
+    let (mut w, mut h) = (w, h);
+    while w.max(h) > limit && w > 1 && h > 1 {
+        let (nw, nh) = (w / 2, h / 2);
+        let mut next = vec![0u8; nw * nh * 4];
+        for y in 0..nh {
+            for x in 0..nw {
+                for c in 0..4 {
+                    let at = |dx: usize, dy: usize| rgba[((2 * y + dy) * w + 2 * x + dx) * 4 + c] as u32;
+                    next[(y * nw + x) * 4 + c] = ((at(0, 0) + at(1, 0) + at(0, 1) + at(1, 1) + 2) / 4) as u8;
+                }
+            }
+        }
+        rgba = next;
+        w = nw;
+        h = nh;
+    }
+    Some((w as u32, h as u32, rgba))
+}
+
 /// Reduce the pixels to at most 256 colours (median cut on red, green, blue and alpha; exact when the picture has no more colours).  Returns the
 /// palette and the index of each pixel.
 fn quantize(px: &[[u8; 4]]) -> (Vec<[u8; 4]>, Vec<u8>) {

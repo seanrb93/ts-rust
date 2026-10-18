@@ -5,7 +5,7 @@ A small mod that shows what the mod loader does.  Copy this folder into `mods/` 
 
 | File | What it does |
 |---|---|
-| `MISC.PAK/textures/misc/ammo_big.png` | Replaces the game's texture `textures/misc/ammo_big.qpm` (the picture of a bullet next to the ammo of some weapons) with an original blue bullet, as an ordinary PNG: the loader makes the game's texture format (256 colours with alpha) from it, and says in the log when its size is not the original's.  The folder `MISC.PAK/` stands for the pack of that name: the path under it is the texture's name inside the pack. |
+| `MISC.PAK/textures/misc/ammo_big.png` | Replaces the game's texture `textures/misc/ammo_big.qpm` (the picture of a bullet next to the ammo of some weapons) with an original blue bullet, as an ordinary PNG: the renderer shows it in place of the game's picture (any size, full colour and alpha).  The folder `MISC.PAK/` stands for the pack of that name: the path under it is the texture's name inside the pack. |
 | `SFX.PAK/sfx/walther_and_bullet22_01e.opus` | A sound as Ogg Opus where the game has `sfx/walther_and_bullet22_01e.vag` (the pistol's shot).  The loader makes the game's sound format from it, at the rate and with the looping of the original (the first run says so in the log). |
 | `MUSIC/1015.opus` | A music stream (the Tomb's) as Ogg Opus, in place of `MUSIC/1015.MSC`.  An Opus file is a fraction of the size. |
 | `patches.txt` | Changes the game's data when it starts: the pistol gets a clip of 15 (was 10) and carries at most 250 rounds (was 500), and the game mode KnockOut is called "Knock-Out!". |

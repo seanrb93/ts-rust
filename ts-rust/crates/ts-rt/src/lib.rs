@@ -11,6 +11,7 @@ pub mod mem;
 pub mod frame;
 pub mod int;
 pub mod loader;
+pub mod texnames;
 #[cfg(feature = "trace")]
 pub mod trace;
 #[cfg(feature = "calltrace")]

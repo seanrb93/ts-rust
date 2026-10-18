@@ -110,8 +110,12 @@ pub struct ImageWrite {
 /// A texture decoded from texture memory as it was when the frame was built.
 #[derive(Debug)]
 pub struct DecodedTex {
+    /// the size of the picture in pixels
     pub w: u32,
     pub h: u32,
+    /// the size the game's coordinates address (the console's texture; a replacement picture of a mod can be of another size)
+    pub lw: u32,
+    pub lh: u32,
     pub rgba: Vec<u8>,
     pub sig: u64,
 }

@@ -41,6 +41,9 @@ pub fn signature(key: &TexKey, vram: &Vram) -> Option<(u32, u32, u64)> {
             sig = sig.wrapping_mul(1_000_003).wrapping_add(c.generation);
         }
     }
+    if let Some(hd) = crate::hd::for_texture(key.tbp0) {
+        sig = sig.wrapping_mul(1_000_003).wrapping_add(hd.id << 32);
+    }
     Some((w, h, sig))
 }
 
@@ -50,6 +53,19 @@ pub fn decode(key: &TexKey, vram: &Vram) -> Option<(u32, u32, Vec<u8>, u64)> {
     let h = 1u32 << key.th.min(11);
     let img = vram.find(key.tbp0)?;
     let mut sig = img.generation;
+    // a picture of a mod in place of the texture (its own size: the caller addresses it by the size of the texture)
+    if let Some(entry) = crate::hd::for_texture(key.tbp0) {
+        if let Some(hd) = entry.image() {
+            if let Some(c) = matches!(key.psm, psm::T8 | psm::T4).then(|| vram.find(key.cbp)).flatten() {
+                sig = sig.wrapping_mul(1_000_003).wrapping_add(c.generation);
+            }
+            sig = sig.wrapping_mul(1_000_003).wrapping_add(entry.id << 32);
+            if std::env::var_os("TS_HDLOG").is_some() {
+                eprintln!("[hd] decode {:#x}: {}x{} for a texture of {w}x{h}", key.tbp0, hd.w, hd.h);
+            }
+            return Some((hd.w, hd.h, hd.rgba.clone(), sig));
+        }
+    }
     let stride = img.w.max(1) as usize;
     let mut out = vec![0u8; (w * h * 4) as usize];
     let indexed = matches!(key.psm, psm::T8 | psm::T4);

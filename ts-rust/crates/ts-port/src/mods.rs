@@ -257,6 +257,21 @@ fn original_texture_size(packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec
     Some((dims.next()?, dims.next()?))
 }
 
+/// A picture given as PNG replaces the texture of that name when it is drawn, whatever its size (the renderer shows it in place of the game's own
+/// picture over the same surface; `ts_gfx::hd`).  The file is read when the texture is first used.
+fn register_picture(game_dir: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) {
+    let Some((stem, _)) = rel.rsplit_once('.') else { return };
+    let first = stem.split('/').next().unwrap_or("");
+    let inner = if PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/') { &stem[first.len() + 1..] } else { stem };
+    let name = format!("{inner}.qpm");
+    if original_texture_size(packs, game_dir, &name).is_none() {
+        eprintln!("[mods] {mod_name}: {name} is not a texture of the game: {rel} is not used");
+        return;
+    }
+    ts_gfx::hd::register(inner, host.to_path_buf());
+    eprintln!("[mods] {mod_name}: {rel} is shown in place of {name}");
+}
+
 /// A picture given as PNG is made into the game's texture format in `mods/.cache/converted/`.  Returns the name of the texture in the pack and the
 /// converted file.
 fn convert_texture(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) -> Option<(String, PathBuf)> {
@@ -353,6 +368,9 @@ pub fn load(game_dir: &Path, exe: &Path) {
                 // (an Opus file takes the place of the .MSC stream of that name)
                 let key = if lower.ends_with(".opus") { format!("{}.msc", &lower[..lower.len() - 5]) } else { lower };
                 overlay.push((key, host));
+                count += 1;
+            } else if lower.ends_with(".png") && std::env::var_os("TS_PNG_QPM").is_none() {
+                register_picture(game_dir, &m.name, &lower, &host, &mut original_packs);
                 count += 1;
             } else if lower.ends_with(".png") {
                 if let Some((name, file)) = convert_texture(game_dir, &cache, &m.name, &lower, &host, &mut original_packs) {

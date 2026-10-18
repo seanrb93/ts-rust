@@ -655,6 +655,18 @@ impl Renderer {
     }
 
     fn make_texture(&mut self, w: u32, h: u32, rgba: &[u8], samp: (bool, bool, bool), sig: u64) -> GpuTexture {
+        // a picture bigger than the graphics card takes is made smaller
+        let max = self.device.limits().max_texture_dimension_2d.max(1);
+        let (mut w, mut h) = (w, h);
+        let mut shrunk: Option<Vec<u8>> = None;
+        while w > max || h > max {
+            let (nw, nh) = ((w / 2).max(1), (h / 2).max(1));
+            let next = downsample(shrunk.as_deref().unwrap_or(rgba), w, h, nw, nh);
+            shrunk = Some(next);
+            w = nw;
+            h = nh;
+        }
+        let rgba: &[u8] = shrunk.as_deref().unwrap_or(rgba);
         let mut chain: Vec<u8> = Vec::new();
         let mut levels = 1u32;
         if self.settings.mips() && w * h > 1 {
@@ -937,7 +949,8 @@ impl Renderer {
                     self.stats.textures_created += 1;
                 }
                 self.bind_for(key, samp);
-                Some((d.w, d.h))
+                // (the game's coordinates address the console's size, not the picture's)
+                Some((d.lw, d.lh))
             }
             None => self.texture_for_uncached(key, samp),
         };

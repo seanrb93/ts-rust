@@ -309,6 +309,8 @@ FUNCS = {
     'musicRestart': [('    v0_1 = lvGetTuneNum();'+chr(10), '    v0_1 = av_level_music(lvGetTuneNum());'+chr(10), 1)],
     # the name of a place where the maps and sign ons are kept had the number of the card's slot after it ("SAVE SLOT 1"): the name alone now
     'mcseqSlotMakeName': [('    sb(v0_2 + 1 + s4_1, s0_1 + 49);'+chr(10), '    sb(v0_2 + s4_1, 0);'+chr(10)+'    sb(v0_2 + 1 + s4_1, 0);'+chr(10), 1)],
+    # the renderer is told which file each texture came from (a mod can have a picture of any size for it)
+    'emLoadTexture': [('    sw(s1_31 + 4, 0);'+chr(10)+'    return;'+chr(10), '    sw(s1_31 + 4, 0);'+chr(10)+'    tex_loaded(lw(sp + 48), a1, a2);'+chr(10)+'    return;'+chr(10), 1)],
     # the arcade options page has a row more (Level Music): its table is a copy in the port's memory, which has room for it; the hint line says Edit for it as for Weapon Set and Bot Set
     'arcadeoptions_pageTick': [('g::i0410', '(av_opt_menu() + 16)', 7), ('    s0_1 = g::arcadeoptions_menu;'+chr(10), '    s0_1 = av_opt_ready();'+chr(10), 1), ('            if v1_5 < 14 {'+chr(10), '            if v1_5 < 14 || v1_5 == 15 {'+chr(10), 1)],
 }

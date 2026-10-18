@@ -7,6 +7,7 @@
 #[macro_use]
 pub mod trace;
 pub mod gif;
+pub mod hd;
 pub mod depth;
 pub mod png;
 pub mod programs;
@@ -164,7 +165,8 @@ impl Gfx {
                     Some(t) => t,
                     None => match texture::decode(&k, v) {
                         Some((w, h, rgba, sig)) => {
-                            let t = std::sync::Arc::new(scene::DecodedTex { w, h, rgba, sig });
+                            let (lw, lh) = (1u32 << k.tw.min(11), 1u32 << k.th.min(11));
+                            let t = std::sync::Arc::new(scene::DecodedTex { w, h, lw, lh, rgba, sig });
                             self.tex_cache.insert(k, t.clone());
                             t
                         }

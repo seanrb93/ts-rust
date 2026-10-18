@@ -306,14 +306,15 @@ A mod can hold:
   (byte, halfword, word, float, `#` comments), or `<symbol or 0xADDRESS>[+offset] s <text>` (a text and a zero byte, in the room of the old text).  The symbols are those of the game's executable (`guncombos`, `guns`, ...).  This is how a table (the
   weapon combinations, the guns' stats) is changed.
 
-Textures: put a PNG where the game has a texture: `MISC.PAK/textures/<folder>/<name>.png` replaces `textures/<folder>/<name>.qpm` (see "Extracting the textures" for
-the names).  The loader makes the game's texture format (256 colours with alpha) from it when the mod changes (`mods/.cache/converted/`), and the log says so when the
-size is not the original's.  A ready-made `.qpm` also works, and `tools/png2qpm.py picture.png out.qpm` makes one by hand.  The game's loader
-reads a whole file into a 66688 byte buffer and decodes it into the 66432 bytes behind, so a texture can have at most 65536 pixels (256x256, 512x128, 128x512,
-...) and a 32 bit `Q6` texture 16384 (128x128).  Make each side a power of two (64, 128, 256, ...): a side that is not one does not display properly (a model's surface came out
-washed out in a test).  The picture need not be the size of the one it replaces.  On a model it is stretched over the same surface (checked with the pistol: a 128x64 picture on a
-64x32 texture shows whole, four times as sharp); a picture the game draws as a sprite, such as the ammo icon or the menus', is drawn at its own size, so a bigger one is
-bigger on the screen.  `examples/sample_mod/` is a small working mod (a texture, a sound, a music stream and `patches.txt`).
+Textures: put a PNG where the game has a texture: `MISC.PAK/textures/<name>.png` replaces `textures/<name>.qpm` (`<name>` as in `index.csv` of "Extracting the textures": `0807`,
+`misc/ammo_big`, ...).  The game still loads its own texture; the renderer shows the PNG in its place, over the same surface.  The PNG can be of any size (4096x4096 and 2048x1024
+were tried; a side longer than `hd_texture_max` of `ts-port.ini`, 4096 by default, is made smaller when the picture is read, and a 4096x4096 picture takes about 85 MB of video
+memory with its mip maps) and has full colour and alpha, no palette.  The picture is stretched to the original's shape, so keep its proportions; a picture the game draws as a sprite (the HUD's
+ammo icon, the menus) stays the size on the screen the game gives it, but sharper.  The renderer finds the texture by the name of the file the game's loader was given (`manual/texhook.rs`
+notes it, `ts_rt::texnames`; `ts_gfx::hd` keeps the pictures), so a texture the game never loads is never replaced, and a picture that is not read yet is read the first time its texture is
+drawn (about 70 ms for 4096x4096).  The game's own palette tricks do not reach a replaced texture.  A ready-made `.qpm` in the mod still replaces the file in the pack (the game's format:
+256 colours, at most 65536 pixels, a power of two on each side; `tools/png2qpm.py` makes one), and `TS_PNG_QPM=1` makes the loader turn a PNG into a `.qpm` that way too.
+`examples/sample_mod/` is a small working mod (a texture, a sound, a music stream and `patches.txt`).
 
 `tools/convert_music.py <game folder>` turns the game's own music (`MUSIC/*.MSC`, 344 MB) into Opus files next to them (about 85 MB at 96 kbit/s); the port plays an
 `.opus` when there is one beside the `.MSC` (`--delete-originals` removes the `.MSC`).  It needs ffmpeg.

@@ -43,6 +43,8 @@ pub struct Config {
     pub internal_height: u32,
     /// the internal image is scaled up with sharp pixels
     pub upscale_sharp: bool,
+    /// the longest side of a picture of a mod that replaces a texture (a bigger one is made smaller when it is read)
+    pub hd_texture_max: u32,
     pub msaa: u32,
     pub filter: ts_render::Filter,
     pub aniso: u16,
@@ -95,6 +97,7 @@ impl Default for Config {
             render_scale: 1.0,
             internal_height: 0,
             upscale_sharp: false,
+            hd_texture_max: 4096,
             msaa: 1,
             filter: ts_render::Filter::Bilinear,
             aniso: 1,
@@ -227,6 +230,9 @@ msaa = 1
 texture_filter = bilinear
 # anisotropic filtering 1 (off) .. 16 (needs bilinear or trilinear; adds mip maps)
 anisotropy = 1
+# the longest side, in pixels, of a picture of a mod that replaces a texture; a bigger picture is made smaller when it is read (a 4096x4096 picture takes about
+# 85 MB of video memory with its mip maps)
+hd_texture_max = 4096
 ";
 
 fn parse_bool(v: &str) -> Option<bool> {
@@ -329,6 +335,7 @@ impl Config {
                 self.internal_height = if v == "auto" || v == "window" { 0 } else { v.trim_end_matches('p').parse::<u32>().map_err(|_| bad())?.clamp(0, 8192) };
             }
             "upscale_sharp" => self.upscale_sharp = parse_bool(value).ok_or_else(bad)?,
+            "hd_texture_max" => self.hd_texture_max = value.trim().parse::<u32>().map_err(|_| bad())?.clamp(256, 16384),
             "render_scale" => self.render_scale = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.25, 8.0),
             "msaa" => {
                 let n: u32 = value.trim().parse().map_err(|_| bad())?;
@@ -486,7 +493,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 45] = [
+        let vals: [(&str, String); 46] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -500,6 +507,7 @@ impl Config {
             ("render_scale", format!("{}", self.render_scale)),
             ("internal_resolution", self.internal_height.to_string()),
             ("upscale_sharp", self.upscale_sharp.to_string()),
+            ("hd_texture_max", self.hd_texture_max.to_string()),
             ("msaa", self.msaa.to_string()),
             ("texture_filter", filter_name(self.filter).into()),
             ("anisotropy", self.aniso.to_string()),
