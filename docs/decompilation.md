@@ -1,0 +1,42 @@
+# Decompiling the game by hand
+
+The port started as a static recompilation: `tools/gen_rust.py` translates every function of the PS2 executable into Rust that works on the
+console's flat memory (`lw(a0 + 48)`, `v1_3`, ...).  That code runs, but it cannot be read or changed much, and it is not shared (it is made
+on your own machine from your own copy of the game).  This project turns it, function by function, into source that people can read and edit.
+
+## Where things are
+
+- `ts-rust/crates/ts-game/src/game/` is the decompiled game: readable Rust, committed.  One file per subsystem (`random.rs`, `math.rs`, ...).
+- `ts-rust/crates/ts-game/src/dec/` is the machine translation that is still left (generated, not committed).  A function that exists in
+  `game/` is skipped by the generator, so every function is in exactly one place.
+- `ts-rust/crates/ts-game/src/manual/` is port code (menus, options, platform glue) that is not part of the original game.
+- `python tools/progress.py [-v]` says how many functions are done.
+
+## Rules for a decompiled function
+
+1. Same name, same signature as the original.  Callers that are still machine-translated pass raw values, so a pointer is an `i32` address.
+   Inside, use the typed views of `game/types.rs` (`Mat4`, `Quat`, ...) and add the fields of a structure there as it is understood.
+2. Do what the machine code does, in the same order.  This includes quirks (reading an input after part of the output was written).  A
+   function may be improved later, on purpose, in a separate commit that says so; the decompilation itself changes no behaviour.
+3. A doc comment says what the function does and its address (`@ 0x2b4678`).  Name constants and fields; leave no magic numbers whose
+   meaning is known.
+4. No game data in the repository: no extracted tables, no text, no pictures.  Data stays in the game's files and is read at run time.
+
+## Workflow
+
+1. Pick a function (`python tools/disasm.py <name>` shows the machine code; the generated Rust is in `dec/`).
+2. Write it in `game/` under the right subsystem file and add the module to `game/mod.rs` if the file is new.
+3. Regenerate (`python tools/gen_rust.py`, with `Game Files/SLUS_200.90` in place) so the generated copy is dropped, and build.
+4. Prove it equal to the machine code: `ts-verify --elf <SLUS_200.90> --n 500 name1 name2 ...` runs the original instructions and the Rust on
+   random inputs and compares results and every memory write.  Functions that call others are checked with those calls included.
+   For logic that needs real game state use the shadow mode (`TS_SHADOW=name`, see the README).
+5. Commit with the functions' names in the message.
+
+Order of work: leaf functions first (maths, strings, lists, memory), then the systems built on them, working towards `gameTick` and the
+front end.  When a structure is understood (its size and fields), give it a type in `game/types.rs` and use it in every function that touches it.
+
+## Later
+
+When most of a subsystem is decompiled, its data moves from raw addresses into Rust types, the guest-memory calls of that subsystem go away,
+and the subsystem stops depending on the console's address space.  That is what lifts the limits the static recompilation has (fixed memory
+layout, 32 MB pool, tables of fixed size).

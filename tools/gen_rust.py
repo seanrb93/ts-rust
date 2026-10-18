@@ -18,6 +18,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(ROOT, 'ts-rust', 'crates', 'ts-game', 'src', 'dec')
 SDK = os.path.join(ROOT, 'ts-rust', 'crates', 'ts-sdk', 'src')
 MANUAL_DIR = os.path.join(ROOT, 'ts-rust', 'crates', 'ts-game', 'src', 'manual')
+GAME_DIR = os.path.join(ROOT, 'ts-rust', 'crates', 'ts-game', 'src', 'game')   # the hand-decompiled game, see docs/decompilation.md
 
 # functions hand-written in ts-game/src/manual (never generated); name -> (param regs, rets)
 MANUAL_DYNAMIC = {'vafmt'}
@@ -197,6 +198,12 @@ def write_outputs(e, fs, split, funcs, failed, sigs, rettypes, out_funcs, at, sy
             if fn.endswith('.rs'):
                 src = open(os.path.join(MANUAL_DIR, fn), encoding='utf8').read()
                 manual_names |= set(re.findall(r'pub fn (\w+)', src))
+    # decompiled by hand: the functions at the top level of a file (methods of types are indented and are not the game's)
+    for dp, _, fns in os.walk(GAME_DIR):
+        for fn in fns:
+            if fn.endswith('.rs'):
+                src = open(os.path.join(dp, fn), encoding='utf8').read()
+                manual_names |= set(re.findall(r'^pub fn (\w+)', src, re.M))
     items = sorted(out_funcs.items())
     per = 60
     mods = []

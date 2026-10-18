@@ -9,8 +9,10 @@ pub use ts_rt::*;
 pub use ts_sdk::*;
 
 pub mod dec;
+pub mod game;
 pub mod manual;
 
 pub use dec::g;
 pub use dec::*;
 pub use manual::*;
+pub use game::*;
