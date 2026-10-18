@@ -115,6 +115,7 @@ def load(path, opts):
         pak = None
     mats = Materials(path, pak, opts.get('materials') or [])
     sc = Scene(up='z', scale=0.025, label=os.path.basename(path))
+    sc.min_light = 0.35
     markers_from_entities(ents, sc)
     sky = []
     for e in ents:

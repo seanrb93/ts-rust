@@ -309,6 +309,18 @@ pub fn present_frame() {
         let b = lw(g::chrinfo) + 0x1210;
         eprintln!("[bot] chars {} f{} state {:#x} prev {:#x} flags {:#x} {:#x} mode {} target {:#x} gun {} combo {} pos {:.1},{:.1}", lw(g::numactivechars), ts_sdk::frame_count(), lw(b + 2716), lw(b + 2720), lw(b + 2704), lw(b + 2708), lw(b + 2724), lw(b + 2788), lw(lw(lw(b + 3020) + 352) + 376), lw(lw(lw(b + 3020) + 352) + 260), lwc1(lw(b + 3020) + 48), lwc1(lw(b + 3020) + 56));
     }
+    if std::env::var_os("TS_POSLOG").is_some() && lw(g::gamestate) != 0 && ts_sdk::frame_count() % 30 == 0 {
+        // test aid: where player 1 is (its prop's position and room)
+        let pr = lw(lw(g::players) + 384);
+        if pr != 0 {
+            let rd = lw(g::roomdata);
+            let nrooms = lw(g::bgNumRooms);
+            let vis = (1..=nrooms).filter(|&r| (lw(rd + r * 20) as u32) < 25).count();
+            let me = lw(pr + 12);
+            eprintln!("[rooms] of {} visible {} mine {:?} depth(maxlevel) {}", nrooms, vis, (0..5).map(|k| lw(rd + me * 20 + 4 * k)).collect::<Vec<_>>(), lw(g::maxlevel));
+            eprintln!("[pos] f{} lvl {} {:.2},{:.2},{:.2} room {} maxdma {} lists {:#x} {:#x}", ts_sdk::frame_count(), lw(g::lvlevelnum), lwc1(pr + 48), lwc1(pr + 52), lwc1(pr + 56), lw(pr + 12), lw(g::maxdmalistlen), lw(g::dmalists), lw(g::dmalists + 4));
+        }
+    }
     if std::env::var_os("TS_COMBOLOG").is_some() && lw(g::gamestate) == 3 && ts_sdk::frame_count() % 120 == 0 {
         // test aid: the weapon combination and what player 1 owns
         let s = lw(lw(lw(g::players) + 384) + 352);

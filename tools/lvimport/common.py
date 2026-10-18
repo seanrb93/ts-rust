@@ -55,6 +55,7 @@ class Scene:
         self.up = up
         self.scale = scale
         self.label = label
+        self.min_light = 0.0      # a floor of brightness for the faces (maps with lightmaps have dark ones)
 
     def add(self, pts, uvs, cols, mat):
         """A convex polygon (any number of points): up to four stay as they are, more are fanned into triangles."""

@@ -99,6 +99,7 @@ def load(path, opts):
                 wads.setdefault(k, v)
 
     sc = Scene(up='z', scale=0.025, label=os.path.basename(path))
+    sc.min_light = 0.35
     markers_from_entities(ents, sc)
     texinfo = [struct.unpack_from('<8f2i', texinfo_raw, 40 * i) for i in range(len(texinfo_raw) // 40)]
 

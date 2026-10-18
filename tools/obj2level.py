@@ -34,11 +34,15 @@ Options:
     --up y|z         which axis is up (default: the format's; z is turned into the game's y)
     --flip           reverse the winding of faces (when the level is inside out)
     --room-size R    split the level into rooms of R x R units, joined by portals (default 0: one room; large levels draw faster split)
-    --pad-spacing D  distance of the pads bots walk by (default 5); --max-pads N makes it larger when there would be more pads (default 450)
+    --pad-spacing D  distance of the pads bots walk by (default 5); --max-pads N makes it larger when there would be more pads (default 700)
     --modes LIST     the modes the level offers: dm,bagtag,ctb,escort,ko,ls (default dm,bagtag,ctb,ko)
     --tune N         the music track 1..27 of the game's (default: the level `like` plays)
     --music FILE     music of its own for the level: any audio file (needs ffmpeg unless it is .opus); it is made Opus and the level plays it
-    --max-textures N the most textures (default 90)
+    --min-light X    how bright the darkest surfaces are, 0..1 (default 0.35 for maps of Source and GoldSrc, whose lightmaps are only averaged here; else 0)
+    --max-polygon W  polygons wider than W units are cut into pieces (default 0: not); makes the file larger
+    --texture-budget KB  the textures are made smaller until their files add up to this (default 640; the game's own levels use up to 670): the game keeps
+                     a level's textures in a pool of its own, and a level with more does not draw some surfaces
+    --max-textures N the most textures (default 48: with more, a level of this size does not draw some surfaces)
     --materials DIR  a `materials` folder (Source: the game's own pictures; may be given more than once); --wad FILE|DIR for GoldSrc
     --blender EXE    the Blender to use for .blend files
     --radius R       keep only what is within R units (a square) of --center x,z (default: the first spawn): large maps do not fit in the game
@@ -61,6 +65,8 @@ import lvimport  # noqa: E402
 CHUNK_VERTS = 64          # the most vertices one chunk can draw (the VU1 buffer)
 FLOOR_NY = 0.5            # a face whose normal points up more than this is a floor
 MAX_TEX = 256             # the largest side of a texture file (65536 pixels in all)
+MAX_ROOM_CHUNKS = 96      # (the game's largest room has 104 chunks and 5246 vertices)
+MAX_ROOM_VERTS = 4800
 MAX_ROOMS = 480          # the tables hold 512 rooms (the game's own held 200)
 MODES = {'dm': 1, 'bagtag': 2, 'ctb': 4, 'escort': 8, 'ko': 16, 'ls': 32}
 
@@ -85,10 +91,36 @@ def material_image(m):
     return img
 
 
-def fit_texture(img):
+def plan_sizes(images, areas, budget):
+    """The size (w, h: powers of two) each texture is made: the pictures' own sizes (at most 256 a side), made smaller, the ones that cover least
+    for their bytes first, until the files add up to `budget` bytes.  The game keeps a level's textures in a pool of its own: the levels of the game
+    use at most 670 KB, and a level with more has surfaces that are not drawn."""
+    size = {}
+    for m, img in images.items():
+        w, h = img.size
+        nw, nh = pow2_at_most(w), pow2_at_most(h)
+        while nw * nh > 65536:
+            if nw >= nh:
+                nw //= 2
+            else:
+                nh //= 2
+        size[m] = (nw, nh)
+    cost = lambda wh: 1024 + 40 + wh[0] * wh[1]
+    while sum(cost(v) for v in size.values()) > budget:
+        # (the texture that costs most for the area it covers)
+        cand = [m for m, v in size.items() if v[0] * v[1] > 256]
+        if not cand:
+            break
+        m = max(cand, key=lambda k: size[k][0] * size[k][1] / (1.0 + areas.get(k, 0.0)))
+        w, h = size[m]
+        size[m] = (w // 2, h) if w >= h and w > 8 else (w, max(8, h // 2))
+    return size
+
+
+def fit_texture(img, target=None):
     """The picture as the game takes it: power-of-two sides, 65536 pixels at the most."""
     w, h = img.size
-    nw, nh = pow2_at_most(w), pow2_at_most(h)
+    nw, nh = target if target else (pow2_at_most(w), pow2_at_most(h))
     while nw * nh > 65536:
         if nw >= nh:
             nw //= 2
@@ -144,6 +176,10 @@ def build_polys(scene, args):
                 polys.append(Poly([pts[0], pts[2], pts[3]], [uv[0], uv[2], uv[3]], [col[0], col[2], col[3]], rp.mat))
                 continue
         polys.append(Poly(pts, uv, col, rp.mat))
+    m = args.min_light if args.min_light is not None else scene.min_light
+    if m > 0:
+        for p in polys:
+            p.col = [tuple(m + (1.0 - m) * min(1.0, max(0.0, c)) for c in cc) for cc in p.col]
     markers = [(name, conv(pos)) for name, pos in scene.markers]
     return [p for p in polys if np.linalg.norm(p.normal()) > 0.5], markers
 
@@ -251,6 +287,45 @@ def write_bg(polys, tex_numbers, args, rooms_polys, room_boxes, portals):
     return bytes(o.b)
 
 
+def make_strips(polys, longest=40):
+    """Triangle strips for the polygons of one material: each triangle is a strip of three vertices and a quad one of four (a, b, d, c); quads that
+    share an edge (with the same texture coordinates and colours at its ends: pieces of one cut polygon do) are joined into one long strip, which
+    holds each vertex once instead of two or four times."""
+    def key(pt, uv, col):
+        return (round(float(pt[0]), 5), round(float(pt[1]), 5), round(float(pt[2]), 5), round(uv[0], 5), round(uv[1], 5),
+                round(col[0], 3), round(col[1], 3), round(col[2], 3))
+    quads = [p for p in polys if len(p.p) == 4]
+    out = [[(p.p[i], p.uv[i], p.col[i]) for i in (0, 1, 2)] for p in polys if len(p.p) == 3]
+    # for every quad and rotation k: the strip order (k, k+1, k+3, k+2); its first edge is (k, k+1)
+    first = {}
+    for qi, p in enumerate(quads):
+        for k in range(4):
+            first.setdefault((key(p.p[k], p.uv[k], p.col[k]), key(p.p[(k + 1) % 4], p.uv[(k + 1) % 4], p.col[(k + 1) % 4])), []).append((qi, k))
+    used = [False] * len(quads)
+    for qi, p in enumerate(quads):
+        if used[qi]:
+            continue
+        used[qi] = True
+        idx = [0, 1, 3, 2]
+        strip = [(p.p[i], p.uv[i], p.col[i]) for i in idx]
+        while len(strip) + 2 <= longest:
+            a, b = strip[-2], strip[-1]
+            nxt = None
+            for cj, k in first.get((key(*a), key(*b)), []):
+                if not used[cj]:
+                    nxt = (cj, k)
+                    break
+            if nxt is None:
+                break
+            cj, k = nxt
+            used[cj] = True
+            q = quads[cj]
+            for i in ((k + 3) % 4, (k + 2) % 4):
+                strip.append((q.p[i], q.uv[i], q.col[i]))
+        out.append(strip)
+    return out
+
+
 def write_model(o, polys, slot, tex_numbers):
     """A room's model: one part, a chunk for every run of up to 64 vertices of one texture.  Returns the offset of the model block."""
     sets = []
@@ -282,14 +357,11 @@ def write_model(o, polys, slot, tex_numbers):
                     st.append((0.0, 0.0))
                     rgba.append((1.0, 1.0, 1.0))
                 cur, nv = [], 0
-            for p in ps:
-                n = len(p.p)
-                if nv + n > CHUNK_VERTS:
+            for strip in make_strips(ps):
+                if nv + len(strip) > CHUNK_VERTS:
                     flush()
-                # (a quad is the strip a, b, d, c)
-                order = [0, 1, 2] if n == 3 else [0, 1, 3, 2]
-                cur.append([(p.p[i], p.uv[i], p.col[i]) for i in order])
-                nv += n
+                cur.append(strip)
+                nv += len(strip)
             flush()
         sets.append((desc, pos, st, rgba, chunks))
     arrays = []
@@ -327,13 +399,41 @@ def write_model(o, polys, slot, tex_numbers):
     return ob_at
 
 
+def clean_floor(pts):
+    """A floor's vertices without repeated or collinear ones, starting at the three that make the largest triangle: the game works out the
+    height of a sloping floor from its first three vertices, so these must not lie on a line (clipping at the rooms' edges makes such vertices)."""
+    v = [np.asarray(p, dtype=np.float64) for p in pts]
+    changed = True
+    while changed and len(v) >= 3:
+        changed = False
+        for i in range(len(v)):
+            a, b, c = v[i - 1], v[i], v[(i + 1) % len(v)]
+            if np.linalg.norm(b - a) < 1e-5 or np.linalg.norm(np.cross(b - a, c - b)) < 1e-6 * max(1.0, np.linalg.norm(c - a)):
+                del v[i]
+                changed = True
+                break
+    if len(v) < 3:
+        return None
+    best, at = -1.0, 0
+    for i in range(len(v)):
+        t = np.linalg.norm(np.cross(v[(i + 1) % len(v)] - v[i], v[(i + 2) % len(v)] - v[i]))
+        if t > best:
+            best, at = t, i
+    if best < 1e-4:
+        return None
+    v = v[at:] + v[:at]
+    return [tuple(float(c) for c in q) for q in v]
+
+
 def collision(polys):
     """Floors (lists of vertices) and walls (8 floats) of the polygons of a room."""
     floors, walls = [], []
     for p in polys:
         n = p.normal()
         if n[1] > FLOOR_NY:
-            floors.append([tuple(float(c) for c in v) for v in p.p])
+            f = clean_floor(p.p)
+            if f:
+                floors.append(f)
         elif abs(n[1]) <= FLOOR_NY:
             xz = [(v[0], v[2]) for v in p.p]
             best, pair = -1.0, (0, 0)
@@ -360,14 +460,14 @@ def make_pads(polys, boxes, args, markers):
     """Pads on a grid over the floors (the grid is made wider when it would give more than `--max-pads`); links between neighbours."""
     d = args.pad_spacing
     for _ in range(6):
-        pads, links = _pads(polys, args, d)
+        pads, links = _pads(polys, args, d, markers)
         if len(pads) <= args.max_pads:
             break
         d *= max(1.1, (len(pads) / args.max_pads) ** 0.5)
     return pads, links
 
 
-def _pads(polys, args, d):
+def _pads(polys, args, d, markers=()):
     """Pads on a grid over the floors: (x, y, z, room); links between neighbours."""
     floors = [(i, p) for i, p in enumerate(polys) if p.normal()[1] > FLOOR_NY]
     if not floors:
@@ -402,6 +502,29 @@ def _pads(polys, args, d):
                 hs.append(l1 * a[1] + l2 * b[1] + l3 * c[1])
         return hs
 
+    def floor_at(x, z):
+        """(height, distance to the nearest edge of the floor triangle) of every floor triangle that covers a point."""
+        gx, gz = int((x - lo[0]) / d), int((z - lo[2]) / d)
+        out = []
+        for k in grid.get((gx, gz), []):
+            a, b, c = tris[k]
+            den = (b[2] - c[2]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[2] - c[2])
+            if abs(den) < 1e-9:
+                continue
+            l1 = ((b[2] - c[2]) * (x - c[0]) + (c[0] - b[0]) * (z - c[2])) / den
+            l2 = ((c[2] - a[2]) * (x - c[0]) + (a[0] - c[0]) * (z - c[2])) / den
+            l3 = 1 - l1 - l2
+            if min(l1, l2, l3) < -1e-6:
+                continue
+            m = 1e9
+            for (p, q) in ((a, b), (b, c), (c, a)):
+                ex, ez = q[0] - p[0], q[2] - p[2]
+                ln = math.hypot(ex, ez)
+                if ln > 1e-9:
+                    m = min(m, abs(ex * (z - p[2]) - ez * (x - p[0])) / ln)
+            out.append((l1 * a[1] + l2 * b[1] + l3 * c[1], m))
+        return out
+
     pads = []
     at = {}
     for gx in range(nx):
@@ -419,6 +542,34 @@ def _pads(polys, args, d):
             for j in index.get((p[3] + dx, p[4] + dz), []):
                 if abs(pads[j][1] - p[1]) <= args.step:
                     links.append((i, j))
+    # a pad where each marker is (on the floor under it), linked to the pads near it: spawns and weapons go to the pad nearest, which on a large map
+    # with a wide grid would be far away
+    for name, pos in markers:
+        gx, gz = int((pos[0] - lo[0]) / d), int((pos[2] - lo[2]) / d)
+        hs = [h for h in height_at(pos[0], pos[2], gx, gz) if h <= pos[1] + 0.8]
+        if not hs:
+            continue
+        h = max(hs)
+        # (a map's spawns are on round numbers, which are the edges of its floors: the game's test of what floor a point is over is not sure about a point
+        # on an edge, and the player falls to the floor below.  The pad is moved to where the floor is under it with some room all round.)
+        best = None
+        for r in (0.0137, 0.05, 0.1, 0.2, 0.4, 0.8):
+            for ang in range(0, 360, 45) if r > 0.0137 else (30,):
+                px, pz = pos[0] + r * math.cos(math.radians(ang)), pos[2] + r * math.sin(math.radians(ang))
+                cands = [m for (hh, m) in floor_at(px, pz) if abs(hh - h) < 0.05]
+                if cands and max(cands) >= 0.03:
+                    best = (px, pz)
+                    break
+            if best:
+                break
+        if best:
+            pos = np.array([best[0], pos[1], best[1]])
+        if any((q[0] - pos[0]) ** 2 + (q[2] - pos[2]) ** 2 < 0.09 and abs(q[1] - h) < 0.3 for q in pads):
+            continue
+        near = sorted((((q[0] - pos[0]) ** 2 + (q[1] - h) ** 2 + (q[2] - pos[2]) ** 2, j) for j, q in enumerate(pads) if abs(q[1] - h) <= args.step and (q[0] - pos[0]) ** 2 + (q[2] - pos[2]) ** 2 <= (2.5 * d) ** 2))[:3]
+        pads.append((pos[0], h, pos[2], gx, gz))
+        for _, j in near:
+            links.append((len(pads) - 1, j))
     return pads, links
 
 
@@ -572,6 +723,33 @@ def cut_to_grid(polys, lo, r):
     return [p for p in polys if np.linalg.norm(p.normal()) > 1e-6]
 
 
+def cut_big(polys, lo, w):
+    """Cut the polygons that are wider than `w` (along x or z) at the lines of a grid of `w`; the others are left whole."""
+    for axis in (0, 2):
+        out = []
+        for p in polys:
+            lo_v = min(v[axis] for v in p.p)
+            hi_v = max(v[axis] for v in p.p)
+            if hi_v - lo_v <= w:
+                out.append(p)
+                continue
+            todo = [p]
+            k = math.floor((lo_v - lo[axis]) / w) + 1
+            while lo[axis] + k * w < hi_v - 1e-6:
+                line = lo[axis] + k * w
+                nxt = []
+                for q in todo:
+                    if min(v[axis] for v in q.p) < line - 1e-6 and max(v[axis] for v in q.p) > line + 1e-6:
+                        nxt += clip_poly(q, axis, line, True) + clip_poly(q, axis, line, False)
+                    else:
+                        nxt.append(q)
+                todo = nxt
+                k += 1
+            out += todo
+        polys = out
+    return [p for p in polys if np.linalg.norm(p.normal()) > 1e-6]
+
+
 def split_rooms(polys, args):
     allp = np.array([v for p in polys for v in p.p])
     lo, hi = allp.min(axis=0), allp.max(axis=0)
@@ -579,32 +757,73 @@ def split_rooms(polys, args):
     if args.room_size <= 0:
         return [polys], [(lo[0] - 1, ylo, lo[2] - 1, hi[0] + 1, yhi, hi[2] + 1)], []
     r = args.room_size
-    polys = cut_to_grid(polys, lo, r)
+    if args.max_polygon <= 0 or args.max_polygon > r:
+        # (a polygon is in the room of its centre: the ones that are wider than a room are cut at its edges; with a smaller `--max-polygon` they are cut already)
+        polys = cut_to_grid(polys, lo, r)
     cells = {}
     for p in polys:
         c = p.centre()
         cells.setdefault((int((c[0] - lo[0]) // r), int((c[2] - lo[2]) // r)), []).append(p)
-    keys = sorted(cells)
-    rooms = [cells[k] for k in keys]
-    boxes = [(lo[0] + k[0] * r, ylo, lo[2] + k[1] * r, lo[0] + (k[0] + 1) * r, yhi, lo[2] + (k[1] + 1) * r) for k in keys]
-    number = {k: i + 1 for i, k in enumerate(keys)}
+    # leaves of rooms: a cell that is too full for the game (about 100 chunks, 5000 vertices: the largest room of the game has 104 and 5246) is
+    # split in four, again and again
+    leaves = []
+
+    def load(ps):
+        by = {}
+        for q in ps:
+            by.setdefault(q.mat, 0)
+            by[q.mat] += len(q.p)
+        return sum(-(-v // CHUNK_VERTS) for v in by.values()), sum(by.values())
+
+    def divide(x0, z0, x1, z1, ps):
+        chunks, verts = load(ps)
+        if (chunks > MAX_ROOM_CHUNKS or verts > MAX_ROOM_VERTS) and x1 - x0 > 6.0 and len(ps) > 1:
+            xm, zm = (x0 + x1) / 2, (z0 + z1) / 2
+            quad = {}
+            for q in ps:
+                c = q.centre()
+                quad.setdefault((c[0] >= xm, c[2] >= zm), []).append(q)
+            for (hx, hz), qs in quad.items():
+                divide(xm if hx else x0, zm if hz else z0, x1 if hx else xm, z1 if hz else zm, qs)
+        else:
+            leaves.append((x0, z0, x1, z1, ps))
+    for k in sorted(cells):
+        divide(lo[0] + k[0] * r, lo[2] + k[1] * r, lo[0] + (k[0] + 1) * r, lo[2] + (k[1] + 1) * r, cells[k])
+    rooms = [l[4] for l in leaves]
+    # (each room's box is as tall as its own surfaces, a little more: a portal as tall as the whole level, over a plain, is a thing the game's
+    # clipping of what is seen through it does not manage near the camera)
+    yr = []
+    for rp in rooms:
+        ys = [q[1] for p in rp for q in p.p]
+        yr.append((min(ys) - 1.0, max(ys) + 4.0))
+    boxes = [(l[0], yr[i][0], l[1], l[2], yr[i][1], l[3]) for i, l in enumerate(leaves)]
+    # portals: where two rooms' boxes touch along a face, a portal in the part of the face they share
     portals = []
-    for k in keys:
-        for dx, dz in ((1, 0), (0, 1)):
-            nb = (k[0] + dx, k[1] + dz)
-            if nb not in number:
+    eps = 1e-4
+    for i in range(len(leaves)):
+        for j in range(i + 1, len(leaves)):
+            A, B = boxes[i], boxes[j]
+            y0, y1 = max(A[1], B[1]), min(A[4], B[4])
+            if y1 - y0 < 1.0:
                 continue
-            a, b = number[k], number[nb]
-            bx = boxes[a - 1]
-            if dx:
-                x = bx[3]
-                quad = [(x, ylo, bx[2]), (x, yhi, bx[2]), (x, yhi, bx[5]), (x, ylo, bx[5])]
-                nrm = (1.0, 0.0, 0.0)
-            else:
-                z = bx[5]
-                quad = [(bx[0], ylo, z), (bx[3], ylo, z), (bx[3], yhi, z), (bx[0], yhi, z)]
-                nrm = (0.0, 0.0, 1.0)
-            portals.append((a, b, nrm, quad))
+            for axis in (0, 2):
+                other = 2 - axis
+                lo_o, hi_o = max(A[other], B[other]), min(A[3 + other], B[3 + other])
+                if hi_o - lo_o <= 0.05:
+                    continue
+                if abs(A[3 + axis] - B[axis]) < eps:
+                    first, second, v = i, j, A[3 + axis]
+                elif abs(B[3 + axis] - A[axis]) < eps:
+                    first, second, v = j, i, B[3 + axis]
+                else:
+                    continue
+                if axis == 0:
+                    quad = [(v, y0, lo_o), (v, y1, lo_o), (v, y1, hi_o), (v, y0, hi_o)]
+                    nrm = (1.0, 0.0, 0.0)
+                else:
+                    quad = [(lo_o, y0, v), (hi_o, y0, v), (hi_o, y1, v), (lo_o, y1, v)]
+                    nrm = (0.0, 0.0, 1.0)
+                portals.append((first + 1, second + 1, nrm, quad))
     return rooms, boxes, portals
 
 
@@ -640,12 +859,17 @@ def main():
     ap.add_argument('--flip', action='store_true')
     ap.add_argument('--room-size', type=float, default=0.0)
     ap.add_argument('--pad-spacing', type=float, default=5.0)
-    ap.add_argument('--max-pads', type=int, default=450)
+    ap.add_argument('--max-pads', type=int, default=700)
     ap.add_argument('--step', type=float, default=1.0, help='the highest step a link may climb')
     ap.add_argument('--modes', default='dm,bagtag,ctb,ko')
     ap.add_argument('--tune', type=int, default=0)
     ap.add_argument('--music', default=None, help='an audio file (mp3, ogg, wav, flac, opus, ...) the level plays')
-    ap.add_argument('--max-textures', type=int, default=90)
+    ap.add_argument('--min-light', type=float, default=None, help='how bright the darkest surfaces are, 0..1 (default 0.35 for maps with lightmaps, else 0)')
+    ap.add_argument('--max-polygon', type=float, default=0.0, help='polygons are cut into pieces no wider than this (0: not)')
+    ap.add_argument('--spawn-at', default=None, help='x,z (game units): players start only here (a test aid)')
+    ap.add_argument('--no-translucent', action='store_true', help='leave out surfaces drawn see-through (a test aid)')
+    ap.add_argument('--texture-budget', type=float, default=640.0, help='the most KB of texture files (the levels of the game use up to 670)')
+    ap.add_argument('--max-textures', type=int, default=48)
     ap.add_argument('--materials', action='append', default=[])
     ap.add_argument('--wad', action='append', default=[])
     ap.add_argument('--blender', default=None)
@@ -661,7 +885,12 @@ def main():
     polys, markers = build_polys(scene, args)
     if not polys:
         sys.exit('no faces')
+    if args.spawn_at:
+        sx, sz = (float(x) for x in args.spawn_at.split(','))
+        markers = [(k, v) for k, v in markers if not k.lower().startswith('spawn')] + [('spawn', np.array([sx, 2.0, sz]))]
     print(f'{scene.label}: {len(polys)} polygons, {len(scene.mats)} materials, {len(markers)} markers')
+    if args.no_translucent:
+        polys = [p for p in polys if not scene.mats[p.mat].image() or not scene.mats[p.mat].translucent]
     if args.radius > 0:
         if args.center:
             cx, cz = (float(x) for x in args.center.split(','))
@@ -702,12 +931,28 @@ def main():
         if p.mat not in names:
             names.append(p.mat)
     tex_numbers = {}
+    images = {m: material_image(scene.mats[m]) for m in names}
+    areas = {}
+    for p in polys:
+        a = 0.0
+        for i in range(1, len(p.p) - 1):
+            a += np.linalg.norm(np.cross(p.p[i] - p.p[0], p.p[i + 1] - p.p[0])) / 2
+        areas[p.mat] = areas.get(p.mat, 0.0) + a
+    sizes = plan_sizes(images, areas, int(args.texture_budget * 1024))
+    total = 0
     for k, m in enumerate(names):
         mat = scene.mats[m]
-        img = material_image(mat)
         num = base + k
         tex_numbers[m] = (num, bool(mat.translucent))
-        open(os.path.join(out, 'MISC.PAK', 'textures', f'{num:04d}.qpm'), 'wb').write(png2qpm.make_qpm(fit_texture(img)))
+        data = png2qpm.make_qpm(fit_texture(images[m], sizes[m]))
+        total += len(data)
+        open(os.path.join(out, 'MISC.PAK', 'textures', f'{num:04d}.qpm'), 'wb').write(data)
+    print(f'textures: {len(names)}, {total // 1024} KB')
+    if args.max_polygon > 0:
+        allp = np.array([q for p in polys for q in p.p])
+        before = len(polys)
+        polys = cut_big(polys, allp.min(axis=0), args.max_polygon)
+        print(f'polygons cut to {args.max_polygon} units: {before} -> {len(polys)}')
     rooms, boxes, portals = split_rooms(polys, args)
     # (the game has room for about 200 rooms: the grid is made coarser until there are fewer)
     while len(rooms) > MAX_ROOMS and args.room_size > 0:
