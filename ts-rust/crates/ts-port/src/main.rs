@@ -12,6 +12,7 @@ mod menu;
 mod mods;
 mod dldump;
 mod keys;
+mod texmod;
 mod window;
 mod gfx_worker;
 

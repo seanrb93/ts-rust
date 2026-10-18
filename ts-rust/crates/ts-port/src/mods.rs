@@ -190,6 +190,57 @@ fn convert_sound(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, host:
     Some((rel_name, out))
 }
 
+/// The size of a texture of the game (its `.qpm` header), to tell a mod that its picture has another size.
+fn original_texture_size(packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>, game_dir: &Path, name: &str) -> Option<(usize, usize)> {
+    let (d, entries) = packs.entry("MISC.PAK").or_insert_with(|| read_pack(&game_dir.join("PAK").join("MISC.PAK"))).as_ref()?;
+    let e = entries.iter().find(|e| e.name == name.as_bytes())?;
+    let b = d.get(e.offset as usize..(e.offset + e.size.min(64)) as usize)?;
+    let text = String::from_utf8_lossy(b);
+    let mut lines = text.lines();
+    lines.next()?;
+    let mut dims = lines.next()?.split_whitespace().filter_map(|x| x.parse::<usize>().ok());
+    Some((dims.next()?, dims.next()?))
+}
+
+/// A picture given as PNG is made into the game's texture format in `mods/.cache/converted/`.  Returns the name of the texture in the pack and the
+/// converted file.
+fn convert_texture(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) -> Option<(String, PathBuf)> {
+    let (stem, _) = rel.rsplit_once('.')?;
+    let first = stem.split('/').next().unwrap_or("");
+    let has_pack = PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/');
+    let inner = if has_pack { &stem[first.len() + 1..] } else { stem };
+    let name = format!("{inner}.qpm");
+    let out_dir = cache.join("converted").join(mod_name);
+    let _ = std::fs::create_dir_all(&out_dir);
+    let out = out_dir.join(name.replace('/', "__"));
+    let rel_name = if has_pack { format!("{first}/{name}") } else { name.clone() };
+    let fresh = match (std::fs::metadata(&out).and_then(|m| m.modified()), std::fs::metadata(host).and_then(|m| m.modified())) {
+        (Ok(a), Ok(b)) => a >= b,
+        _ => false,
+    };
+    if out.is_file() && fresh {
+        return Some((rel_name, out));
+    }
+    let (bytes, w, h) = match crate::texmod::png_to_qpm(host) {
+        Ok(x) => x,
+        Err(e) => {
+            eprintln!("[mods] {mod_name}: {e}");
+            return None;
+        }
+    };
+    match original_texture_size(packs, game_dir, &name) {
+        Some((ow, oh)) if (ow, oh) != (w, h) => eprintln!("[mods] {mod_name}: {rel} is {w}x{h}, the texture it replaces is {ow}x{oh} (the model keeps its texture coordinates: a picture of another shape is stretched or cut)"),
+        Some(_) => {}
+        None => eprintln!("[mods] {mod_name}: {name} is not a texture of the game: it is added (a model has to ask for it by name)"),
+    }
+    if let Err(e) = std::fs::write(&out, bytes) {
+        eprintln!("[mods] {mod_name}: {}: {e}", out.display());
+        return None;
+    }
+    eprintln!("[mods] {mod_name}: {rel} -> {name} ({w}x{h}, 256 colours)");
+    Some((rel_name, out))
+}
+
 fn stamp(files: &BTreeMap<String, PathBuf>) -> String {
     let mut s = String::new();
     for (name, p) in files {
@@ -243,6 +294,15 @@ pub fn load(game_dir: &Path, exe: &Path) {
                 let key = if lower.ends_with(".opus") { format!("{}.msc", &lower[..lower.len() - 5]) } else { lower };
                 overlay.push((key, host));
                 count += 1;
+            } else if lower.ends_with(".png") {
+                if let Some((name, file)) = convert_texture(game_dir, &cache, &m.name, &lower, &host, &mut original_packs) {
+                    let (pack, inner) = match name.split_once('/').and_then(|(f, rest)| PACKS.iter().find(|p| p.eq_ignore_ascii_case(f)).map(|p| (*p, rest.to_string()))) {
+                        Some(x) => x,
+                        None => ("MISC.PAK", name.clone()),
+                    };
+                    pack_changes.entry(pack).or_default().insert(inner, file);
+                    count += 1;
+                }
             } else if audio {
                 if let Some((name, file)) = convert_sound(game_dir, &cache, &m.name, &lower, &host, &mut original_packs) {
                     let (pack, inner) = match name.split_once('/').and_then(|(f, rest)| PACKS.iter().find(|p| p.eq_ignore_ascii_case(f)).map(|p| (*p, rest.to_string()))) {

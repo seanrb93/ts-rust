@@ -5,8 +5,6 @@ import sys
 
 from PIL import Image, ImageDraw
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from png2qpm import make_qpm  # noqa: E402
 
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'examples', 'sample_mod')
 img = Image.new('RGBA', (32, 32), (0, 0, 0, 0))
@@ -20,6 +18,6 @@ d.ellipse((6, 6, 8, 8), fill=(255, 255, 255, 200))
 d.ellipse((24, 14, 27, 17), fill=(160, 255, 255, 140))
 os.makedirs(os.path.join(root, 'art'), exist_ok=True)
 img.save(os.path.join(root, 'art', 'ammo_big.png'))
-with open(os.path.join(root, 'MISC.PAK', 'textures', 'misc', 'ammo_big.qpm'), 'wb') as f:
-    f.write(make_qpm(img))
+# the mod holds the PNG itself: the port makes the game's texture from it when it loads the mod (tools/png2qpm.py does the same by hand)
+img.save(os.path.join(root, 'MISC.PAK', 'textures', 'misc', 'ammo_big.png'))
 print('written')

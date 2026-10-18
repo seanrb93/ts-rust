@@ -295,7 +295,9 @@ A mod can hold:
   (byte, halfword, word, float, `#` comments), or `<symbol or 0xADDRESS>[+offset] s <text>` (a text and a zero byte, in the room of the old text).  The symbols are those of the game's executable (`guncombos`, `guns`, ...).  This is how a table (the
   weapon combinations, the guns' stats) is changed.
 
-Textures: a texture is a `.qpm` (see "Extracting the textures"); `tools/png2qpm.py picture.png out.qpm` makes one from a PNG (256 colours with alpha).  The game's loader
+Textures: put a PNG where the game has a texture: `MISC.PAK/textures/<folder>/<name>.png` replaces `textures/<folder>/<name>.qpm` (see "Extracting the textures" for
+the names).  The loader makes the game's texture format (256 colours with alpha) from it when the mod changes (`mods/.cache/converted/`), and the log says so when the
+size is not the original's.  A ready-made `.qpm` also works, and `tools/png2qpm.py picture.png out.qpm` makes one by hand.  The game's loader
 reads a whole file into a 66688 byte buffer and decodes it into the 66432 bytes behind, so a texture can have at most 65536 pixels (256x256, 512x128, 128x512,
 ...; the width is rounded up to a power of two) and a 32 bit `Q6` texture 16384 (128x128); a texture should keep the size of the one it replaces, because the
 models' texture coordinates are not changed.  `examples/sample_mod/` is a small working mod (a texture, a sound, a music stream and `patches.txt`).
