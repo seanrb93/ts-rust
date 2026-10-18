@@ -183,6 +183,16 @@ def build_polys(scene, args):
         for p in polys:
             p.col = [tuple(m + (1.0 - m) * min(1.0, max(0.0, c)) for c in cc) for cc in p.col]
     markers = [(name, conv(pos)) for name, pos in scene.markers]
+    coll = None
+    if scene.collision is not None:
+        coll = []
+        for pts in scene.collision:
+            q = [conv(x) for x in pts]
+            if args.flip:
+                q.reverse()
+            coll.append(Poly(q, [(0.0, 0.0)] * len(q), [(1.0, 1.0, 1.0)] * len(q), ''))
+        coll = [p for p in coll if np.linalg.norm(p.normal()) > 0.5]
+    build_polys.coll = coll
     return [p for p in polys if np.linalg.norm(p.normal()) > 0.5], markers
 
 
@@ -198,7 +208,7 @@ def shrink_to(polys, max_bytes):
     game keeps the level's file in a pool of memory it also needs for textures, characters and the like; with a file of more than about 3.5 MB (the
     largest of the game's own is 2.7) surfaces further on are not drawn, whatever the level looks like."""
     def estimate(ps):
-        return sum(49 * len(p.p) + 78 for p in ps)
+        return sum(40 * len(p.p) + 66 for p in ps)
     if estimate(polys) <= max_bytes:
         return polys
     droppable = sorted((p for p in polys if p.normal()[1] <= FLOOR_NY), key=poly_area)
@@ -209,9 +219,9 @@ def shrink_to(polys, max_bytes):
         if size <= max_bytes:
             break
         keep.discard(id(p))
-        size -= 49 * len(p.p) + 78
+        size -= 40 * len(p.p) + 66
         dropped += 1
-    print(f'{dropped} small polygons that are not floors were left out to keep the level near {max_bytes // 1000000} MB (about {size // 1000000} MB now)')
+    print(f'{dropped} small polygons that are not floors were left out to keep the level near {max_bytes / 1e6:.1f} MB (about {size / 1e6:.1f} MB now)')
     return [p for p in polys if id(p) in keep]
 
 
@@ -261,7 +271,7 @@ class Out:
         struct.pack_into('<I', self.b, at, v & 0xffffffff)
 
 
-def write_bg(polys, tex_numbers, args, rooms_polys, room_boxes, portals):
+def write_bg(polys, tex_numbers, args, rooms_polys, room_boxes, portals, rooms_coll=None):
     """The BG file.  `tex_numbers`: material -> (texture number, translucent).  `rooms_polys`: polygons of each room."""
     o = Out()
     o.put(bytes(16))
@@ -299,13 +309,20 @@ def write_bg(polys, tex_numbers, args, rooms_polys, room_boxes, portals):
         o.align(4)
         nb = [i + 1 for i, (a, b, _, _) in enumerate(portals) if a == ri + 1 or b == ri + 1]
         nb_at = o.put(struct.pack('<I', len(nb)) + b''.join(struct.pack('<I', n) for n in nb))
-        floors, walls = collision(rp)
+        floors, walls = collision(rooms_coll[ri] if rooms_coll is not None else rp)
         # floors
         o.align(4)
         f_ptrs = []
         for f in floors:
             f_ptrs.append(o.put(struct.pack('<IHH', len(f), 0, 0) + b''.join(struct.pack('<3f', *v) for v in f)))
         f_at = o.put(b''.join(struct.pack('<I', p) for p in f_ptrs) + struct.pack('<I', 0))
+        # the game works out a room's box from its floors and walls, and clips what it sees of the room with that: the box has to hold all of
+        # what is drawn of it.  Two walls a thousandth of a unit long at the corners of what is drawn do that without being in the way.
+        if rp:
+            pts = np.array([q for p in rp for q in p.p])
+            lo_, hi_ = pts.min(axis=0), pts.max(axis=0)
+            walls = list(walls) + [(lo_[0], lo_[1], lo_[2], hi_[1], lo_[0] + 0.001, lo_[1], lo_[2], hi_[1]),
+                                   (hi_[0], lo_[1], hi_[2], hi_[1], hi_[0] + 0.001, lo_[1], hi_[2], hi_[1])]
         w_ptrs = []
         for w in walls:
             w_ptrs.append(o.put(struct.pack('<I8f', 0, *w)))
@@ -781,7 +798,25 @@ def cut_big(polys, lo, w):
     return [p for p in polys if np.linalg.norm(p.normal()) > 1e-6]
 
 
-def split_rooms(polys, args):
+def assign_collision(coll, boxes):
+    """The collision polygons of each room: a polygon goes to the room whose box (seen from above) has its centre in it, else to the nearest."""
+    rooms = [[] for _ in boxes]
+    for p in coll:
+        c = p.centre()
+        best, bd = 0, 1e30
+        for i, bx in enumerate(boxes):
+            dx = max(bx[0] - c[0], 0.0, c[0] - bx[3])
+            dz = max(bx[2] - c[2], 0.0, c[2] - bx[5])
+            d = dx * dx + dz * dz
+            if d < bd:
+                best, bd = i, d
+                if d == 0.0:
+                    break
+        rooms[best].append(p)
+    return rooms
+
+
+def split_rooms(polys, args, coll=None):
     allp = np.array([v for p in polys for v in p.p])
     lo, hi = allp.min(axis=0), allp.max(axis=0)
     ylo, yhi = lo[1] - 2.0, hi[1] + 10.0
@@ -828,15 +863,23 @@ def split_rooms(polys, args):
         ys = [q[1] for p in rp for q in p.p]
         yr.append((min(ys) - 1.0, max(ys) + 4.0))
     boxes = [(l[0], yr[i][0], l[1], l[2], yr[i][1], l[3]) for i, l in enumerate(leaves)]
-    # portals: where two rooms' boxes touch along a face, a portal in the part of the face they share
+    # floor heights of each room (bands 3 units apart): a portal is a low opening at a height both rooms have a floor at; one as tall as the whole room
+    # (a tower over a plaza) is more than the game's clipping of what is seen through a portal can do near the camera
+    def floor_bands(i):
+        ps = [p for p in (coll_rooms[i] if coll_rooms is not None else rooms[i]) if p.normal()[1] > FLOOR_NY]
+        hs = {}
+        for p in ps:
+            y = sum(q[1] for q in p.p) / len(p.p)
+            hs[round(y / 3.0)] = hs.get(round(y / 3.0), 0.0) + poly_area(p)
+        # (the three with most floor: the others, a building's upper floors, are seen from inside it)
+        return sorted(k * 3.0 for k, a in sorted(hs.items(), key=lambda kv: -kv[1])[:3] if a > 0.5)
+    coll_rooms = assign_collision(coll, [(l[0], 0, l[1], l[2], 0, l[3]) for l in leaves]) if coll is not None else None
+    bands = [floor_bands(i) for i in range(len(leaves))]
     portals = []
     eps = 1e-4
     for i in range(len(leaves)):
         for j in range(i + 1, len(leaves)):
             A, B = boxes[i], boxes[j]
-            y0, y1 = max(A[1], B[1]), min(A[4], B[4])
-            if y1 - y0 < 1.0:
-                continue
             for axis in (0, 2):
                 other = 2 - axis
                 lo_o, hi_o = max(A[other], B[other]), min(A[3 + other], B[3 + other])
@@ -848,13 +891,25 @@ def split_rooms(polys, args):
                     first, second, v = j, i, B[3 + axis]
                 else:
                     continue
-                if axis == 0:
-                    quad = [(v, y0, lo_o), (v, y1, lo_o), (v, y1, hi_o), (v, y0, hi_o)]
-                    nrm = (1.0, 0.0, 0.0)
-                else:
-                    quad = [(lo_o, y0, v), (hi_o, y0, v), (hi_o, y1, v), (lo_o, y1, v)]
-                    nrm = (0.0, 0.0, 1.0)
-                portals.append((first + 1, second + 1, nrm, quad))
+                # the heights: where both rooms have a floor (else a band of the room that has any)
+                hts = [h for h in bands[i] if any(abs(h - g) <= 3.0 for g in bands[j])]
+                if not hts:
+                    y0, y1 = max(A[1], B[1]), min(A[4], B[4])
+                    if y1 - y0 < 1.0:
+                        continue
+                    hts = None
+                for h in (hts if hts is not None else [None]):
+                    if h is None:
+                        yy0, yy1 = y0, min(y1, y0 + 14.0)
+                    else:
+                        yy0, yy1 = h - 2.0, h + 12.0
+                    if axis == 0:
+                        quad = [(v, yy0, lo_o), (v, yy1, lo_o), (v, yy1, hi_o), (v, yy0, hi_o)]
+                        nrm = (1.0, 0.0, 0.0)
+                    else:
+                        quad = [(lo_o, yy0, v), (hi_o, yy0, v), (hi_o, yy1, v), (lo_o, yy1, v)]
+                        nrm = (0.0, 0.0, 1.0)
+                    portals.append((first + 1, second + 1, nrm, quad))
     return rooms, boxes, portals
 
 
@@ -901,6 +956,7 @@ def main():
     ap.add_argument('--no-translucent', action='store_true', help='leave out surfaces drawn see-through (a test aid)')
     ap.add_argument('--texture-budget', type=float, default=360.0, help='the most KB of texture files (the video memory of the console has room for about 400 beside what the characters and weapons use)')
     ap.add_argument('--max-size', type=float, default=3.5, help='about how large the BG file may be, in MB (the game does not draw some surfaces of a larger one)')
+    ap.add_argument('--no-brushes', action='store_true', help='Source maps: make the collision from the drawn faces instead of the brushes')
     ap.add_argument('--max-textures', type=int, default=90)
     ap.add_argument('--materials', action='append', default=[])
     ap.add_argument('--wad', action='append', default=[])
@@ -913,8 +969,9 @@ def main():
     args = ap.parse_args()
     if not 31 <= args.number <= 99:
         sys.exit('--number has to be 31 to 99')
-    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender})
+    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'no_brushes': args.no_brushes})
     polys, markers = build_polys(scene, args)
+    coll = build_polys.coll
     if not polys:
         sys.exit('no faces')
     if args.spawn_at:
@@ -932,26 +989,37 @@ def main():
             cx, cz = (sp[0][0], sp[0][2]) if sp else ((allp[:, 0].min() + allp[:, 0].max()) / 2, (allp[:, 2].min() + allp[:, 2].max()) / 2)
         # (a polygon that reaches into the square is cut to it: a big ground face has its middle far away)
         R = args.radius
-        cut = []
-        for p in polys:
-            xs = [q[0] for q in p.p]
-            zs = [q[2] for q in p.p]
-            if max(xs) < cx - R or min(xs) > cx + R or max(zs) < cz - R or min(zs) > cz + R:
-                continue
-            parts = [p]
-            for axis, value, below in ((0, cx + R, True), (0, cx - R, False), (2, cz + R, True), (2, cz - R, False)):
-                nxt = []
-                for q in parts:
-                    nxt += clip_poly(q, axis, value, below)
-                parts = nxt
-            cut += [q for q in parts if np.linalg.norm(q.normal()) > 0.5]
-        polys = cut
+
+        def crop(ps):
+            cut = []
+            for p in ps:
+                xs = [q[0] for q in p.p]
+                zs = [q[2] for q in p.p]
+                if max(xs) < cx - R or min(xs) > cx + R or max(zs) < cz - R or min(zs) > cz + R:
+                    continue
+                parts = [p]
+                for axis, value, below in ((0, cx + R, True), (0, cx - R, False), (2, cz + R, True), (2, cz - R, False)):
+                    nxt = []
+                    for q in parts:
+                        nxt += clip_poly(q, axis, value, below)
+                    parts = nxt
+                cut += [q for q in parts if np.linalg.norm(q.normal()) > 0.5]
+            return cut
+        polys = crop(polys)
+        if coll is not None:
+            coll = crop(coll)
         markers = [(k, v) for k, v in markers if abs(v[0] - cx) <= args.radius and abs(v[2] - cz) <= args.radius]
         print(f'kept {len(polys)} polygons within {args.radius} (a square) of ({cx:.1f}, {cz:.1f})')
         if not polys:
             sys.exit('nothing is left')
     reduce_materials(polys, scene, args.max_textures)
-    polys = shrink_to(polys, int(args.max_size * 1000000))
+    coll_bytes = 0
+    for p in (coll if coll is not None else polys):
+        n = p.normal()
+        coll_bytes += (24 + 12 * len(p.p)) if n[1] > FLOOR_NY else (44 if abs(n[1]) <= FLOOR_NY else 0)
+    if coll is not None:
+        print(f'collision: {len(coll)} polygons, about {coll_bytes // 1000} KB')
+    polys = shrink_to(polys, int(args.max_size * 1000000) - (coll_bytes if coll is not None else 0))
     base = args.tex_base or 4000 + 100 * (args.number - 31)
     out = args.out
     os.makedirs(os.path.join(out, 'BG.PAK', 'bg', f'level{args.number}'), exist_ok=True)
@@ -986,15 +1054,16 @@ def main():
         before = len(polys)
         polys = cut_big(polys, allp.min(axis=0), args.max_polygon)
         print(f'polygons cut to {args.max_polygon} units: {before} -> {len(polys)}')
-    rooms, boxes, portals = split_rooms(polys, args)
+    rooms, boxes, portals = split_rooms(polys, args, coll)
     # (the game has room for about 200 rooms: the grid is made coarser until there are fewer)
     while len(rooms) > MAX_ROOMS and args.room_size > 0:
         args.room_size *= 1.25
         print(f'{len(rooms)} rooms are too many: room size {args.room_size:.1f}')
-        rooms, boxes, portals = split_rooms(polys, args)
-    bg = write_bg(polys, tex_numbers, args, rooms, boxes, portals)
+        rooms, boxes, portals = split_rooms(polys, args, coll)
+    rooms_coll = assign_collision(coll, boxes) if coll is not None else None
+    bg = write_bg(polys, tex_numbers, args, rooms, boxes, portals, rooms_coll)
     open(os.path.join(out, 'BG.PAK', 'bg', f'level{args.number}', f'level{args.number}.raw'), 'wb').write(bg)
-    pads, links = make_pads([p for r in rooms for p in r], boxes, args, markers)
+    pads, links = make_pads([p for r in (rooms_coll if rooms_coll is not None else rooms) for p in r], boxes, args, markers)
     if not pads:
         sys.exit('no floors: nothing for bots and players to stand on (faces that point up)')
     open(os.path.join(out, 'MISC.PAK', 'pad', 'data', f'level{args.number}.raw'), 'wb').write(write_pads(pads, links, boxes, markers))

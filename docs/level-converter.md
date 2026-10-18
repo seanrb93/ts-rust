@@ -65,6 +65,15 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   16000 units is 400 units across).
 - **Rooms.**  `--room-size 25` splits the level into rooms of 25 x 25 units joined by portals: what is far away is not drawn.  A map of Source or GoldSrc size wants it.
 
+## Collision and rooms
+
+- **Source maps: collision from the brushes.**  The solid brushes of the world (solid, window, grate, player clip: the invisible walls too) give the floors and walls, with the sides that
+  are inside other brushes left out.  `--no-brushes` makes them from the drawn faces instead.  Displacements (terrain) collide by their triangles.
+- **The game's room boxes.**  The game works out a room's box from its floors and walls and clips what it sees of the room with it, so the box has to hold everything drawn of the room.  The
+  converter adds two walls a thousandth of a unit long at the corners of what is drawn; without them, rooms whose floors and walls cover less than the drawing were cut off or missing (the black ground
+  of the first Station Square mod).
+- **Portals** are low openings (14 units) at the heights where both rooms have a floor.
+
 ## Limits worth knowing
 
 The game's bots work out their routes when the match starts.  This takes longer the more pads and links there are, and a level with all its pads in one group

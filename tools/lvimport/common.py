@@ -55,6 +55,7 @@ class Scene:
         self.up = up
         self.scale = scale
         self.label = label
+        self.collision = None     # polygons (lists of points) that collide, where the source has its own (brushes); None: the drawn ones
         self.min_light = 0.0      # a floor of brightness for the faces (maps with lightmaps have dark ones)
 
     def add(self, pts, uvs, cols, mat):
@@ -169,3 +170,44 @@ def keep_playable(faces_vertices, points, markers, drop_points=(), fraction=0.05
             continue
         keep.update(g)
     return keep
+
+
+def clip_halfspace(poly, n, d):
+    """The part of a convex polygon (a list of points) with n . x <= d."""
+    out = []
+    for k in range(len(poly)):
+        a, b = poly[k], poly[(k + 1) % len(poly)]
+        da, db = n @ a - d, n @ b - d
+        if da <= 1e-6:
+            out.append(a)
+        if (da < -1e-6 and db > 1e-6) or (da > 1e-6 and db < -1e-6):
+            out.append(a + (b - a) * (da / (da - db)))
+    return out
+
+
+def brush_polygons(planes, want=None):
+    """A convex brush given by its planes `(n, d)` (n . x <= d inside): the polygon of each plane (None where there is none), going counter-
+    clockwise seen from outside.  `want`: which planes' polygons to make (all by default)."""
+    out = []
+    for i, (n, d) in enumerate(planes):
+        if want is not None and i not in want:
+            out.append(None)
+            continue
+        a = np.array([1.0, 0, 0]) if abs(n[0]) < 0.9 else np.array([0, 1.0, 0])
+        u = np.cross(n, a)
+        u /= np.linalg.norm(u)
+        v = np.cross(n, u)
+        c = n * d
+        poly = [c - u * 3e4 - v * 3e4, c + u * 3e4 - v * 3e4, c + u * 3e4 + v * 3e4, c - u * 3e4 + v * 3e4]
+        if np.dot(np.cross(poly[1] - poly[0], poly[2] - poly[0]), n) < 0:
+            poly.reverse()
+        for j, (n2, d2) in enumerate(planes):
+            if j != i and poly:
+                poly = clip_halfspace(poly, n2, d2)
+        if len(poly) >= 3:
+            # (the pieces that are not a polygon at all: slivers and points)
+            area = sum(np.linalg.norm(np.cross(poly[k] - poly[0], poly[k + 1] - poly[0])) for k in range(1, len(poly) - 1)) / 2
+            out.append(poly if area > 1e-3 else None)
+        else:
+            out.append(None)
+    return out

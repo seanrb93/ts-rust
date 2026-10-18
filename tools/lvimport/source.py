@@ -20,7 +20,7 @@ import numpy as np
 from PIL import Image
 
 from . import vtf
-from .common import Material, Scene, keep_playable, markers_from_entities, parse_entities
+from .common import Material, Scene, brush_polygons, keep_playable, markers_from_entities, parse_entities
 
 SKIP_FLAGS = 0x2 | 0x4 | 0x40 | 0x80 | 0x100 | 0x200        # sky2d, sky, trigger, nodraw, hint, skip
 WARP, TRANS = 0x8, 0x10
@@ -125,6 +125,11 @@ def load(path, opts):
             except (KeyError, ValueError):
                 pass
 
+    headnode = struct.unpack_from('<i', models, 36)[0]
+    if not opts.get('no_brushes'):
+        coll, nb = world_brushes(d, L, planes, headnode)
+        sc.collision = coll
+        print(f'collision: {nb} brushes, {len(coll)} polygons')
     texinfo = [struct.unpack_from('<16f2i', texinfo_raw, 72 * i) for i in range(len(texinfo_raw) // 72)]
     texdata = [struct.unpack_from('<3f4i', texdata_raw, 32 * i) for i in range(len(texdata_raw) // 32)]
 
@@ -222,6 +227,91 @@ def load(path, opts):
             uv = [(float(a) / wtex, float(b) / htex) for a, b in zip(s_, t_)]
             sc.add([q[i] for i in order], [uv[i] for i in order], [(shade, shade, shade)] * len(q), name)
     return sc
+
+
+SOLID_CONTENTS = 0x1 | 0x2 | 0x8 | 0x4000 | 0x10000        # solid, window, grate, moveable, player clip
+
+
+def world_brushes(d, L, planes, headnode):
+    """The collision of the world: the polygons of the sides of the brushes that stop players (solid, window, grate, player clip), the invisible
+    ones included, with the ones that are inside other brushes left out.  Returns (polygons, number of brushes); each polygon is a list of points."""
+    nodes = L(5)
+    leafs, _ = lump_data(d, 10)
+    version = struct.unpack_from('<i', d, 4)[0]
+    leaf_size = 56 if version <= 19 else 32
+    leafbrushes = np.frombuffer(L(17), dtype='<u2')
+    brushes = np.frombuffer(L(18), dtype='<i4').reshape(-1, 3)
+    sides = np.frombuffer(L(19), dtype=[('plane', '<u2'), ('texinfo', '<i2'), ('disp', '<i2'), ('bevel', '<i2')])
+    # the brushes of the world model: those of the leaves of its tree
+    seen, stack, mine = set(), [headnode], set()
+    while stack:
+        n = stack.pop()
+        if n < 0:
+            lf = -n - 1
+            if lf in seen:
+                continue
+            seen.add(lf)
+            first, num = struct.unpack_from('<2H', leafs, lf * leaf_size + 24)
+            mine.update(int(x) for x in leafbrushes[first:first + num])
+        else:
+            c0, c1 = struct.unpack_from('<2i', nodes, n * 32 + 4)
+            stack += [c0, c1]
+    solids = []
+    for bi in sorted(mine):
+        first, num, contents = (int(x) for x in brushes[bi])
+        if not contents & SOLID_CONTENTS:
+            continue
+        sd = sides[first:first + num]
+        if (sd['disp'] > 0).any():
+            continue            # (a displacement's collision is its triangles)
+        pl = [(np.array(planes[int(s['plane'])][0:3], dtype=np.float64), float(planes[int(s['plane'])][3])) for s in sd]
+        solids.append((pl, [i for i, s in enumerate(sd) if s['bevel'] == 0]))
+    # polygons of every real side
+    boxes, polys = [], []
+    for k, (pl, want) in enumerate(solids):
+        ps = brush_polygons(pl, set(want))
+        pts = [q for poly in ps if poly for q in poly]
+        if not pts:
+            boxes.append(None)
+            continue
+        arr = np.array(pts)
+        boxes.append((arr.min(axis=0) - 1.0, arr.max(axis=0) + 1.0))
+        for poly in ps:
+            if poly:
+                polys.append((k, poly))
+    # inside another brush: not a surface (a floor inside a wall must not be stood on)
+    cell = 512.0
+    grid = {}
+    for k, bx in enumerate(boxes):
+        if bx is None:
+            continue
+        for gx in range(int(bx[0][0] // cell), int(bx[1][0] // cell) + 1):
+            for gy in range(int(bx[0][1] // cell), int(bx[1][1] // cell) + 1):
+                grid.setdefault((gx, gy), []).append(k)
+
+    def inside_other(k, pt):
+        for j in grid.get((int(pt[0] // cell), int(pt[1] // cell)), []):
+            if j == k or boxes[j] is None:
+                continue
+            lo, hi = boxes[j]
+            if not (np.all(pt >= lo) and np.all(pt <= hi)):
+                continue
+            if all(n @ pt <= dd - 0.01 for n, dd in solids[j][0]):
+                return True
+        return False
+    out = []
+    for k, poly in polys:
+        c = sum(poly) / len(poly)
+        n = np.cross(poly[1] - poly[0], poly[2] - poly[0])
+        ln = np.linalg.norm(n)
+        if ln < 1e-9:
+            continue
+        n /= ln
+        # (a point a little out of the side, and one in the middle of the side: both inside another brush means it is covered)
+        if inside_other(k, c + n * 0.5) and inside_other(k, c - n * 0.5 + n * 0.51):
+            continue
+        out.append(poly)
+    return out, len(solids)
 
 
 def displacement(corners, di, dispinfo_raw, dispverts_raw):
