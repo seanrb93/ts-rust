@@ -290,6 +290,18 @@ file is added to the pack's directory, a replaced one points to the new data).  
 log (`--headless` or a console) says what was loaded.  Not done: new code (a mod cannot add new game logic, only change data and files) and
 tools that make the game's formats (that needs the formats to be understood first).
 
+## Extracting the textures
+
+`python tools/extract_textures.py <PAK folder> <output folder>` writes every texture of the game as a PNG (2642 files, about 34 MB) into folders by
+what they belong to: `characters/chrNN`, `weapons/gunN`, `objects/<name>`, `levels/levelNN[_Name]` (the names of ten levels are known: Prison,
+Village, ChemicalPlant, Asylum, Mansion, PlanetX, Streets, Mall, Tomb, Ron), `misc/` (fonts, menus, effects, decals, ammo, bags, the sea) and
+`unreferenced/`; `index.csv` has the format, the size and every owner of each texture.  The game's textures are `.qpm` files of `MISC.PAK`: a
+text header (`Q8`, `width height`, ...), a palette of 256 entries (alpha 0..128) and the indices (`M8` has the smaller mip levels after them,
+`Q6` is 32 bit with no palette); the PNGs have exactly the game's pixels (there is nothing of a higher quality in the files).  Which model uses
+a texture is read from the table at the start of the model's file (`tools/pakls.py` lists a pack).  The pictures are the game's: do not put
+them in a repository (the folder `ts-rust/target/release/textures_extracted` is inside the ignored `target/`).  `TS_FILELOG` lists the files the
+game loads, in order.
+
 ## Unlock Everything
 
 The **Unlock Everything** row of the **Game Options** page (an item of the game type page; `unlock_all` in `ts-port.ini`, or `--set unlock_all=true` for one

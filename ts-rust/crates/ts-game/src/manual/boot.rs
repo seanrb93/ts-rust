@@ -290,6 +290,21 @@ pub fn present_frame() {
             eprintln!("[combo] TS_WSET applied at f{} state {} ids {:?}", ts_sdk::frame_count(), lw(g::gamestate), ids);
         }
     }
+    if std::env::var_os("TS_STATELOG").is_some() {
+        // test aid: wall time at every change of the game's state (loading, playing, menus)
+        static LAST: std::sync::Mutex<(i32, Option<std::time::Instant>)> = std::sync::Mutex::new((-1, None));
+        let mut l = LAST.lock().unwrap();
+        let now = std::time::Instant::now();
+        let st = lw(g::gamestate);
+        let t0 = *l.1.get_or_insert(now);
+        if st == 6 || l.0 == 6 {
+            eprintln!("[loadframe] {} at {:.3} s", ts_sdk::frame_count(), (now - t0).as_secs_f32());
+        }
+        if st != l.0 {
+            eprintln!("[state] {} -> {} at frame {} after {:.2} s", l.0, st, ts_sdk::frame_count(), (now - t0).as_secs_f32());
+            l.0 = st;
+        }
+    }
     if std::env::var_os("TS_BOTLOG").is_some() && lw(g::gamestate) == 3 && ts_sdk::frame_count() % 120 == 0 {
         let b = lw(g::chrinfo) + 0x1210;
         eprintln!("[bot] chars {} f{} state {:#x} prev {:#x} flags {:#x} {:#x} mode {} target {:#x} gun {} combo {} pos {:.1},{:.1}", lw(g::numactivechars), ts_sdk::frame_count(), lw(b + 2716), lw(b + 2720), lw(b + 2704), lw(b + 2708), lw(b + 2724), lw(b + 2788), lw(lw(lw(b + 3020) + 352) + 376), lw(lw(lw(b + 3020) + 352) + 260), lwc1(lw(b + 3020) + 48), lwc1(lw(b + 3020) + 56));
@@ -662,4 +677,18 @@ pub fn test_players(n: i32) -> i32 {
         return n;
     }
     std::env::var("TS_FORCEPLAYERS").ok().and_then(|v| v.parse().ok()).unwrap_or(n)
+}
+
+/// Test aid (`TS_FILELOG`): the name of a file the game loads.
+pub fn file_log(name: i32) {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    if *ON.get_or_init(|| std::env::var_os("TS_FILELOG").is_some()) {
+        let mut s = String::new();
+        let mut at = name;
+        while lbu(at) != 0 && s.len() < 200 {
+            s.push(lbu(at) as u8 as char);
+            at += 1;
+        }
+        eprintln!("[file] {s}");
+    }
 }

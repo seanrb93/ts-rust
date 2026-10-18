@@ -119,6 +119,8 @@ FUNCS = {
     # the triangle button on the page of the number of players asks whether to exit the game
     # the ammo of the left hand sits as close to the edge as the right hand's does (its block started 36 units in, the right one's ends 26 from the edge)
     'hudGfx': [(' '*28+'a2_11 = if lw(g::window + 88) != 0 { a2_10 + 60 } else { a2_10 + 80 };', ' '*28+'a2_11 = if lw(g::window + 88) != 0 { a2_10 + 50 } else { a2_10 + 70 };', 1)],
+    # test aid: TS_FILELOG lists the files the game loads
+    'fileLoadTo': [('pub fn fileLoadTo(mut a0: i32, mut a1: i32, mut a2: i32) -> i32 {'+chr(10), 'pub fn fileLoadTo(mut a0: i32, mut a1: i32, mut a2: i32) -> i32 {'+chr(10)+'    file_log(a0);'+chr(10), 1)],
     'nplayers_pageTick': [('    v0_1 = joyUpdatePorts();'+chr(10), '    if av_nplayers_exit(a0) {'+chr(10)+'        return;'+chr(10)+'    }'+chr(10)+'    v0_1 = joyUpdatePorts();'+chr(10), 1)],
     'getnextcombo': [
         (' '*8+'if s2_1 >= 33 {', ' '*8+'if s2_1 >= combo_count() {', 1),
