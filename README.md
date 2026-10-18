@@ -315,6 +315,7 @@ notes it, `ts_rt::texnames`; `ts_gfx::hd` keeps the pictures), so a texture the 
 drawn (about 70 ms for 4096x4096).  The game's own palette tricks do not reach a replaced texture.  A ready-made `.qpm` in the mod still replaces the file in the pack (the game's format:
 256 colours, at most 65536 pixels, a power of two on each side; `tools/png2qpm.py` makes one), and `TS_PNG_QPM=1` makes the loader turn a PNG into a `.qpm` that way too.
 `examples/sample_mod/` is a small working mod (a texture, a sound, a music stream and `patches.txt`).
+`tools/make_hd_sample.py <extracted textures> <mods folder>` makes an HD sample mod from ten wall textures of the Tomb (16 times as big, teal and grainy: easy to see); it is written next to the game, not into the repository.
 
 `tools/convert_music.py <game folder>` turns the game's own music (`MUSIC/*.MSC`, 344 MB) into Opus files next to them (about 85 MB at 96 kbit/s); the port plays an
 `.opus` when there is one beside the `.MSC` (`--delete-originals` removes the `.MSC`).  It needs ffmpeg.

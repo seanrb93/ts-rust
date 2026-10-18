@@ -25,7 +25,9 @@ const GO_ID: i32 = 14;
 const NEW_ID: i32 = 15;
 /// the lines between Bot Set and the new row, and between the new row and GO!
 const ROW_GAP: i32 = 13;
-const GO_GAP: i32 = 14;
+const GO_GAP: i32 = 17;
+/// how much lower the Back and Edit legends are than the game has them (in line with the Bots)
+const LEGEND_DOWN: i32 = 7;
 /// room for the left arrow beside a long value (in the units of the page)
 const ARROW_ROOM: i32 = 34;
 /// how much higher the page's items are than the game has them
@@ -148,6 +150,11 @@ pub fn av_opt_ready() -> i32 {
     sw(item(GO) + 16, (lw(item(GO) + 16) & !0xffff) | NEW_ID);
     sh(item(GO) + 6, bot_y + ROW_GAP + GO_GAP);
     sw(m, NEW + 1);
+    // the legends (Back, Edit) go down to the line of the Bots
+    for k in [14, 15] {
+        let at = item(k) + 4;
+        sw(at, (lw(at) & 0xffff) | ((0xae + LEGEND_DOWN) << 16));
+    }
     // everything a little higher: more room between GO! and the legend below it
     sw(m + 4, (lw(m + 4) & 0xffff) | ((0x20 - UP) << 16));
     m
