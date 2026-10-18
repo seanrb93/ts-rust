@@ -74,6 +74,8 @@ pub struct Config {
     pub mapmaker_unlimited: bool,
     /// 0 controller, 1 keyboard and mouse
     pub input_method: u8,
+    /// the keys of each button of the pad, as the names of the ini (see `keys::ACTIONS`)
+    pub keys: Vec<Vec<String>>,
     /// volume of the groups of sound effects in percent (weapons, voices, environment), 100 = as the game has it
     pub sound_mix: [u8; 3],
 }
@@ -108,6 +110,7 @@ impl Default for Config {
             look_sensitivity: 1.0,
             mapmaker_unlimited: false,
             input_method: 1,
+            keys: (0..14).map(crate::keys::default_keys).collect(),
             sound_mix: [100; 3],
         }
     }
@@ -172,6 +175,25 @@ look_sensitivity = 1
 
 # which device plays a level: controller or keyboard (and mouse); also a row of the Controls page
 input_method = keyboard
+
+# the keys of the buttons of the virtual pad: names separated by commas (a letter, a digit, F1..F12, Enter, Space, Backspace, Tab, Esc, Ctrl, Shift, Alt,
+# Up, Down, Left, Right, Insert, Delete, Home, End, PageUp, PageDown, Comma, Period, Slash, Semicolon, Quote, LeftBracket, RightBracket, Backslash,
+# Minus, Equals, Grave).  The first key of a button is the one the game's texts name, as in '(Enter) Ok'.  W, A, S, D walk; the mouse looks, its buttons fire
+# (left: R2, right: R1) and the wheel changes the weapon.  Cross accepts and uses, triangle goes back and reloads, left and right change the weapon.
+key_cross = Enter, Space, F
+key_circle = C
+key_triangle = Backspace, R
+key_square = X
+key_l1 = LeftCtrl, RightCtrl
+key_l2 = Z
+key_r1 = V
+key_r2 = G
+key_start = Esc, P
+key_select = Tab
+key_up = Up
+key_down = Down
+key_left = Left, Q
+key_right = Right, E
 
 # volume of the kinds of sound effects, 0 to 100: weapons (and what they hit), voices, the environment (everything else); the game's own Sound volume applies
 # to all of them; also sliders of the Audio Options page, second page
@@ -262,6 +284,12 @@ impl Config {
             }
             // (the first version had five kinds)
             "volume_impacts" | "volume_ambience" | "volume_effects" => {}
+            k if k.starts_with("key_") => {
+                let name = &k[4..];
+                let i = crate::keys::ACTIONS.iter().position(|a| a.0 == name).ok_or_else(bad)?;
+                let list = crate::keys::parse_list(value);
+                self.keys[i] = if list.is_empty() { crate::keys::default_keys(i) } else { list };
+            }
             "mouse_sensitivity" => self.mouse_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.05, 10.0),
             "stick_sensitivity" | "stick_gain" => self.stick_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.5, 3.0),
             "fov" => self.fov = value.trim().parse().map_err(|_| bad())?,
@@ -356,6 +384,7 @@ pub fn load(overrides: &[(String, String)]) {
     ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
     ts_game::set_mm_unlimited(c.mapmaker_unlimited);
     apply_sound_mix(&c);
+    apply_keys(&c);
     *CONFIG.lock().unwrap() = Some(c);
 }
 
@@ -372,7 +401,13 @@ pub fn update(f: impl FnOnce(&mut Config)) {
         ts_sdk::set_bots_punch(c.bot_punch);
         ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
         apply_sound_mix(c);
+        apply_keys(c);
     }
+}
+
+fn apply_keys(c: &Config) {
+    let labels = c.keys.iter().map(|k| k.iter().filter_map(|n| crate::keys::parse_key(n)).map(crate::keys::label).collect()).collect();
+    ts_sdk::pad::set_key_labels(labels);
 }
 
 fn apply_sound_mix(c: &Config) {
@@ -436,7 +471,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 30] = [
+        let vals: [(&str, String); 44] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -464,6 +499,20 @@ impl Config {
             ("look_sensitivity", format!("{}", self.look_sensitivity)),
             ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),
             ("input_method", ["controller", "keyboard"][self.input_method.min(1) as usize].to_string()),
+            ("key_cross", self.keys[0].join(", ")),
+            ("key_circle", self.keys[1].join(", ")),
+            ("key_triangle", self.keys[2].join(", ")),
+            ("key_square", self.keys[3].join(", ")),
+            ("key_l1", self.keys[4].join(", ")),
+            ("key_l2", self.keys[5].join(", ")),
+            ("key_r1", self.keys[6].join(", ")),
+            ("key_r2", self.keys[7].join(", ")),
+            ("key_start", self.keys[8].join(", ")),
+            ("key_select", self.keys[9].join(", ")),
+            ("key_up", self.keys[10].join(", ")),
+            ("key_down", self.keys[11].join(", ")),
+            ("key_left", self.keys[12].join(", ")),
+            ("key_right", self.keys[13].join(", ")),
             ("volume_weapons", self.sound_mix[0].to_string()),
             ("volume_voices", self.sound_mix[1].to_string()),
             ("volume_environment", self.sound_mix[2].to_string()),

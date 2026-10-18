@@ -11,6 +11,7 @@ mod gamepads;
 mod menu;
 mod mods;
 mod dldump;
+mod keys;
 mod window;
 mod gfx_worker;
 

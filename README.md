@@ -39,9 +39,13 @@ Options: `--game-dir DIR`, `--level NAME`, `--players N`, `--save-dir DIR` (virt
 Level names: Prison, Village, NSA1, Outskirts, Chemical Plant, Asylum, Mansion, Planet-X, Compound, Streets,
 Warzone, Site, Cyberden, Bank, Graveyard, Spaceship, Mall, Chinese, Castle, Tomb, Docks, ...
 
-Keyboard (port 0): WASD move, arrows look, Space cross, E square, F circle, Q triangle, Left Shift L1, Left Ctrl L2,
-R/Enter R1, G R2, Tab select, Esc/P start, IJKL d-pad, F11 window / borderless, F2 the game's developer (debug) menu in a level, once it is switched on in Game Options (see "Developer menu"), F10 quit. Gamepads (any, via SDL3) map to
-the virtual DualShock 2; the first two feed ports 0 and 1.
+Keyboard and mouse (port 0): W, A, S, D walk (Shift walks slowly), the mouse looks, its left button fires (R2), its right button is R1 (alternate fire), its
+middle button aims (L2), the wheel changes the weapon (or zooms while aiming).  Keys: Enter / Space / F cross (accept, use), Backspace / R triangle (back,
+reload), C circle, X square, Ctrl L1 (crouch), Z L2, V R1, G R2, Q / Left Arrow and E / Right Arrow d-pad left and right (the previous and next weapon, and
+left and right in the menus), Up and Down Arrow d-pad up and down (zoom), Esc / P start, Tab select; F11 window / borderless, F2 the game's developer (debug) menu in
+a level once it is switched on in Game Options (see "Developer menu"), F10 quit.  The keys of every button are the `key_*` lines of `ts-port.ini` (`key_cross =
+Enter, Space, F`: names separated by commas); the game's texts name them ("(F) Select"; where a button's picture has little room the first key of the list
+that has one or two characters).  Gamepads (any, via SDL3) map to the virtual DualShock 2; the first two feed ports 0 and 1.
 
 ## Display and graphics options
 

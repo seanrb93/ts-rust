@@ -103,14 +103,15 @@ pub fn native_text_init() {
 }
 
 /// The name of the button `code` (1 circle, 2 cross, 3 triangle, 4 square) for the device in use, if it is not a PlayStation controller.
-fn name(code: u8) -> Option<&'static str> {
-    let names: [&str; 4] = match ts_sdk::pad::input_style() {
-        1 => ["B", "A", "Y", "X"],
-        2 => ["A", "B", "X", "Y"],
-        3 => ["F", "Space", "Q", "E"],
+fn name(code: u8) -> Option<String> {
+    let names: [String; 4] = match ts_sdk::pad::input_style() {
+        1 => ["B", "A", "Y", "X"].map(String::from),
+        2 => ["A", "B", "X", "Y"].map(String::from),
+        // (the keyboard: the first key of each button, as set in the port's settings: cross, circle, triangle, square are 0, 1, 2, 3)
+        3 => [1, 0, 2, 3].map(ts_sdk::pad::key_short),
         _ => return None,
     };
-    names.get((code as usize).wrapping_sub(1)).copied()
+    names.get((code as usize).wrapping_sub(1)).cloned().filter(|n| !n.is_empty())
 }
 
 /// The words for the buttons of a controller or the keyboard in the names of the controls (L1, Cross, Left Analog Stick ...).
@@ -119,30 +120,51 @@ pub fn style_words(s: &str) -> String {
     if style == 0 {
         return s.to_string();
     }
+    let key = |a: usize, mouse: &str| {
+        let k = ts_sdk::pad::key_label(a);
+        if mouse.is_empty() {
+            k
+        } else {
+            format!("{mouse} / {k}")
+        }
+    };
     let (cross, circle, square, triangle) = match style {
-        1 => ("A", "B", "X", "Y"),
-        2 => ("B", "A", "Y", "X"),
-        _ => ("Space", "F", "E", "Q"),
+        1 => ("A".to_string(), "B".to_string(), "X".to_string(), "Y".to_string()),
+        2 => ("B".to_string(), "A".to_string(), "Y".to_string(), "X".to_string()),
+        _ => (key(0, ""), key(1, ""), key(3, ""), key(2, "")),
     };
     let (l1, r1, l2, r2, start, select) = match style {
-        1 => ("LB", "RB", "LT", "RT", "Menu", "View"),
-        2 => ("L", "R", "ZL", "ZR", "+", "-"),
-        _ => ("Left Shift", "Right Shift", "Left Ctrl", "Right Ctrl", "Esc", "Tab"),
+        1 => ("LB".to_string(), "RB".to_string(), "LT".to_string(), "RT".to_string(), "Menu".to_string(), "View".to_string()),
+        2 => ("L".to_string(), "R".to_string(), "ZL".to_string(), "ZR".to_string(), "+".to_string(), "-".to_string()),
+        // (the mouse's buttons are the pad's too: the right one is R1, the left one R2, the middle one aims)
+        _ => (key(4, ""), key(6, "Right Mouse"), key(5, "Middle Mouse"), key(7, "Left Mouse"), key(8, ""), key(9, "")),
     };
-    let t = s.replace("Left Analog Stick", "Left Stick").replace("Right Analog Stick", "Right Stick");
+    let mut t = s.to_string();
+    if style == 3 {
+        t = t
+            .replace("Left Analog Stick", "WASD")
+            .replace("Right Analog Stick", "Mouse")
+            .replace("Up directional button", &key(10, ""))
+            .replace("Down directional button", &key(11, ""))
+            .replace("Left directional button", &key(12, ""))
+            .replace("Right directional button", &key(13, ""));
+    } else {
+        t = t.replace("Left Analog Stick", "Left Stick").replace("Right Analog Stick", "Right Stick");
+    }
     // (whole words only: "Select Weapon" is a control of its own)
+    let whole = t.clone();
     t.split(' ')
         .map(|w| match w {
-            "Triangle" => triangle,
-            "Circle" => circle,
-            "Square" => square,
-            "Cross" => cross,
-            "L1" => l1,
-            "R1" => r1,
-            "L2" => l2,
-            "R2" => r2,
-            "Start" => start,
-            "Select" if !t.contains("Select ") => select,
+            "Triangle" => triangle.as_str(),
+            "Circle" => circle.as_str(),
+            "Square" => square.as_str(),
+            "Cross" => cross.as_str(),
+            "L1" => l1.as_str(),
+            "R1" => r1.as_str(),
+            "L2" => l2.as_str(),
+            "R2" => r2.as_str(),
+            "Start" => start.as_str(),
+            "Select" if !whole.contains("Select ") => select.as_str(),
             other => other,
         })
         .collect::<Vec<_>>()
@@ -169,6 +191,9 @@ pub fn button_text(text: i32) -> i32 {
     if !has && !help {
         return text;
     }
+    if std::env::var_os("TS_BTNLOG").is_some() {
+        eprintln!("[btn] {:?}", src);
+    }
     let mut cache = CACHE.lock().unwrap();
     // (the same text as one of the copies that are still there)
     let mut out = String::new();
@@ -178,7 +203,7 @@ pub fn button_text(text: i32) -> i32 {
         let next = lbu(at + 1);
         if c == 94 && (b'1' as i32..=b'4' as i32).contains(&next) {
             out.push('(');
-            out.push_str(name((next - b'0' as i32) as u8).unwrap_or("?"));
+            out.push_str(&name((next - b'0' as i32) as u8).unwrap_or_else(|| "?".to_string()));
             out.push(')');
             at += 2;
         } else {
@@ -189,16 +214,16 @@ pub fn button_text(text: i32) -> i32 {
     if help {
         // ("left analog stick - Move cursor", "R1 / R2 button - Zoom Out / In": the names of the device's buttons)
         let (l1, r1, l2, r2) = match style {
-            1 => ("LB", "RB", "LT", "RT"),
-            2 => ("L", "R", "ZL", "ZR"),
-            _ => ("Left Shift", "Right Shift", "Left Ctrl", "Right Ctrl"),
+            1 => ("LB".to_string(), "RB".to_string(), "LT".to_string(), "RT".to_string()),
+            2 => ("L".to_string(), "R".to_string(), "ZL".to_string(), "ZR".to_string()),
+            _ => (ts_sdk::pad::key_short(4), ts_sdk::pad::key_short(6), ts_sdk::pad::key_short(5), ts_sdk::pad::key_short(7)),
         };
-        out = out.replace("analog stick", "stick").replace("L1", l1).replace("L2", l2).replace("R1", r1).replace("R2", r2);
+        out = out.replace("analog stick", "stick").replace("L1", &l1).replace("L2", &l2).replace("R1", &r1).replace("R2", &r2);
         // (the title screen: the start button)
         let start = match style {
-            1 => "START",
-            2 => "+",
-            _ => "ESC",
+            1 => "START".to_string(),
+            2 => "+".to_string(),
+            _ => ts_sdk::pad::key_label(8).to_ascii_uppercase(),
         };
         out = out.replace("PRESS START BUTTON", &if style == 3 { format!("PRESS {start}") } else { format!("PRESS {start} BUTTON") });
     }

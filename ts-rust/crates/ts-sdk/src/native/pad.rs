@@ -203,3 +203,26 @@ pub fn set_look_sensitivity(k: f32) {
 pub fn look_sensitivity() -> f32 {
     f32::from_bits(LOOK_SENS.load(std::sync::atomic::Ordering::Relaxed))
 }
+
+// ---- the names of the keyboard's keys ---------------------------------------------------------------------------------------------
+
+/// The names of the keys for the buttons, in the order cross, circle, triangle, square, L1, L2, R1, R2, start, select, up, down, left, right (the port's
+/// keyboard settings, every key of each button; the game's texts show them in place of the pictures of the buttons).
+static KEY_LABELS: std::sync::Mutex<Vec<Vec<String>>> = std::sync::Mutex::new(Vec::new());
+
+pub fn set_key_labels(labels: Vec<Vec<String>>) {
+    *KEY_LABELS.lock().unwrap() = labels;
+}
+
+/// The name of the first key that stands for button number `action` (see `set_key_labels`).
+pub fn key_label(action: usize) -> String {
+    KEY_LABELS.lock().unwrap().get(action).and_then(|l| l.first().cloned()).unwrap_or_default()
+}
+
+/// A short name (two characters at most) of a key of the button, if it has one, else the first key's: the legends of the screens that print the button's
+/// picture and its words apart leave room for a picture only.
+pub fn key_short(action: usize) -> String {
+    let g = KEY_LABELS.lock().unwrap();
+    let Some(l) = g.get(action) else { return String::new() };
+    l.iter().find(|n| n.chars().count() <= 2).or_else(|| l.first()).cloned().unwrap_or_default()
+}

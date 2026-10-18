@@ -955,30 +955,58 @@ const EXIT_PAGE: i32 = BASE + 0x6500;
 const GAMEMODE_AT: i32 = BASE + 0x6600;
 const EXIT_TEXT_AT: i32 = BASE + 0x6a00;
 
-/// The question box of the page of the number of players has been shown (its answer is read when the page ticks again).
+/// The question box of the pages that offer to exit the game has been shown (its answer is read when the page ticks again).
 static ASKED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
-/// The page where the number of players is chosen (1up, 2up, 3up, 4up), at its tick: the triangle button shows a box that asks whether to
-/// exit the game (X yes, triangle no; the callback is the MapMaker's `confirmyesno`, which answers 1 or 2).  When the box has been
-/// answered with yes the program ends.  True when the page's tick is to stop (the box has just been shown).
-pub fn av_nplayers_exit(_page: i32) -> bool {
-    CONFIRM.store(false, std::sync::atomic::Ordering::Relaxed);
+/// Show the box that asks whether to exit the game (X yes, triangle no; the callback is the MapMaker's `confirmyesno`, which answers 1 or 2),
+/// with the sound of a menu choice.
+fn ask_to_quit(player: i32) {
+    joyClearAll(player);
+    let mut at = BASE + 0xe200;
+    let text = put_str(&mut at, "Are you sure you want to quit the game ?
+`^2 YES   ^3 NO");
+    frontStartMessage(0, text, 0x6464_647f, 0x24d268);
+    soundStart(143, 0);
+    ASKED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// The answer of the box, when the page that showed it ticks again: yes ends the program.  True when there was an answer to read.
+fn quit_answer() -> bool {
     if ASKED.swap(false, std::sync::atomic::Ordering::Relaxed) {
         if messageGetState_2312c0(0) == 1 {
             std::process::exit(0);
         }
+        return true;
+    }
+    false
+}
+
+/// The page where the number of players is chosen (1up, 2up, 3up, 4up), at its tick: the triangle button shows the question box.  True when the
+/// page's tick is to stop (the box has just been shown).
+pub fn av_nplayers_exit(_page: i32) -> bool {
+    CONFIRM.store(false, std::sync::atomic::Ordering::Relaxed);
+    if quit_answer() {
         return false;
     }
     let player = lw(lw(g::currentplayer));
     if joyNewBut(player) & 16 == 0 {
         return false;
     }
-    joyClearAll(player);
-    let mut at = BASE + 0xe200;
-    let text = put_str(&mut at, "Are you sure you want to quit the game ?
-`^2 YES   ^3 NO");
-    frontStartMessage(0, text, 0x6464_647f, 0x24d268);
-    ASKED.store(true, std::sync::atomic::Ordering::Relaxed);
+    ask_to_quit(player);
+    true
+}
+
+/// The game type page of the front end (the main menu), at its tick: choosing Exit Game shows the same question box instead of a page.
+pub fn av_gametype_exit(page: i32) -> bool {
+    if quit_answer() {
+        return false;
+    }
+    let player = lw(lw(g::currentplayer));
+    // (the item of Exit Game is number 9; X or Start choose it)
+    if lhu(page + 4) != 9 || joyNewBut(player) & (64 | 2048) == 0 {
+        return false;
+    }
+    ask_to_quit(player);
     true
 }
 

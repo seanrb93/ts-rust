@@ -186,11 +186,14 @@ struct KbMouse {
     aiming: bool,
     /// buttons held for a moment by the mouse wheel and the like: (button, until)
     pulses: Vec<(u16, Instant)>,
+    /// the keys of the buttons (from the settings) and the settings they were made from
+    bound: Vec<(KeyCode, u16)>,
+    bound_from: Vec<Vec<String>>,
 }
 
 impl KbMouse {
     fn new() -> KbMouse {
-        KbMouse { left: false, right: false, aiming: false, pulses: Vec::new() }
+        KbMouse { left: false, right: false, aiming: false, pulses: Vec::new(), bound: Vec::new(), bound_from: Vec::new() }
     }
 
     fn pulse(&mut self, button: u16) {
@@ -201,23 +204,17 @@ impl KbMouse {
         let now = Instant::now();
         self.pulses.retain(|p| p.1 > now);
         let mut s = PadState::idle(true);
-        let map = [
-            (KeyCode::KeyE, btn::CROSS),
-            (KeyCode::Enter, btn::CROSS),
-            (KeyCode::KeyQ, btn::LEFT),
-            (KeyCode::KeyF, btn::RIGHT),
-            (KeyCode::Backspace, btn::TRIANGLE),
-            (KeyCode::KeyR, btn::TRIANGLE),
-            (KeyCode::Escape, btn::START),
-            (KeyCode::Tab, btn::SELECT),
-            (KeyCode::ControlLeft, btn::L1),
-            (KeyCode::ControlRight, btn::L1),
-            (KeyCode::ArrowUp, btn::UP),
-            (KeyCode::ArrowDown, btn::DOWN),
-            (KeyCode::ArrowLeft, btn::LEFT),
-            (KeyCode::ArrowRight, btn::RIGHT),
-        ];
-        for (k, b) in map {
+        // (the keys of the buttons come from the settings; they are looked up again when the settings change)
+        let cfg = crate::config::get();
+        if self.bound_from != cfg.keys {
+            self.bound = crate::keys::ACTIONS
+                .iter()
+                .enumerate()
+                .flat_map(|(i, a)| cfg.keys[i].iter().filter_map(|n| crate::keys::parse_key(n)).map(move |k| (k, a.1)))
+                .collect();
+            self.bound_from = cfg.keys.clone();
+        }
+        for &(k, b) in &self.bound {
             if keys.contains(&k) {
                 s.buttons |= b;
             }
@@ -246,7 +243,6 @@ impl KbMouse {
         }
         // the keys are a stick pushed all the way: it gets the same dead zone and sensitivity as a controller's, and Shift holds
         // it back to a walk
-        let cfg = crate::config::get();
         let walk = if keys.contains(&KeyCode::ShiftLeft) || keys.contains(&KeyCode::ShiftRight) { 0.65 } else { 1.0 };
         let byte = |v: f32| crate::gamepads::stick_to_byte(crate::gamepads::stick_value(v, cfg.stick_deadzone, cfg.stick_sensitivity) * walk);
         // sticks: right x, right y, left x, left y (y: 0 = up)

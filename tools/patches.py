@@ -240,6 +240,8 @@ FUNCS = {
         ('sh(a0_4 + 38, 70);','sh(a0_4 + 38, 70 - 14);',1),('sh(a0_4 + 6, 50);','sh(a0_4 + 6, 50 - 14);',1),
         ('sh(v0_6 + 6, 40);','sh(v0_6 + 6, 40 - 14);',1),('sh(v0_6 + 70, 80);','sh(v0_6 + 70, 80 - 14);',1),('sh(v0_6 + 38, 60);','sh(v0_6 + 38, 60 - 14);',1),
         ('                if v1_3 >= 7 {\n', '                if v1_3 >= 7 && !(9..=12).contains(&v1_3) {\n', 1),
+        # choosing Exit Game asks in the question box (`av_gametype_exit`) instead of opening a page
+        (' '*8+'a0_13 = a0;'+chr(10)+' '*8+'s0_1 = av_gamemode_menu();'+chr(10), ' '*8+'if av_gametype_exit(a0) {'+chr(10)+' '*12+'return;'+chr(10)+' '*8+'}'+chr(10)+' '*8+'a0_13 = a0;'+chr(10)+' '*8+'s0_1 = av_gamemode_menu();'+chr(10), 1),
     ],
     # the developer menu: the triangle button goes back one menu, like start does
     'menuTick': [('        if (v0_8 & 2048) != 0 {\n            menuEnd();', '        if (v0_8 & 2064) != 0 {\n            menuEnd();', 1)],
@@ -284,6 +286,7 @@ FUNCS = {
     'enemyTick': [('pub fn enemyTick(mut a0: i32) {'+chr(10), 'pub fn enemyTick(mut a0: i32) {'+chr(10)+'    bot_punch(a0);'+chr(10), 1)],
     # the buttons in the texts are named for the device in use (manual/nativetext.rs)
     'textPrint': [('pub fn textPrint(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32) {'+chr(10), 'pub fn textPrint(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
+    'textOutline': [('pub fn textOutline(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32) {'+chr(10), 'pub fn textOutline(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
     'textSize': [('pub fn textSize(mut a0: i32, mut a1: i32, mut a2: i32) {'+chr(10), 'pub fn textSize(mut a0: i32, mut a1: i32, mut a2: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
     # the MapMaker's Options page (manual/mmoptions.rs): a slider changed with X, a row that takes the limit of the map away
     'settings_pageTick': [
