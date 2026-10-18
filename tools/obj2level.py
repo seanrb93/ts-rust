@@ -40,9 +40,11 @@ Options:
     --music FILE     music of its own for the level: any audio file (needs ffmpeg unless it is .opus); it is made Opus and the level plays it
     --min-light X    how bright the darkest surfaces are, 0..1 (default 0.35 for maps of Source and GoldSrc, whose lightmaps are only averaged here; else 0)
     --max-polygon W  polygons wider than W units are cut into pieces (default 0: not); makes the file larger
-    --texture-budget KB  the textures are made smaller until their files add up to this (default 640; the game's own levels use up to 670): the game keeps
+    --texture-budget KB  the textures are made smaller until their files add up to this (default 360): the game keeps
                      a level's textures in a pool of its own, and a level with more does not draw some surfaces
-    --max-textures N the most textures (default 48: with more, a level of this size does not draw some surfaces)
+    --max-size MB    about how large the level's BG file may be (default 3.5; the game's own largest is 2.7): the smallest surfaces that are not floors are left out
+                     above it, because the game does not draw some surfaces of a larger one
+    --max-textures N the most textures (default 90)
     --materials DIR  a `materials` folder (Source: the game's own pictures; may be given more than once); --wad FILE|DIR for GoldSrc
     --blender EXE    the Blender to use for .blend files
     --radius R       keep only what is within R units (a square) of --center x,z (default: the first spawn): large maps do not fit in the game
@@ -182,6 +184,35 @@ def build_polys(scene, args):
             p.col = [tuple(m + (1.0 - m) * min(1.0, max(0.0, c)) for c in cc) for cc in p.col]
     markers = [(name, conv(pos)) for name, pos in scene.markers]
     return [p for p in polys if np.linalg.norm(p.normal()) > 0.5], markers
+
+
+def poly_area(p):
+    a = 0.0
+    for i in range(1, len(p.p) - 1):
+        a += np.linalg.norm(np.cross(p.p[i] - p.p[0], p.p[i + 1] - p.p[0])) / 2
+    return a
+
+
+def shrink_to(polys, max_bytes):
+    """Leave out the smallest polygons that are not floors (railings, trim, bits of walls) until the BG file is about `max_bytes` (an estimate).  The
+    game keeps the level's file in a pool of memory it also needs for textures, characters and the like; with a file of more than about 3.5 MB (the
+    largest of the game's own is 2.7) surfaces further on are not drawn, whatever the level looks like."""
+    def estimate(ps):
+        return sum(49 * len(p.p) + 78 for p in ps)
+    if estimate(polys) <= max_bytes:
+        return polys
+    droppable = sorted((p for p in polys if p.normal()[1] <= FLOOR_NY), key=poly_area)
+    keep = set(id(p) for p in polys)
+    size = estimate(polys)
+    dropped = 0
+    for p in droppable:
+        if size <= max_bytes:
+            break
+        keep.discard(id(p))
+        size -= 49 * len(p.p) + 78
+        dropped += 1
+    print(f'{dropped} small polygons that are not floors were left out to keep the level near {max_bytes // 1000000} MB (about {size // 1000000} MB now)')
+    return [p for p in polys if id(p) in keep]
 
 
 def reduce_materials(polys, scene, limit):
@@ -868,8 +899,9 @@ def main():
     ap.add_argument('--max-polygon', type=float, default=0.0, help='polygons are cut into pieces no wider than this (0: not)')
     ap.add_argument('--spawn-at', default=None, help='x,z (game units): players start only here (a test aid)')
     ap.add_argument('--no-translucent', action='store_true', help='leave out surfaces drawn see-through (a test aid)')
-    ap.add_argument('--texture-budget', type=float, default=640.0, help='the most KB of texture files (the levels of the game use up to 670)')
-    ap.add_argument('--max-textures', type=int, default=48)
+    ap.add_argument('--texture-budget', type=float, default=360.0, help='the most KB of texture files (the video memory of the console has room for about 400 beside what the characters and weapons use)')
+    ap.add_argument('--max-size', type=float, default=3.5, help='about how large the BG file may be, in MB (the game does not draw some surfaces of a larger one)')
+    ap.add_argument('--max-textures', type=int, default=90)
     ap.add_argument('--materials', action='append', default=[])
     ap.add_argument('--wad', action='append', default=[])
     ap.add_argument('--blender', default=None)
@@ -919,6 +951,7 @@ def main():
         if not polys:
             sys.exit('nothing is left')
     reduce_materials(polys, scene, args.max_textures)
+    polys = shrink_to(polys, int(args.max_size * 1000000))
     base = args.tex_base or 4000 + 100 * (args.number - 31)
     out = args.out
     os.makedirs(os.path.join(out, 'BG.PAK', 'bg', f'level{args.number}'), exist_ok=True)
