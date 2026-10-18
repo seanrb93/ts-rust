@@ -317,10 +317,11 @@ pub fn present_frame() {
             let nrooms = lw(g::bgNumRooms);
             let vis = (1..=nrooms).filter(|&r| (lw(rd + r * 20) as u32) < 25).count();
             let me = lw(pr + 12);
-            let depths: Vec<String> = (1..=nrooms.min(60)).map(|r| format!("{}:{}[{},{}]", r, lw(rd + r * 20), lw(rd + r * 20 + 4), lw(rd + r * 20 + 12))).collect();
+            let depths: Vec<String> = (1..=nrooms).map(|r| format!("{}:{}[{},{}]", r, lw(rd + r * 20), lw(rd + r * 20 + 4), lw(rd + r * 20 + 12))).collect();
             eprintln!("[depths] {}", depths.join(" "));
             eprintln!("[roomlist] room {} count {} first {:?}", me, lw(ROOM_PROP_COUNTS + 4 * me), (0..lw(ROOM_PROP_COUNTS + 4 * me).min(6)).map(|k| { let pr = lw(ROOM_PROP_LISTS + 400 * me + 4 * k); (lw(pr + 4), lw(pr + 8), lw(pr + 16) as u32, lw(pr + 32)) }).collect::<Vec<_>>());
             eprintln!("[mem] level pool free {} (eternal free {})", lw(g::mem_level_free), lw(g::mem_eternal_free));
+            eprintln!("[db] used {} of {}", lw(0x3afe14) - lw(0x3afe0c), lw(g::buflen));
             let rp = lw(g::roomprops);
             let flags: Vec<String> = (1..=nrooms.min(40)).map(|r| format!("{}:{:x}", r, lw(lw(rp + 4 * r) + 16))).collect();
             eprintln!("[roomprops] mine {} flags {}", me, flags.join(" "));

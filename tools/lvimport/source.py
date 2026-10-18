@@ -20,7 +20,7 @@ import numpy as np
 from PIL import Image
 
 from . import vtf
-from .common import Material, Scene, brush_polygons, keep_playable, markers_from_entities, parse_entities
+from .common import Material, Scene, newell, brush_polygons, clip_halfspace, keep_playable, markers_from_entities, parse_entities
 
 SKIP_FLAGS = 0x2 | 0x4 | 0x40 | 0x80 | 0x100 | 0x200        # sky2d, sky, trigger, nodraw, hint, skip
 WARP, TRANS = 0x8, 0x10
@@ -114,6 +114,7 @@ def load(path, opts):
     except Exception:
         pak = None
     mats = Materials(path, pak, opts.get('materials') or [])
+    light_detail = int(opts.get('light_detail', 16))
     sc = Scene(up='z', scale=0.025, label=os.path.basename(path))
     sc.min_light = 0.35
     markers_from_entities(ents, sc)
@@ -196,36 +197,72 @@ def load(path, opts):
         tv, to = np.array(tinfo[4:7]), tinfo[7]
         pn = np.array(planes[planenum][0:3]) * (-1.0 if side else 1.0)
 
-        # the brightness: the average of the lightmap's first style (r, g, b and an exponent for each luxel)
-        shade = 1.0
+        # the light: the lightmap's first style (r, g, b and an exponent for each luxel), seen at every vertex (the polygon is cut along the lightmap's
+        # grid where it varies much: `light_detail` luxels between cuts; 0: one brightness for the face)
+        lum = None
         if lightofs >= 0 and styles[0] == 0:
             nlux = (lsize[0] + 1) * (lsize[1] + 1)
             if 0 < nlux and lightofs + 4 * nlux <= len(light_raw):
                 a = np.frombuffer(light_raw, dtype=np.uint8, count=4 * nlux, offset=lightofs).reshape(-1, 4)
                 ex = a[:, 3].astype(np.int8).astype(np.float64)
                 lin = (a[:, :3].astype(np.float64) / 255.0) * (2.0 ** ex)[:, None]
-                v = float(lin.mean())
-                shade = min(1.0, max(0.15, v ** (1 / 2.2) * 1.3))
+                lum = np.clip(lin.mean(axis=1) ** (1 / 2.2) * 1.3, 0.15, 1.0).reshape(lsize[1] + 1, lsize[0] + 1)
         m = material(name, flags)
         if m._loader is None:
             # (no picture found: the colour the map recorded; shaded in the colour, there is no picture)
             m.color = tuple(float(min(1.0, max(0.05, c ** (1 / 2.2)))) for c in refl)
+        lvs, lvt = np.array(tinfo[8:11]), np.array(tinfo[12:15])
+        lo_s, lo_t = tinfo[11] - struct.unpack_from('<i', faces_raw, o + 28)[0], tinfo[15] - struct.unpack_from('<i', faces_raw, o + 32)[0]
+
+        def shade_at(pt):
+            if lum is None:
+                return 1.0
+            fs_, ft_ = float(pt @ lvs) + lo_s, float(pt @ lvt) + lo_t
+            fs_ = min(max(fs_, 0.0), lum.shape[1] - 1.0)
+            ft_ = min(max(ft_, 0.0), lum.shape[0] - 1.0)
+            s0, t0 = int(fs_), int(ft_)
+            s1, t1 = min(s0 + 1, lum.shape[1] - 1), min(t0 + 1, lum.shape[0] - 1)
+            a_, b_ = fs_ - s0, ft_ - t0
+            return float((lum[t0, s0] * (1 - a_) + lum[t0, s1] * a_) * (1 - b_) + (lum[t1, s0] * (1 - a_) + lum[t1, s1] * a_) * b_)
+        varied = lum is not None and light_detail > 0 and float(lum.std()) > 0.05 and max(lum.shape) > light_detail
+        flat = float(lum.mean()) if lum is not None else 1.0
 
         polys = []
         if dispinfo >= 0 and dispinfo * 176 + 176 <= len(dispinfo_raw):
             polys = displacement(pts, dispinfo, dispinfo_raw, dispverts_raw)
+        elif varied:
+            # cut along the grid of the lightmap, every `light_detail` luxels
+            pieces = [list(pts)]
+            for vec, off, size in ((lvs, lo_s, lum.shape[1]), (lvt, lo_t, lum.shape[0])):
+                for k in range(light_detail, int(size), light_detail):
+                    nxt = []
+                    for pc in pieces:
+                        vals = [float(q @ vec) + off for q in pc]
+                        if min(vals) < k - 1e-6 and max(vals) > k + 1e-6:
+                            # (the line s = k: points with s <= k, and those with s >= k)
+                            nrm = vec / np.linalg.norm(vec)
+                            dd = (k - off) / np.linalg.norm(vec)
+                            nxt += [x for x in (clip_halfspace(pc, nrm, dd), clip_halfspace(pc, -nrm, -dd)) if len(x) >= 3]
+                        else:
+                            nxt.append(pc)
+                    pieces = nxt
+            polys = pieces
         else:
             polys = [pts]
         for poly in polys:
             q = np.asarray(poly)
-            cn = np.cross(q[1] - q[0], q[2] - q[0])
+            cn = newell(q)
             order = list(range(len(q)))
             if np.dot(cn, pn) < 0:
                 order.reverse()
             s_ = q @ sv + so
             t_ = q @ tv + to
             uv = [(float(a) / wtex, float(b) / htex) for a, b in zip(s_, t_)]
-            sc.add([q[i] for i in order], [uv[i] for i in order], [(shade, shade, shade)] * len(q), name)
+            if varied or dispinfo >= 0 and lum is not None and light_detail > 0:
+                cols = [(c, c, c) for c in (shade_at(x) for x in q)]
+            else:
+                cols = [(flat, flat, flat)] * len(q)
+            sc.add([q[i] for i in order], [uv[i] for i in order], [cols[i] for i in order], name)
     return sc
 
 

@@ -2,6 +2,7 @@
 //! A function defined here wins over the generated one of the same name (the generator skips it).
 
 pub mod arcadeopts;
+pub mod bigpool;
 pub mod customlevels;
 pub mod avmenu;
 pub mod boot;
@@ -23,6 +24,7 @@ pub mod weapontable;
 pub mod texhook;
 
 pub use arcadeopts::*;
+pub use bigpool::*;
 pub use customlevels::*;
 pub use avmenu::*;
 pub use boot::*;

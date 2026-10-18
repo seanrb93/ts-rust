@@ -11,7 +11,7 @@ import struct
 import numpy as np
 from PIL import Image
 
-from .common import Material, Scene, keep_playable, markers_from_entities, parse_entities
+from .common import Material, Scene, newell, keep_playable, markers_from_entities, parse_entities
 
 SKIP = ('sky', 'clip', 'null', 'aaatrigger', 'trigger', 'origin', 'hint', 'skip', 'noclip', 'bevel', 'contentwater', 'blocklight', 'black_hidden',
         'env/', 'solidhint')
@@ -143,7 +143,7 @@ def load(path, opts):
         uv = [(float(a) / w, float(b) / h) for a, b in zip(s, t)]
         # (the faces go clockwise seen from the front: turn them round, checking against the plane's normal)
         pn = np.array(planes[plane][:3]) * (-1.0 if side else 1.0)
-        cn = np.cross(pts[1] - pts[0], pts[2] - pts[0])
+        cn = newell(pts)
         order = list(range(len(pts)))
         if np.dot(cn, pn) < 0:
             order.reverse()

@@ -40,10 +40,10 @@ Options:
     --music FILE     music of its own for the level: any audio file (needs ffmpeg unless it is .opus); it is made Opus and the level plays it
     --min-light X    how bright the darkest surfaces are, 0..1 (default 0.35 for maps of Source and GoldSrc, whose lightmaps are only averaged here; else 0)
     --max-polygon W  polygons wider than W units are cut into pieces (default 0: not); makes the file larger
-    --texture-budget KB  the textures are made smaller until their files add up to this (default 360): the game keeps
-                     a level's textures in a pool of its own, and a level with more does not draw some surfaces
-    --max-size MB    about how large the level's BG file may be (default 3.5; the game's own largest is 2.7): the smallest surfaces that are not floors are left out
-                     above it, because the game does not draw some surfaces of a larger one
+    --texture-budget KB  the textures are made smaller until their files add up to this (default 640; the game's own levels use up to 670)
+    --max-size MB    about how large the level's BG file may be (default 16; the game's own largest is 2.7): the smallest surfaces that are not floors are left out above it
+    --light-detail N Source maps: faces whose light varies much are cut every N luxels of their lightmap (16 luxels is 6.4 game units; default 16; 0: one brightness
+                     for each face) and every vertex gets the light at its place
     --max-textures N the most textures (default 90)
     --materials DIR  a `materials` folder (Source: the game's own pictures; may be given more than once); --wad FILE|DIR for GoldSrc
     --blender EXE    the Blender to use for .blend files
@@ -954,9 +954,10 @@ def main():
     ap.add_argument('--max-polygon', type=float, default=0.0, help='polygons are cut into pieces no wider than this (0: not)')
     ap.add_argument('--spawn-at', default=None, help='x,z (game units): players start only here (a test aid)')
     ap.add_argument('--no-translucent', action='store_true', help='leave out surfaces drawn see-through (a test aid)')
-    ap.add_argument('--texture-budget', type=float, default=360.0, help='the most KB of texture files (the video memory of the console has room for about 400 beside what the characters and weapons use)')
-    ap.add_argument('--max-size', type=float, default=3.5, help='about how large the BG file may be, in MB (the game does not draw some surfaces of a larger one)')
+    ap.add_argument('--texture-budget', type=float, default=640.0, help='the most KB of texture files (the video memory of the console has room for about 400 beside what the characters and weapons use)')
+    ap.add_argument('--max-size', type=float, default=16.0, help='about how large the BG file may be, in MB')
     ap.add_argument('--no-brushes', action='store_true', help='Source maps: make the collision from the drawn faces instead of the brushes')
+    ap.add_argument('--light-detail', type=int, default=16, help='Source maps: polygons whose light varies are cut every this many lightmap luxels (0: one brightness for a face)')
     ap.add_argument('--max-textures', type=int, default=90)
     ap.add_argument('--materials', action='append', default=[])
     ap.add_argument('--wad', action='append', default=[])
@@ -969,7 +970,7 @@ def main():
     args = ap.parse_args()
     if not 31 <= args.number <= 99:
         sys.exit('--number has to be 31 to 99')
-    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'no_brushes': args.no_brushes})
+    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'no_brushes': args.no_brushes, 'light_detail': args.light_detail})
     polys, markers = build_polys(scene, args)
     coll = build_polys.coll
     if not polys:

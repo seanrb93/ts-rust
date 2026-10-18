@@ -38,7 +38,7 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
 - Pads for the bots are laid on the floors (`--pad-spacing`; at most `--max-pads`) and linked to their neighbours, in groups the game finds routes by.
 - Pictures are made into the game's texture files: sides of powers of two, at most 256, at most 65536 pixels.  Surfaces with see-through pixels are drawn
   after the solid ones.  Of a map with more than `--max-textures` (90) materials, those that cover least are drawn with the picture of the most alike colour among the rest.  The
-  texture files are made smaller until they add up to `--texture-budget` (360 KB), for the video memory has room for about that much beside the characters' textures.
+  texture files are made smaller until they add up to `--texture-budget` (640 KB, the most the game's own levels use).
 - Axes and size: Source and GoldSrc maps are z up and 72 units tall for a player: they are turned and scaled by 0.025 (`--scale`, `--up`).  A model is taken as it
   is: the game's rooms are about 20 units across and a player about 1.8 high.  `--flip` turns the faces round if the level comes out inside out.
 - **Music.**  `--music song.mp3` (any audio file; ffmpeg is needed, `pip install imageio-ffmpeg` will do, unless it is already `.opus`) makes the level play that song: it is
@@ -58,11 +58,10 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   skybox room, a room of tools) are dropped.
 - **Size.**  The game's own levels have at most 70,000 vertices, 109 rooms and a 2.7 MB BG file.  The port's tables were made larger (`manual/proptable.rs` and the patches of
   `tools/patches.py`), so a level can have up to 480 rooms (props in the rooms numbered 205 to 212 are drawn in the passes the game keeps for those numbers, which may show as a prop drawn through
-  a wall).  The file's size is the limit that matters: the game keeps it in a memory pool that it also needs, after the level has loaded, for textures and characters, and with a BG file of more
-  than about 3.5 MB some surfaces (usually the ground around the player) are not drawn, whatever the level looks like (4.3 MB failed, 3.0 MB worked).  `--max-size` (default 3.5 MB) leaves the
-  smallest polygons that are not floors out until the file is about that size.  The memory pool is the console's; making it larger crashed the game at start, so it is not changed.
-  A big map can also be made smaller by choosing a part of it: `--radius 70 --center x,z` (game units, a square; the first spawn is the default centre) keeps what is within 70 units (a Source map of
-  16000 units is 400 units across).
+  a wall), and a level of a mod (the numbers 31 to 99) makes its large allocations (256 KB and more: the BG file, the biggest textures, ...) in a pool of 32 MB of the port's own (`manual/bigpool.rs`;
+  the game's pool of 21 MB cannot be longer, for the stacks and static data are after it, but the port's memory is not the console's).  The full Station Square of Garry's Mod (6.9 MB, 40,000 polygons,
+  232 rooms) was played.  `--max-size` (default 16 MB) leaves the smallest polygons that are not floors out above that size.  A big map can also be made smaller by choosing a part of it:
+  `--radius 70 --center x,z` (game units, a square; the first spawn is the default centre) keeps what is within 70 units (a Source map of 16000 units is 400 units across).
 - **Rooms.**  `--room-size 25` splits the level into rooms of 25 x 25 units joined by portals: what is far away is not drawn.  A map of Source or GoldSrc size wants it.
 
 ## Collision and rooms
@@ -72,6 +71,10 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
 - **The game's room boxes.**  The game works out a room's box from its floors and walls and clips what it sees of the room with it, so the box has to hold everything drawn of the room.  The
   converter adds two walls a thousandth of a unit long at the corners of what is drawn; without them, rooms whose floors and walls cover less than the drawing were cut off or missing (the black ground
   of the first Station Square mod).
+- **Winding.**  The faces of a map have points along their edges, so the first three points of a face may lie on a line: the facing of a face is taken from all its points (a face that comes out
+  upside down is not drawn, and is not a floor).  This was the cause of the missing ground in the first Station Square mods.
+- **Light.**  Every vertex gets the light of the map's lightmap at its place; a face whose light varies much is cut along the lightmap's grid (`--light-detail`, luxels between cuts, default 16; 0 gives each
+  face one brightness).
 - **Portals** are low openings (14 units) at the heights where both rooms have a floor.
 
 ## Limits worth knowing

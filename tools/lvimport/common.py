@@ -211,3 +211,16 @@ def brush_polygons(planes, want=None):
         else:
             out.append(None)
     return out
+
+
+def newell(pts):
+    """The normal of a polygon (not unit length) from all of its points: the first three may lie on a line (a map's faces have points along their
+    edges), which makes a cross product of them useless."""
+    n = np.zeros(3)
+    k = len(pts)
+    for i in range(k):
+        a, b = pts[i], pts[(i + 1) % k]
+        n[0] += (a[1] - b[1]) * (a[2] + b[2])
+        n[1] += (a[2] - b[2]) * (a[0] + b[0])
+        n[2] += (a[0] - b[0]) * (a[1] + b[1])
+    return n

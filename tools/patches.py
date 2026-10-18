@@ -268,7 +268,16 @@ FUNCS = {
     'propReset': [('a0_9 = 712;', 'a0_9 = MAX_ENTRIES - 1;', 1), ('a0_10 = 712;', 'a0_10 = MAX_ENTRIES - 1;', 1),
                   # (a level's props, the rooms' among them: 300 of them were room for 200 rooms and the rest)
                   ('{ 20 } else { 300 }', '{ 20 } else { 1000 }', 1)],
+    # the game's memory pool cannot be longer (the stacks and static data are after it): big allocations of a level of a mod are made in a pool of the port's own
+    'memAlloc': [('    if a1 == 1 {'+chr(10)+'        v1_2 = lw(g::mem_level_free);', '    if a1 == 1 && big_wants(a2_1) {'+chr(10)+'        a3_1 = big_alloc(a2_1);'+chr(10)+'    } else if a1 == 1 {'+chr(10)+'        v1_2 = lw(g::mem_level_free);', 1)],
+    'memReset': [('pub fn memReset() {'+chr(10), 'pub fn memReset() {'+chr(10)+'    big_reset();'+chr(10), 1)],
     'bgGfx': [
+        # (the levels of mods draw all their rooms: see manual/customlevels.rs `draw_all_rooms`)
+        ('    if lw((lw(a4_1) << 2) + g::maxlevel) < 0 {', '    if draw_all_rooms() {'+chr(10)+'        sw(a0_2, 24);'+chr(10)+'    }'+chr(10)+'    if lw((lw(a4_1) << 2) + g::maxlevel) < 0 {', 1),
+        ('                if (a2_1 as u32) < (25 as u32) {'+chr(10)+'                    a1_1 = (a2_1 << 2) + 0x1fc4a10;', '                if draw_all_rooms() && (a2_1 as u32) >= (25 as u32) {'+chr(10)+'                    a2_1 = 24;'+chr(10)+'                }'+chr(10)+'                if (a2_1 as u32) < (25 as u32) {'+chr(10)+'                    a1_1 = (a2_1 << 2) + 0x1fc4a10;', 1),
+        ('if v1_4 < 0 {', 'if v1_4 < 0 && !draw_all_rooms() {', 1),
+        ('if a0_19 < 640 {', 'if a0_19 < 640 || draw_all_rooms() {', 1),
+        ('if a0_19 >= v1_4 {', 'if a0_19 >= v1_4 && !draw_all_rooms() {', 1),
         ('sb(v1_3 + a2_1 * 200 + 0x1fc4a78, s0_1);', 'sh((v1_3 << 1) + a2_1 * 1024 + 0x2500000, s0_1);', 1),
         ('s0_2 = lbu(s2_2 * 200 + s1_1 + 0x1fc4a78);', 's0_2 = lhu(s2_2 * 1024 + (s1_1 << 1) + 0x2500000);', 1),
         ('sb(a1_2, v0_3);', '', 1),
