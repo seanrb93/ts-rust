@@ -1,0 +1,11 @@
+# Changes to the game's data in memory when the program starts.
+# Each line:  <symbol or 0xADDRESS>[+offset]  <b|h|w|f>  <value> [<value> ...]      (b byte, h halfword, w word, f float)
+# or          <symbol or 0xADDRESS>[+offset]  s  <text>                              (the text and a zero byte; it has to fit)
+# The symbols are those of the game's executable (guns, guncombos, ...).
+
+# `guns` has 400 bytes for each gun.  Gun 0 is the pistol: +20 is the size of its clip, +24 the most ammo it can carry.
+guns+20 w 15
+guns+24 w 100
+
+# The name of a game mode in the menus (16 bytes of room there).
+0x3855a8 s Knock-Out!

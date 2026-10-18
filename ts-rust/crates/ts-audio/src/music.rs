@@ -1,5 +1,5 @@
-//! Music streamer: `.MSC` files are raw SPU-ADPCM stereo, interleaved in 0x8000-byte chunks (left, right, ...).
-//! A background thread reads and decodes; `mix` resamples the decoded frames into the output.
+//! Music streamer: `.MSC` files are raw SPU-ADPCM stereo, interleaved in 0x8000-byte chunks (left, right, ...); a mod can give an Ogg Opus
+//! file (`.opus`) instead.  A background thread reads and decodes; `mix` resamples the decoded frames into the output.
 
 use crate::adpcm::{decode_block, State};
 use std::io::Read;
@@ -10,6 +10,8 @@ use std::sync::Arc;
 
 const CHUNK: usize = 0x8000;
 const SRC_RATE: f32 = 44100.0;
+/// an Opus file's rate
+const OPUS_RATE: f32 = 48000.0;
 
 /// Commands of the original stream driver (as issued by the game's `stream_RPC`).
 pub enum MusicCmd {
@@ -40,6 +42,34 @@ pub struct Music {
     frac: f32,
     vol_l: f32,
     vol_r: f32,
+    /// the rate of the frames being played (44100 for a .MSC, 48000 for Opus)
+    src_rate: f32,
+}
+
+/// The thread of an Opus file: its blocks as they are decoded, the file again from the start when the music loops.
+fn opus_decoder(path: PathBuf, looping: Arc<AtomicBool>, tx: std::sync::mpsc::SyncSender<Vec<f32>>) {
+    loop {
+        let mut r = match crate::codec::OpusReader::open(&path) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("[audio] {e}");
+                return;
+            }
+        };
+        let mut any = false;
+        while let Some(block) = r.next_block() {
+            any = true;
+            // (the blocks are sent in pieces of about a tenth of a second)
+            for piece in block.chunks(9600) {
+                if tx.send(piece.to_vec()).is_err() {
+                    return;
+                }
+            }
+        }
+        if !looping.load(Ordering::Relaxed) || !any {
+            return;
+        }
+    }
 }
 
 fn decoder(path: PathBuf, looping: Arc<AtomicBool>, tx: std::sync::mpsc::SyncSender<Vec<f32>>) {
@@ -104,6 +134,7 @@ impl Music {
             frac: 0.0,
             vol_l: 1.0,
             vol_r: 1.0,
+            src_rate: SRC_RATE,
         }
     }
 
@@ -127,7 +158,13 @@ impl Music {
                 self.close();
                 let (tx, rx) = sync_channel(3);
                 let looping = self.looping.clone();
-                std::thread::spawn(move || decoder(path, looping, tx));
+                if path.extension().and_then(|e| e.to_str()).map_or(false, |e| e.eq_ignore_ascii_case("opus")) {
+                    self.src_rate = OPUS_RATE;
+                    std::thread::spawn(move || opus_decoder(path, looping, tx));
+                } else {
+                    self.src_rate = SRC_RATE;
+                    std::thread::spawn(move || decoder(path, looping, tx));
+                }
                 self.rx = Some(rx);
             }
             MusicCmd::Close => self.close(),
@@ -174,7 +211,7 @@ impl Music {
         if !self.playing || self.ended || self.rx.is_none() {
             return;
         }
-        let step = SRC_RATE / rate as f32;
+        let step = self.src_rate / rate as f32;
         for frame in out.chunks_exact_mut(2) {
             self.frac += step;
             while self.frac >= 1.0 {
@@ -195,4 +232,46 @@ impl Music {
             frame[1] += (self.a[1] + (self.b[1] - self.a[1]) * t) * self.vol_r;
         }
     }
+}
+
+/// Decode a whole `.MSC` file into a stereo 16-bit WAV file at 44100 Hz (for `tools/convert_music.py`, which makes Opus files of the music).
+pub fn msc_to_wav(src: &std::path::Path, dst: &std::path::Path) -> Result<(), String> {
+    let d = std::fs::read(src).map_err(|e| format!("{}: {e}", src.display()))?;
+    let mut pcm: Vec<i16> = Vec::with_capacity(d.len() / 16 * 28);
+    let (mut sl, mut sr) = (State::default(), State::default());
+    let (mut l, mut r) = ([0i16; 28], [0i16; 28]);
+    for chunk in d.chunks(CHUNK * 2) {
+        if chunk.len() < 32 {
+            break;
+        }
+        let half = (chunk.len() / 2) & !15;
+        // (the last chunk of a file can be a short one: its halves are the two channels)
+        let right_at = if chunk.len() >= CHUNK * 2 { CHUNK } else { half };
+        for b in 0..half / 16 {
+            decode_block(&chunk[b * 16..b * 16 + 16], &mut sl, &mut l);
+            decode_block(&chunk[right_at + b * 16..right_at + b * 16 + 16], &mut sr, &mut r);
+            for k in 0..28 {
+                pcm.push(l[k]);
+                pcm.push(r[k]);
+            }
+        }
+    }
+    let bytes = pcm.len() * 2;
+    let mut w = Vec::with_capacity(44 + bytes);
+    w.extend_from_slice(b"RIFF");
+    w.extend_from_slice(&((36 + bytes) as u32).to_le_bytes());
+    w.extend_from_slice(b"WAVEfmt ");
+    w.extend_from_slice(&16u32.to_le_bytes());
+    w.extend_from_slice(&1u16.to_le_bytes());
+    w.extend_from_slice(&2u16.to_le_bytes());
+    w.extend_from_slice(&(SRC_RATE as u32).to_le_bytes());
+    w.extend_from_slice(&(SRC_RATE as u32 * 4).to_le_bytes());
+    w.extend_from_slice(&4u16.to_le_bytes());
+    w.extend_from_slice(&16u16.to_le_bytes());
+    w.extend_from_slice(b"data");
+    w.extend_from_slice(&(bytes as u32).to_le_bytes());
+    for s in pcm {
+        w.extend_from_slice(&s.to_le_bytes());
+    }
+    std::fs::write(dst, w).map_err(|e| format!("{}: {e}", dst.display()))
 }

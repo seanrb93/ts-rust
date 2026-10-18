@@ -6,7 +6,8 @@
 //!   pack has it.
 //! * `MUSIC/<name>.MSC`: replaces a music stream.
 //! * `patches.txt`: changes to the game's data in memory when it starts (tables such as the weapons or characters).  One per line:
-//!   `<symbol or 0xADDRESS>[+offset] <b|h|w|f> <value>[ <value>...]` (byte, halfword, word, float; `#` starts a comment).
+//!   `<symbol or 0xADDRESS>[+offset] <b|h|w|f> <value>[ <value>...]` (byte, halfword, word, float; `#` starts a comment) or
+//!   `<symbol or 0xADDRESS>[+offset] s <text>` (the text and a zero byte; it must fit where the old text was).
 //! * `mod.ini` with `enabled = false` to switch the mod off.
 //!
 //! The packs are not changed: the changed packs are built in `mods/.cache/` when the mods change, and the game reads those.  Mods are
@@ -127,6 +128,68 @@ fn build_pack(src: &Path, changes: &BTreeMap<String, PathBuf>, out: &Path) -> Re
     std::fs::write(out, data).map_err(|e| format!("{}: {e}", out.display()))
 }
 
+/// What of an original sound decides how a replacement is made: its sample rate (the game's table says how fast to play it, not the file) and the
+/// flags of its first and last block (a sound that loops has 4 and 3).
+fn original_sound(packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>, game_dir: &Path, name: &str) -> Option<(u32, u8, u8)> {
+    for pack in ["SFX.PAK", "FRONTEND.PAK"] {
+        let (d, entries) = packs.entry(pack).or_insert_with(|| read_pack(&game_dir.join("PAK").join(pack))).as_ref()?;
+        if let Some(e) = entries.iter().find(|e| e.name == name.as_bytes()) {
+            let b = d.get(e.offset as usize..(e.offset + e.size) as usize)?;
+            if b.len() < 0x60 || &b[..4] != b"VAGp" {
+                return None;
+            }
+            let rate = u32::from_be_bytes(b[0x10..0x14].try_into().ok()?);
+            return Some((rate, b[0x41], b[b.len() - 15]));
+        }
+    }
+    None
+}
+
+/// The largest sound file the game can load (it reads a file into a buffer of 133120 bytes).
+const MAX_SOUND: usize = 133_000;
+
+/// A sound given as Opus or WAV is made into the game's `.vag` in `mods/.cache/converted/`: mono, at the sample rate of the sound it
+/// replaces (22050 Hz for a new one), with the same looping.  Returns the name of the file in the pack and the converted file.
+fn convert_sound(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) -> Option<(String, PathBuf)> {
+    let (stem, _) = rel.rsplit_once('.')?;
+    let first = stem.split('/').next().unwrap_or("");
+    let inner_stem = if PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/') { &stem[first.len() + 1..] } else { stem };
+    let name = format!("{inner_stem}.vag");
+    let out_dir = cache.join("converted").join(mod_name);
+    let _ = std::fs::create_dir_all(&out_dir);
+    let out = out_dir.join(name.replace('/', "__"));
+    let newer = |a: &Path, b: &Path| match (std::fs::metadata(a).and_then(|m| m.modified()), std::fs::metadata(b).and_then(|m| m.modified())) {
+        (Ok(x), Ok(y)) => x >= y,
+        _ => false,
+    };
+    let rel_name = if PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/') { format!("{}/{}", first, name) } else { name.clone() };
+    if out.is_file() && newer(&out, host) {
+        return Some((rel_name, out));
+    }
+    let (rate, f_first, f_last) = original_sound(packs, game_dir, &name).unwrap_or((22050, 0, 1));
+    let (pcm, from) = match ts_audio::codec::read_audio(host) {
+        Ok(x) => x,
+        Err(e) => {
+            eprintln!("[mods] {mod_name}: {e}");
+            return None;
+        }
+    };
+    let mut mono = ts_audio::codec::mono_resampled(&pcm, from, rate);
+    let room = (MAX_SOUND - 64) / 16 * 28;
+    if mono.len() > room {
+        eprintln!("[mods] {mod_name}: {rel} is longer than the game can load ({:.1} s at {rate} Hz): cut", room as f32 / rate as f32);
+        mono.truncate(room);
+    }
+    let blocks = ts_audio::codec::adpcm_encode(&mono, f_first, f_last);
+    let stem_name = inner_stem.rsplit('/').next().unwrap_or(inner_stem);
+    if let Err(e) = std::fs::write(&out, ts_audio::codec::vag_file(stem_name, rate, &blocks)) {
+        eprintln!("[mods] {mod_name}: {}: {e}", out.display());
+        return None;
+    }
+    eprintln!("[mods] {mod_name}: {rel} -> {name} ({:.1} s at {rate} Hz{})", mono.len() as f32 / rate as f32, if f_first & 4 != 0 { ", looping" } else { "" });
+    Some((rel_name, out))
+}
+
 fn stamp(files: &BTreeMap<String, PathBuf>) -> String {
     let mut s = String::new();
     for (name, p) in files {
@@ -154,6 +217,7 @@ pub fn load(game_dir: &Path, exe: &Path) {
         .iter()
         .filter_map(|p| read_pack(&game_dir.join("PAK").join(p)).map(|(_, e)| (*p, e.into_iter().map(|e| e.name).collect())))
         .collect();
+    let mut original_packs: BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>> = BTreeMap::new();
     for m in &mods {
         let mut files = Vec::new();
         files_under(&m.dir, "", &mut files);
@@ -161,15 +225,36 @@ pub fn load(game_dir: &Path, exe: &Path) {
         for (rel, host) in files {
             let lower = rel.to_ascii_lowercase();
             let first = lower.split('/').next().unwrap_or("");
+            // (what a mod author keeps next to the files: notes, and the sources of the pictures and sounds in a folder that starts with _ or is called art, source or docs)
+            if matches!(first, "art" | "source" | "src" | "docs") || first.starts_with('_') || first.starts_with('.') {
+                if lower.contains('/') {
+                    continue;
+                }
+            }
             if lower == "mod.ini" || lower == "patches.txt" || lower.ends_with(".md") || lower == "readme.txt" {
                 if lower == "patches.txt" {
                     patches.push((m.name.clone(), host.to_string_lossy().into_owned()));
                 }
                 continue;
             }
+            let audio = lower.ends_with(".opus") || lower.ends_with(".wav");
             if first == "music" && lower.contains('/') {
-                overlay.push((lower, host));
+                // (an Opus file takes the place of the .MSC stream of that name)
+                let key = if lower.ends_with(".opus") { format!("{}.msc", &lower[..lower.len() - 5]) } else { lower };
+                overlay.push((key, host));
                 count += 1;
+            } else if audio {
+                if let Some((name, file)) = convert_sound(game_dir, &cache, &m.name, &lower, &host, &mut original_packs) {
+                    let (pack, inner) = match name.split_once('/').and_then(|(f, rest)| PACKS.iter().find(|p| p.eq_ignore_ascii_case(f)).map(|p| (*p, rest.to_string()))) {
+                        Some(x) => x,
+                        None => match contents.iter().find(|(_, names)| names.iter().any(|n| *n == name.as_bytes())) {
+                            Some((pack, _)) => (*pack, name.clone()),
+                            None => ("SFX.PAK", name.clone()),
+                        },
+                    };
+                    pack_changes.entry(pack).or_default().insert(inner, file);
+                    count += 1;
+                }
             } else if let Some(pack) = PACKS.iter().find(|p| p.eq_ignore_ascii_case(first)) {
                 let inner = lower[first.len() + 1..].to_string();
                 pack_changes.entry(pack).or_default().insert(inner, host);
@@ -230,6 +315,15 @@ fn apply_patches(exe: &Path, patches: &[(String, String)]) {
                 eprintln!("[mods] {name}/patches.txt line {}: unknown symbol {base}", n + 1);
                 continue;
             };
+            if kind == "s" {
+                // `<address> s <text>`: the text (as it is written after the `s`) and a zero byte
+                let text = line.splitn(3, char::is_whitespace).nth(2).unwrap_or("").trim();
+                for c in text.bytes().chain(std::iter::once(0)) {
+                    ts_rt::sb(addr as i32, c as i32);
+                    addr += 1;
+                }
+                continue;
+            }
             for v in it {
                 use ts_rt::*;
                 match kind {

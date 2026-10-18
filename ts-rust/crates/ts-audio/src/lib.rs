@@ -8,6 +8,7 @@
 //! The game-facing entry points (`sd_*`, `stream_*`) are called by the SDK layer (`ts-sdk`) when the decompiled
 //! sound code issues its `sceSdRemote` / stream RPC requests.
 
+pub mod codec;
 mod adpcm;
 mod music;
 mod spu;
@@ -15,7 +16,7 @@ mod spu;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 
-pub use music::MusicCmd;
+pub use music::{msc_to_wav, MusicCmd};
 
 /// IOP RAM staging area (the game copies sample data EE -> IOP -> SPU2).
 pub const IOP_RAM_SIZE: usize = 2 << 20;

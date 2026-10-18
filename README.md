@@ -282,10 +282,22 @@ A mod can hold:
   a pack, so characters, weapons, sounds, textures and levels are all files like this.  A path that does not start with a pack's name replaces the
   file of that name in whichever pack has it (`sfx/pistol.vag`).  Names are lower case and at most 47 characters; the files have to be in the
   game's own formats (the port does not convert anything).
-* `MUSIC/<name>.MSC`: replaces a music stream.
+* `MUSIC/<name>.MSC`: replaces a music stream; or `MUSIC/<name>.opus` (Ogg Opus, mono or stereo): the same stream as an Opus file, which is far smaller
+  (decoded as it plays; the music loops from the start).  The name is the stream's (`1015` for the Tomb's).
+* A sound as `.opus` or `.wav` where the game has a `.vag`: `SFX.PAK/sfx/<name>.opus` replaces `sfx/<name>.vag`.  The loader makes the game's sound
+  format from it when the mod changes (`mods/.cache/converted/`): mono, at the sample rate and with the looping of the sound it replaces (the game's table
+  says how fast to play a sound, not the file), at most about 130 KB (10 s at 22 kHz).
 * `patches.txt`: edits of the game's data in memory at start, one per line: `<symbol or 0xADDRESS>[+offset] <b|h|w|f> <value> [...]`
-  (byte, halfword, word, float, `#` comments).  The symbols are those of the game's executable (`guncombos`, `guns`, ...).  This is how a table (the
+  (byte, halfword, word, float, `#` comments), or `<symbol or 0xADDRESS>[+offset] s <text>` (a text and a zero byte, in the room of the old text).  The symbols are those of the game's executable (`guncombos`, `guns`, ...).  This is how a table (the
   weapon combinations, the guns' stats) is changed.
+
+Textures: a texture is a `.qpm` (see "Extracting the textures"); `tools/png2qpm.py picture.png out.qpm` makes one from a PNG (256 colours with alpha).  The game's loader
+reads a whole file into a 66688 byte buffer and decodes it into the 66432 bytes behind, so a texture can have at most 65536 pixels (256x256, 512x128, 128x512,
+...; the width is rounded up to a power of two) and a 32 bit `Q6` texture 16384 (128x128); a texture should keep the size of the one it replaces, because the
+models' texture coordinates are not changed.  `examples/sample_mod/` is a small working mod (a texture, a sound, a music stream and `patches.txt`).
+
+`tools/convert_music.py <game folder>` turns the game's own music (`MUSIC/*.MSC`, 344 MB) into Opus files next to them (about 85 MB at 96 kbit/s); the port plays an
+`.opus` when there is one beside the `.MSC` (`--delete-originals` removes the `.MSC`).  It needs ffmpeg.
 
 The packs are never changed: when the mods change, the changed packs are built again in `mods/.cache/` and the game reads those (a new
 file is added to the pack's directory, a replaced one points to the new data).  Mods are applied in alphabetical order, a later one wins.  The

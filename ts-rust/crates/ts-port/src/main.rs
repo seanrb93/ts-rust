@@ -610,6 +610,20 @@ fn main() {
                     audio::enable_wav(&p);
                 }
             }
+            "--msc-to-wav" => {
+                // tools/convert_music.py: a music stream of the game as a WAV file
+                let (Some(from), Some(to)) = (it.next(), it.next()) else {
+                    eprintln!("usage: --msc-to-wav <file.MSC> <file.wav>");
+                    std::process::exit(2);
+                };
+                match ts_audio::msc_to_wav(std::path::Path::new(&from), std::path::Path::new(&to)) {
+                    Ok(()) => std::process::exit(0),
+                    Err(e) => {
+                        eprintln!("{e}");
+                        std::process::exit(1);
+                    }
+                }
+            }
             "--headless" => headless = true,
             "--window" => force_window = true,
             "--set" => {

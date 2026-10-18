@@ -47,6 +47,18 @@ fn resolve(root: &Path, name: &str) -> Option<PathBuf> {
     if let Some((_, p)) = OVERLAY.lock().unwrap().iter().find(|(k, _)| *k == key) {
         return Some(p.clone());
     }
+    // a music stream converted to Opus (tools/convert_music.py) is used in place of the .MSC file next to it
+    if key.ends_with(".msc") {
+        let opus = format!("{}opus", &name[..name.len() - 3]);
+        if let Some(p) = resolve_plain(root, &opus) {
+            return Some(p);
+        }
+    }
+    resolve_plain(root, name)
+}
+
+/// The file of this name in the folder `root` (the case of the letters does not matter).
+fn resolve_plain(root: &Path, name: &str) -> Option<PathBuf> {
     let mut cur = root.to_path_buf();
     for comp in name.split(['\\', '/']).filter(|c| !c.is_empty()) {
         let mut found = None;
