@@ -108,7 +108,9 @@ A floor: `u32 vertices` (3 or 4 are seen), `u16` (0), `u16 flags` (bit 4, 16, is
 height; 2 is seen once in the file), then the vertices, 12 bytes each (`f32 x, y, z`), from +8, going round counter-clockwise seen from above.  A
 floor is 8 + 12 * vertices bytes.
 
-A wall (36 bytes): `u32` (0), then two upright edges as `f32 x, y_low, z, y_high` each, from +4 and from +20.
+A wall (36 bytes): `u32` (0), then two upright edges as `f32 x, y_low, z, y_high` each, from +4 and from +20.  A wall stops only what comes
+from one side: the open side is to the right of the direction from the first edge to the second (`dx * oz - dz * ox < 0` for a vector
+`(ox, oz)` to the open side).  A wall seen from its other side lets things through, so a thin wall needs one wall for each side.
 
 Glass (196 bytes) is not decoded beyond its place in the list; a level can leave the list out (0).
 

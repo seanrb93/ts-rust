@@ -379,6 +379,10 @@ def collision(polys):
                 continue
             lo, hi = min(v[1] for v in p.p), max(v[1] for v in p.p)
             a, b = p.p[pair[0]], p.p[pair[1]]
+            # (a wall stops what comes from one side only: the open side is to the right of the edge's direction seen from above, which is
+            # the side the polygon faces)
+            if (b[0] - a[0]) * n[2] - (b[2] - a[2]) * n[0] > 0:
+                a, b = b, a
             walls.append((a[0], lo, a[2], hi, b[0], lo, b[2], hi))
     return floors, walls
 
