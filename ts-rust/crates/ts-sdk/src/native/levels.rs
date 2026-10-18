@@ -15,9 +15,6 @@ pub struct CustomLevel {
     pub modes: Option<u32>,
     /// the spawns and pickups of a level that has pads of its own (`setup <file>` of `levels.txt`): none given: the ones of the level it is like
     pub setup: Option<CustomSetup>,
-    /// the level draws all of its rooms in every frame (not only those seen through portals): `drawall` in `levels.txt` (an experiment: it did not draw the ground
-    /// of a level of a map of another game)
-    pub draw_all: bool,
 }
 
 /// Where players start and what lies about, by the numbers of the level's pads (the pad file's ids, 1001 and up).

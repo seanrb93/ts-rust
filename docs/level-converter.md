@@ -53,7 +53,7 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   `materials` folder next to the map or in one of its parent folders, as Crowbar unpacks a workshop map, is found by itself).  A surface whose picture is not found is
   drawn in the average colour the map recorded for it.  GoldSrc textures are in the map, or in the `.wad` files its worldspawn lists (found next to the map, or in the
   folders given with `--wad <dir or file>`).
-- **Light.**  Both engines light surfaces with lightmaps; the converter averages each face's lightmap into one brightness for the face.
+- **Light.**  Both engines light surfaces with lightmaps (see Light below for what is made of them).
 - **What is left out.**  Props, doors and other brush entities, the 3D skybox, sky, trigger, clip and other tool faces.  Parts that are not connected to the main level (a
   skybox room, a room of tools) are dropped.
 - **Size.**  The game's own levels have at most 70,000 vertices, 109 rooms and a 2.7 MB BG file.  The port's tables were made larger (`manual/proptable.rs` and the patches of

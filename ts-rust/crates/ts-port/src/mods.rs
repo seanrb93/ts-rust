@@ -472,11 +472,7 @@ fn add_levels(game_dir: &Path, cache: &Path, lists: &[(String, PathBuf)], pack_c
                 bad("the number has to be from 31 to 99, and not used by another level");
                 continue;
             }
-            let mut lv = ts_sdk::CustomLevel { number, name: words[2].clone(), like: 0, tune: 0, modes: None, setup: None, draw_all: false };
-            if words.iter().skip(3).any(|w| w == "drawall") {
-                lv.draw_all = true;
-                words.retain(|w| w != "drawall");
-            }
+            let mut lv = ts_sdk::CustomLevel { number, name: words[2].clone(), like: 0, tune: 0, modes: None, setup: None };
             let mut i = 3;
             while i + 1 < words.len() {
                 match words[i].as_str() {

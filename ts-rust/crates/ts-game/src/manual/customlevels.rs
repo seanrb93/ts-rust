@@ -203,14 +203,3 @@ pub fn custom_text_count() -> i32 {
 pub fn custom_arcade_levels() -> Vec<i32> {
     CUSTOM.lock().unwrap().iter().map(|l| l.number).collect()
 }
-
-/// Whether the level being played draws all of its rooms in every frame: a level of a mod does only if it says `drawall` (`levels.txt`).  The
-/// rooms of a map of another game are not made to be seen through portals; a room whose portals are clipped away (a room close to the camera, say)
-/// is a hole in the level.
-pub fn draw_all_rooms() -> bool {
-    let n = lw(g::lvlevelnum);
-    if !(31..=99).contains(&n) {
-        return false;
-    }
-    CUSTOM.lock().unwrap().iter().find(|l| l.number == n).map_or(false, |l| l.draw_all)
-}
