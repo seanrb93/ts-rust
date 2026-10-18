@@ -219,7 +219,7 @@ const PAUSE_ONE: Layout = Layout { pitch: 13, columns: &[(-19, 300, 390)], heade
 /// pause menu of a split screen: the game draws the items' places at half the size (the text as large as ever; the values stay
 /// where the page says) and every picture is at most half as high, so there is room for five lines of a readable height.  The rows
 /// are on pages of five.  (A quarter-size picture of four players is narrower still: everything stays in the left half.)
-const SPLIT_PAGED: Layout = Layout { pitch: 18, columns: &[(-49, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
+const SPLIT_PAGED: Layout = Layout { pitch: 18, columns: &[(-49, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 0, 0), (10, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
 /// the Controls page: twelve rows (the profile's controls, then the port's settings), on pages
 const FRONT_CTRL: Layout = Layout { pitch: 15, columns: &[(-19, 300, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (8, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: true };
 const PAUSE_CTRL: Layout = Layout { pitch: 13, columns: &[(-19, 300, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0), (8, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: true };
@@ -955,18 +955,30 @@ const EXIT_PAGE: i32 = BASE + 0x6500;
 const GAMEMODE_AT: i32 = BASE + 0x6600;
 const EXIT_TEXT_AT: i32 = BASE + 0x6a00;
 
-/// The page where the number of players is chosen (1up, 2up, 3up, 4up), at its tick: the triangle button asks whether to exit the game
-/// (the same question as the Exit Game item).  True when the page was left for it.
-pub fn av_nplayers_exit(page: i32) -> bool {
+/// The question box of the page of the number of players has been shown (its answer is read when the page ticks again).
+static ASKED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// The page where the number of players is chosen (1up, 2up, 3up, 4up), at its tick: the triangle button shows a box that asks whether to
+/// exit the game (X yes, triangle no; the callback is the MapMaker's `confirmyesno`, which answers 1 or 2).  When the box has been
+/// answered with yes the program ends.  True when the page's tick is to stop (the box has just been shown).
+pub fn av_nplayers_exit(_page: i32) -> bool {
     CONFIRM.store(false, std::sync::atomic::Ordering::Relaxed);
+    if ASKED.swap(false, std::sync::atomic::Ordering::Relaxed) {
+        if messageGetState_2312c0(0) == 1 {
+            std::process::exit(0);
+        }
+        return false;
+    }
     let player = lw(lw(g::currentplayer));
     if joyNewBut(player) & 16 == 0 {
         return false;
     }
     joyClearAll(player);
-    EDIT.store(0, Ordering::Relaxed);
-    frontPageSet(0, EXIT_PAGE);
-    pageIn(page);
+    let mut at = BASE + 0xe200;
+    let text = put_str(&mut at, "Are you sure you want to quit the game ?
+`^2 YES   ^3 NO");
+    frontStartMessage(0, text, 0x6464_647f, 0x24d268);
+    ASKED.store(true, std::sync::atomic::Ordering::Relaxed);
     true
 }
 

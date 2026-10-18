@@ -11,6 +11,8 @@ const ASPECTS: [i64; 5] = [0, 1333, 1600, 1778, 2333];
 const FOVS: [f32; 8] = [0.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0];
 const SCALES: [f32; 7] = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0];
 const AF: [u16; 5] = [1, 2, 4, 8, 16];
+/// internal resolutions as heights (0 = the window's size times the render scale)
+const INTERNAL: [u32; 6] = [0, 480, 720, 1080, 1440, 2160];
 /// game frame rates (0 = the monitor's refresh rate)
 const RATES: [u32; 8] = [60, 90, 120, 144, 165, 240, 360, 0];
 
@@ -130,6 +132,8 @@ impl ts_game::AvOptions for PortAv {
             row("VSync", onoff(), c.vsync as usize),
             row("Frame Rate", names(&RATES, |r| if *r == 0 { "Monitor".into() } else if *r == 60 { "60 (Original)".into() } else { r.to_string() }), rate_idx),
             row("Render Scale", names(&SCALES, |s| format!("{s}x")), nearest_idx_f32(&SCALES, c.render_scale)),
+            row("Internal Res.", names(&INTERNAL, |h| match *h { 0 => "Window".into(), 480 => "480 (Original)".into(), h => h.to_string() }), INTERNAL.iter().position(|&h| h == c.internal_height).unwrap_or(0)),
+            row("Upscaling", vec!["Smooth".into(), "Sharp".into()], c.upscale_sharp as usize),
             row("Anti-Aliasing", names(&aa, |n| if *n <= 1 { "Off".into() } else { format!("{n}x") }), aa_idx),
             row("Texture Filter", vec!["Nearest".into(), "Bilinear".into(), "Trilinear".into()], match c.filter {
                 ts_render::Filter::Nearest => 0,
@@ -249,15 +253,17 @@ impl ts_game::AvOptions for PortAv {
             5 => c.vsync = index != 0,
             6 => c.framerate = RATES[index.min(RATES.len() - 1)],
             7 => c.render_scale = SCALES[index.min(SCALES.len() - 1)],
-            8 => {
+            8 => c.internal_height = INTERNAL[index.min(INTERNAL.len() - 1)],
+            9 => c.upscale_sharp = index != 0,
+            10 => {
                 let opts = msaa_options();
                 c.msaa = opts[index.min(opts.len() - 1)];
             }
-            9 => {
+            11 => {
                 use ts_render::Filter::*;
                 c.filter = [Nearest, Bilinear, Trilinear][index.min(2)];
             }
-            10 => c.aniso = AF[index.min(AF.len() - 1)],
+            12 => c.aniso = AF[index.min(AF.len() - 1)],
             _ => {}
         });
         config::get().save();

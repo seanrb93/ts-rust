@@ -39,6 +39,10 @@ pub struct Config {
     /// "auto" (window shape), or a ratio such as 4:3 / 16:9 / 1.78
     pub aspect: Option<f32>,
     pub render_scale: f32,
+    /// internal resolution as a height (0 = the window's size times the render scale)
+    pub internal_height: u32,
+    /// the internal image is scaled up with sharp pixels
+    pub upscale_sharp: bool,
     pub msaa: u32,
     pub filter: ts_render::Filter,
     pub aniso: u16,
@@ -85,6 +89,8 @@ impl Default for Config {
             vsync: false,
             aspect: None,
             render_scale: 1.0,
+            internal_height: 0,
+            upscale_sharp: false,
             msaa: 1,
             filter: ts_render::Filter::Bilinear,
             aniso: 1,
@@ -179,6 +185,13 @@ mapmaker_unlimited = false
 [graphics]
 # internal resolution relative to the window (1.0 = native, 2.0 = supersampling, 0.5 = half)
 render_scale = 1.0
+
+# the height of the internal picture in pixels (the width follows the aspect ratio): 0 = as large as the window times render_scale, or 480, 720, 1080, 1440, 2160
+# (480 on a 4:3 picture is the console's 640x480, shown at any window size); also a row of the Video Options page
+internal_resolution = 0
+
+# the internal picture is scaled up to the window with sharp pixels (true) or smoothed (false); also a row of the Video Options page
+upscale_sharp = false
 # multisample anti-aliasing: 1 (off), 2, 4, 8
 msaa = 1
 # texture filtering: nearest, bilinear, trilinear
@@ -268,6 +281,11 @@ impl Config {
                     _ => return Err(bad()),
                 }
             }
+            "internal_resolution" => {
+                let v = value.trim().to_ascii_lowercase();
+                self.internal_height = if v == "auto" || v == "window" { 0 } else { v.trim_end_matches('p').parse::<u32>().map_err(|_| bad())?.clamp(0, 8192) };
+            }
+            "upscale_sharp" => self.upscale_sharp = parse_bool(value).ok_or_else(bad)?,
             "render_scale" => self.render_scale = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.25, 8.0),
             "msaa" => {
                 let n: u32 = value.trim().parse().map_err(|_| bad())?;
@@ -305,7 +323,7 @@ impl Config {
 
     /// The renderer's share of the settings.
     pub fn render_settings(&self) -> ts_render::Settings {
-        ts_render::Settings { render_scale: self.render_scale, msaa: self.msaa, filter: self.filter, aniso: self.aniso, aspect: self.aspect, hud: self.hud }
+        ts_render::Settings { render_scale: self.render_scale, internal_height: self.internal_height, sharp: self.upscale_sharp, msaa: self.msaa, filter: self.filter, aniso: self.aniso, aspect: self.aspect, hud: self.hud }
     }
 }
 
@@ -418,7 +436,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 28] = [
+        let vals: [(&str, String); 30] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -430,6 +448,8 @@ impl Config {
             ("vsync", self.vsync.to_string()),
             ("framerate", if self.framerate == 0 { "display".to_string() } else { self.framerate.to_string() }),
             ("render_scale", format!("{}", self.render_scale)),
+            ("internal_resolution", self.internal_height.to_string()),
+            ("upscale_sharp", self.upscale_sharp.to_string()),
             ("msaa", self.msaa.to_string()),
             ("texture_filter", filter_name(self.filter).into()),
             ("anisotropy", self.aniso.to_string()),

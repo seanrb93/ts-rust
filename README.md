@@ -55,6 +55,8 @@ Changes apply at once and are saved to `ts-port.ini` next to the executable (cre
 | `fov` | Field of view in degrees, as it would be on a 4:3 screen (0 = the game's own); wider pictures show more at the sides at the same height. Applies in levels only. |
 | `hud` | `edges` (original proportions, in-game HUD sticks to the screen edges, menus centred), `center`, or `stretch`. |
 | `render_scale` | Internal resolution relative to the window (2.0 = supersampling). |
+| `internal_resolution` | The height of the internal picture in pixels, independent of the window: 0 (the window's size times `render_scale`), 480, 720, 1080, 1440 or 2160; the width follows the aspect ratio (480 at 4:3 is the console's 640x480), and the picture is scaled to the window. Row *Internal Res.* of Video Options. |
+| `upscale_sharp` | `true` scales the internal picture up with sharp pixels instead of smoothing it (for 640x480 in a big window). Row *Upscaling*. |
 | `msaa` | 1 / 2 / 4 / 8 samples (limited by the GPU). |
 | `texture_filter`, `anisotropy` | nearest / bilinear / trilinear (mip maps), anisotropic filtering up to 16x. |
 | `window_mode` | `windowed`, `borderless` (a window without borders over the whole desktop) or `fullscreen` (the monitor is switched to the video mode of `fullscreen_width` x `fullscreen_height`, 0 = the desktop's; the mode with the highest refresh rate of that size is used). The old `fullscreen = true/false` still reads as borderless / windowed. |

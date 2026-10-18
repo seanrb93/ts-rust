@@ -70,11 +70,15 @@ pub struct Settings {
     pub aspect: Option<f32>,
     /// placement of the 2D elements in a picture wider than 4:3
     pub hud: HudMode,
+    /// internal resolution as a height in pixels (the width follows the picture's aspect ratio): 0 = the output area times `render_scale`
+    pub internal_height: u32,
+    /// scaling the internal image up to the window shows its pixels as they are (nearest) instead of smoothed
+    pub sharp: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { render_scale: 1.0, msaa: 1, filter: Filter::Bilinear, aniso: 1, aspect: Some(4.0 / 3.0), hud: HudMode::Edges }
+        Settings { render_scale: 1.0, msaa: 1, filter: Filter::Bilinear, aniso: 1, aspect: Some(4.0 / 3.0), hud: HudMode::Edges, internal_height: 0, sharp: false }
     }
 }
 
@@ -105,6 +109,7 @@ struct SceneTarget {
     vel_resolve_view: wgpu::TextureView,
     warp_buf: wgpu::Buffer,
     blit_bind: wgpu::BindGroup,
+    sharp: bool,
 }
 
 const BLIT_SHADER: &str = r#"
@@ -791,7 +796,8 @@ impl Renderer {
     /// (Re)create the scene target when its size or sample count changed.
     fn ensure_scene(&mut self, size: (u32, u32)) {
         let msaa = self.msaa();
-        if self.scene.as_ref().map(|d| (d.size, d.msaa)) == Some((size, msaa)) {
+        let sharp = self.settings.sharp;
+        if self.scene.as_ref().map(|d| (d.size, d.msaa, d.sharp)) == Some((size, msaa, sharp)) {
             return;
         }
         let ext = wgpu::Extent3d { width: size.0, height: size.1, depth_or_array_layers: 1 };
@@ -829,18 +835,19 @@ impl Renderer {
         };
         let warp_buf = self.device.create_buffer(&wgpu::BufferDescriptor { label: Some("warp"), size: 16, usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
         self.ensure_blit();
-        let (_, layout, lin, _) = self.blit.as_ref().unwrap();
+        let (_, layout, lin, near) = self.blit.as_ref().unwrap();
+        let upscale = if sharp { near } else { lin };
         let blit_bind = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("blit"),
             layout,
             entries: &[
                 wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&resolve_view) },
-                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(lin) },
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(upscale) },
                 wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&vel_resolve_view) },
                 wgpu::BindGroupEntry { binding: 3, resource: warp_buf.as_entire_binding() },
             ],
         });
-        self.scene = Some(SceneTarget { size, msaa, ms_view, _ms_tex: ms_tex, resolve, resolve_view, depth_view, _depth: depth, vel_ms_view, _vel_ms: vel_ms, _vel_resolve: vel_resolve, vel_resolve_view, warp_buf, blit_bind });
+        self.scene = Some(SceneTarget { size, msaa, ms_view, _ms_tex: ms_tex, resolve, resolve_view, depth_view, _depth: depth, vel_ms_view, _vel_ms: vel_ms, _vel_resolve: vel_resolve, vel_resolve_view, warp_buf, blit_bind, sharp });
     }
 
     fn msaa(&self) -> u32 {
@@ -983,6 +990,10 @@ impl Renderer {
         // internal resolution
         let sc = self.settings.render_scale.clamp(0.25, 8.0);
         let mut size = (((ww * sc).round() as u32).max(16), ((wh * sc).round() as u32).max(16));
+        if self.settings.internal_height > 0 {
+            let h = self.settings.internal_height.clamp(120, 8192);
+            size = (((h as f32 * ww / wh).round() as u32).max(16), h);
+        }
         // keep the internal image inside the GPU's limits and a sane memory budget (colour + depth per sample)
         let max_dim = self.device.limits().max_texture_dimension_2d.min(8192);
         let fit = (max_dim as f32 / size.0 as f32).min(max_dim as f32 / size.1 as f32).min(1.0);
@@ -1450,7 +1461,13 @@ impl Renderer {
                         // the strip at the bottom of the character select screens (the bars of the teams, the icons of the players and bots
                         // under them): stretched to the edges of the picture (the bars start 16 units in and end 16 before the edge), bars and icons
                         // the same way, so each icon stays on its bar
-                        Box::new(|x| (x - 16.0) * LOGICAL_W / (LOGICAL_W - 32.0))
+                        let stretch = |x: f32| (x - 16.0) * LOGICAL_W / (LOGICAL_W - 32.0);
+                        if st.tex.is_some() && hi - lo < 40.0 {
+                            // (an icon: its place goes with the strip, its size stays the picture's proportions)
+                            Box::new(move |x| stretch(mid) + (x - mid) / k)
+                        } else {
+                            Box::new(stretch)
+                        }
                     } else if viewport {
                         // a pane of the split screen (the left or the right half): things are placed within the pane, as the whole picture
                         // is for one player
