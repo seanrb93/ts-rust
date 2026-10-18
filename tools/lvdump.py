@@ -231,6 +231,27 @@ def main(argv):
     if not argv:
         print(__doc__)
         return 2
+    if argv[0] == '--mod':
+        # the files of a mod's level: lvdump.py --mod <mod folder> <level number>
+        folder, lv = argv[1], int(argv[2])
+        bad = 0
+        for label, rel, fn in (('bg', f'BG.PAK/bg/level{lv}/level{lv}.raw', None), ('pad', f'MISC.PAK/pad/data/level{lv}.raw', parse_pad),
+                               ('props', f'MISC.PAK/propsetup/data/level{lv}.raw', parse_props)):
+            path = os.path.join(folder, rel)
+            if not os.path.exists(path):
+                continue
+            b = open(path, 'rb').read()
+            try:
+                notes = []
+                r = parse_bg(b, notes.append) if label == 'bg' else fn(b)
+                if label == 'bg':
+                    r['textures'] = r['textures']
+                note = r.pop('note', '') if isinstance(r, dict) else ''
+                print(label, ' '.join(f'{k}={v}' for k, v in r.items()), note, '; '.join(notes))
+            except (Bad, struct.error) as e:
+                bad += 1
+                print(label, 'PROBLEM:', e)
+        return 1 if bad else 0
     folder = argv[0]
     wanted = {int(x) for x in argv[1:]}
     bg_d, bg_e = entries(os.path.join(folder, 'BG.PAK'))

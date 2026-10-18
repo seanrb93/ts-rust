@@ -362,7 +362,7 @@ pub fn load(game_dir: &Path, exe: &Path) {
                 level_lists.push((m.name.clone(), host));
                 continue;
             }
-            if lower == "mod.ini" || lower == "patches.txt" || lower.ends_with(".md") || lower == "readme.txt" {
+            if lower == "mod.ini" || lower == "patches.txt" || lower.ends_with(".md") || lower == "readme.txt" || (lower.ends_with(".txt") && !lower.contains('/')) {
                 if lower == "patches.txt" {
                     patches.push((m.name.clone(), host.to_string_lossy().into_owned()));
                 }
@@ -472,7 +472,7 @@ fn add_levels(game_dir: &Path, cache: &Path, lists: &[(String, PathBuf)], pack_c
                 bad("the number has to be from 31 to 99, and not used by another level");
                 continue;
             }
-            let mut lv = ts_sdk::CustomLevel { number, name: words[2].clone(), like: 0, tune: 0, modes: None };
+            let mut lv = ts_sdk::CustomLevel { number, name: words[2].clone(), like: 0, tune: 0, modes: None, setup: None };
             let mut i = 3;
             while i + 1 < words.len() {
                 match words[i].as_str() {
@@ -492,6 +492,13 @@ fn add_levels(game_dir: &Path, cache: &Path, lists: &[(String, PathBuf)], pack_c
                             };
                         }
                         lv.modes = Some(mask);
+                    }
+                    "setup" => {
+                        let path = file.parent().unwrap_or(Path::new(".")).join(&words[i + 1]);
+                        match read_setup(&path) {
+                            Ok(s) => lv.setup = Some(s),
+                            Err(e) => bad(&format!("setup {}: {e}", words[i + 1])),
+                        }
                     }
                     _ => {}
                 }
@@ -527,7 +534,50 @@ fn add_levels(game_dir: &Path, cache: &Path, lists: &[(String, PathBuf)], pack_c
             levels.push(lv);
         }
     }
+    levels.sort_by_key(|l| l.number);
     ts_sdk::set_custom_levels(levels);
+}
+
+/// The set-up file of a level (`setup <file>` of `levels.txt`; `tools/obj2level.py` writes one): one entry to a line, `modes dm,bagtag,..`,
+/// `spawn <pad>` where players and bots start, `weapon <slot 1..5> <pad>` where a weapon of the weapon set's slot lies, `pickup <type> <pad>`
+/// where a pickup of the game's number lies.  The pads are the ids of the level's pad file (1001 and up).
+fn read_setup(path: &Path) -> Result<ts_sdk::CustomSetup, String> {
+    let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let mut s = ts_sdk::CustomSetup::default();
+    for (n, line) in text.lines().enumerate() {
+        let line = line.split('#').next().unwrap_or("").trim();
+        let w: Vec<&str> = line.split_whitespace().collect();
+        let num = |i: usize| w.get(i).and_then(|x| x.parse::<i32>().ok()).ok_or_else(|| format!("line {}: a number is missing", n + 1));
+        match w.first().copied() {
+            None => {}
+            Some("modes") => {
+                let mut mask = 0;
+                for m in w.get(1).unwrap_or(&"").split(',') {
+                    mask |= match m.to_ascii_lowercase().as_str() {
+                        "dm" | "deathmatch" => 1,
+                        "bagtag" => 2,
+                        "ctb" | "capture" => 4,
+                        "escort" => 8,
+                        "ko" | "knockout" => 16,
+                        "ls" | "laststand" => 32,
+                        _ => 0,
+                    };
+                }
+                s.modes = Some(mask);
+            }
+            Some("spawn") => s.spawns.push(num(1)?),
+            Some("weapon") => {
+                let slot = num(1)?;
+                if !(1..=5).contains(&slot) {
+                    return Err(format!("line {}: the weapon slot has to be 1 to 5", n + 1));
+                }
+                s.pickups.push((-slot, num(2)?));
+            }
+            Some("pickup") => s.pickups.push((num(1)?, num(2)?)),
+            Some(other) => return Err(format!("line {}: `{other}` is not known", n + 1)),
+        }
+    }
+    Ok(s)
 }
 
 fn apply_patches(exe: &Path, patches: &[(String, String)]) {

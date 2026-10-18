@@ -19,6 +19,13 @@ const NAMES_AT: i32 = BASE + 0x70000;
 /// copies of the arcade set-ups of the mods' levels
 const SETUPS_AT: i32 = BASE + 0x72000;
 const SETUP_BYTES: i32 = 0x100;
+/// the spawn and pickup records of the mods' own set-ups
+const ITEMS_AT: i32 = BASE + 0x8_0000;
+const ITEMS_BYTES: i32 = 0x2000;
+const MAX_SPAWNS: usize = 64;
+const MAX_PICKUPS: usize = 120;
+/// the flags of a record that exists in every mode
+const ALL_MODES: i32 = 0x3f;
 /// the number of texts of the game
 const TEXTS: i32 = 1246;
 /// the text number of the first name of a level (the two before it are the names of the characters of `chrnames.rs`)
@@ -87,14 +94,56 @@ pub fn custom_levels_init() {
     for (i, v) in end.iter().enumerate() {
         sw(at + 4 * i as i32, *v);
     }
-    // the arcade set-ups: those of the levels they are like, with the modes of the mod
+    // the arcade set-ups: those of the levels they are like, with the modes of the mod; a level with a set-up of its own gets the spawns and
+    // pickups of that (the records are the game's: a spawn is 16 bytes, a pickup 48)
     for (k, l) in kept.iter().enumerate() {
-        if let (Some(modes), Some(setup)) = (l.modes, original_setup(l.like)) {
-            let copy = SETUPS_AT + SETUP_BYTES * k as i32;
-            for i in 0..SETUP_BYTES / 4 {
-                sw(copy + 4 * i, lw(setup + 4 * i));
+        let modes = l.setup.as_ref().and_then(|s| s.modes).or(l.modes);
+        let Some(setup) = original_setup(l.like) else { continue };
+        if modes.is_none() && l.setup.is_none() {
+            continue;
+        }
+        let copy = SETUPS_AT + SETUP_BYTES * k as i32;
+        for i in 0..SETUP_BYTES / 4 {
+            sw(copy + 4 * i, lw(setup + 4 * i));
+        }
+        if let Some(m) = modes {
+            sw(copy, (lw(copy) & !63) | m as i32);
+        }
+        if let Some(s) = &l.setup {
+            let items = ITEMS_AT + ITEMS_BYTES * k as i32;
+            let spawns = &s.spawns[..s.spawns.len().min(MAX_SPAWNS)];
+            let pickups = &s.pickups[..s.pickups.len().min(MAX_PICKUPS)];
+            for (i, pad) in spawns.iter().enumerate() {
+                let r = items + 16 * i as i32;
+                sw(r, ALL_MODES);
+                sw(r + 4, *pad);
+                sw(r + 8, 3);
+                sw(r + 12, 0);
             }
-            sw(copy, (lw(copy) & !63) | modes as i32);
+            let pick_at = items + 16 * MAX_SPAWNS as i32;
+            for (i, (kind, pad)) in pickups.iter().enumerate() {
+                let r = pick_at + 48 * i as i32;
+                for w in 0..12 {
+                    sw(r + 4 * w, 0);
+                }
+                sw(r, ALL_MODES);
+                sw(r + 4, *kind);
+                sw(r + 8, pickup_kind(*kind));
+                sw(r + 24, *pad);
+                swc1(r + 36, 90.0);
+                swc1(r + 40, 0.15);
+            }
+            // (no props of the level's own, none of the extra lists)
+            for w in [2, 3, 4, 5, 8, 9] {
+                sw(copy + 4 * w, 0);
+            }
+            for w in 10..SETUP_BYTES / 4 {
+                sw(copy + 4 * w, 0);
+            }
+            sw(copy + 16, pick_at);
+            sw(copy + 20, pickups.len() as i32);
+            sw(copy + 32, items);
+            sw(copy + 36, spawns.len() as i32);
         }
     }
     eprintln!("[levels] {} level(s) added: {}", kept.len(), kept.iter().map(|l| format!("{} {}", l.number, l.name)).collect::<Vec<_>>().join(", "));
@@ -112,6 +161,18 @@ pub fn custom_levels_init() {
     *CUSTOM.lock().unwrap() = kept;
 }
 
+/// What the game's set-ups have as the second number of a pickup of a type (their records: weapons of a slot 2, ammo and the like 1, ...).
+fn pickup_kind(kind: i32) -> i32 {
+    match kind {
+        -5..=-1 => 2,
+        -9..=-6 => 16,
+        -25..=-21 => 32,
+        -30 => 4,
+        -33..=-32 => 8,
+        _ => 1,
+    }
+}
+
 /// The set-up of an original level (the game's function, with the mods' levels taken out).
 fn original_setup(level: i32) -> Option<i32> {
     let p = lvGetARCADESetup(level);
@@ -123,7 +184,7 @@ pub fn custom_setup(level: i32) -> Option<i32> {
     let (k, like, own_modes) = {
         let c = CUSTOM.lock().unwrap();
         let k = c.iter().position(|l| l.number == level)?;
-        (k, c[k].like, c[k].modes.is_some())
+        (k, c[k].like, c[k].modes.is_some() || c[k].setup.is_some())
     };
     if own_modes {
         Some(SETUPS_AT + SETUP_BYTES * k as i32)
