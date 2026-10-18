@@ -7,9 +7,10 @@ a line of numbers padded so that the header is a multiple of 4 bytes long), the 
 opaque, 0 = clear) and one palette index per pixel.
 
 Limits of the game's loader (it reads a whole file into a 66688 byte buffer and decodes it into the 66432 bytes behind):
-the file has to fit in 66688 bytes, so width * height can be at most 65536 pixels (256x256, 512x128, 128x512, ...), the width is rounded up to a
-power of two by the game, and a texture of another shape than the original one is fine as long as the model's texture coordinates are used
-as they are (the model keeps its coordinates: a texture that replaces another one is best made the same size).
+the file has to fit in 66688 bytes, so width * height can be at most 65536 pixels (256x256, 512x128, 128x512, ...).  Make each side a power of two
+(64, 128, 256, ...): a side that is not one does not display properly in the game (a model's surface comes out washed out).  The size need not be the original's: on a
+model the picture is stretched over the same surface (a 128x128 picture on a 64x64 texture is four times as sharp), while a picture the game draws as a
+sprite (the HUD's ammo icon, the menus) is drawn at its own size.
 
 The replacement goes into a mod as  <mod folder>/MISC.PAK/textures/<name>.qpm  with the name of the texture it replaces (see
 tools/extract_textures.py: its folders and index.csv name every texture).
@@ -59,8 +60,8 @@ def main():
     data = make_qpm(img)
     if len(data) > MAX_FILE:
         print(f'warning: {len(data)} bytes is more than the {MAX_FILE} the game can load ({w}x{h} pixels; at most 65536)')
-    if w & (w - 1):
-        print(f'note: the width {w} is not a power of two; the game rounds it up')
+    if (w & (w - 1)) or (h & (h - 1)):
+        print(f'note: {w}x{h} has a side that is not a power of two; the game does not display that properly')
     open(args[1], 'wb').write(data)
     print(f'{args[1]}: {w}x{h}, {len(data)} bytes')
 

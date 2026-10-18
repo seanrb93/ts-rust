@@ -42,6 +42,11 @@ pub trait AvOptions: Send + Sync {
         Vec::new()
     }
     fn set_audio(&self, _row: usize, _index: usize) {}
+    /// the rows of the Mods page (a mod each: On / Off) and a change of one of them
+    fn mod_rows(&self) -> Vec<AvRow> {
+        Vec::new()
+    }
+    fn set_mod(&self, _row: usize, _index: usize) {}
     /// the music chosen for the levels (a row of the arcade options page): 0 = the level's own, 1 = a random track each time, n + 1 = track n
     fn level_music(&self) -> i32 {
         0
@@ -107,6 +112,8 @@ enum Mode {
     Controls,
     /// the buttons of the Custom configuration
     Custom,
+    /// the mods that are installed, each On or Off
+    Mods,
 }
 
 /// "pages" that the items of the game type page open (`av_front_page` swaps each for a copy of the audio / video page's description at
@@ -126,6 +133,8 @@ const CONTROLS_PAUSE_AT: i32 = BASE + 0x6220;
 const CUSTOM_PAUSE_AT: i32 = BASE + 0x6230;
 const CUSTOM_FRONT_AT: i32 = BASE + 0x6240;
 const CUSTOM_PAGE: i32 = BASE + 0x6250;
+const MODS_PAGE: i32 = BASE + 0x65a0;
+const MODS_FRONT_AT: i32 = BASE + 0x65b0;
 
 static MODE: AtomicU8 = AtomicU8::new(1);
 
@@ -135,6 +144,7 @@ fn mode() -> Mode {
         2 => Mode::Game,
         3 => Mode::Controls,
         4 => Mode::Custom,
+        5 => Mode::Mods,
         _ => Mode::Video,
     }
 }
@@ -148,6 +158,7 @@ fn set_mode(page: i32) -> bool {
         GAME_FRONT_AT => Mode::Game,
         CONTROLS_FRONT_AT | CONTROLS_PAUSE_AT => Mode::Controls,
         CUSTOM_FRONT_AT | CUSTOM_PAUSE_AT => Mode::Custom,
+        MODS_FRONT_AT => Mode::Mods,
         _ => return false,
     };
     MODE.store(m as u8, Ordering::Relaxed);
@@ -237,6 +248,8 @@ const SPLIT_CTRL: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], head
 const SPLIT_ONE: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: false };
 /// the buttons of the Custom configuration: eighteen rows, on pages
 const FRONT_CUSTOM: Layout = Layout { pitch: 15, columns: &[(-49, 250, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 24, paged: true };
+/// the Mods page: a mod on each row, on pages of eight (up to four pages)
+const FRONT_MODS: Layout = Layout { pitch: 15, columns: &[(-19, 300, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (8, 0, 0), (16, 0, 0), (24, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: true };
 const PAUSE_CUSTOM: Layout = Layout { pitch: 13, columns: &[(-49, 250, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: true };
 const SPLIT_CUSTOM: Layout = Layout { pitch: 18, columns: &[(-49, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 0, 0), (10, 0, 0), (15, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
 /// the Audio Options: the game's own items on the first page, the volumes of the kinds of effects on the second (the rows of the second
@@ -276,6 +289,9 @@ fn layout() -> &'static Layout {
         } else {
             &PAUSE_AUDIO
         };
+    }
+    if mode() == Mode::Mods {
+        return &FRONT_MODS;
     }
     if mode() == Mode::Controls {
         return if !in_game() {
@@ -391,6 +407,10 @@ enum Src {
     Port(usize),
     /// the volume of a kind of sound effects (the Audio Options page's second page)
     Sound(usize),
+    /// a mod of the Mods page
+    Mod(usize),
+    /// a line of the Mods page that only says something (no mods are installed)
+    Info,
 }
 
 /// The rows as they were given last time (the values, to see what the player changed, and what each stands for).
@@ -403,6 +423,7 @@ fn apply(src: Src, value: usize) {
         (Src::Game(r), Some(p)) => p.set_game(r, value),
         (Src::Port(r), Some(p)) => p.set_control(r, value),
         (Src::Sound(r), Some(p)) => p.set_audio(r, value),
+        (Src::Mod(r), Some(p)) => p.set_mod(r, value),
         (Src::Prof(r), _) => prof_set(r, value),
         (Src::Custom(k), _) => custom_set(k, value),
         _ => {}
@@ -650,6 +671,14 @@ fn rows_now() -> Vec<(AvRow, Src)> {
             rows
         }
         (Mode::Custom, _) => custom_rows(),
+        (Mode::Mods, Some(p)) => {
+            let rows = p.mod_rows();
+            if rows.is_empty() {
+                vec![(AvRow { label: "No mods installed".into(), values: vec![String::new()], index: 0 }, Src::Info)]
+            } else {
+                rows.into_iter().take(32).enumerate().map(|(i, r)| (r, Src::Mod(i))).collect()
+            }
+        }
         (Mode::Audio, Some(p)) => p.audio_rows().into_iter().enumerate().map(|(i, r)| (r, Src::Sound(i))).collect(),
         _ => Vec::new(),
     }
@@ -791,7 +820,14 @@ pub fn av_menu(page: i32) -> i32 {
     let mut at = hint_at;
     let on_action = cursor as i32 >= FIRST_ID && matches!(srcs.get((cursor as i32 - FIRST_ID) as usize), Some(Src::Page(_)));
     let on_custom = mode() == Mode::Controls && editing() == FIRST_ID && lw(GV_AT) == 0;
-    let hint = if on_action {
+    let hint = if mode() == Mode::Mods {
+        let pages = if layout().pages() > 1 && n > 8 { format!("   Left/Right: Page {}/{}", page_shown() + 1, ((n + 7) / 8).max(1)) } else { String::new() };
+        let text = match entries.first().map(|e| e.1) {
+            Some(Src::Info) => "Put mods in the mods folder next to the game".to_string(),
+            _ => format!("^2 {}   Changes apply after a restart{}", if editing() != 0 { "OK" } else { "Edit" }, pages),
+        };
+        put_str(&mut at, &text)
+    } else if on_action {
         put_str(&mut at, "^2 Select")
     } else if layout().columns.len() == 1 && !layout().paged {
         put_str(&mut at, if on_custom { "^2 Choose Buttons   Left/Right: Change" } else if editing() != 0 { "^2 OK   Left/Right: Change" } else { "^2 Edit" })
@@ -1040,7 +1076,7 @@ pub fn av_front_page(page: i32) -> i32 {
     if page == EXIT_NOW_PAGE {
         std::process::exit(0);
     }
-    for (marker, at, first) in [(AUDIO_PAGE, AUDIO_FRONT_AT, 1), (VIDEO_PAGE, VIDEO_FRONT_AT, FIRST_ID), (GAME_PAGE, GAME_FRONT_AT, FIRST_ID), (CONTROLS_PAGE, CONTROLS_FRONT_AT, FIRST_ID), (CUSTOM_PAGE, CUSTOM_FRONT_AT, FIRST_ID)] {
+    for (marker, at, first) in [(AUDIO_PAGE, AUDIO_FRONT_AT, 1), (VIDEO_PAGE, VIDEO_FRONT_AT, FIRST_ID), (GAME_PAGE, GAME_FRONT_AT, FIRST_ID), (CONTROLS_PAGE, CONTROLS_FRONT_AT, FIRST_ID), (CUSTOM_PAGE, CUSTOM_FRONT_AT, FIRST_ID), (MODS_PAGE, MODS_FRONT_AT, FIRST_ID)] {
         if page == marker {
             EDIT.store(0, Ordering::Relaxed);
             PAGE.store(0, Ordering::Relaxed);
@@ -1088,6 +1124,7 @@ pub fn av_title(_page: i32, title: i32) -> i32 {
             Mode::Game => "Game Options",
             Mode::Controls => "Controls",
             Mode::Custom => "Custom Controls",
+            Mode::Mods => "Mods",
         };
         return put_str(&mut at, name);
     }
@@ -1250,7 +1287,7 @@ pub fn av_gamemode_menu() -> i32 {
     let label = put_str(&mut at, "Audio Options");
     sw(item(last), label);
     sw(item(last) + 12, AUDIO_PAGE);
-    let new_items = [(10, "Controls", CONTROLS_PAGE), (11, "Video Options", VIDEO_PAGE), (12, "Game Options", GAME_PAGE), (9, "Exit Game", EXIT_PAGE)];
+    let new_items = [(10, "Controls", CONTROLS_PAGE), (11, "Video Options", VIDEO_PAGE), (12, "Game Options", GAME_PAGE), (13, "Mods", MODS_PAGE), (9, "Exit Game", EXIT_PAGE)];
     for (k, &(id, text, page)) in new_items.iter().enumerate() {
         let it = item(n + k as i32);
         copy(it, item(last), 32);
@@ -1261,7 +1298,7 @@ pub fn av_gamemode_menu() -> i32 {
     }
     // View Credits and View Statistics are on the Game Options page: their items leave the table
     let mut total = 0;
-    for k in 0..n + 4 {
+    for k in 0..n + 5 {
         if matches!(id_of(k), 4 | 5) {
             continue;
         }
@@ -1281,8 +1318,8 @@ pub fn av_gamemode_menu() -> i32 {
     }
     // The small items sit one line apart, ending a little above the back / select line (Exit Game is the last one, the items
     // above it are placed from there).
-    let (exit_y, pitch) = (0x9c_i32, 17);
-    let order = [10, 6, 11, 12, 9];
+    let (exit_y, pitch) = (0x9c_i32, 14);
+    let order = [10, 6, 11, 12, 13, 9];
     let find = |id: i32| (0..total).find(|&k| id_of(k) == id);
     for (row, &id) in order.iter().rev().enumerate() {
         if let Some(k) = find(id) {

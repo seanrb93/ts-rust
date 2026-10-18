@@ -23,8 +23,17 @@ struct Mod {
     dir: PathBuf,
 }
 
-fn mods_in(dir: &Path) -> Vec<Mod> {
-    let mut v: Vec<Mod> = std::fs::read_dir(dir)
+/// Is the mod switched off by its `mod.ini` (`enabled = false`, `0` or `no`)?
+fn switched_off(ini: &str) -> bool {
+    ini.lines().any(|l| {
+        let l = l.replace(' ', "").to_ascii_lowercase();
+        l == "enabled=false" || l == "enabled=0" || l == "enabled=no"
+    })
+}
+
+/// The folders of `dir` that are mods, switched on or off, in the order they are applied.
+fn all_mods_in(dir: &Path) -> Vec<(Mod, bool)> {
+    let mut v: Vec<(Mod, bool)> = std::fs::read_dir(dir)
         .into_iter()
         .flatten()
         .flatten()
@@ -35,15 +44,61 @@ fn mods_in(dir: &Path) -> Vec<Mod> {
                 return None;
             }
             let ini = std::fs::read_to_string(e.path().join("mod.ini")).unwrap_or_default();
-            let off = ini.lines().any(|l| {
-                let l = l.replace(' ', "").to_ascii_lowercase();
-                l == "enabled=false" || l == "enabled=0" || l == "enabled=no"
-            });
-            (!off).then(|| Mod { name, dir: e.path() })
+            Some((Mod { name, dir: e.path() }, !switched_off(&ini)))
         })
         .collect();
-    v.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase()));
+    v.sort_by(|a, b| a.0.name.to_ascii_lowercase().cmp(&b.0.name.to_ascii_lowercase()));
     v
+}
+
+fn mods_in(dir: &Path) -> Vec<Mod> {
+    all_mods_in(dir).into_iter().filter(|m| m.1).map(|m| m.0).collect()
+}
+
+/// The `mods` folder, and the mods that were loaded when the program started.
+static MODS_DIR: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None);
+static LOADED: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+/// A mod folder for the Mods page.
+pub struct Listed {
+    pub name: String,
+    /// switched on in its `mod.ini` now
+    pub enabled: bool,
+    /// was loaded when the program started (a change of `enabled` takes effect at the next start)
+    pub loaded: bool,
+}
+
+/// The mods that are installed.
+pub fn list() -> Vec<Listed> {
+    let Some(dir) = MODS_DIR.lock().unwrap().clone() else { return Vec::new() };
+    let loaded = LOADED.lock().unwrap().clone();
+    all_mods_in(&dir).into_iter().map(|(m, enabled)| Listed { loaded: loaded.contains(&m.name), name: m.name, enabled }).collect()
+}
+
+/// Switch a mod on or off in its `mod.ini` (the other lines of the file stay as they are).
+pub fn set_enabled(name: &str, on: bool) {
+    let Some(dir) = MODS_DIR.lock().unwrap().clone() else { return };
+    let path = dir.join(name).join("mod.ini");
+    let old = std::fs::read_to_string(&path).unwrap_or_default();
+    let line = format!("enabled = {on}");
+    let mut done = false;
+    let mut out: Vec<String> = old
+        .lines()
+        .map(|l| {
+            if l.replace(' ', "").to_ascii_lowercase().starts_with("enabled=") {
+                done = true;
+                line.clone()
+            } else {
+                l.to_string()
+            }
+        })
+        .collect();
+    if !done {
+        out.push(line);
+    }
+    let _ = std::fs::write(&path, out.join("
+") + "
+");
 }
 
 fn files_under(dir: &Path, prefix: &str, out: &mut Vec<(String, PathBuf)>) {
@@ -229,9 +284,12 @@ fn convert_texture(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, hos
         }
     };
     match original_texture_size(packs, game_dir, &name) {
-        Some((ow, oh)) if (ow, oh) != (w, h) => eprintln!("[mods] {mod_name}: {rel} is {w}x{h}, the texture it replaces is {ow}x{oh} (the model keeps its texture coordinates: a picture of another shape is stretched or cut)"),
+        Some((ow, oh)) if (ow, oh) != (w, h) => eprintln!("[mods] {mod_name}: {rel} is {w}x{h}, the texture it replaces is {ow}x{oh} (on a model the picture is stretched over the same surface; a picture the game draws as a sprite, such as the HUD's, is drawn at its new size)"),
         Some(_) => {}
         None => eprintln!("[mods] {mod_name}: {name} is not a texture of the game: it is added (a model has to ask for it by name)"),
+    }
+    if !w.is_power_of_two() || !h.is_power_of_two() {
+        eprintln!("[mods] {mod_name}: {rel} is {w}x{h}: a side that is not a power of two (64, 128, 256, ...) does not display properly in the game; make it a power of two");
     }
     if let Err(e) = std::fs::write(&out, bytes) {
         eprintln!("[mods] {mod_name}: {}: {e}", out.display());
@@ -254,7 +312,9 @@ fn stamp(files: &BTreeMap<String, PathBuf>) -> String {
 /// Load the mods: set up the file overlay of the virtual disc and apply the memory patches.
 pub fn load(game_dir: &Path, exe: &Path) {
     let root = game_dir.join("mods");
+    *MODS_DIR.lock().unwrap() = Some(root.clone());
     let mods = mods_in(&root);
+    *LOADED.lock().unwrap() = mods.iter().map(|m| m.name.clone()).collect();
     if mods.is_empty() {
         return;
     }

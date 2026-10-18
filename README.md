@@ -284,7 +284,9 @@ of `gv_weaponset` by `weaponset_effective`, which answers 0 for any custom set).
 
 ## Mods
 
-Every folder in `mods/` next to the program is a mod (folders starting with `.` or `_`, or with `enabled = false` in a `mod.ini`, are skipped).
+Every folder in `mods/` next to the program is a mod (folders starting with `.` or `_`, or with `enabled = false` in a `mod.ini`, are skipped).  The **Mods** page of the main menu (between Game Options and Exit Game) lists the folders of `mods/` and switches
+each On or Off (it writes `enabled = true` or `false` into the mod's `mod.ini`, keeping the other lines).  The mods are loaded when the program starts, so a change shows as "(after
+restart)" until the game is started again.
 A mod can hold:
 
 * `PACK.PAK/<path in the pack>`: a file that replaces the file of that name in the game's pack (`ANIM.PAK`, `BG.PAK`, `FRONTEND.PAK`, `MISC.PAK`,
@@ -308,8 +310,10 @@ Textures: put a PNG where the game has a texture: `MISC.PAK/textures/<folder>/<n
 the names).  The loader makes the game's texture format (256 colours with alpha) from it when the mod changes (`mods/.cache/converted/`), and the log says so when the
 size is not the original's.  A ready-made `.qpm` also works, and `tools/png2qpm.py picture.png out.qpm` makes one by hand.  The game's loader
 reads a whole file into a 66688 byte buffer and decodes it into the 66432 bytes behind, so a texture can have at most 65536 pixels (256x256, 512x128, 128x512,
-...; the width is rounded up to a power of two) and a 32 bit `Q6` texture 16384 (128x128); a texture should keep the size of the one it replaces, because the
-models' texture coordinates are not changed.  `examples/sample_mod/` is a small working mod (a texture, a sound, a music stream and `patches.txt`).
+...) and a 32 bit `Q6` texture 16384 (128x128).  Make each side a power of two (64, 128, 256, ...): a side that is not one does not display properly (a model's surface came out
+washed out in a test).  The picture need not be the size of the one it replaces.  On a model it is stretched over the same surface (checked with the pistol: a 128x64 picture on a
+64x32 texture shows whole, four times as sharp); a picture the game draws as a sprite, such as the ammo icon or the menus', is drawn at its own size, so a bigger one is
+bigger on the screen.  `examples/sample_mod/` is a small working mod (a texture, a sound, a music stream and `patches.txt`).
 
 `tools/convert_music.py <game folder>` turns the game's own music (`MUSIC/*.MSC`, 344 MB) into Opus files next to them (about 85 MB at 96 kbit/s); the port plays an
 `.opus` when there is one beside the `.MSC` (`--delete-originals` removes the `.MSC`).  It needs ffmpeg.

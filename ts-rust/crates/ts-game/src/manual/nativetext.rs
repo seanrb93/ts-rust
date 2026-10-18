@@ -59,7 +59,7 @@ fn native(s: &str) -> Option<String> {
         ("There is no MEMORY CARD", "There is no saved data"),
         ("Select Memory Card (PS2)", "Select Saved Data"),
         ("MEMORY CARD (PS2)", "SAVED DATA"),
-        ("MEMORY CARD slot", "SAVE SLOT"),
+        ("MEMORY CARD slot", "MY SAVES"),
         ("Memory Card (PS2)", "Saved data"),
         ("MEMORY CARD", "SAVED DATA"),
     ] {

@@ -25,7 +25,9 @@ const GO_ID: i32 = 14;
 const NEW_ID: i32 = 15;
 /// the lines between Bot Set and the new row, and between the new row and GO!
 const ROW_GAP: i32 = 13;
-const GO_GAP: i32 = 14;
+const GO_GAP: i32 = 11;
+/// how much higher the page's items are than the game has them
+const UP: i32 = 6;
 
 /// the number of tracks (`MUSIC\1001.MSC` .. `1027.MSC`)
 const TRACKS: i32 = 27;
@@ -50,18 +52,25 @@ pub fn av_opt_menu() -> i32 {
     MENU_AT
 }
 
-/// The name of the first level that plays a track, if there is one.
-fn track_level(track: i32) -> Option<String> {
-    let texts = lw((lw(g::cur_language) << 2) + g::languages);
-    let mut rec = g::lvinfo;
-    // (the table ends with the entry whose name is no text)
-    while lw((lh(rec) << 2) + texts) != 0 {
-        if lw(rec + 8) == track && lw(rec + 4) < 100 {
-            return Some(read_str(lw((lh(rec) << 2) + texts)));
-        }
-        rec += 24;
+/// The name of a track.  The MapMaker's list of music has the game's own names for most of the tracks (its values 1 to 23 are tracks,
+/// `disptunenums` says which); the others are named here (the tile sets' tracks are the first five, and 3 and 5 are not Ron's and Tech's:
+/// the levels of these names play the tile sets' music).
+fn track_name(track: i32) -> String {
+    match track {
+        19 => return "Cyberden Launch".to_string(),
+        21 => return "Credits".to_string(),
+        25 => return "MapMaker".to_string(),
+        27 => return "Frontend".to_string(),
+        _ => {}
     }
-    None
+    let texts = lw((lw(g::cur_language) << 2) + g::languages);
+    for v in 1..24 {
+        if lbu(g::disptunenums + v) == track {
+            let name = read_str(lw(texts + 4 * lw(g::disp_tunes + 8 * v + 4)));
+            return if (1..=5).contains(&track) { format!("{name} Tile Set") } else { name };
+        }
+    }
+    format!("Track {track}")
 }
 
 /// The table, with the new row made, for the page's menu (called by the tick after it has put the game's rows where they go).
@@ -81,15 +90,12 @@ pub fn av_opt_ready() -> i32 {
         p.level_music().clamp(0, TRACKS + 1)
     };
     LAST.store(choice, Ordering::Relaxed);
-    // the value names: Level's Own, Random, the tracks with the level that plays each
+    // the value names: Level's Own, Random, the tracks
     let mut at = TEXT_AT;
     let label = put_str(&mut at, "Level Music");
     let mut names = vec!["Level's Own".to_string(), "Random".to_string()];
     for t in 1..=TRACKS {
-        names.push(match track_level(t) {
-            Some(level) => format!("{t} {level}"),
-            None => format!("Track {t}"),
-        });
+        names.push(track_name(t));
     }
     let mut list = LIST_AT;
     for (v, name) in names.iter().enumerate() {
@@ -125,6 +131,8 @@ pub fn av_opt_ready() -> i32 {
     sw(item(GO) + 16, (lw(item(GO) + 16) & !0xffff) | NEW_ID);
     sh(item(GO) + 6, bot_y + ROW_GAP + GO_GAP);
     sw(m, NEW + 1);
+    // everything a little higher: more room between GO! and the legend below it
+    sw(m + 4, (lw(m + 4) & 0xffff) | ((0x20 - UP) << 16));
     m
 }
 

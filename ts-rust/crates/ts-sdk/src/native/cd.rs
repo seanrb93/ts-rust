@@ -202,3 +202,85 @@ pub fn sceCdReadClock(args: &[i64]) -> i32 {
     sb(p + 7, bcd(y % 100));
     1
 }
+
+// ---- files by name (`sceOpen`, `sceLseek`, `sceClose`, `sceWrite`) ---------------------------------------------------------------
+//
+// The game asks for the size of a file that is in none of its packs this way (`fileSize`: open, seek to the end, close).  The files are the
+// ones of the virtual disc.  A file opened for writing is taken and thrown away (the game writes debugging dumps that way).
+
+struct OpenFile {
+    size: u64,
+    pos: u64,
+}
+
+static OPEN_FILES: Mutex<Vec<Option<OpenFile>>> = Mutex::new(Vec::new());
+
+fn c_string(mut at: i32) -> String {
+    let mut s = String::new();
+    while lbu(at) != 0 && s.len() < 255 {
+        s.push(lbu(at) as u8 as char);
+        at += 1;
+    }
+    s
+}
+
+/// `sceOpen(name, flags)`: a descriptor, or -1 when the file does not exist.
+pub fn sceOpen(args: &[i64]) -> i32 {
+    let name = c_string(args[0] as i32);
+    let flags = args.get(1).copied().unwrap_or(1) as i32;
+    let plain = name.trim_start_matches("host0:").trim_start_matches("cdrom0:");
+    let size = if flags & 2 != 0 {
+        // (opened for writing)
+        Some(0)
+    } else {
+        disc_host_path(plain).and_then(|p| std::fs::metadata(p).ok()).map(|m| m.len())
+    };
+    if std::env::var_os("TS_FILELOG").is_some() {
+        eprintln!("[file] sceOpen {name} flags {flags:#x} -> {}", size.map_or("missing".to_string(), |s| format!("{s} bytes")));
+    }
+    let Some(size) = size else { return -1 };
+    let mut t = OPEN_FILES.lock().unwrap();
+    let f = Some(OpenFile { size, pos: 0 });
+    // (descriptors from 3, like a console's)
+    match t.iter().position(|e| e.is_none()) {
+        Some(i) => {
+            t[i] = f;
+            i as i32 + 3
+        }
+        None => {
+            t.push(f);
+            t.len() as i32 + 2
+        }
+    }
+}
+
+/// `sceLseek(fd, offset, whence)`: the new position (0 set, 1 current, 2 end).
+pub fn sceLseek(args: &[i64]) -> i32 {
+    let (fd, off, whence) = (args[0] as i32, args[1] as i32 as i64, args.get(2).copied().unwrap_or(0) as i32);
+    let mut t = OPEN_FILES.lock().unwrap();
+    let Some(Some(f)) = t.get_mut((fd - 3).max(0) as usize).filter(|_| fd >= 3) else { return -1 };
+    let base = match whence {
+        1 => f.pos as i64,
+        2 => f.size as i64,
+        _ => 0,
+    };
+    f.pos = (base + off).max(0) as u64;
+    f.pos as i32
+}
+
+pub fn sceClose(args: &[i64]) -> i32 {
+    let fd = args[0] as i32;
+    let mut t = OPEN_FILES.lock().unwrap();
+    match t.get_mut((fd - 3).max(0) as usize).filter(|_| fd >= 3) {
+        Some(e) if e.is_some() => {
+            *e = None;
+            0
+        }
+        _ => -1,
+    }
+}
+
+/// `sceWrite(fd, buffer, bytes)`: taken and thrown away.
+pub fn sceWrite(args: &[i64]) -> i32 {
+    args.get(2).copied().unwrap_or(0) as i32
+}

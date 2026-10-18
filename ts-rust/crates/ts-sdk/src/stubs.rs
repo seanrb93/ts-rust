@@ -33,11 +33,7 @@ pub fn _request_rdata(args: &[i64]) -> i32 { ts_rt::stub_called("_request_rdata"
 pub fn _request_bind(args: &[i64]) -> i32 { ts_rt::stub_called("_request_bind"); 0 }
 pub fn _request_call(args: &[i64]) -> i32 { ts_rt::stub_called("_request_call"); 0 }
 pub fn sceFsReset(args: &[i64]) -> i32 { ts_rt::stub_called("sceFsReset"); 0 }
-pub fn sceOpen(args: &[i64]) -> i32 { ts_rt::stub_called("sceOpen"); 0 }
-pub fn sceClose(args: &[i64]) -> i32 { ts_rt::stub_called("sceClose"); 0 }
-pub fn sceLseek(args: &[i64]) -> i32 { ts_rt::stub_called("sceLseek"); 0 }
 pub fn fs_read_intr(args: &[i64]) -> i32 { ts_rt::stub_called("fs_read_intr"); 0 }
-pub fn sceWrite(args: &[i64]) -> i32 { ts_rt::stub_called("sceWrite"); 0 }
 pub fn mceIntrReadFixAlign(args: &[i64]) -> i32 { ts_rt::stub_called("mceIntrReadFixAlign"); 0 }
 pub fn mceGetInfoApdx(args: &[i64]) -> i32 { ts_rt::stub_called("mceGetInfoApdx"); 0 }
 pub fn mceStorePwd(args: &[i64]) -> i32 { ts_rt::stub_called("mceStorePwd"); 0 }

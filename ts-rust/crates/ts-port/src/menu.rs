@@ -206,6 +206,29 @@ impl ts_game::AvOptions for PortAv {
         config::get().save();
     }
 
+    fn mod_rows(&self) -> Vec<ts_game::AvRow> {
+        mod_cache(false)
+            .iter()
+            .map(|m| {
+                // (a change shows as pending: the mods are loaded when the program starts)
+                let pending = if m.enabled != m.loaded { " (after restart)" } else { "" };
+                let (on, off) = if m.enabled { (format!("On{pending}"), "Off".to_string()) } else { ("On".to_string(), format!("Off{pending}")) };
+                let label: String = m.name.chars().take(28).collect();
+                ts_game::AvRow { label, values: vec![on, off], index: if m.enabled { 0 } else { 1 } }
+            })
+            .collect()
+    }
+
+    fn set_mod(&self, row: usize, index: usize) {
+        let list = mod_cache(false);
+        if let Some(m) = list.get(row) {
+            if m.enabled != (index == 0) {
+                crate::mods::set_enabled(&m.name, index == 0);
+                mod_cache(true);
+            }
+        }
+    }
+
     fn set_mapmaker_unlimited(&self, on: bool) {
         config::update(|c| c.mapmaker_unlimited = on);
         config::get().save();
@@ -277,4 +300,17 @@ impl ts_game::AvOptions for PortAv {
         });
         config::get().save();
     }
+}
+
+/// The installed mods for the Mods page, read again after a second (or when `refresh` says a change was made).
+fn mod_cache(refresh: bool) -> Vec<crate::mods::Listed> {
+    use std::sync::Mutex;
+    static CACHE: Mutex<Option<(std::time::Instant, Vec<(String, bool, bool)>)>> = Mutex::new(None);
+    let mut g = CACHE.lock().unwrap();
+    let stale = g.as_ref().map_or(true, |(t, _)| refresh || t.elapsed().as_millis() > 1000);
+    if stale {
+        let v = crate::mods::list().into_iter().map(|m| (m.name, m.enabled, m.loaded)).collect();
+        *g = Some((std::time::Instant::now(), v));
+    }
+    g.as_ref().map(|(_, v)| v.iter().map(|(n, e, l)| crate::mods::Listed { name: n.clone(), enabled: *e, loaded: *l }).collect()).unwrap_or_default()
 }
