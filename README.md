@@ -306,6 +306,11 @@ A mod can hold:
   (byte, halfword, word, float, `#` comments), or `<symbol or 0xADDRESS>[+offset] s <text>` (a text and a zero byte, in the room of the old text).  The symbols are those of the game's executable (`guncombos`, `guns`, ...).  This is how a table (the
   weapon combinations, the guns' stats) is changed.
 
+Levels: a mod can add levels to the arcade list with a `levels.txt` (see `examples/levels_sample/`): `level <number 31..99> "<name>" like <game level 1..30> [tune <track>] [modes dm,bagtag,ctb,escort,ko,ls]`.
+`manual/customlevels.rs` copies the level table (`lvinfo`) and the tables of texts into the port's memory with the new levels (up to 28), and the arcade page lists them after Ron
+(`av_arcade_levels`); a new level has the record, the arcade set-up and the data files of the level it is `like` unless the mod has files of its own under its number.  Story and Challenge
+are not changed.  Only the levels' files of the game's formats can be supplied; there is no tool that makes them.
+
 Textures: put a PNG where the game has a texture: `MISC.PAK/textures/<name>.png` replaces `textures/<name>.qpm` (`<name>` as in `index.csv` of "Extracting the textures": `0807`,
 `misc/ammo_big`, ...).  The game still loads its own texture; the renderer shows the PNG in its place, over the same surface.  The PNG can be of any size (4096x4096 and 2048x1024
 were tried; a side longer than `hd_texture_max` of `ts-port.ini`, 4096 by default, is made smaller when the picture is read, and a 4096x4096 picture takes about 85 MB of video

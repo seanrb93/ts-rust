@@ -21,6 +21,8 @@ GLOBAL = [
     # the weapon combinations in the port's memory, with room for the dual versions (manual/weapontable.rs)
     ('g::guncombos', 'GUNCOMBOS'),
     ('g::gunsinventory', 'GUNSINV'),
+    # the level table in the port's memory, with the levels of mods (manual/customlevels.rs)
+    ('g::lvinfo', 'LVINFO'),
 ]
 
 # `updateframesi` (whole ticks this frame) is 0 only while the game is paused in the original, so many tests of it mean
@@ -251,8 +253,8 @@ FUNCS = {
     'moveTestDoSlide': [('pub fn moveTestDoSlide(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32, mut f12: f32, mut f13: f32) -> i32 {\n', 'pub fn moveTestDoSlide(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32, mut f12: f32, mut f13: f32) -> i32 {\n    if noclip_slide(a1, a2) {\n        return 0;\n    }\n', 1)],
     'obinstCalcAmbientLight': [('                \'l17: loop {\n                    #[cfg(feature = "calltrace")]\n                    ts_rt::calltrace::poll();\n                    v0_13 = lw(g::bgNumRooms);\n', '                let mut rooms_tried = 0;\n                \'l17: loop {\n                    #[cfg(feature = "calltrace")]\n                    ts_rt::calltrace::poll();\n                    // an object with an invalid position (NaN) would pass from room to room for ever (the console\'s FPU has no NaN)\n                    rooms_tried += 1;\n                    if rooms_tried > 64 {\n                        break;\n                    }\n                    v0_13 = lw(g::bgNumRooms);\n', 1)],
     # one more arcade level, Ron (the console game has an arcade set-up for it, but it is not in its list): the list is in `av_arcade_levels`, MapMaker keeps its place (index 18), it goes after it
-    'arcade_pageTick': [('s1_3 = if s1_2 >= 19 { 0 } else { s1_2 };', 's1_3 = if s1_2 >= 20 { 0 } else { s1_2 };', 1), ('lw((s1_3 << 2) + g::arcadelevels)', 'lw((s1_3 << 2) + av_arcade_levels())', 1), ('lw((s0_3 << 2) + g::arcadelevels)', 'lw((s0_3 << 2) + av_arcade_levels())', 1), ('s0_3 = if -1 >= s0_2 { 18 } else { s0_2 };', 's0_3 = if -1 >= s0_2 { 19 } else { s0_2 };', 1), ('lw((a1_5 << 2) + g::arcadelevels)', 'lw((a1_5 << 2) + av_arcade_levels())', 1)],
-    'levelAvail': [('pub fn levelAvail(mut a0: i32) -> i32 {\n', 'pub fn levelAvail(mut a0: i32) -> i32 {\n    if a0 == 25 {\n        return 1;\n    }\n', 1)],
+    'arcade_pageTick': [('s1_3 = if s1_2 >= 19 { 0 } else { s1_2 };', 's1_3 = if s1_2 >= av_arcade_count() { 0 } else { s1_2 };', 1), ('lw((s1_3 << 2) + g::arcadelevels)', 'lw((s1_3 << 2) + av_arcade_levels())', 1), ('lw((s0_3 << 2) + g::arcadelevels)', 'lw((s0_3 << 2) + av_arcade_levels())', 1), ('s0_3 = if -1 >= s0_2 { 18 } else { s0_2 };', 's0_3 = if -1 >= s0_2 { av_arcade_count() - 1 } else { s0_2 };', 1), ('lw((a1_5 << 2) + g::arcadelevels)', 'lw((a1_5 << 2) + av_arcade_levels())', 1)],
+    'levelAvail': [('pub fn levelAvail(mut a0: i32) -> i32 {\n', 'pub fn levelAvail(mut a0: i32) -> i32 {\n    if a0 == 25 || (31..=99).contains(&a0) {\n        return 1;\n    }\n', 1)],
     'gmKnockOutTick': [('                if v1_2 == 0 {\n                    trap("break");\n                }\n', '                if v1_2 == 0 {\n                    // no bag spawn points in the level (Ron has none): nothing to put a bag on\n                    return;\n                }\n', 1)],
     # Square on the character select page picks a random character; on the weapon set page it fills the custom set
     'chrplayer_pageTick': [('pub fn chrplayer_pageTick(mut a0: i32) {'+chr(10), 'pub fn chrplayer_pageTick(mut a0: i32) {'+chr(10)+'    char_randomise(a0);'+chr(10), 1)],
@@ -311,6 +313,8 @@ FUNCS = {
     'mcseqSlotMakeName': [('    sb(v0_2 + 1 + s4_1, s0_1 + 49);'+chr(10), '    sb(v0_2 + s4_1, 0);'+chr(10)+'    sb(v0_2 + 1 + s4_1, 0);'+chr(10), 1)],
     # the renderer is told which file each texture came from (a mod can have a picture of any size for it)
     'emLoadTexture': [('    sw(s1_31 + 4, 0);'+chr(10)+'    return;'+chr(10), '    sw(s1_31 + 4, 0);'+chr(10)+'    tex_loaded(lw(sp + 48), a1, a2);'+chr(10)+'    return;'+chr(10), 1)],
+    # the arcade set-up (the modes) of a level of a mod
+    'lvGetARCADESetup': [('    v1_1 = a0 - 1;'+chr(10)+'    a1_1 = 0;'+chr(10), '    if let Some(p) = custom_setup(a0) {'+chr(10)+'        return p;'+chr(10)+'    }'+chr(10)+'    v1_1 = a0 - 1;'+chr(10)+'    a1_1 = 0;'+chr(10), 1)],
     # the arcade options page has a row more (Level Music): its table is a copy in the port's memory, which has room for it; the hint line says Edit for it as for Weapon Set and Bot Set
     'arcadeoptions_pageTick': [('g::i0410', '(av_opt_menu() + 16)', 7), ('    s0_1 = g::arcadeoptions_menu;'+chr(10), '    s0_1 = av_opt_ready();'+chr(10), 1), ('            if v1_5 < 14 {'+chr(10), '            if v1_5 < 14 || v1_5 == 15 {'+chr(10), 1)],
 }

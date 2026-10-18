@@ -338,6 +338,7 @@ pub fn load(game_dir: &Path, exe: &Path) {
     let mut pack_changes: BTreeMap<&str, BTreeMap<String, PathBuf>> = BTreeMap::new();
     let mut overlay: Vec<(String, PathBuf)> = Vec::new();
     let mut patches: Vec<(String, String)> = Vec::new();
+    let mut level_lists: Vec<(String, PathBuf)> = Vec::new();
     // the packs' contents, to find where a file without a pack name belongs
     let contents: Vec<(&str, Vec<Vec<u8>>)> = PACKS
         .iter()
@@ -356,6 +357,10 @@ pub fn load(game_dir: &Path, exe: &Path) {
                 if lower.contains('/') {
                     continue;
                 }
+            }
+            if lower == "levels.txt" {
+                level_lists.push((m.name.clone(), host));
+                continue;
             }
             if lower == "mod.ini" || lower == "patches.txt" || lower.ends_with(".md") || lower == "readme.txt" {
                 if lower == "patches.txt" {
@@ -409,6 +414,7 @@ pub fn load(game_dir: &Path, exe: &Path) {
         }
         eprintln!("[mods] {}: {count} file(s)", m.name);
     }
+    add_levels(game_dir, &cache, &level_lists, &mut pack_changes, &mut original_packs);
     for (pack, changes) in &pack_changes {
         let out = cache.join(pack);
         let key = cache.join(format!("{pack}.key"));
@@ -425,6 +431,103 @@ pub fn load(game_dir: &Path, exe: &Path) {
     }
     ts_sdk::set_disc_overlay(overlay);
     apply_patches(exe, &patches);
+}
+
+/// The levels of the mods (`levels.txt`, one per line: `level <number 31..99> "<name>" like <level> [tune <track>] [modes dm,bagtag,ctb,escort,ko,ls]`):
+/// they are told to the game, and a level that has no files of the mod's own gets copies of the files of the level it is like.
+fn add_levels(game_dir: &Path, cache: &Path, lists: &[(String, PathBuf)], pack_changes: &mut BTreeMap<&str, BTreeMap<String, PathBuf>>, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) {
+    let mut levels: Vec<ts_sdk::CustomLevel> = Vec::new();
+    for (mod_name, file) in lists {
+        let text = std::fs::read_to_string(file).unwrap_or_default();
+        for (n, line) in text.lines().enumerate() {
+            let line = line.split('#').next().unwrap_or("").trim();
+            if line.is_empty() {
+                continue;
+            }
+            let bad = |why: &str| eprintln!("[mods] {mod_name}/levels.txt line {}: {why}", n + 1);
+            // (words, with a name in quotes as one)
+            let mut words: Vec<String> = Vec::new();
+            let mut cur = String::new();
+            let mut quoted = false;
+            for c in line.chars() {
+                match c {
+                    '"' => quoted = !quoted,
+                    c if c.is_whitespace() && !quoted => {
+                        if !cur.is_empty() {
+                            words.push(std::mem::take(&mut cur));
+                        }
+                    }
+                    c => cur.push(c),
+                }
+            }
+            if !cur.is_empty() {
+                words.push(cur);
+            }
+            if words.len() < 4 || words[0] != "level" {
+                bad("expected `level <number> \"<name>\" like <level> [tune <track>] [modes ...]`");
+                continue;
+            }
+            let Ok(number) = words[1].parse::<i32>() else { bad("the number is not a number"); continue };
+            if !(31..=99).contains(&number) || levels.iter().any(|l| l.number == number) {
+                bad("the number has to be from 31 to 99, and not used by another level");
+                continue;
+            }
+            let mut lv = ts_sdk::CustomLevel { number, name: words[2].clone(), like: 0, tune: 0, modes: None };
+            let mut i = 3;
+            while i + 1 < words.len() {
+                match words[i].as_str() {
+                    "like" => lv.like = words[i + 1].parse().unwrap_or(0),
+                    "tune" => lv.tune = words[i + 1].parse::<i32>().unwrap_or(0).clamp(0, 27),
+                    "modes" => {
+                        let mut mask = 0;
+                        for m in words[i + 1].split(',') {
+                            mask |= match m.to_ascii_lowercase().as_str() {
+                                "dm" | "deathmatch" => 1,
+                                "bagtag" => 2,
+                                "ctb" | "capture" => 4,
+                                "escort" => 8,
+                                "ko" | "knockout" => 16,
+                                "ls" | "laststand" => 32,
+                                _ => 0,
+                            };
+                        }
+                        lv.modes = Some(mask);
+                    }
+                    _ => {}
+                }
+                i += 2;
+            }
+            if !(1..=30).contains(&lv.like) {
+                bad("`like` has to be one of the game's levels (1 to 30)");
+                continue;
+            }
+            // (the files of the level: the mod's own, or copies of those of the level it is like)
+            let names = [
+                ("BG.PAK", format!("bg/level{}/level{}.raw", number, number), format!("bg/level{}/level{}.raw", lv.like, lv.like)),
+                ("MISC.PAK", format!("pad/data/level{}.raw", number), format!("pad/data/level{}.raw", lv.like)),
+                ("MISC.PAK", format!("pad/data/level{}_reduced.raw", number), format!("pad/data/level{}_reduced.raw", lv.like)),
+                ("MISC.PAK", format!("propsetup/data/level{}.raw", number), format!("propsetup/data/level{}.raw", lv.like)),
+            ];
+            for (pack, new, old) in names {
+                let pack: &'static str = PACKS.iter().find(|p| **p == pack).unwrap();
+                if pack_changes.get(pack).map_or(false, |c| c.contains_key(&new)) {
+                    continue;
+                }
+                let Some((d, entries)) = packs.entry(pack).or_insert_with(|| read_pack(&game_dir.join("PAK").join(pack))).as_ref() else { continue };
+                let Some(e) = entries.iter().find(|e| e.name == old.as_bytes()) else { continue };
+                let Some(bytes) = d.get(e.offset as usize..(e.offset + e.size) as usize) else { continue };
+                let dir = cache.join("levels");
+                let _ = std::fs::create_dir_all(&dir);
+                let out = dir.join(new.replace('/', "__"));
+                if std::fs::write(&out, bytes).is_ok() {
+                    pack_changes.entry(pack).or_default().insert(new, out);
+                }
+            }
+            eprintln!("[mods] {mod_name}: level {number} {:?}, like level {}", lv.name, lv.like);
+            levels.push(lv);
+        }
+    }
+    ts_sdk::set_custom_levels(levels);
 }
 
 fn apply_patches(exe: &Path, patches: &[(String, String)]) {

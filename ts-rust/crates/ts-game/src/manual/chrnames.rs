@@ -36,7 +36,8 @@ pub fn chr_names_once() {
                 continue;
             }
             let dst = COPY_AT + lang * 0x1400;
-            for i in 0..TEXTS {
+            // (and the names of the levels of mods, which come after the two of the characters)
+            for i in 0..TEXTS + 2 + custom_text_count() {
                 sw(dst + 4 * i, lw(src + 4 * i));
             }
             for (k, p) in ptrs.iter().enumerate() {

@@ -1400,6 +1400,11 @@ pub fn av_confirm_pressed(page: i32) -> bool {
 /// The arcade level list: the console game's (MapMaker is the last of them, place 18 is special to the game's code), then Ron (25).
 const ARCADE_LEVELS_AT: i32 = BASE + 0x7600;
 
+/// How many places the arcade level list has before the one that ends it (the game's 19, Ron, and the levels of mods).
+pub fn av_arcade_count() -> i32 {
+    20 + custom_arcade_levels().len() as i32
+}
+
 pub fn av_arcade_levels() -> i32 {
     // Ron has no data for two of its six modes: KnockOut (mask 16) needs bag spawn points (the game divides by their number)
     // and LastStand (mode 6, mask 32) needs a per-level set-up (`enemySetup` calls exit() for a level it does not know), so they
@@ -1410,7 +1415,7 @@ pub fn av_arcade_levels() -> i32 {
         sw(at, lw(g::arcadelevels + 4 * i));
         at += 4;
     }
-    for id in [25] {
+    for id in [25].into_iter().chain(custom_arcade_levels()) {
         sw(at, id);
         at += 4;
     }
