@@ -197,6 +197,15 @@ impl ts_game::AvOptions for PortAv {
         config::get().save();
     }
 
+    fn level_music(&self) -> i32 {
+        config::get().level_music
+    }
+
+    fn set_level_music(&self, choice: i32) {
+        config::update(|c| c.level_music = choice.clamp(0, 28));
+        config::get().save();
+    }
+
     fn set_mapmaker_unlimited(&self, on: bool) {
         config::update(|c| c.mapmaker_unlimited = on);
         config::get().save();

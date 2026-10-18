@@ -78,6 +78,8 @@ pub struct Config {
     pub keys: Vec<Vec<String>>,
     /// volume of the groups of sound effects in percent (weapons, voices, environment), 100 = as the game has it
     pub sound_mix: [u8; 3],
+    /// the music of the levels: 0 = the level's own, 1 = a random track each time, n + 1 = track n (1 to 27); the same numbers as the Audio Options page
+    pub level_music: i32,
 }
 
 impl Default for Config {
@@ -112,6 +114,7 @@ impl Default for Config {
             input_method: 1,
             keys: (0..14).map(crate::keys::default_keys).collect(),
             sound_mix: [100; 3],
+            level_music: 0,
         }
     }
 }
@@ -201,6 +204,10 @@ volume_weapons = 100
 volume_voices = 100
 volume_environment = 100
 
+# the music of the levels: own (the level's), random (a new track each time a level starts) or a track number, 1 to 27 (MUSIC/100N.MSC, or the .opus beside it);
+# also a row of the Audio Options page, second page
+level_music = own
+
 # the MapMaker has no limit of what a map holds (the FREE bar is not shown); also a row of the MapMaker's Options page
 mapmaker_unlimited = false
 
@@ -281,6 +288,14 @@ impl Config {
             "volume_weapons" | "volume_voices" | "volume_environment" => {
                 let k = ["volume_weapons", "volume_voices", "volume_environment"].iter().position(|n| *n == key).unwrap_or(0);
                 self.sound_mix[k] = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.0, 100.0).round() as u8;
+            }
+            "level_music" => {
+                let v = value.trim().to_ascii_lowercase();
+                self.level_music = match v.as_str() {
+                    "own" | "level" | "off" | "default" => 0,
+                    "random" => 1,
+                    n => n.parse::<i32>().ok().filter(|t| (1..=27).contains(t)).map(|t| t + 1).ok_or_else(bad)?,
+                };
             }
             // (the first version had five kinds)
             "volume_impacts" | "volume_ambience" | "volume_effects" => {}
@@ -471,7 +486,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 44] = [
+        let vals: [(&str, String); 45] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -516,6 +531,11 @@ impl Config {
             ("volume_weapons", self.sound_mix[0].to_string()),
             ("volume_voices", self.sound_mix[1].to_string()),
             ("volume_environment", self.sound_mix[2].to_string()),
+            ("level_music", match self.level_music {
+                0 => "own".to_string(),
+                1 => "random".to_string(),
+                n => (n - 1).to_string(),
+            }),
         ];
         let mut out = String::new();
         for line in TEMPLATE.lines() {

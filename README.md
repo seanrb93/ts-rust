@@ -216,6 +216,12 @@ from 0 to 100 (`volume_weapons`, `volume_voices`, `volume_environment` in `ts-po
 asks, when a voice starts, which group the sample at its address is in; `manual/soundmix.rs` finds the sound in the game's table of sounds and sorts it by the words in its file
 name.  The **FPS Counter** row of Game Options shows the frame rate in a corner.
 
+The same page has **Level Music**: *Level's Own* (what each level plays, the default), *Random* (a different track each time a level starts, never the same one twice in a
+row) or one of the 27 tracks (`MUSIC@1.MSC` to `1027.MSC`, each named after the first level that uses it).  It is `level_music` in `ts-port.ini` (`own`, `random` or a track
+number) and applies to the levels, MapMaker maps included; the pages of the front end keep their own music.  Changed from the pause menu it takes effect at once.  The level table
+(`lvinfo`) says which tune a level plays; `musicRestart` is patched to call `av_level_music` (`avmenu.rs`) on the tune it asks the table for.  In a split screen the row is on a
+page of its own.
+
 The MapMaker's Options page works like the others (X edits the Grid Intensity slider, arrows show) and has **No Limit** (Yes / No): Yes removes the
 limit on what a map can hold and hides the FREE bar (`mmoptions.rs`, `mapmaker_unlimited` in `ts-port.ini`).
 
@@ -285,12 +291,15 @@ A mod can hold:
   `OB.PAK`, `SFX.PAK`) or is added to it.  Everything the game loads (models, textures, animations, sounds, levels) is read by name from
   a pack, so characters, weapons, sounds, textures and levels are all files like this.  A path that does not start with a pack's name replaces the
   file of that name in whichever pack has it (`sfx/pistol.vag`).  Names are lower case and at most 47 characters; the files have to be in the
-  game's own formats (the port does not convert anything).
+  game's own formats, except pictures (PNG for a texture) and sounds and music (Opus or WAV), which the port converts (below).
 * `MUSIC/<name>.MSC`: replaces a music stream; or `MUSIC/<name>.opus` (Ogg Opus, mono or stereo): the same stream as an Opus file, which is far smaller
-  (decoded as it plays; the music loops from the start).  The name is the stream's (`1015` for the Tomb's).
+  (decoded as it plays).  The name is the stream's (`1015` for the Tomb's).  The game asks for the music to loop, and the whole file loops: when the stream ends it starts again from the beginning (an Opus file is read again from
+  its first sample, with the encoder's padding cut off by the length the file states).  There are no loop points: a track with an intro that plays only once is
+  not possible, so make the file the part that repeats.
 * A sound as `.opus` or `.wav` where the game has a `.vag`: `SFX.PAK/sfx/<name>.opus` replaces `sfx/<name>.vag`.  The loader makes the game's sound
   format from it when the mod changes (`mods/.cache/converted/`): mono, at the sample rate and with the looping of the sound it replaces (the game's table
-  says how fast to play a sound, not the file), at most about 130 KB (10 s at 22 kHz).
+  says how fast to play a sound, not the file), at most about 130 KB (10 s at 22 kHz).  A sound that loops in the game (an engine, an alarm) is made to loop from its
+  first sample to its last; one that plays once plays once; a sound that is not in the game's packs plays once.
 * `patches.txt`: edits of the game's data in memory at start, one per line: `<symbol or 0xADDRESS>[+offset] <b|h|w|f> <value> [...]`
   (byte, halfword, word, float, `#` comments), or `<symbol or 0xADDRESS>[+offset] s <text>` (a text and a zero byte, in the room of the old text).  The symbols are those of the game's executable (`guncombos`, `guns`, ...).  This is how a table (the
   weapon combinations, the guns' stats) is changed.
