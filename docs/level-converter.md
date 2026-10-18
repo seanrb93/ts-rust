@@ -1,0 +1,65 @@
+# Making levels from other formats
+
+`tools/obj2level.py` makes a level for the port (a mod folder, see `docs/level-formats.md` for what is in it) from a 3D model or from a map of
+another game:
+
+```
+python tools/obj2level.py <file> --out mods/MyLevel --number 33 --name "My Level" --like 25 [options]
+```
+
+Python 3 with `numpy` and `Pillow` is needed (`pip install numpy pillow`).  The mod appears in the Mods page and its level in the arcade list.
+
+| format | file | notes |
+| --- | --- | --- |
+| Blender | `.blend` | Blender is run in the background to export the file (it is looked for in the places it installs to, the `BLENDER` environment variable and `--blender <exe>`).  Modifiers are applied. |
+| glTF 2.0 | `.glb`, `.gltf` | What Blender (File > Export > glTF 2.0), and most tools, export to for games.  Pictures inside the file or next to it. |
+| Wavefront OBJ | `.obj` | With its `.mtl`: `map_Kd` pictures (PNG, JPEG, ...), `Kd` colours, `d` for see-through, and `v x y z r g b` vertex colours. |
+| Source engine map | `.bsp`, `.bsp.bz2` | Half-Life 2, Garry's Mod, Counter-Strike: Source, Team Fortress 2, Portal, Left 4 Dead, ... (versions 17 to 21).  The world's faces and displacements (terrain), with the map's light baked into a brightness for each face. |
+| Source map source | `.vmf` | The world's brushes (cut from their planes) and displacements. |
+| GoldSrc map | `.bsp` (version 30) | Half-Life, Counter-Strike 1.6, Team Fortress Classic, Day of Defeat, ... |
+
+## Markers
+
+Where players start and where weapons lie is taken from the file:
+
+- Blender, glTF: an Empty (a node) named `spawn...` (where players and bots start), `weapon1` .. `weapon5` (a weapon of that slot of the weapon set the
+  player chose) or `pickup<type>` (a pickup by the game's number, see `docs/level-formats.md`).  A mesh named like that is a marker too (its origin is the
+  spot) and is not part of the level.
+- OBJ: an object or group (`o` / `g`) with such a name: its centre is the spot.
+- Source and GoldSrc maps: the player starts (`info_player_start`, `info_player_deathmatch`, `info_player_teamspawn`, `info_player_terrorist`, ... ) and
+  the weapons (`weapon_*`, whose slot is taken in turn).
+
+Without any, spots are picked on the floors (`--spawns` of them, and `--weapons` of each slot).  A marker is moved to the nearest pad.
+
+## What becomes of the level
+
+- Faces that point up (less than 60 degrees from level) are floors that players stand on and bots walk on; the others, apart from ceilings, are walls.  A
+  wall stops only what comes from the side the face points to: a thin wall needs a face for each side.
+- Pads for the bots are laid on the floors (`--pad-spacing`; at most `--max-pads`) and linked to their neighbours, in groups the game finds routes by.
+- Pictures are made into the game's texture files: sides of powers of two, at most 256, at most 65536 pixels.  Surfaces with see-through pixels are drawn
+  after the solid ones.  The game holds about 90 textures for a level: of a map with more materials, those that cover least are drawn with the picture of the most
+  alike colour among the rest (`--max-textures`).
+- Axes and size: Source and GoldSrc maps are z up and 72 units tall for a player: they are turned and scaled by 0.025 (`--scale`, `--up`).  A model is taken as it
+  is: the game's rooms are about 20 units across and a player about 1.8 high.  `--flip` turns the faces round if the level comes out inside out.
+- `--like <1..30>` chooses the level whose sky, fog and light the new one has (a level of the game's is used for the arcade modes, the music and these).
+
+## Source and GoldSrc maps
+
+- **Pictures.**  A Source material (`.vmt`) names a texture (`.vtf`).  Custom ones are in the map's own pack and are found there; the game's own
+  (`concrete/...`, `brick/...`) are not in the map: unpack them with a tool such as GCFScape or Crowbar and give the `materials` folder with `--materials <dir>` (a
+  `materials` folder next to the map or in one of its parent folders, as Crowbar unpacks a workshop map, is found by itself).  A surface whose picture is not found is
+  drawn in the average colour the map recorded for it.  GoldSrc textures are in the map, or in the `.wad` files its worldspawn lists (found next to the map, or in the
+  folders given with `--wad <dir or file>`).
+- **Light.**  Both engines light surfaces with lightmaps; the converter averages each face's lightmap into one brightness for the face.
+- **What is left out.**  Props, doors and other brush entities, the 3D skybox, sky, trigger, clip and other tool faces.  Parts that are not connected to the main level (a
+  skybox room, a room of tools) are dropped.
+- **Size.**  The game's own levels have at most 70,000 vertices and 109 rooms.  A level of 6 MB with 130 rooms (30,000 polygons) was played.  About 200 rooms is the most (the game crashes on more: `--room-size` is made larger by itself until there are 180 at the
+  most).  A big map is made smaller by choosing a part of it: `--radius 70 --center x,z` (game units, a square; the first spawn is the default centre) keeps what is within
+  70 units (a Source map of 16000 units is 400 units across).
+- **Rooms.**  `--room-size 25` splits the level into rooms of 25 x 25 units joined by portals: what is far away is not drawn.  A map of Source or GoldSrc size wants it.
+
+## Limits worth knowing
+
+The game's bots work out their routes when the match starts.  This takes longer the more pads and links there are, and a level with all its pads in one group
+took minutes; pads are therefore grouped (about 16 each) and `--max-pads` is 450.  Textures that are not powers of two draw washed out, so the converter makes them powers of two.
+Reflections, glass that breaks, doors, lifts, moving parts and props are not made: a level is static geometry.

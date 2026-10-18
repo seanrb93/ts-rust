@@ -1,6 +1,13 @@
-"""Make a level for the port from a Wavefront OBJ model (Blender, and most 3D tools, export one).
+"""Make a level for the port from a 3D model or a map of another game.
 
-    python tools/obj2level.py level.obj --out mods/MyLevel --number 33 --name "My Level" --like 25 [options]
+    python tools/obj2level.py <file> --out mods/MyLevel --number 33 --name "My Level" --like 25 [options]
+
+Formats (by the file's extension):
+    .obj                 Wavefront OBJ with its MTL (Blender, Maya, 3ds Max, ...)
+    .glb .gltf           glTF 2.0 (Blender: File > Export > glTF 2.0; most tools)
+    .blend               a Blender file: Blender (found by itself, or --blender <exe>) is run to export it
+    .bsp                 a compiled Source map (Half-Life 2, Garry's Mod, CS:S, TF2, Portal, ...; also .bsp.bz2) or GoldSrc map (Half-Life, CS 1.6, ...)
+    .vmf                 a Hammer map source (Source)
 
 The result is a mod folder (see examples/levels_sample) holding what the game reads for a level, in the formats of docs/level-formats.md:
 
@@ -12,28 +19,34 @@ The result is a mod folder (see examples/levels_sample) holding what the game re
     mods/MyLevel/MISC.PAK/propsetup/data/level33.raw no props
     mods/MyLevel/MISC.PAK/textures/<n>.qpm           the level's own textures
 
-What is read from the OBJ: triangles, quads and larger faces (larger ones are fanned), `usemtl` materials with a `map_Kd` picture (a PNG) or
-a `Kd` colour, texture coordinates, and vertex colours (`v x y z r g b`).  Faces that point up (less than 60 degrees from level) become floors
-players stand on, steep ones become walls that stop them; ceilings are only drawn.  A material whose picture has see-through pixels is drawn
-after the solid ones.
+Faces that point up (less than 60 degrees from level) become floors players stand on, steep ones become walls that stop them (from the side
+the face points to); ceilings are only drawn.  A material whose picture has see-through pixels is drawn after the solid ones.  The game
+holds about 90 textures for a level: when a map has more materials, the ones that cover least are drawn with the most alike colour of the others.
 
-Markers: an object or group (`o` / `g` line) whose name starts with `spawn` marks where players and bots start (the centre of its vertices is
-the spot; the faces of a marker are not part of the level), `weapon1` .. `weapon5` where a weapon of that slot lies, `pickup<type>` a pickup of that
-number (see docs/level-formats.md).  Without markers the converter picks spots by itself (`--spawns`, `--weapons`).
+Markers: in an OBJ an object or group (`o` / `g` line), in glTF and Blender a node or Empty, whose name starts with `spawn` marks where players
+and bots start (the faces of a marker are not part of the level), `weapon1` .. `weapon5` where a weapon of that slot lies, `pickup<type>` a
+pickup of that number (see docs/level-formats.md).  In a map of another game the player starts and weapons are the markers.  Without markers the
+converter picks spots by itself (`--spawns`, `--weapons`).
 
 Options:
-    --scale S        multiply every coordinate (the game's rooms are about 20 units wide, a player about 1.8 high)
-    --up y|z         which axis of the OBJ is up (default y; z is turned into the game's y)
+    --scale S        multiply every coordinate (the game's rooms are about 20 units wide, a player about 1.8 high); the default is 1 for
+                     models and 0.025 for maps of Source and GoldSrc (a player is 72 units there)
+    --up y|z         which axis is up (default: the format's; z is turned into the game's y)
     --flip           reverse the winding of faces (when the level is inside out)
     --room-size R    split the level into rooms of R x R units, joined by portals (default 0: one room; large levels draw faster split)
-    --pad-spacing D  distance of the pads bots walk by (default 5)
+    --pad-spacing D  distance of the pads bots walk by (default 5); --max-pads N makes it larger when there would be more pads (default 450)
     --modes LIST     the modes the level offers: dm,bagtag,ctb,escort,ko,ls (default dm,bagtag,ctb,ko)
     --tune N         the music track 1..27 (default: the level `like` plays)
-    --tex-base N     the number of the first texture of this level's own (default 4000 + 40 * (number - 31))
+    --max-textures N the most textures (default 90)
+    --materials DIR  a `materials` folder (Source: the game's own pictures; may be given more than once); --wad FILE|DIR for GoldSrc
+    --blender EXE    the Blender to use for .blend files
+    --radius R       keep only what is within R units (a square) of --center x,z (default: the first spawn): large maps do not fit in the game
+    --tex-base N     the number of the first texture of this level's own (default 4000 + 100 * (number - 31))
 """
 import argparse
 import math
 import os
+import re
 import struct
 import sys
 
@@ -42,72 +55,13 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import png2qpm  # noqa: E402
+import lvimport  # noqa: E402
 
 CHUNK_VERTS = 64          # the most vertices one chunk can draw (the VU1 buffer)
 FLOOR_NY = 0.5            # a face whose normal points up more than this is a floor
 MAX_TEX = 256             # the largest side of a texture file (65536 pixels in all)
+MAX_ROOMS = 180          # the game's tables hold about 200 rooms (a crash on more)
 MODES = {'dm': 1, 'bagtag': 2, 'ctb': 4, 'escort': 8, 'ko': 16, 'ls': 32}
-
-
-# ---------------------------------------------------------------- reading the OBJ
-
-class Face:
-    __slots__ = ('mat', 'idx', 'obj')
-
-    def __init__(self, mat, idx, obj):
-        self.mat, self.idx, self.obj = mat, idx, obj      # idx: [(v, vt)]
-
-
-def read_mtl(path):
-    mats, cur = {}, None
-    if not os.path.exists(path):
-        return mats
-    for line in open(path, encoding='utf8', errors='replace'):
-        t = line.split()
-        if not t:
-            continue
-        if t[0] == 'newmtl':
-            cur = mats.setdefault(' '.join(t[1:]), {})
-        elif cur is not None and t[0] == 'map_Kd':
-            cur['map'] = os.path.join(os.path.dirname(path), line.split(None, 1)[1].split()[-1].strip().replace('\\', '/'))
-        elif cur is not None and t[0] == 'Kd' and len(t) >= 4:
-            cur['kd'] = tuple(float(x) for x in t[1:4])
-    return mats
-
-
-def read_obj(path):
-    verts, colours, uvs, faces, mats = [], [], [], [], {}
-    mat, obj = '', ''
-    for line in open(path, encoding='utf8', errors='replace'):
-        t = line.split()
-        if not t or t[0].startswith('#'):
-            continue
-        k = t[0]
-        if k == 'v':
-            verts.append([float(x) for x in t[1:4]])
-            colours.append([float(x) for x in t[4:7]] if len(t) >= 7 else None)
-        elif k == 'vt':
-            uvs.append((float(t[1]), float(t[2]) if len(t) > 2 else 0.0))
-        elif k == 'f':
-            idx = []
-            for w in t[1:]:
-                p = w.split('/')
-                v = int(p[0])
-                v = v - 1 if v > 0 else len(verts) + v
-                vt = -1
-                if len(p) > 1 and p[1]:
-                    vt = int(p[1])
-                    vt = vt - 1 if vt > 0 else len(uvs) + vt
-                idx.append((v, vt))
-            if len(idx) >= 3:
-                faces.append(Face(mat, idx, obj))
-        elif k == 'usemtl':
-            mat = ' '.join(t[1:])
-        elif k in ('o', 'g'):
-            obj = ' '.join(t[1:])
-        elif k == 'mtllib':
-            mats.update(read_mtl(os.path.join(os.path.dirname(path), ' '.join(t[1:]))))
-    return np.array(verts, dtype=np.float64), colours, uvs, faces, mats
 
 
 # ---------------------------------------------------------------- textures
@@ -122,17 +76,12 @@ def pow2_at_most(n, limit=MAX_TEX):
     return max(p, 1)
 
 
-def load_material(mat, info):
-    """(image as RGBA, translucent) for a material."""
-    path = info.get('map')
-    if path and os.path.exists(path):
-        img = Image.open(path).convert('RGBA')
-    else:
-        kd = info.get('kd', (0.8, 0.8, 0.8))
-        img = Image.new('RGBA', (16, 16), tuple(int(max(0, min(1, c)) * 255) for c in kd) + (255,))
-    a = np.asarray(img)[:, :, 3]
-    translucent = bool((a < 250).any())
-    return img, translucent
+def material_image(m):
+    """The picture of a material (a `lvimport.common.Material`) as RGBA; a plain square of its colour when it has none."""
+    img = m.image()
+    if img is None:
+        img = Image.new('RGBA', (16, 16), tuple(int(max(0, min(1, c)) * 255) for c in m.color) + (255,))
+    return img
 
 
 def fit_texture(img):
@@ -168,41 +117,58 @@ class Poly:
         return n / l if l > 1e-12 else n
 
 
-def build_polys(verts, colours, uvs, faces, args):
-    """Faces to polygons of 3 or 4 points in the game's axes, markers split off."""
-    pts = verts.copy()
-    if args.up == 'z':
-        pts = np.stack([pts[:, 0], pts[:, 2], -pts[:, 1]], axis=1)
-    pts *= args.scale
-    polys, markers = [], {}
-    for f in faces:
-        name = f.obj.lower()
-        if name.startswith(('spawn', 'weapon', 'pickup')):
-            markers.setdefault(f.obj, []).extend(pts[v] for v, _ in f.idx)
-            continue
-        rings = []
-        if len(f.idx) == 3:
-            rings = [f.idx]
-        elif len(f.idx) == 4:
-            rings = [f.idx]
-        else:
-            rings = [[f.idx[0], f.idx[i], f.idx[i + 1]] for i in range(1, len(f.idx) - 1)]
-        for ring in rings:
-            idx = list(reversed(ring)) if args.flip else ring
-            p = [pts[v] for v, _ in idx]
-            uv = [uvs[vt] if 0 <= vt < len(uvs) else (0.0, 0.0) for _, vt in idx]
-            uv = [(s, 1.0 - t) for s, t in uv]
-            col = [(colours[v][0], colours[v][1], colours[v][2]) if colours[v] else (1.0, 1.0, 1.0) for v, _ in idx]
-            if len(p) == 4:
-                # (a quad has to be flat enough and convex to be drawn as one strip: else it is two triangles)
-                n = Poly(p, uv, col, f.mat).normal()
-                if not (abs(np.dot(p[2] - p[0], np.cross(p[1] - p[0], p[3] - p[0]))) < 1e-3 * max(1.0, np.linalg.norm(n))):
-                    polys.append(Poly([p[0], p[1], p[2]], uv[:3], col[:3], f.mat))
-                    polys.append(Poly([p[0], p[2], p[3]], [uv[0], uv[2], uv[3]], [col[0], col[2], col[3]], f.mat))
-                    continue
-            polys.append(Poly(p, uv, col, f.mat))
-    markers = {k: sum(v) / len(v) for k, v in markers.items()}
+def build_polys(scene, args):
+    """The scene's polygons in the game's axes and units (3 or 4 points each), and its markers as a list of (name, point)."""
+    up = args.up or scene.up
+    scale = args.scale if args.scale is not None else scene.scale
+
+    def conv(p):
+        p = np.asarray(p, dtype=np.float64)
+        if up == 'z':
+            p = np.array([p[0], p[2], -p[1]])
+        return p * scale
+    polys = []
+    for rp in scene.polys:
+        pts = [conv(q) for q in rp.p]
+        uv, col = list(rp.uv), list(rp.col)
+        if args.flip:
+            pts.reverse()
+            uv.reverse()
+            col.reverse()
+        if len(pts) == 4:
+            # (a quad has to be flat to be drawn as one strip: else it is two triangles)
+            n = Poly(pts, uv, col, rp.mat).normal()
+            if not (abs(np.dot(pts[2] - pts[0], np.cross(pts[1] - pts[0], pts[3] - pts[0]))) < 1e-3 * max(1.0, np.linalg.norm(n))):
+                polys.append(Poly([pts[0], pts[1], pts[2]], uv[:3], col[:3], rp.mat))
+                polys.append(Poly([pts[0], pts[2], pts[3]], [uv[0], uv[2], uv[3]], [col[0], col[2], col[3]], rp.mat))
+                continue
+        polys.append(Poly(pts, uv, col, rp.mat))
+    markers = [(name, conv(pos)) for name, pos in scene.markers]
     return [p for p in polys if np.linalg.norm(p.normal()) > 0.5], markers
+
+
+def reduce_materials(polys, scene, limit):
+    """At most `limit` materials: the ones that cover least are changed for the one of the rest whose colour is most like theirs."""
+    area = {}
+    for p in polys:
+        a = 0.0
+        for i in range(1, len(p.p) - 1):
+            a += np.linalg.norm(np.cross(p.p[i] - p.p[0], p.p[i + 1] - p.p[0])) / 2
+        area[p.mat] = area.get(p.mat, 0.0) + a
+    if len(area) <= limit:
+        return
+    ranked = sorted(area, key=area.get, reverse=True)
+    keep, drop = ranked[:limit], ranked[limit:]
+    for m in ranked:
+        scene.mats[m].image()
+    remap = {}
+    for m in drop:
+        c = np.array(scene.mats[m].color)
+        best = min(keep, key=lambda k: float(np.linalg.norm(np.array(scene.mats[k].color) - c)) + (0.0 if scene.mats[k].translucent == scene.mats[m].translucent else 1.0))
+        remap[m] = best
+    for p in polys:
+        p.mat = remap.get(p.mat, p.mat)
+    print(f'{len(drop)} of {len(area)} materials were merged into the others')
 
 
 class Out:
@@ -390,13 +356,23 @@ def collision(polys):
 # ---------------------------------------------------------------- pads, spawns, pickups
 
 def make_pads(polys, boxes, args, markers):
+    """Pads on a grid over the floors (the grid is made wider when it would give more than `--max-pads`); links between neighbours."""
+    d = args.pad_spacing
+    for _ in range(6):
+        pads, links = _pads(polys, args, d)
+        if len(pads) <= args.max_pads:
+            break
+        d *= max(1.1, (len(pads) / args.max_pads) ** 0.5)
+    return pads, links
+
+
+def _pads(polys, args, d):
     """Pads on a grid over the floors: (x, y, z, room); links between neighbours."""
     floors = [(i, p) for i, p in enumerate(polys) if p.normal()[1] > FLOOR_NY]
     if not floors:
         return [], []
     allp = np.array([v for _, p in floors for v in p.p])
     lo, hi = allp.min(axis=0), allp.max(axis=0)
-    d = args.pad_spacing
     nx, nz = int((hi[0] - lo[0]) / d) + 1, int((hi[2] - lo[2]) / d) + 1
     # a grid of the heights at every point (a point can be over floors of several heights)
     cells = {}
@@ -452,12 +428,64 @@ def room_of(point, boxes):
     return 1
 
 
+def assign_halls(npads, links, target=16):
+    """Groups of connected pads (the game finds routes inside a group, and between groups by the links that cross): about `target` pads each,
+    numbered from 0.  The game's own levels have 20 to 45 groups, of 7 to 25 pads on average."""
+    nb = [[] for _ in range(npads)]
+    for a, b in links:
+        nb[a].append(b)
+        nb[b].append(a)
+    hall = [-1] * npads
+    count = 0
+    sizes = []
+    for seed in range(npads):
+        if hall[seed] >= 0:
+            continue
+        queue = [seed]
+        hall[seed] = count
+        n = 0
+        while queue and n < target:
+            cur = queue.pop(0)
+            n += 1
+            for o in nb[cur]:
+                if hall[o] < 0 and n + len(queue) < target:
+                    hall[o] = count
+                    queue.append(o)
+        # (pads put in the queue but not reached are kept: the group is what was claimed)
+        sizes.append(sum(1 for h in hall if h == count))
+        count += 1
+    # small groups join the neighbouring group they are linked to
+    changed = True
+    while changed:
+        changed = False
+        sz = {}
+        for h in hall:
+            sz[h] = sz.get(h, 0) + 1
+        for g in [g for g, n in sz.items() if n < 4]:
+            members = [i for i in range(npads) if hall[i] == g]
+            near = {}
+            for i in members:
+                for o in nb[i]:
+                    if hall[o] != g:
+                        near[hall[o]] = near.get(hall[o], 0) + 1
+            if near:
+                tgt = max(near, key=lambda k: (near[k] > 0, -sz[k]))
+                for i in members:
+                    hall[i] = tgt
+                changed = True
+                break
+    # numbered from 0 without gaps
+    remap = {g: i for i, g in enumerate(sorted(set(hall)))}
+    return [remap[h] for h in hall]
+
+
 def write_pads(pads, links, boxes, extra):
     out = struct.pack('<3I', 1, len(pads), len(links))
+    halls = assign_halls(len(pads), links)
     for i, (x, y, z, *_r) in enumerate(pads):
         # (the u16 at +8 is the pad's hall: a group of pads the bots' routes are worked out by; one hall for the whole level is what a level
         # without corridors has.  The u16 after it is the room, which the game sets itself)
-        out += struct.pack('<iIHHffff', 1001 + i, 1, 1, 0, x, y + 0.01, z, 0.0)
+        out += struct.pack('<iIHHffff', 1001 + i, 1, halls[i], 0, x, y + 0.01, z, 0.0)
     for a, b in links:
         out += struct.pack('<IiiII', 1, 1001 + a, 1001 + b, 0, 0)
     return out
@@ -583,30 +611,66 @@ def split_rooms(polys, args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('obj')
+    ap.add_argument('input')
     ap.add_argument('--out', required=True)
     ap.add_argument('--number', type=int, required=True)
     ap.add_argument('--name', required=True)
     ap.add_argument('--like', type=int, default=25)
-    ap.add_argument('--scale', type=float, default=1.0)
-    ap.add_argument('--up', choices=('y', 'z'), default='y')
+    ap.add_argument('--scale', type=float, default=None)
+    ap.add_argument('--up', choices=('y', 'z'), default=None)
     ap.add_argument('--flip', action='store_true')
     ap.add_argument('--room-size', type=float, default=0.0)
     ap.add_argument('--pad-spacing', type=float, default=5.0)
+    ap.add_argument('--max-pads', type=int, default=450)
     ap.add_argument('--step', type=float, default=1.0, help='the highest step a link may climb')
     ap.add_argument('--modes', default='dm,bagtag,ctb,ko')
     ap.add_argument('--tune', type=int, default=0)
+    ap.add_argument('--max-textures', type=int, default=90)
+    ap.add_argument('--materials', action='append', default=[])
+    ap.add_argument('--wad', action='append', default=[])
+    ap.add_argument('--blender', default=None)
     ap.add_argument('--tex-base', type=int, default=0)
+    ap.add_argument('--radius', type=float, default=0.0, help='keep only the part of the level within this distance (game units) of --center')
+    ap.add_argument('--center', default=None, help='x,z of the middle of the part kept by --radius (default: the first spawn, else the middle of the level)')
     ap.add_argument('--spawns', type=int, default=16)
     ap.add_argument('--weapons', type=int, default=3, help='how many of each weapon slot are laid out without markers')
     args = ap.parse_args()
     if not 31 <= args.number <= 99:
         sys.exit('--number has to be 31 to 99')
-    verts, colours, uvs, faces, mats = read_obj(args.obj)
-    polys, markers = build_polys(verts, colours, uvs, faces, args)
+    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender})
+    polys, markers = build_polys(scene, args)
     if not polys:
         sys.exit('no faces')
-    base = args.tex_base or 4000 + 40 * (args.number - 31)
+    print(f'{scene.label}: {len(polys)} polygons, {len(scene.mats)} materials, {len(markers)} markers')
+    if args.radius > 0:
+        if args.center:
+            cx, cz = (float(x) for x in args.center.split(','))
+        else:
+            sp = [v for k, v in markers if k.lower().startswith('spawn')]
+            allp = np.array([q for p in polys for q in p.p])
+            cx, cz = (sp[0][0], sp[0][2]) if sp else ((allp[:, 0].min() + allp[:, 0].max()) / 2, (allp[:, 2].min() + allp[:, 2].max()) / 2)
+        # (a polygon that reaches into the square is cut to it: a big ground face has its middle far away)
+        R = args.radius
+        cut = []
+        for p in polys:
+            xs = [q[0] for q in p.p]
+            zs = [q[2] for q in p.p]
+            if max(xs) < cx - R or min(xs) > cx + R or max(zs) < cz - R or min(zs) > cz + R:
+                continue
+            parts = [p]
+            for axis, value, below in ((0, cx + R, True), (0, cx - R, False), (2, cz + R, True), (2, cz - R, False)):
+                nxt = []
+                for q in parts:
+                    nxt += clip_poly(q, axis, value, below)
+                parts = nxt
+            cut += [q for q in parts if np.linalg.norm(q.normal()) > 0.5]
+        polys = cut
+        markers = [(k, v) for k, v in markers if abs(v[0] - cx) <= args.radius and abs(v[2] - cz) <= args.radius]
+        print(f'kept {len(polys)} polygons within {args.radius} (a square) of ({cx:.1f}, {cz:.1f})')
+        if not polys:
+            sys.exit('nothing is left')
+    reduce_materials(polys, scene, args.max_textures)
+    base = args.tex_base or 4000 + 100 * (args.number - 31)
     out = args.out
     os.makedirs(os.path.join(out, 'BG.PAK', 'bg', f'level{args.number}'), exist_ok=True)
     os.makedirs(os.path.join(out, 'MISC.PAK', 'pad', 'data'), exist_ok=True)
@@ -617,15 +681,19 @@ def main():
     for p in polys:
         if p.mat not in names:
             names.append(p.mat)
-    if len(names) > 36:
-        sys.exit(f'{len(names)} materials: at most 36 (merge some)')
     tex_numbers = {}
     for k, m in enumerate(names):
-        img, translucent = load_material(m, mats.get(m, {}))
+        mat = scene.mats[m]
+        img = material_image(mat)
         num = base + k
-        tex_numbers[m] = (num, translucent)
+        tex_numbers[m] = (num, bool(mat.translucent))
         open(os.path.join(out, 'MISC.PAK', 'textures', f'{num:04d}.qpm'), 'wb').write(png2qpm.make_qpm(fit_texture(img)))
     rooms, boxes, portals = split_rooms(polys, args)
+    # (the game has room for about 200 rooms: the grid is made coarser until there are fewer)
+    while len(rooms) > MAX_ROOMS and args.room_size > 0:
+        args.room_size *= 1.25
+        print(f'{len(rooms)} rooms are too many: room size {args.room_size:.1f}')
+        rooms, boxes, portals = split_rooms(polys, args)
     bg = write_bg(polys, tex_numbers, args, rooms, boxes, portals)
     open(os.path.join(out, 'BG.PAK', 'bg', f'level{args.number}', f'level{args.number}.raw'), 'wb').write(bg)
     pads, links = make_pads([p for r in rooms for p in r], boxes, args, markers)
@@ -634,20 +702,20 @@ def main():
     open(os.path.join(out, 'MISC.PAK', 'pad', 'data', f'level{args.number}.raw'), 'wb').write(write_pads(pads, links, boxes, markers))
     open(os.path.join(out, 'MISC.PAK', 'propsetup', 'data', f'level{args.number}.raw'), 'wb').write(struct.pack('<2I', 1, 0))
     # the set-up: spawns, weapons, pickups
-    setup = []
-    modes = 0
-    for m in args.modes.split(','):
-        modes |= MODES[m.strip()]
-    setup.append('modes ' + args.modes)
-    spawn_pads = [nearest_pad(pads, v) for k, v in sorted(markers.items()) if k.lower().startswith('spawn')]
+    setup = ['modes ' + args.modes]
+    spawn_pads = sorted({nearest_pad(pads, v) for k, v in markers if k.lower().startswith('spawn')})
     if not spawn_pads:
         spawn_pads = pick_spread(pads, args.spawns)
+    spawn_pads = spawn_pads[:64]
     for i in spawn_pads:
         setup.append(f'spawn {1001 + i}')
-    weapons = [(k, nearest_pad(pads, v)) for k, v in sorted(markers.items()) if k.lower().startswith('weapon')]
+    weapons = []
+    for k, v in markers:
+        m = re.match(r'weapon(\d)', k.lower())
+        if m and 1 <= int(m.group(1)) <= 5:
+            weapons.append((int(m.group(1)), nearest_pad(pads, v)))
     if weapons:
-        for k, i in weapons:
-            slot = int(''.join(c for c in k if c.isdigit()) or 1)
+        for slot, i in weapons[:100]:
             setup.append(f'weapon {slot} {1001 + i}')
     else:
         taken = list(spawn_pads)
@@ -655,11 +723,10 @@ def main():
             for i in pick_spread(pads, args.weapons, taken):
                 taken.append(i)
                 setup.append(f'weapon {slot} {1001 + i}')
-    for k, v in sorted(markers.items()):
-        if k.lower().startswith('pickup'):
-            digits = ''.join(c for c in k[6:] if c.isdigit() or c == '-')
-            if digits:
-                setup.append(f'pickup {digits} {1001 + nearest_pad(pads, v)}')
+    for k, v in markers:
+        m = re.match(r'pickup(-?\d+)', k.lower())
+        if m:
+            setup.append(f'pickup {m.group(1)} {1001 + nearest_pad(pads, v)}')
     open(os.path.join(out, 'setup.txt'), 'w').write('\n'.join(setup) + '\n')
     line = f'level {args.number} "{args.name}" like {args.like}' + (f' tune {args.tune}' if args.tune else '') + f' modes {args.modes} setup setup.txt\n'
     open(os.path.join(out, 'levels.txt'), 'w').write(line)

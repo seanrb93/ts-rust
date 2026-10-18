@@ -309,7 +309,7 @@ A mod can hold:
 Levels: a mod can add levels to the arcade list with a `levels.txt` (see `examples/levels_sample/`): `level <number 31..99> "<name>" like <game level 1..30> [tune <track>] [modes dm,bagtag,ctb,escort,ko,ls] [setup <file>]`.
 `manual/customlevels.rs` copies the level table (`lvinfo`) and the tables of texts into the port's memory with the new levels (up to 28), and the arcade page lists them after Ron
 (`av_arcade_levels`); a new level has the record, the arcade set-up and the data files of the level it is `like` unless the mod has files of its own under its number.  Story and Challenge
-are not changed.  A level's own files (the formats are in `docs/level-formats.md`) can be supplied, and `tools/obj2level.py` makes them from a 3D model in the OBJ format (see
+are not changed.  A level's own files (the formats are in `docs/level-formats.md`) can be supplied, and `tools/obj2level.py` makes them from a Blender file, glTF, OBJ, a Source engine map (Half-Life 2, Garry's Mod, ...) or a GoldSrc map (see `docs/level-converter.md` and
 `examples/obj_level_sample/`): the world with its textures, floors and walls to collide with, rooms and portals for large levels, the pads the bots walk by, and a `setup.txt` (the line
 `setup <file>` of `levels.txt`) with the spawns and weapons by the numbers of the pads.  `python tools/lvdump.py <PAK folder>` reads the game's own level files with these layouts.
 

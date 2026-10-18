@@ -1,6 +1,6 @@
 # Level from a 3D model
 
-`tools/obj2level.py` turns a Wavefront OBJ model (Blender and most 3D tools export one) into a mod folder with a level that shows up in the
+`tools/obj2level.py` turns a 3D model (OBJ here; also glTF, `.blend`, and maps of Source and GoldSrc games: see `docs/level-converter.md`) into a mod folder with a level that shows up in the
 arcade level list.  This sample makes a small arena to try it on; the pictures are drawn by the script, nothing of the game's is used.
 
 ```
