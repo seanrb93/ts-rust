@@ -68,7 +68,7 @@ tick, the port used the float frame time) and the changes the port made to `prop
 Two functions are too long and too tangled to understand yet, and are kept as the machine translation with the frame's scratch words turned into named locals (`slot_N`) and the
 names of the original's registers: `obMergePolys` (`polygon-merging.rs`, matches the original on the verifier's small-number pass) and `glassSetQuad` (`glass-shard.rs`; the verifier
 does not pass stack arguments, so every run faults and it is **not** machine-verified).  They are counted as decompiled but should be rewritten when the structures they use are typed.
-`enemyReselectTarget` has control flow that cannot be written without jumps and is still the generated code (a loop over the address of the block).
+The two functions that the generator could only write as a loop over the address of the block (`emGetNextPos`, `enemyReselectTarget`) have been rewritten by hand from their blocks; note that random data seldom reaches the deep branches of `enemyReselectTarget` (the game mode there is usually out of range), so its verification is weak there.
 
 ## Verifier: faults past the port's RAM
 

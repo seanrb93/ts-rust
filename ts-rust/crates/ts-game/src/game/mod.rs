@@ -260,6 +260,8 @@ pub mod polygon_merging;
 pub mod glass_shard;
 #[path = "texture-memory-slots.rs"]
 pub mod texture_memory_slots;
+#[path = "enemy-target-reselection.rs"]
+pub mod enemy_target_reselection;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -394,3 +396,4 @@ pub use circle_to_line_hit::*;
 pub use polygon_merging::*;
 pub use glass_shard::*;
 pub use texture_memory_slots::*;
+pub use enemy_target_reselection::*;
