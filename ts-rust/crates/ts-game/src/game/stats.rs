@@ -198,3 +198,15 @@ pub fn StatsResetStruct(stats: i32) {
         }
     }
 }
+
+/// Clear the statistics of all 14 slots (1368 bytes each from `matchstats`) and set the three words after each record's table (@ 0x220a48).
+pub fn StatsReset() {
+    for i in 0..14 {
+        let rec = g::matchstats + 1368 * i;
+        StatsResetStruct(rec);
+        sw(rec + 1272, 0);
+        sw(rec + 1356, 0);
+        swc1(rec + 1364, -100.0);
+        sw(rec + 1360, 0);
+    }
+}

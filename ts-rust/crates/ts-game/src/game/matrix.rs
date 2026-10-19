@@ -127,3 +127,39 @@ pub fn matrixVecMul(m: i32, v: i32) {
         swc1(v + 4 * i as i32, *o);
     }
 }
+
+/// The quaternion (x, y, z, w) of the rotation matrix `m`: from the trace when it is positive, else from the largest diagonal element (the next
+/// indices are the game's table of three words at 0x3a9a80) (@ 0x2b56d8).
+pub fn matrixToQuaternion(q: i32, m: i32) {
+    let at = |row: i32, col: i32| lwc1(m + 16 * row + 4 * col);
+    let next = [lw(0x3a9a80), lw(0x3a9a84), lw(0x3a9a88)];
+    let trace = at(0, 0) + at(1, 1) + at(2, 2);
+    if !(0.0 < trace) {
+        let mut i = 0;
+        if at(0, 0) < at(1, 1) {
+            i = 1;
+        }
+        if at(i, i) < at(2, 2) {
+            i = 2;
+        }
+        let j = next[i as usize];
+        let k = next[j as usize];
+        let s = (at(i, i) - (at(j, j) + at(k, k)) + 1.0).abs().sqrt();
+        let scale = 0.5_f32 / s;
+        let mut out = [0.0_f32; 3];
+        out[i as usize] = s * 0.5;
+        out[j as usize] = (at(i, j) + at(j, i)) * scale;
+        out[k as usize] = (at(i, k) + at(k, i)) * scale;
+        swc1(q, out[0]);
+        swc1(q + 4, out[1]);
+        swc1(q + 8, out[2]);
+        swc1(q + 12, (at(j, k) - at(k, j)) * scale);
+    } else {
+        let root = (trace + 1.0).abs().sqrt();
+        let scale = 0.5_f32 / root;
+        swc1(q + 12, (trace + 1.0).abs().sqrt() * 0.5);
+        swc1(q, (at(1, 2) - at(2, 1)) * scale);
+        swc1(q + 4, (at(2, 0) - at(0, 2)) * scale);
+        swc1(q + 8, (at(0, 1) - at(1, 0)) * scale);
+    }
+}

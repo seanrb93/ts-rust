@@ -112,6 +112,8 @@ pub mod bullet_mines;
 pub mod display_list_shapes;
 #[path = "collision-lists-and-pad-tiles.rs"]
 pub mod collision_lists_and_pad_tiles;
+#[path = "map-maker-drawing.rs"]
+pub mod map_maker_drawing;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -172,3 +174,4 @@ pub use menu_layout::*;
 pub use bullet_mines::*;
 pub use display_list_shapes::*;
 pub use collision_lists_and_pad_tiles::*;
+pub use map_maker_drawing::*;
