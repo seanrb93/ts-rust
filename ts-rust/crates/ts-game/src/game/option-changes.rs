@@ -354,3 +354,8 @@ pub fn memdbTick() {
     sw(0x3afe14, b);
     sw(0x3afe0c, b);
 }
+
+/// A fan shadow turns like the fan (@ 0x2790e0).
+pub fn fanshadowPropTick(prop: i32) {
+    spin_up(prop, 5.0);
+}

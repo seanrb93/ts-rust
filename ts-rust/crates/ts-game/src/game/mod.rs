@@ -128,6 +128,12 @@ pub mod skeleton_walks;
 pub mod animation_roots_and_collision_lists;
 #[path = "cheat-characters.rs"]
 pub mod cheat_characters;
+#[path = "tile-setup.rs"]
+pub mod tile_setup;
+#[path = "window-and-palette-packets.rs"]
+pub mod window_and_palette_packets;
+#[path = "pad-editor-input.rs"]
+pub mod pad_editor_input;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -196,3 +202,6 @@ pub use map_maker_object_lists::*;
 pub use skeleton_walks::*;
 pub use animation_roots_and_collision_lists::*;
 pub use cheat_characters::*;
+pub use tile_setup::*;
+pub use window_and_palette_packets::*;
+pub use pad_editor_input::*;
