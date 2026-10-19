@@ -250,6 +250,8 @@ pub mod rooms_of_pads_and_props_and_page_background;
 pub mod character_respawn;
 #[path = "timesplitter-attack.rs"]
 pub mod timesplitter_attack;
+#[path = "story-level-setup.rs"]
+pub mod story_level_setup;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -379,3 +381,4 @@ pub use zoom_box_pages_and_character_select::*;
 pub use rooms_of_pads_and_props_and_page_background::*;
 pub use character_respawn::*;
 pub use timesplitter_attack::*;
+pub use story_level_setup::*;
