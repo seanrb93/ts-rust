@@ -264,3 +264,111 @@ pub fn hudMeterGfx(x: i32, y: i32, width: i32, height: i32, colour: i32, strengt
     }
     dlFillRectangle(from, y, right - 1, bottom - 1, 0x28282864);
 }
+
+/// Draw a textured rectangle given in floats: the colour 0xrrggbbaa, texture coordinates (`u0`, `v0`) - (`u1`, `v1`) (plus 8), positions (`x0`, `y0`) - (`x1`, `y1`) in 16ths of
+/// a pixel; the depth test is switched off for it (@ 0x2b8df8).
+pub fn dlTextureRectangleFloat(u0: i32, v0: i32, u1: i32, v1: i32, colour: i32, x0: f32, y0: f32, x1: f32, y1: f32) {
+    let packet = memdbAlloc(80);
+    let previous = dlSetZB(0);
+    sb(lw(g::gfxtag) + 3, 48);
+    let begin = lw(g::gfxtag);
+    let scale = 16.0_f32;
+    sw(begin + 4, g::texrect_begin);
+    sh(begin, 2);
+    sw(g::gfxtag, begin + 16);
+    sb(begin + 16 + 3, 48);
+    sw(packet, ((colour as u32) >> 24) as i32);
+    let tag = lw(g::gfxtag);
+    sw(tag + 4, packet);
+    // the words of the packet and the stores that come between them are in the order of the original (the packet may overlap what they write)
+    let first = [colour >> 16 & 255, colour >> 8 & 255, colour & 255, u0 + 8, v0 + 8, 0, 0];
+    for (i, w) in first.iter().enumerate() {
+        sw(packet + 4 + 4 * i as i32, *w);
+    }
+    sh(tag, 5);
+    sw(packet + 32, (x0 * scale) as i32 + 0x6c00);
+    sw(g::gfxtag, tag + 16);
+    let rest = [
+        (y0 * scale) as i32 + 0x7900,
+        -1,
+        0,
+        u1 + 8,
+        v1 + 8,
+        0,
+        0,
+        (x1 * scale) as i32 + 0x6c00,
+        (y1 * scale) as i32 + 0x7900,
+        -1,
+        0,
+    ];
+    for (i, w) in rest.iter().enumerate() {
+        sw(packet + 36 + 4 * i as i32, *w);
+    }
+    sb(tag + 16 + 3, 48);
+    let end = lw(g::gfxtag);
+    sw(end + 4, g::texrect_end);
+    sh(end, 1);
+    sw(g::gfxtag, end + 16);
+    dlSetZB(previous);
+}
+
+/// Draw a triangle strip of `count` vertices from `points` (a colour word, x and y as integers, and for a textured strip `textured` u and v: 12 or 20 bytes each) (@ 0x2b8a10).
+pub fn dlDrawTriangleStrip(points: i32, count: i32, textured: i32) {
+    let per_vertex = if textured != 0 { 3 } else { 2 };
+    let quadwords = count * per_vertex + 2;
+    let packet = memdbAlloc(quadwords << 4);
+    sb(lw(g::gfxtag) + 3, 48);
+    let tag = lw(g::gfxtag);
+    sw(packet, (quadwords - 1) << 16 | 0x6c008000);
+    sw(tag + 4, packet);
+    sw(packet + 4, count + 0x8000);
+    sw(packet + 8, if textured != 0 { 0x30ae4000 } else { 0x20264000 });
+    sw(packet + 12, if textured != 0 { 1299 } else { 81 });
+    sw(packet + 16, 0);
+    sh(tag, quadwords);
+    sw(g::gfxtag, tag + 16);
+    let mut cursor = packet + 20;
+    let mut src = points;
+    let scale = 16.0_f32;
+    for _ in 0..count.max(0) {
+        let colour = lw(src);
+        let x = lw(src + 4) as f32;
+        let y = lw(src + 8) as f32;
+        src += 12;
+        if textured != 0 {
+            let u = lw(src);
+            let v = lw(src + 4);
+            src += 8;
+            sw(cursor, u + 8);
+            sw(cursor + 4, v + 8);
+            sw(cursor + 8, 0);
+            sw(cursor + 12, 0);
+            cursor += 16;
+        }
+        sw(cursor, ((colour as u32) >> 24) as i32);
+        sw(cursor + 4, ((colour as u32) >> 16) as i32 & 255);
+        sw(cursor + 8, ((colour as u32) >> 8) as i32 & 255);
+        sw(cursor + 12, colour & 255);
+        sw(cursor + 16, (x * scale) as i32 + 0x6c00);
+        sw(cursor + 20, (y * scale) as i32 + 0x7900);
+        sw(cursor + 24, -1);
+        sw(cursor + 28, 0);
+        cursor += 32;
+    }
+    sw(cursor, 0x140007fc);
+    sw(cursor + 4, 0x11000000);
+    sw(cursor + 8, 0);
+}
+
+/// Make the screen the texture of the next drawing: a packet that sets the texture registers for the frame buffer at page `page` (@ 0x295dd0).
+pub fn ipSetScreenAsTexture(page: i32) {
+    let low = page << 5 | 0x28228000;
+    push_packet(
+        112,
+        0x6c068000,
+        7,
+        &[
+            0x8005, 0x108f4000, 14, 0, 0, 0, 63, 0, 127, 127, 59, 0, 0, 0, 20, 0, low, 2, 6, 0, 0x9fc00a, 892, 8, 0, 0x140007fc, 0x11000000, 0,
+        ],
+    );
+}

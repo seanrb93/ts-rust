@@ -138,6 +138,8 @@ pub mod pad_editor_input;
 pub mod credits_and_front_end_lights;
 #[path = "enemy-choices-and-room-lights.rs"]
 pub mod enemy_choices_and_room_lights;
+#[path = "animation-data-and-colours.rs"]
+pub mod animation_data_and_colours;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -211,3 +213,4 @@ pub use window_and_palette_packets::*;
 pub use pad_editor_input::*;
 pub use credits_and_front_end_lights::*;
 pub use enemy_choices_and_room_lights::*;
+pub use animation_data_and_colours::*;

@@ -79,3 +79,57 @@ pub fn mmFindPlug(object: i32, plug: i32, x: i32, y: i32, z: i32) -> i32 {
     }
     0
 }
+
+/// The cell of the map maker at (`x`, `y`): the object under the point (or, while an object is carried, the one under the mouse, flag 0x800000), and the byte of its tile
+/// at that cell; 0 when there is none.  Flag 16 says the cell came from the mouse (@ 0x2452e8).
+pub fn mmCellBits(x: i32, y: i32) -> i32 {
+    let object = mmCheckObject(x, y);
+    let flags = lw(g::editflags);
+    if object != 0 {
+        let tile = lw(object + (lw(object + 24) << 2) + 36);
+        let cells = lw(tile + ((lw(g::editlevel) - lw(object + 20)) << 2) + 12);
+        let index = ((y - lw(object + 16)) >> 21) * lw(tile) + ((x - lw(object + 12)) >> 21);
+        sw(g::editflags, lw(g::editflags) & -17);
+        sw(g::mmcellobject, object);
+        return lbu(cells + index);
+    }
+    if flags & 0x800000 != 0 {
+        let front = lw(g::front);
+        if lw(g::usedobj) != 0 {
+            let scale_x = lw(g::scale_wtomx);
+            let mouse_x = (lh(front + 34) - lw(g::w_x)) << 16;
+            let moved_x = FMul(mouse_x, scale_x);
+            let scale_y = lw(g::scale_wtomy);
+            let view_x = lw(g::m_x) + moved_x as i32 + 0x100000;
+            let mouse_y = (lh(lw(g::front) + 38) - lw(g::w_y)) << 16;
+            let moved_y = FMul(mouse_y, scale_y);
+            let mut candidate = lw(g::usedobj);
+            let view_y = lw(g::m_y) + moved_y as i32 + 0x100000;
+            while candidate != 0 {
+                if lw(candidate) == 1 {
+                    let level = 0 - lw(candidate + 20);
+                    let tile = lw(candidate + (lw(candidate + 24) << 2) + 36);
+                    if (level as u32) < (lw(tile + 8) as u32) {
+                        let width = lw(tile);
+                        let dx = x - (view_x + lw(candidate + 12) & -0x200000);
+                        let height = lw(tile + 4) << 21;
+                        let top = view_y + lw(candidate + 16) & -0x200000;
+                        if (dx as u32) < ((width << 21) as u32) {
+                            let dy = y - top;
+                            if (dy as u32) < (height as u32) {
+                                let cells = lw(tile + (level << 2) + 12);
+                                sw(g::editflags, lw(g::editflags) | 16);
+                                let index = (dy >> 21) * width + (dx >> 21);
+                                sw(g::mmcellobject, candidate);
+                                return lbu(cells + index);
+                            }
+                        }
+                    }
+                }
+                candidate = lw(candidate + 56);
+            }
+        }
+    }
+    sw(g::mmcellobject, 0);
+    0
+}
