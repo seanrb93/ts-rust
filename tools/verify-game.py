@@ -19,7 +19,7 @@ BY_DESIGN = set()
 
 
 # recursion over a structure the random data makes endless overflows the host stack (the interpreter stops, the Rust code cannot): reviewed only
-UNVERIFIABLE = {'partSetTextureOffset'}
+UNVERIFIABLE = {'partSetTextureOffset', 'obSetTexList'}
 
 
 def arg(name, default):

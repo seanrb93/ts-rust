@@ -124,6 +124,10 @@ pub mod character_sets_and_teams;
 pub mod map_maker_object_lists;
 #[path = "skeleton-walks.rs"]
 pub mod skeleton_walks;
+#[path = "animation-roots-and-collision-lists.rs"]
+pub mod animation_roots_and_collision_lists;
+#[path = "cheat-characters.rs"]
+pub mod cheat_characters;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -190,3 +194,5 @@ pub use pickup_positions::*;
 pub use character_sets_and_teams::*;
 pub use map_maker_object_lists::*;
 pub use skeleton_walks::*;
+pub use animation_roots_and_collision_lists::*;
+pub use cheat_characters::*;
