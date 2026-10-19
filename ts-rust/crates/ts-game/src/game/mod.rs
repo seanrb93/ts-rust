@@ -230,6 +230,8 @@ pub mod set_animation;
 pub mod unlock_availability;
 #[path = "look-at-transform-and-head-props.rs"]
 pub mod look_at_transform_and_head_props;
+#[path = "tiles-and-path-steps.rs"]
+pub mod tiles_and_path_steps;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -349,3 +351,4 @@ pub use map_maker_dialog::*;
 pub use set_animation::*;
 pub use unlock_availability::*;
 pub use look_at_transform_and_head_props::*;
+pub use tiles_and_path_steps::*;
