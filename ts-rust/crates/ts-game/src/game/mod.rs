@@ -236,6 +236,10 @@ pub mod tiles_and_path_steps;
 pub mod screen_effects_and_textured_icons;
 #[path = "front-end-logo-and-glass-line-test.rs"]
 pub mod front_end_logo_and_glass_line_test;
+#[path = "zoom-box-drawing.rs"]
+pub mod zoom_box_drawing;
+#[path = "enemy-idle-animation.rs"]
+pub mod enemy_idle_animation;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -358,3 +362,5 @@ pub use look_at_transform_and_head_props::*;
 pub use tiles_and_path_steps::*;
 pub use screen_effects_and_textured_icons::*;
 pub use front_end_logo_and_glass_line_test::*;
+pub use zoom_box_drawing::*;
+pub use enemy_idle_animation::*;
