@@ -1,6 +1,6 @@
 //! The coop target, controller axes, prop searches, reload reset, editing, the tomb story trigger, quaternion matrices and portal visibility.
 
-use super::setters4::controller;
+use super::controllers::controller;
 use super::stats::stats_slot_in_play;
 use crate::*;
 

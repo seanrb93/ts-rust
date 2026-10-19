@@ -1,6 +1,6 @@
 //! Memory pools, stars, animation state tests, route searches and more short functions.
 
-use super::setters4::controller_slot;
+use super::controllers::controller_slot;
 use crate::*;
 
 /// How many sign-on profiles are used, counting from the start until the first unused one (up to 144) (@ 0x220890).

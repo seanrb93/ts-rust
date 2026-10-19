@@ -1,6 +1,6 @@
 //! Map maker items, the sign-on table, preload, the zoom boxes and more short functions.
 
-use super::setters4::controller;
+use super::controllers::controller;
 use crate::*;
 
 /// @ 0x20f5d8

@@ -22,6 +22,13 @@ on your own machine from your own copy of the game).  This project turns it, fun
    meaning is known.
 4. No game data in the repository: no extracted tables, no text, no pictures.  Data stays in the game's files and is read at run time.
 
+## File names
+
+Files follow the Google developer documentation style for file names (https://developers.google.com/style/filenames): lowercase, words
+separated by hyphens, no spaces or special characters, and a name that says what is in the file (`debug-flags.rs`, `route-tables-and-kills.rs`, never
+`misc2.rs`).  Rust module names cannot contain hyphens, so `game/mod.rs` declares such a file with `#[path = "debug-flags.rs"] pub mod debug_flags;`.
+A file holds one subsystem or theme; when a theme grows, split it and name the parts by what they hold.
+
 ## Workflow
 
 1. Pick a function (`python tools/disasm.py <name>` shows the machine code; the generated Rust is in `dec/`).
@@ -29,7 +36,7 @@ on your own machine from your own copy of the game).  This project turns it, fun
 3. Regenerate (`python tools/gen_rust.py`, with `Game Files/SLUS_200.90` in place) so the generated copy is dropped, and build.
 4. Prove it equal to the machine code: `ts-verify --elf <SLUS_200.90> --n 500 name1 name2 ...` runs the original instructions and the Rust on
    random inputs and compares results and every memory write.  Functions that call others are checked with those calls included.
-   `python tools/verify_game.py [--regen]` does this for every function in `game/`.  Functions whose original code does not finish on random
+   `python tools/verify-game.py [--regen]` does this for every function in `game/`.  Functions whose original code does not finish on random
    data (loops over lists) get a second pass with small numbers (`TS_VERIFY_SMALL=1`); a few that use instructions the interpreter lacks
    (the 128-bit stores of `memMark`) are only reviewed.  Functions that read the port's relocated tables (the prop table, `GUNCOMBOS`) differ
    from the machine code on purpose and are listed in `BY_DESIGN` in that script.  The live shadow mode (`TS_SHADOW`, see the README)

@@ -1,6 +1,6 @@
 """Build ts-verify and prove every hand-decompiled function (ts-game/src/game) equal to the machine code.
 
-    python tools/verify_game.py [--n 500] [--elf path/to/SLUS_200.90] [--regen]
+    python tools/verify-game.py [--n 500] [--elf path/to/SLUS_200.90] [--regen]
 
 `--regen` runs tools/gen_rust.py first (it needs `Game Files/SLUS_200.90`, which is copied from --elf for the run and removed after).
 """
