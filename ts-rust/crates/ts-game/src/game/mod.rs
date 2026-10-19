@@ -220,6 +220,10 @@ pub mod pad_tile_adding;
 pub mod look_matrix_and_texture_rectangle;
 #[path = "line-cylinder-test.rs"]
 pub mod line_cylinder_test;
+#[path = "closest-explosion-light.rs"]
+pub mod closest_explosion_light;
+#[path = "map-maker-dialog.rs"]
+pub mod map_maker_dialog;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -334,3 +338,5 @@ pub use lasso_selection::*;
 pub use pad_tile_adding::*;
 pub use look_matrix_and_texture_rectangle::*;
 pub use line_cylinder_test::*;
+pub use closest_explosion_light::*;
+pub use map_maker_dialog::*;
