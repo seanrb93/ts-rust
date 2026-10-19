@@ -216,6 +216,10 @@ pub mod sign_on_menu;
 pub mod lasso_selection;
 #[path = "pad-tile-adding.rs"]
 pub mod pad_tile_adding;
+#[path = "look-matrix-and-texture-rectangle.rs"]
+pub mod look_matrix_and_texture_rectangle;
+#[path = "line-cylinder-test.rs"]
+pub mod line_cylinder_test;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -328,3 +332,5 @@ pub use pickup_position_packets::*;
 pub use sign_on_menu::*;
 pub use lasso_selection::*;
 pub use pad_tile_adding::*;
+pub use look_matrix_and_texture_rectangle::*;
+pub use line_cylinder_test::*;
