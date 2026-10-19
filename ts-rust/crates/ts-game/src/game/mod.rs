@@ -67,6 +67,15 @@ pub mod types;
 pub mod vectors;
 #[path = "windows-and-clock.rs"]
 pub mod windows_and_clock;
+#[path = "scores-and-links.rs"]
+pub mod scores_and_links;
+#[path = "route-deletion.rs"]
+pub mod route_deletion;
+pub mod particles;
+#[path = "sound-delays.rs"]
+pub mod sound_delays;
+#[path = "portal-init-and-prop-rooms.rs"]
+pub mod portal_init_and_prop_rooms;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -104,3 +113,8 @@ pub use text_and_bones::*;
 pub use types::*;
 pub use vectors::*;
 pub use windows_and_clock::*;
+pub use scores_and_links::*;
+pub use route_deletion::*;
+pub use particles::*;
+pub use sound_delays::*;
+pub use portal_init_and_prop_rooms::*;
