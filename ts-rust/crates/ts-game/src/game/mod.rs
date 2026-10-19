@@ -186,6 +186,10 @@ pub mod burst_spawner;
 pub mod timesplitter_effect_ticks;
 #[path = "prop-floor-height-in-room.rs"]
 pub mod prop_floor_height_in_room;
+#[path = "line-box-and-triangle-tests.rs"]
+pub mod line_box_and_triangle_tests;
+#[path = "part-centre-and-room-boxes.rs"]
+pub mod part_centre_and_room_boxes;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -283,3 +287,5 @@ pub use particle_ticks::*;
 pub use burst_spawner::*;
 pub use timesplitter_effect_ticks::*;
 pub use prop_floor_height_in_room::*;
+pub use line_box_and_triangle_tests::*;
+pub use part_centre_and_room_boxes::*;
