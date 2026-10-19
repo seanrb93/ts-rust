@@ -150,6 +150,22 @@ pub mod overrides_teams_and_glass;
 pub mod model_relocation_and_animation_bases;
 #[path = "hit-tests-and-lifestats.rs"]
 pub mod hit_tests_and_lifestats;
+#[path = "particle-spawners.rs"]
+pub mod particle_spawners;
+#[path = "spark-spawners.rs"]
+pub mod spark_spawners;
+#[path = "aim-and-wake-up.rs"]
+pub mod aim_and_wake_up;
+#[path = "prop-scrolling-textures.rs"]
+pub mod prop_scrolling_textures;
+#[path = "hud-pain-and-credits-text.rs"]
+pub mod hud_pain_and_credits_text;
+#[path = "window-swap-cursor-and-mini-tile.rs"]
+pub mod window_swap_cursor_and_mini_tile;
+#[path = "enemy-pad-and-player-controls.rs"]
+pub mod enemy_pad_and_player_controls;
+#[path = "floor-height-and-route-expansion.rs"]
+pub mod floor_height_and_route_expansion;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -229,3 +245,11 @@ pub use interface_drawing::*;
 pub use overrides_teams_and_glass::*;
 pub use model_relocation_and_animation_bases::*;
 pub use hit_tests_and_lifestats::*;
+pub use particle_spawners::*;
+pub use spark_spawners::*;
+pub use aim_and_wake_up::*;
+pub use prop_scrolling_textures::*;
+pub use hud_pain_and_credits_text::*;
+pub use window_swap_cursor_and_mini_tile::*;
+pub use enemy_pad_and_player_controls::*;
+pub use floor_height_and_route_expansion::*;

@@ -59,6 +59,14 @@ dual wield pairs and levels of mods are not available; the converter's big level
 To do later, once the code matches: bring the extended tables back as real data structures of the decompiled code instead of moved addresses,
 and take back the other limits the port raised (instance and prop counts of a level, the big memory pool, the room lists by depth) in the same way.
 
+## Verifier: faults past the port's RAM
+
+`ts-verify` ignores a native fault on an address at or above 0x0800_0000 when the interpreter ran the original function to the end without a fault.
+The interpreter wraps addresses past the end of the port's RAM, the port faults on them, so a function given garbage pointers (first seen with
+`obCalcChunkBounds`) failed for a reason that is not a difference in the code.  The guard could hide a real bug where the port reads a wild address that the
+original does not.  To do later: give the interpreter and the port the same behaviour for such addresses (both fault, or both wrap), then remove the guard
+in `ts-verify/src/main.rs` and check that no function fails.
+
 ## Later
 
 When most of a subsystem is decompiled, its data moves from raw addresses into Rust types, the guest-memory calls of that subsystem go away,
