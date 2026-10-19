@@ -172,6 +172,12 @@ pub mod room_clip_and_line_plane_tests;
 pub mod enemy_reaction_time;
 #[path = "map-maker-placement-check.rs"]
 pub mod map_maker_placement_check;
+#[path = "map-view-help-text.rs"]
+pub mod map_view_help_text;
+#[path = "front-end-controls-tick.rs"]
+pub mod front_end_controls_tick;
+#[path = "portal-crossing.rs"]
+pub mod portal_crossing;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -262,3 +268,6 @@ pub use floor_height_and_route_expansion::*;
 pub use room_clip_and_line_plane_tests::*;
 pub use enemy_reaction_time::*;
 pub use map_maker_placement_check::*;
+pub use map_view_help_text::*;
+pub use front_end_controls_tick::*;
+pub use portal_crossing::*;
