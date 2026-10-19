@@ -178,6 +178,14 @@ pub mod map_view_help_text;
 pub mod front_end_controls_tick;
 #[path = "portal-crossing.rs"]
 pub mod portal_crossing;
+#[path = "particle-ticks.rs"]
+pub mod particle_ticks;
+#[path = "burst-spawner.rs"]
+pub mod burst_spawner;
+#[path = "timesplitter-effect-ticks.rs"]
+pub mod timesplitter_effect_ticks;
+#[path = "prop-floor-height-in-room.rs"]
+pub mod prop_floor_height_in_room;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -271,3 +279,7 @@ pub use map_maker_placement_check::*;
 pub use map_view_help_text::*;
 pub use front_end_controls_tick::*;
 pub use portal_crossing::*;
+pub use particle_ticks::*;
+pub use burst_spawner::*;
+pub use timesplitter_effect_ticks::*;
+pub use prop_floor_height_in_room::*;
