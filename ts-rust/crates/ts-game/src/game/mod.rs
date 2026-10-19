@@ -248,6 +248,8 @@ pub mod zoom_box_pages_and_character_select;
 pub mod rooms_of_pads_and_props_and_page_background;
 #[path = "character-respawn.rs"]
 pub mod character_respawn;
+#[path = "timesplitter-attack.rs"]
+pub mod timesplitter_attack;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -376,3 +378,4 @@ pub use goodies_floor_and_following::*;
 pub use zoom_box_pages_and_character_select::*;
 pub use rooms_of_pads_and_props_and_page_background::*;
 pub use character_respawn::*;
+pub use timesplitter_attack::*;
