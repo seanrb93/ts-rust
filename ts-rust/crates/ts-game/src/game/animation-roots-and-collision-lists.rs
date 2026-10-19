@@ -48,10 +48,10 @@ pub fn propPutPropInCollisionList(prop: i32) {
     }
 }
 
-/// The movement of an animation's root: the two values at the start (`first`) and end (`last`) of the animation for the axis `axis` (0, 1 or 2) are read from the animation's
-/// data by its kind (0, 2, 4 or 8), scaled by the character's size (+2840 of its record, times a constant for some), and a value from the animation to `third` (@ 0x215590).
-pub fn extractAnimRootData(chr: i32, anim_number: i32, first: i32, last: i32, third: i32, axis: i32) {
-    let anim = lw((anim_number << 2) + g::pAnimations);
+/// The root movement of an animation: the values at the start (`first`) and end (`last`) for the axis `axis` (0, 1 or 2), read from the animation's data by its
+/// kind (0, 2, 4 or 8), a value of the animation to `third`; the two are then scaled by the character's size (+2840 of its record), times the constant at
+/// `factor_at` for some characters (the code of `extractAnimRootData` and `extractAnimRoot`).
+fn anim_root(chr: i32, anim: i32, first: i32, last: i32, third: i32, axis: i32, factor_at: i32) {
     let mut scale = lwc1(lw(chr + 352) + 2840);
     let axis = match axis {
         0 => 0,
@@ -81,8 +81,19 @@ pub fn extractAnimRootData(chr: i32, anim_number: i32, first: i32, last: i32, th
         _ => {}
     }
     if lw(lw(lw(chr + 32) + 88) + 12) == 1 {
-        scale *= lwc1(0x3ac840);
+        scale *= lwc1(factor_at);
     }
     swc1(first, lwc1(first) * scale);
     swc1(last, lwc1(last) * scale);
+}
+
+/// The root movement of animation `anim_number` for a character (@ 0x215590).
+pub fn extractAnimRootData(chr: i32, anim_number: i32, first: i32, last: i32, third: i32, axis: i32) {
+    anim_root(chr, lw((anim_number << 2) + g::pAnimations), first, last, third, axis, 0x3ac840);
+}
+
+/// The root movement of the animation a character is playing (its model's animation number is at +96) (@ 0x215420).
+pub fn extractAnimRoot(chr: i32, first: i32, last: i32, third: i32, axis: i32) {
+    let model = lw(chr + 32);
+    anim_root(chr, lw((lw(model + 96) << 2) + g::pAnimations), first, last, third, axis, 0x3ac83c);
 }

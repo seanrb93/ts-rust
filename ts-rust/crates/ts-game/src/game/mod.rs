@@ -134,6 +134,10 @@ pub mod tile_setup;
 pub mod window_and_palette_packets;
 #[path = "pad-editor-input.rs"]
 pub mod pad_editor_input;
+#[path = "credits-and-front-end-lights.rs"]
+pub mod credits_and_front_end_lights;
+#[path = "enemy-choices-and-room-lights.rs"]
+pub mod enemy_choices_and_room_lights;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -205,3 +209,5 @@ pub use cheat_characters::*;
 pub use tile_setup::*;
 pub use window_and_palette_packets::*;
 pub use pad_editor_input::*;
+pub use credits_and_front_end_lights::*;
+pub use enemy_choices_and_room_lights::*;
