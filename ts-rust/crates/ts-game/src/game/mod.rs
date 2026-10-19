@@ -19,6 +19,7 @@ pub mod numeric;
 pub mod props;
 pub mod random;
 pub mod state;
+pub mod stats;
 pub mod types;
 pub mod vec;
 
@@ -34,5 +35,6 @@ pub use numeric::*;
 pub use props::*;
 pub use random::*;
 pub use state::*;
+pub use stats::*;
 pub use types::*;
 pub use vec::*;
