@@ -8,17 +8,49 @@
 
 use crate::*;
 
+#[cfg(feature = "extended-tables")]
 const BASE: i32 = 0x240_0000;
+#[cfg(feature = "extended-tables")]
 pub const PROPTABLE: i32 = BASE + 0x11_0000;
+#[cfg(feature = "extended-tables")]
 const PROP_SLOTS: i32 = BASE + 0x13_0000;
+#[cfg(feature = "extended-tables")]
 pub const PWFTAB: i32 = BASE + 0x14_0000;
+#[cfg(feature = "extended-tables")]
 const GAME_ENTRIES: i32 = 713;
-pub const MAX_ENTRIES: i32 = 1100;
+/// the last prop number and the first number past the room lists that the reset code goes through
+#[cfg(feature = "extended-tables")]
+pub const PROP_LAST: i32 = 1099;
+#[cfg(feature = "extended-tables")]
+pub const ROOM_LAST: i32 = 1099;
+#[cfg(feature = "extended-tables")]
+pub const ROOM_LIMIT: i32 = 1100;
+#[cfg(feature = "extended-tables")]
+const MAX_ENTRIES: i32 = 1100;
 /// the props of each room, for the drawing (`propGfxRoom`): a count and 100 props for each room and for each of the special numbers 205 to 212
+#[cfg(feature = "extended-tables")]
 pub const ROOM_PROP_COUNTS: i32 = BASE + 0x15_0000;
+#[cfg(feature = "extended-tables")]
 pub const ROOM_PROP_LISTS: i32 = BASE + 0x16_0000;
 
+// Without `extended-tables` the game's own tables are used, at the game's own addresses and with the game's own limits.
+#[cfg(not(feature = "extended-tables"))]
+pub const PROPTABLE: i32 = g::proptable;
+#[cfg(not(feature = "extended-tables"))]
+pub const PWFTAB: i32 = g::PropWallsFloors;
+#[cfg(not(feature = "extended-tables"))]
+pub const PROP_LAST: i32 = 712;
+#[cfg(not(feature = "extended-tables"))]
+pub const ROOM_LAST: i32 = 212;
+#[cfg(not(feature = "extended-tables"))]
+pub const ROOM_LIMIT: i32 = 214;
+#[cfg(not(feature = "extended-tables"))]
+pub const ROOM_PROP_COUNTS: i32 = 0x1fe9598;
+#[cfg(not(feature = "extended-tables"))]
+pub const ROOM_PROP_LISTS: i32 = 0x1fd48c8;
+
 /// Make the tables in the port's memory (once, before anything runs).
+#[cfg(feature = "extended-tables")]
 pub fn prop_table_init() {
     for i in 0..GAME_ENTRIES * 7 {
         sw(PROPTABLE + 4 * i, lw(g::proptable + 4 * i));
@@ -33,3 +65,7 @@ pub fn prop_table_init() {
         sw(PWFTAB + 4 * i, lw(g::PropWallsFloors + 4 * i));
     }
 }
+
+/// The game's own tables are used as they are.
+#[cfg(not(feature = "extended-tables"))]
+pub fn prop_table_init() {}

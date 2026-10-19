@@ -262,10 +262,10 @@ FUNCS = {
     'arcade_pageTick': [('s1_3 = if s1_2 >= 19 { 0 } else { s1_2 };', 's1_3 = if s1_2 >= av_arcade_count() { 0 } else { s1_2 };', 1), ('lw((s1_3 << 2) + g::arcadelevels)', 'lw((s1_3 << 2) + av_arcade_levels())', 1), ('lw((s0_3 << 2) + g::arcadelevels)', 'lw((s0_3 << 2) + av_arcade_levels())', 1), ('s0_3 = if -1 >= s0_2 { 18 } else { s0_2 };', 's0_3 = if -1 >= s0_2 { av_arcade_count() - 1 } else { s0_2 };', 1), ('lw((a1_5 << 2) + g::arcadelevels)', 'lw((a1_5 << 2) + av_arcade_levels())', 1)],
     # the lists of rooms by depth (what the player can see) held 200 rooms of one byte each: 512 rooms of two bytes now, in the port's memory (a level
     # of a mod can have more than 255 rooms); the debug string of the rooms drawn, a stack buffer a room longer than the frame, is not written
-    'propGfxRoomPreproc': [('a6_1 = 212;', 'a6_1 = MAX_ENTRIES - 1;', 1), ('v0_1 = 0x1fe98e8;', 'v0_1 = ROOM_PROP_COUNTS + 4 * (MAX_ENTRIES - 1);', 1), ('(a3_1 as u32) < (214 as u32)', '(a3_1 as u32) < (MAX_ENTRIES as u32)', 1)],
+    'propGfxRoomPreproc': [('a6_1 = 212;', 'a6_1 = ROOM_LAST;', 1), ('v0_1 = 0x1fe98e8;', 'v0_1 = ROOM_PROP_COUNTS + 4 * ROOM_LAST;', 1), ('(a3_1 as u32) < (214 as u32)', '(a3_1 as u32) < (ROOM_LIMIT as u32)', 1)],
     # (the instances of models: a room has one too)
     'obReset': [('{ 20 } else { 300 }', '{ 20 } else { 1000 }', 1)],
-    'propReset': [('a0_9 = 712;', 'a0_9 = MAX_ENTRIES - 1;', 1), ('a0_10 = 712;', 'a0_10 = MAX_ENTRIES - 1;', 1),
+    'propReset': [('a0_9 = 712;', 'a0_9 = PROP_LAST;', 1), ('a0_10 = 712;', 'a0_10 = PROP_LAST;', 1),
                   # (a level's props, the rooms' among them: 300 of them were room for 200 rooms and the rest)
                   ('{ 20 } else { 300 }', '{ 20 } else { 1000 }', 1)],
     # the game's memory pool cannot be longer (the stacks and static data are after it): big allocations of a level of a mod are made in a pool of the port's own

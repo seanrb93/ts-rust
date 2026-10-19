@@ -19,8 +19,15 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Mutex;
 
 /// the places of the tables in the port's memory
+#[cfg(feature = "extended-tables")]
 pub const GUNCOMBOS: i32 = 0x240_0000 + 0x40000;
+#[cfg(feature = "extended-tables")]
 pub const GUNSINV: i32 = 0x240_0000 + 0x40400;
+/// (without `extended-tables` the game's own tables are used, with its 33 combinations)
+#[cfg(not(feature = "extended-tables"))]
+pub const GUNCOMBOS: i32 = g::guncombos;
+#[cfg(not(feature = "extended-tables"))]
+pub const GUNSINV: i32 = g::gunsinventory;
 /// room for this many combinations
 pub const MAX_COMBOS: i32 = 64;
 /// the game's own combinations
@@ -54,6 +61,7 @@ pub fn dual_count() -> i32 {
 }
 
 /// Make the tables in the port's memory: the game's own, then the pairs (once, before anything runs).
+#[cfg(feature = "extended-tables")]
 pub fn weapon_table_init() {
     for i in 0..GAME_COMBOS * 2 {
         sw(GUNCOMBOS + 4 * i, lw(g::guncombos + 4 * i));
@@ -89,6 +97,10 @@ pub fn weapon_table_init() {
         eprintln!("[combo] table: {} combinations, order {:?}", count, order);
     }
 }
+
+/// The game's own tables are used as they are: no pairs are added.
+#[cfg(not(feature = "extended-tables"))]
+pub fn weapon_table_init() {}
 
 // ---- what a character owns -----------------------------------------------------------------------------------------------------
 

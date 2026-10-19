@@ -14,11 +14,8 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 WS = os.path.join(ROOT, 'ts-rust')
 
 
-# functions that read the port's relocated tables (manual/proptable.rs): they differ from the machine code on purpose
-BY_DESIGN = {'getPropType', 'propSetOb', 'propNeedsBoundsCalculating', 'propNeedsWallsFloorsCalculating', 'propDoCollisionsCanPush',
-             'propDoCollisionsCanNotPush', 'propGetOriginalWalls', 'propGetOriginalFloors', 'gunLeftHandActive',
-             'gunRightHandActive', 'gunBothHandsActive', 'gunIsLeftGunVisible',
-             'propEditValidPropnum', 'gunSetAmmoToMax', 'lvGetNameFromNum', 'lvGetBgCol', 'gunGetGunAmmo', 'gunAddAmmo'}
+# functions that differ from the machine code on purpose (none: the game's own tables are used unless the `extended-tables` feature is on)
+BY_DESIGN = set()
 
 
 def arg(name, default):

@@ -12,7 +12,11 @@ use std::sync::Mutex;
 
 const BASE: i32 = 0x240_0000;
 /// the level table (a record is 24 bytes) and the tables of texts
+#[cfg(feature = "extended-tables")]
 pub const LVINFO: i32 = BASE + 0x58000;
+/// (without `extended-tables` the game's own level table is used and no level is added)
+#[cfg(not(feature = "extended-tables"))]
+pub const LVINFO: i32 = g::lvinfo;
 const TABLES_AT: i32 = BASE + 0x60000;
 const TABLE_ROOM: i32 = 0x2000;
 const NAMES_AT: i32 = BASE + 0x70000;
@@ -36,6 +40,7 @@ pub const MAX_LEVELS: usize = 28;
 static CUSTOM: Mutex<Vec<ts_sdk::CustomLevel>> = Mutex::new(Vec::new());
 
 /// Make the tables (before the game starts).
+#[cfg(feature = "extended-tables")]
 pub fn custom_levels_init() {
     // the game's records, up to the one that ends the table
     let texts = lw(g::languages);
@@ -203,3 +208,7 @@ pub fn custom_text_count() -> i32 {
 pub fn custom_arcade_levels() -> Vec<i32> {
     CUSTOM.lock().unwrap().iter().map(|l| l.number).collect()
 }
+
+/// The game's own levels only.
+#[cfg(not(feature = "extended-tables"))]
+pub fn custom_levels_init() {}

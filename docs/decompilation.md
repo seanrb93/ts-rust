@@ -46,6 +46,19 @@ A file holds one subsystem or theme; when a theme grows, split it and name the p
 Order of work: leaf functions first (maths, strings, lists, memory), then the systems built on them, working towards `gameTick` and the
 front end.  When a structure is understood (its size and fields), give it a type in `game/types.rs` and use it in every function that touches it.
 
+## Fidelity first, extensions later
+
+The decompilation has to match the original executable exactly before anything is changed.  The port used to move four of the game's tables into
+its own memory with more room: the prop table and the walls and floors of props (480 rooms instead of about 200), the lists of the props of each
+room, the weapon combinations (with the added pairs of weapons for dual wielding), and the level table (levels of mods).  These are now behind the
+Cargo feature `extended-tables` of `ts-game` (`ts-port` passes it on), which is **off**: the generated and the hand-written code read the game's
+own tables at the game's own addresses and with its limits, and `tools/verify-game.py` finds no function that differs.  With the feature off,
+dual wield pairs and levels of mods are not available; the converter's big levels need the feature on (build with
+`--features extended-tables`), and the code that uses it is not kept equal to the original.
+
+To do later, once the code matches: bring the extended tables back as real data structures of the decompiled code instead of moved addresses,
+and take back the other limits the port raised (instance and prop counts of a level, the big memory pool, the room lists by depth) in the same way.
+
 ## Later
 
 When most of a subsystem is decompiled, its data moves from raw addresses into Rust types, the guest-memory calls of that subsystem go away,
