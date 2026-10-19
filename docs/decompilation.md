@@ -63,6 +63,13 @@ A patch in `tools/patches.py` is dropped when the function it changes is decompi
 To put back later, on top of the matching code: the frame-rate change of the particle streams (`particleStreamTick` used the whole frames of the game
 tick, the port used the float frame time) and the changes the port made to `propGfxRoomPreproc` and `hudTick`, and the wider table of rooms by level of `bgGetRoomsTick` (the original keeps 200 one-byte room numbers a level, the port 1024 two-byte ones; `bgGfx` still has that change), and the links of the sign-on menu made again from the items that were made (`makesignonmenu`: the list wraps round, and an arrow no longer vanishes when a sign-on gets no item).
 
+## Transliterated functions
+
+Two functions are too long and too tangled to understand yet, and are kept as the machine translation with the frame's scratch words turned into named locals (`slot_N`) and the
+names of the original's registers: `obMergePolys` (`polygon-merging.rs`, matches the original on the verifier's small-number pass) and `glassSetQuad` (`glass-shard.rs`; the verifier
+does not pass stack arguments, so every run faults and it is **not** machine-verified).  They are counted as decompiled but should be rewritten when the structures they use are typed.
+Two more, `enemyReselectTarget` and `emGetNextPos`, have control flow that cannot be written without jumps; they are still the generated code (a loop over the address of the block).
+
 ## Verifier: faults past the port's RAM
 
 `ts-verify` ignores a native fault on an address at or above 0x0800_0000 when the interpreter ran the original function to the end without a fault.

@@ -254,6 +254,10 @@ pub mod timesplitter_attack;
 pub mod story_level_setup;
 #[path = "circle-to-line-hit.rs"]
 pub mod circle_to_line_hit;
+#[path = "polygon-merging.rs"]
+pub mod polygon_merging;
+#[path = "glass-shard.rs"]
+pub mod glass_shard;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -385,3 +389,5 @@ pub use character_respawn::*;
 pub use timesplitter_attack::*;
 pub use story_level_setup::*;
 pub use circle_to_line_hit::*;
+pub use polygon_merging::*;
+pub use glass_shard::*;
