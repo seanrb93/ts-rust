@@ -3,7 +3,7 @@
 use crate::*;
 
 /// The last record (24 bytes, valid while the word at +20 is not negative) of a list of chunk records.
-fn last_chunk(list: i32) -> i32 {
+pub(super) fn last_chunk(list: i32) -> i32 {
     let mut at = list;
     if lw(at + 20) < 0 || lw(at + 44) < 0 {
         return at;
