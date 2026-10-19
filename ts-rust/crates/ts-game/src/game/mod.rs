@@ -252,6 +252,8 @@ pub mod character_respawn;
 pub mod timesplitter_attack;
 #[path = "story-level-setup.rs"]
 pub mod story_level_setup;
+#[path = "circle-to-line-hit.rs"]
+pub mod circle_to_line_hit;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -382,3 +384,4 @@ pub use rooms_of_pads_and_props_and_page_background::*;
 pub use character_respawn::*;
 pub use timesplitter_attack::*;
 pub use story_level_setup::*;
+pub use circle_to_line_hit::*;
