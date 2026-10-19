@@ -527,6 +527,9 @@ fn process_frame(n: u64, list: i32, world: Vec<(i32, i32)>) {
     gfx_worker::finish(n, frame, fbp);
     if CLOCK.load(std::sync::atomic::Ordering::Relaxed) >= MAX.load(std::sync::atomic::Ordering::Relaxed) {
         eprintln!("[port] reached frame limit, exiting");
+        #[cfg(feature = "shadow")]
+        eprintln!("[shadow] final summary:
+{}", ts_verify::shadow::summary());
         audio::finish_wav();
         std::process::exit(0);
     }

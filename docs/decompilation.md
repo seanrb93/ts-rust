@@ -29,7 +29,11 @@ on your own machine from your own copy of the game).  This project turns it, fun
 3. Regenerate (`python tools/gen_rust.py`, with `Game Files/SLUS_200.90` in place) so the generated copy is dropped, and build.
 4. Prove it equal to the machine code: `ts-verify --elf <SLUS_200.90> --n 500 name1 name2 ...` runs the original instructions and the Rust on
    random inputs and compares results and every memory write.  Functions that call others are checked with those calls included.
-   For logic that needs real game state use the shadow mode (`TS_SHADOW=name`, see the README).
+   `python tools/verify_game.py [--regen]` does this for every function in `game/`.  Functions whose original code does not finish on random
+   data (loops over lists) get a second pass with small numbers (`TS_VERIFY_SMALL=1`); a few that use instructions the interpreter lacks
+   (the 128-bit stores of `memMark`) are only reviewed.  Functions that read the port's relocated tables (the prop table, `GUNCOMBOS`) differ
+   from the machine code on purpose and are listed in `BY_DESIGN` in that script.  The live shadow mode (`TS_SHADOW`, see the README)
+   only hooks machine-translated functions, not those of `game/`.
 5. Commit with the functions' names in the message.
 
 Order of work: leaf functions first (maths, strings, lists, memory), then the systems built on them, working towards `gameTick` and the

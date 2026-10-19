@@ -44,10 +44,21 @@ def main():
             if fn.endswith('.rs'):
                 names += re.findall(r'^pub fn (\w+)', open(os.path.join(dp, fn), encoding='utf8').read(), re.M)
     exe = os.path.join(WS, 'target', 'release', 'ts-verify.exe' if os.name == 'nt' else 'ts-verify')
-    r = subprocess.run([exe, '--elf', elf, '--n', n] + sorted(names), capture_output=True, text=True)
+    r = subprocess.run([exe, '-v', '--elf', elf, '--n', n] + sorted(names), capture_output=True, text=True)
     lines = (r.stdout + r.stderr).strip().splitlines()
     bad = [l for l in lines if l.startswith('FAIL') and l.split()[1] not in BY_DESIGN]
     print(chr(10).join(bad))
+    skipped = [l.split(':')[0][5:] for l in lines if l.startswith('skip ')]
+    if skipped:
+        # second pass: small numbers only, runs that do not finish are left out (slow: few runs)
+        env = dict(os.environ, TS_VERIFY_SMALL='1')
+        r2 = subprocess.run([exe, '-v', '--elf', elf, '--n', '40'] + skipped, capture_output=True, text=True, env=env)
+        l2 = (r2.stdout + r2.stderr).splitlines()
+        bad += [l for l in l2 if l.startswith('FAIL')]
+        print(chr(10).join(l for l in l2 if l.startswith('FAIL')))
+        skipped = [l.split(':')[0][5:] for l in l2 if l.startswith('skip ')]
+    if skipped:
+        print('not machine-verified (the original code did not finish on random data): ' + ' '.join(skipped))
     print((lines[-1] if lines else 'no output') + f'  ({len(names)} functions, {len(lines) and sum(1 for l in lines if l.startswith("FAIL")) - len(bad)} differ by design)')
     sys.exit(0 if lines and not bad else 1)
 

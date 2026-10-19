@@ -4,7 +4,7 @@ use crate::*;
 
 /// The controller slot of a player: in a level other than 102 players beyond the local ones count from the end of the four slots (the same
 /// arithmetic as `GetControllerNumber`).
-fn controller_slot(player: i32) -> i32 {
+pub(super) fn controller_slot(player: i32) -> i32 {
     let mut slot = player;
     if lw(g::lvlevelnum) != 102 && slot >= ilinkGetNumLocalPlayers() {
         slot -= ilinkGetNumLocalPlayers() - 4;

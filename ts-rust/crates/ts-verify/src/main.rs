@@ -65,6 +65,8 @@ fn gen_inputs(rng: &mut Rng, ni: u8, nf: u8) -> ([i64; 8], [f32; 8]) {
             1 => rng.below(16) as i64,
             2 => rng.below(8) as i64 - 4,
             3 | 4 => (SCRATCH + 16 * rng.below(2048) as u32) as i64,
+            // TS_VERIFY_SMALL=1: no huge counts and offsets, so that loops over the data finish
+            _ if std::env::var_os("TS_VERIFY_SMALL").is_some() => rng.below(32) as i64,
             _ => (rng.next() as i32 as i64) >> 12,
         };
     }
@@ -148,6 +150,10 @@ fn main() {
             let (ints, floats) = gen_inputs(&mut rng, ni, nf);
             let a = run_interp(&ctx, addr, &ints, &floats);
             if let Outcome::Skip(s) = &a {
+                // TS_VERIFY_SMALL: a run whose loops do not finish is left out, the others still count
+                if s == "timeout" && std::env::var_os("TS_VERIFY_SMALL").is_some() {
+                    continue;
+                }
                 skipped = Some(s.clone());
                 break;
             }
