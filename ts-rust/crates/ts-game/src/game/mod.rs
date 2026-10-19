@@ -232,6 +232,8 @@ pub mod unlock_availability;
 pub mod look_at_transform_and_head_props;
 #[path = "tiles-and-path-steps.rs"]
 pub mod tiles_and_path_steps;
+#[path = "screen-effects-and-textured-icons.rs"]
+pub mod screen_effects_and_textured_icons;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -352,3 +354,4 @@ pub use set_animation::*;
 pub use unlock_availability::*;
 pub use look_at_transform_and_head_props::*;
 pub use tiles_and_path_steps::*;
+pub use screen_effects_and_textured_icons::*;
