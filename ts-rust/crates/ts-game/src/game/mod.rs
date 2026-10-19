@@ -166,6 +166,12 @@ pub mod window_swap_cursor_and_mini_tile;
 pub mod enemy_pad_and_player_controls;
 #[path = "floor-height-and-route-expansion.rs"]
 pub mod floor_height_and_route_expansion;
+#[path = "room-clip-and-line-plane-tests.rs"]
+pub mod room_clip_and_line_plane_tests;
+#[path = "enemy-reaction-time.rs"]
+pub mod enemy_reaction_time;
+#[path = "map-maker-placement-check.rs"]
+pub mod map_maker_placement_check;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -253,3 +259,6 @@ pub use hud_pain_and_credits_text::*;
 pub use window_swap_cursor_and_mini_tile::*;
 pub use enemy_pad_and_player_controls::*;
 pub use floor_height_and_route_expansion::*;
+pub use room_clip_and_line_plane_tests::*;
+pub use enemy_reaction_time::*;
+pub use map_maker_placement_check::*;
