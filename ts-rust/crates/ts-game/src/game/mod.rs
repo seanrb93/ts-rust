@@ -92,6 +92,16 @@ pub mod item_group_names;
 pub mod level_transforms;
 #[path = "menu-item-search.rs"]
 pub mod menu_item_search;
+#[path = "controller-buffers.rs"]
+pub mod controller_buffers;
+#[path = "map-maker-geometry.rs"]
+pub mod map_maker_geometry;
+#[path = "enemy-moves.rs"]
+pub mod enemy_moves;
+#[path = "wall-distance.rs"]
+pub mod wall_distance;
+#[path = "animation-keyframes.rs"]
+pub mod animation_keyframes;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -142,3 +152,8 @@ pub use pad_and_room_searches::*;
 pub use item_group_names::*;
 pub use level_transforms::*;
 pub use menu_item_search::*;
+pub use controller_buffers::*;
+pub use map_maker_geometry::*;
+pub use enemy_moves::*;
+pub use wall_distance::*;
+pub use animation_keyframes::*;

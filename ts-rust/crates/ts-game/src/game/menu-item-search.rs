@@ -36,3 +36,18 @@ pub fn menuitem(page: i32, id: i32) -> i32 {
 pub fn menuitemGetSelect(page: i32) -> i32 {
     find_item(page, |item| lhu(item + 10) & 128 != 0)
 }
+
+/// Make the item with id `id` the selected one: flag 128 is taken from the items that have it and set on that item (@ 0x22ddf8).
+pub fn menuitemSelect(page: i32, id: i32) {
+    loop {
+        let selected = menuitemGetSelect(page);
+        if selected == 0 {
+            break;
+        }
+        sh(selected + 10, lhu(selected + 10) & 0xff7f);
+    }
+    let item = menuitem(page, id & 0xffff);
+    if item != 0 {
+        sh(item + 10, lhu(item + 10) | 128);
+    }
+}

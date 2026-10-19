@@ -54,3 +54,32 @@ pub fn linkEnable(n: i32) {
     let l = n * 20 + lw(g::levellinks);
     sw(l, lw(l) | 1);
 }
+
+/// The rooms next to `room` through its portals: written to `out` without repeats, at most `max` of the room's portals looked at; returns how many (@ 0x257520).
+pub fn bgGetNeighbours(room: i32, out: i32, max: i32) -> i32 {
+    let list = lw(room * 44 + lw(g::levelrooms) + 4);
+    let portals = lw(list);
+    let n = if max < portals { max } else { portals };
+    let mut count = 0;
+    if n > 0 {
+        let all = lw(g::levelportals);
+        for i in 0..n {
+            let portal = lw((lw(list + 4 + 4 * i) << 2) + all);
+            let mut other = lw(portal);
+            if other == room {
+                other = lw(portal + 4);
+            }
+            let mut seen = false;
+            for k in 0..count {
+                if lw(out + 4 * k) == other {
+                    seen = true;
+                }
+            }
+            if !seen {
+                sw((count << 2) + out, other);
+                count += 1;
+            }
+        }
+    }
+    count
+}
