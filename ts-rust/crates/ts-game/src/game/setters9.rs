@@ -18,7 +18,7 @@ pub fn menuitemHighlight(page: i32) {
 /// Counted the profiles once a second and did nothing (@ 0x2209d8).
 pub fn debugsignon() {}
 
-/// The memory card clock (BCD bytes: second +1, minute +2, hour +3, day +5, month +6, year +7) as a number of seconds, with 30-day months and 360-day years (@ 0x2b39c8).
+/// The memory card clock (BCD bytes: second +1, minute +2, hour +3, day +5, month +6, year +7) as a number of seconds, with months of 31 days and years of 12 months (@ 0x2b39c8).
 pub fn clock2u32(clock: i32) -> i32 {
     let year = bcd2int(lbu(clock + 7));
     let month = bcd2int(lbu(clock + 6));
