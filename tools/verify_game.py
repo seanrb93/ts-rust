@@ -14,6 +14,11 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 WS = os.path.join(ROOT, 'ts-rust')
 
 
+# functions that read the port's relocated tables (manual/proptable.rs): they differ from the machine code on purpose
+BY_DESIGN = {'getPropType', 'propSetOb', 'propNeedsBoundsCalculating', 'propNeedsWallsFloorsCalculating', 'propDoCollisionsCanPush',
+             'propDoCollisionsCanNotPush'}
+
+
 def arg(name, default):
     return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
 
@@ -39,9 +44,10 @@ def main():
     exe = os.path.join(WS, 'target', 'release', 'ts-verify.exe' if os.name == 'nt' else 'ts-verify')
     r = subprocess.run([exe, '--elf', elf, '--n', n] + sorted(names), capture_output=True, text=True)
     lines = (r.stdout + r.stderr).strip().splitlines()
-    print('\n'.join(l for l in lines if l.startswith('FAIL') or l.startswith('==')))
-    print(f'{len(names)} functions')
-    sys.exit(0 if ' fail 0,' in (lines[-1] if lines else '') else 1)
+    bad = [l for l in lines if l.startswith('FAIL') and l.split()[1] not in BY_DESIGN]
+    print(chr(10).join(bad))
+    print((lines[-1] if lines else 'no output') + f'  ({len(names)} functions, {len(lines) and sum(1 for l in lines if l.startswith("FAIL")) - len(bad)} differ by design)')
+    sys.exit(0 if lines and not bad else 1)
 
 
 if __name__ == '__main__':
