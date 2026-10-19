@@ -85,3 +85,41 @@ pub fn HitTestLineSphere(origin: i32, dir: i32, center: i32, hit: i32, normal: i
     }
     1
 }
+
+/// The squared distance of the point `p` from the line segment `a` to `b`; the nearest point of the segment goes to `nearest` if it is not 0 (@ 0x20add0).
+pub fn HitTestDistancePointToLineSegmentSquared(p: i32, a: i32, b: i32, nearest: i32) -> f32 {
+    let ax = lwc1(a);
+    let ay = lwc1(a + 4);
+    let vx = lwc1(p) - ax;
+    let vy = lwc1(p + 4) - ay;
+    let dx = lwc1(b) - ax;
+    let az = lwc1(a + 8);
+    let dy = lwc1(b + 4) - ay;
+    let vz = lwc1(p + 8) - az;
+    let dz = lwc1(b + 8) - az;
+    let along = vx * dx + vy * dy + vz * dz;
+    let (mut rx, mut ry, mut rz) = (vx, vy, vz);
+    let t;
+    if !(along <= 0.0) {
+        let length2 = dx * dx + dy * dy + dz * dz;
+        if !(length2 <= along) {
+            t = along / length2;
+            rx = vx - t * dx;
+            ry = vy - t * dy;
+            rz = vz - t * dz;
+        } else {
+            rx = vx - dx;
+            t = 1.0;
+            ry = vy - dy;
+            rz = vz - dz;
+        }
+    } else {
+        t = 0.0;
+    }
+    if nearest != 0 {
+        swc1(nearest, ax + t * dx);
+        swc1(nearest + 4, lwc1(a + 4) + t * dy);
+        swc1(nearest + 8, lwc1(a + 8) + t * dz);
+    }
+    rx * rx + ry * ry + rz * rz
+}

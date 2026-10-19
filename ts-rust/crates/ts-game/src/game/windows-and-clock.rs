@@ -317,3 +317,36 @@ pub fn focusprev() {
     }
     sw(menu + 8, if previous != 0 { previous } else { last });
 }
+
+/// Move the front end's mouse with the left stick: each axis speeds up from 4 to 8 while the stick is pushed beyond a threshold, and the position (+32, +36 of the
+/// front end) is moved by the stick times the speed (@ 0x22c868).
+pub fn frontMouseTick() {
+    if lw(lw(g::front) + 12) & 2 == 0 {
+        return;
+    }
+    let stick_x = joyGetAxis(0, 0);
+    let stick_y = joyGetAxis(0, 1);
+    let mut speed_x = lwc1(0x3aff10);
+    let pushed_x = if !(0.0 <= stick_x) { lwc1(0x3ac970) <= -stick_x } else { lwc1(0x3ac96c) <= stick_x };
+    if !pushed_x {
+        speed_x = 4.0;
+        swc1(0x3aff10, speed_x);
+    } else if speed_x < 8.0 {
+        speed_x += lwc1(0x3ac974);
+        swc1(0x3aff10, speed_x);
+    }
+    let mut speed_y = lwc1(0x3aff14);
+    let pushed_y = if !(0.0 <= stick_y) { lwc1(0x3ac97c) <= -stick_y } else { lwc1(0x3ac978) <= stick_y };
+    if !pushed_y {
+        speed_y = 4.0;
+        swc1(0x3aff14, speed_y);
+    } else if speed_y < 8.0 {
+        speed_y += lwc1(0x3ac980);
+        swc1(0x3aff14, speed_y);
+    }
+    let move_x = stick_x * speed_x;
+    let front = lw(g::front);
+    let y = lw(front + 36) - (stick_y * speed_y * 32768.0_f32) as i32;
+    sw(front + 32, lw(front + 32) + (move_x * 65536.0_f32) as i32);
+    sw(front + 36, y);
+}

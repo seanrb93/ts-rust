@@ -62,3 +62,20 @@ pub fn mmFindBoundaries() {
     sw(g::min_h, 128);
     sw(g::min_w, 128);
 }
+
+/// Draw the rectangle of the lasso between its corner (`lasso_x`, `lasso_y`) and the mouse position (the mouse of the front end moved to the map maker's world),
+/// with four lines in a colour that flashes (@ 0x24b0c8).
+pub fn mmDrawLasso() {
+    let front = lw(g::front);
+    let scale_x = lw(g::scale_wtomx);
+    let mouse_x = (lh(front + 34) - lw(g::w_x)) << 16;
+    let scale_y = lw(g::scale_wtomy);
+    let mouse_y = (lh(front + 38) - lw(g::w_y)) << 16;
+    let colour = lbu(g::flashalpha) | 0x7f7f0000;
+    let x = lw(g::m_x) + FMul(mouse_x, scale_x) as i32;
+    let y = lw(g::m_y) + FMul(mouse_y, scale_y) as i32;
+    mmDrawLine(lw(g::lasso_x), lw(g::lasso_y), x, lw(g::lasso_y), colour);
+    mmDrawLine(lw(g::lasso_x), lw(g::lasso_y), lw(g::lasso_x), y, colour);
+    mmDrawLine(x, lw(g::lasso_y), x, y, colour);
+    mmDrawLine(lw(g::lasso_x), y, x, y, colour);
+}

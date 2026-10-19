@@ -111,3 +111,26 @@ pub fn memGetFreeEter() {}
 
 /// Empty in the build (@ 0x201e70).
 pub fn memGetFreeLevel() {}
+
+/// Whether the level creation flags `flags` allow the mode being played: mode 1 to 6 test bit 0 to 5, mode 7 (story) the bit of its difficulty (64, 128 or 256) (@ 0x228d88).
+pub fn lvCheckCreateFlags(flags: i32) -> i32 {
+    let params = g::curgameparms;
+    let mode = lw(params + 72) - 1;
+    if (mode as u32) < 7 {
+        if mode < 6 {
+            return (flags & (1 << mode) != 0) as i32;
+        }
+        let difficulty = lw(params + 76);
+        if difficulty == 0 && flags & 64 != 0 {
+            return 1;
+        }
+        if lw(params + 76) == 1 && flags & 128 != 0 {
+            return 1;
+        }
+        if lw(params + 76) != 2 {
+            return 0;
+        }
+        return (flags & 256 != 0) as i32;
+    }
+    0
+}

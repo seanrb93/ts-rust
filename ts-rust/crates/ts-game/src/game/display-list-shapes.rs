@@ -220,3 +220,47 @@ pub fn menu_pageDrawAfter(page: i32) {
     let rect = 0x1fc39f0;
     dlFillRectangle(lw(rect), lw(rect + 4), lw(rect + 8), lw(rect + 12), 0x2840);
 }
+
+/// Draw a slider at (`x`, `y`): a frame, the filled part for `value` of `range`, and the rest, with the sizes taken from the window (width +12, height +32)
+/// scaled by constants of the game; the unfilled part is darkened unless `hide_rest` is set (@ 0x22d0e0).
+pub fn draw_slider(x: i32, y: i32, value: i32, range: i32, hide_rest: i32) {
+    let scale_x = lwc1(0x3ac984);
+    let window = g::window;
+    let width = lw(window + 12) as f32;
+    let bottom = y + (lw(window + 32) as f32 * lwc1(0x3ac988)) as i32;
+    let right = x + (width * scale_x) as i32;
+    let inner_bottom = bottom - 1;
+    let inner_right = right - 1;
+    let split = x + (value as f32 * scale_x / range as f32 * width) as i32;
+    dlFillRectangle(x - 2, y - 1, right + 1, bottom, 64);
+    dlFillRectangle(x, y, split - 1, inner_bottom, 0x287f147f);
+    dlFillRectangle(split, y, inner_right, inner_bottom, 0x2840147f);
+    if hide_rest != 0 {
+        return;
+    }
+    dlFillRectangle(x, y, inner_right, inner_bottom, 64);
+}
+
+/// Draw a meter at (`x`, `y`), `width` by `height`: a frame, the part up to the fraction `fraction_a` in `colour`, and from there to `fraction_b` in a
+/// colour whose strength is the byte `strength` (when it is positive), the rest dark (@ 0x2b2c10).
+pub fn hudMeterGfx(x: i32, y: i32, width: i32, height: i32, colour: i32, strength: i32, fraction_a: f32, fraction_b: f32) {
+    let w = width as f32;
+    let bottom = y + height;
+    let half = 0.5_f32;
+    let right = x + width;
+    let first = x + (w * fraction_a) as i32;
+    let second = x + (w * fraction_b) as i32;
+    let byte = (strength << 24) >> 24;
+    dlFillRectangleFloat(79, (x - 1) as f32, y as f32 - half, right as f32, bottom as f32 - half);
+    let inner_bottom = bottom - 1;
+    dlFillRectangle(x, y, first, inner_bottom, colour);
+    let mut from = first;
+    if first < second {
+        let b = byte & 255;
+        if byte > 0 {
+            dlFillRectangle(first, y, second, inner_bottom, b << 24 | 127 | (b << 8 | b << 16));
+            from = second;
+        }
+    }
+    dlFillRectangle(from, y, right - 1, bottom - 1, 0x28282864);
+}
