@@ -10,6 +10,7 @@
 pub mod bcd;
 pub mod buffer;
 pub mod debugflags;
+pub mod enemies;
 pub mod level;
 pub mod list;
 pub mod matrix;
@@ -26,6 +27,7 @@ pub mod vec;
 pub use bcd::*;
 pub use buffer::*;
 pub use debugflags::*;
+pub use enemies::*;
 pub use level::*;
 pub use list::*;
 pub use matrix::*;
