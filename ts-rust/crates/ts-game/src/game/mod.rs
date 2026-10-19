@@ -108,6 +108,10 @@ pub mod room_box_searches;
 pub mod menu_layout;
 #[path = "bullet-mines.rs"]
 pub mod bullet_mines;
+#[path = "display-list-shapes.rs"]
+pub mod display_list_shapes;
+#[path = "collision-lists-and-pad-tiles.rs"]
+pub mod collision_lists_and_pad_tiles;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -166,3 +170,5 @@ pub use animation_keyframes::*;
 pub use room_box_searches::*;
 pub use menu_layout::*;
 pub use bullet_mines::*;
+pub use display_list_shapes::*;
+pub use collision_lists_and_pad_tiles::*;

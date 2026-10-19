@@ -64,3 +64,26 @@ pub fn bgPortalTransform(portal: i32, m: i32) {
     }
     matrixVecRot(m, portal + 8);
 }
+
+/// Move the box of a room (min x, y, z at +0, +4, +8, max at +12, +16, +20) with a tile that is turned by `trans`'s rotation (the word at +16: 0 to 3 quarter turns)
+/// and moved by its translation (+4, +8, +12) (@ 0x254440).
+pub fn bgRoombbTransform(bb: i32, trans: i32) {
+    let (x0, z0, x1, z1) = (lwc1(bb), lwc1(bb + 8), lwc1(bb + 12), lwc1(bb + 20));
+    let rotation = lw(trans + 16);
+    let (tx, ty, tz) = (|| lwc1(trans + 4), || lwc1(trans + 8), || lwc1(trans + 12));
+    let new_xz = match rotation {
+        0 => (x0, z0, x1, z1),
+        1 => (-z1, x0, -z0, x1),
+        2 => (-x1, -z1, -x0, -z0),
+        3 => (z0, -x1, z1, -x0),
+        _ => return,
+    };
+    let y0 = lwc1(bb + 4);
+    let y1 = lwc1(bb + 16);
+    swc1(bb, new_xz.0 + tx());
+    swc1(bb + 4, y0 + ty());
+    swc1(bb + 8, new_xz.1 + tz());
+    swc1(bb + 12, new_xz.2 + tx());
+    swc1(bb + 16, y1 + ty());
+    swc1(bb + 20, new_xz.3 + tz());
+}

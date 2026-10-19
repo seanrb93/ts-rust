@@ -52,3 +52,36 @@ pub fn hittestMoveCircleToCircle(out: i32, x: f32, z: f32, radius: f32, dx: f32,
         1.0
     }
 }
+
+/// Whether the ray from `origin` in the direction `dir` (a unit vector) hits the sphere at `center` (radius squared in `radius2`): 1 or 0; the first hit point is
+/// written to `hit` and the vector from the center to it to `normal`, if they are not 0 (@ 0x20a8d8).
+pub fn HitTestLineSphere(origin: i32, dir: i32, center: i32, hit: i32, normal: i32, radius2: f32) -> i32 {
+    let (ox, oy, oz) = (lwc1(origin), lwc1(origin + 4), lwc1(origin + 8));
+    let vx = ox - lwc1(center);
+    let vy = oy - lwc1(center + 4);
+    let vz = oz - lwc1(center + 8);
+    let (dx, dy, dz) = (lwc1(dir), lwc1(dir + 4), lwc1(dir + 8));
+    let along = vx * dx + vy * dy + vz * dz;
+    let discriminant = along * along - (vx * vx + vy * vy + vz * vz - radius2);
+    if !(0.0 <= discriminant) {
+        return 0;
+    }
+    if hit == 0 && normal == 0 {
+        return 1;
+    }
+    let t = -along - discriminant.abs().sqrt();
+    let hz = oz + t * dz;
+    let hx = ox + t * dx;
+    let hy = oy + t * dy;
+    if hit != 0 {
+        swc1(hit + 8, hz);
+        swc1(hit, hx);
+        swc1(hit + 4, hy);
+    }
+    if normal != 0 {
+        swc1(normal, hx - lwc1(center));
+        swc1(normal + 4, hy - lwc1(center + 4));
+        swc1(normal + 8, hz - lwc1(center + 8));
+    }
+    1
+}

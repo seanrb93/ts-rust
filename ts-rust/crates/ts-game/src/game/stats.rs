@@ -179,3 +179,22 @@ pub fn StatsBodyPartHit(attacker: i32, victim: i32, part: i32) {
         }
     }
 }
+
+/// Clear a statistics record: 69 words of its start, then the table of 33 records of 20 bytes from +276 and the 14 of 24 bytes from +936 (the word at
+/// +264 is set from the sign-on array after the first clearing) (@ 0x220ac8).
+pub fn StatsResetStruct(stats: i32) {
+    for i in 0..69 {
+        sw(stats + 4 * i, 0);
+    }
+    swc1(stats + 264, lwc1(g::signonarray + 4));
+    for i in 0..33 {
+        for w in 0..5 {
+            sw(stats + 276 + 20 * i + 4 * w, 0);
+        }
+    }
+    for i in 0..14 {
+        for w in 0..6 {
+            sw(stats + 936 + 24 * i + 4 * w, 0);
+        }
+    }
+}
