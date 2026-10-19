@@ -114,3 +114,16 @@ pub fn quaternionNormalise(q: i32) {
     swc1(q + 4, y * inv);
     swc1(q + 8, z * inv);
 }
+
+/// Transform the vector `v` in place by the matrix `m` (three axes and the translation) (@ 0x2b5428).
+pub fn matrixVecMul(m: i32, v: i32) {
+    let (x, y, z) = (lwc1(v), lwc1(v + 4), lwc1(v + 8));
+    let mut out = [0.0_f32; 3];
+    for (i, o) in out.iter_mut().enumerate() {
+        let i = i as i32;
+        *o = x * lwc1(m + 4 * i) + y * lwc1(m + 16 + 4 * i) + z * lwc1(m + 32 + 4 * i) + lwc1(m + 48 + 4 * i);
+    }
+    for (i, o) in out.iter().enumerate() {
+        swc1(v + 4 * i as i32, *o);
+    }
+}

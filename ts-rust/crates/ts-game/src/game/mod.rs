@@ -76,6 +76,18 @@ pub mod particles;
 pub mod sound_delays;
 #[path = "portal-init-and-prop-rooms.rs"]
 pub mod portal_init_and_prop_rooms;
+#[path = "prop-rooms.rs"]
+pub mod prop_rooms;
+#[path = "bullets-and-targets.rs"]
+pub mod bullets_and_targets;
+#[path = "circle-hit-tests.rs"]
+pub mod circle_hit_tests;
+#[path = "depth-test-bias.rs"]
+pub mod depth_test_bias;
+#[path = "pad-and-room-searches.rs"]
+pub mod pad_and_room_searches;
+#[path = "item-group-names.rs"]
+pub mod item_group_names;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -118,3 +130,9 @@ pub use route_deletion::*;
 pub use particles::*;
 pub use sound_delays::*;
 pub use portal_init_and_prop_rooms::*;
+pub use prop_rooms::*;
+pub use bullets_and_targets::*;
+pub use circle_hit_tests::*;
+pub use depth_test_bias::*;
+pub use pad_and_room_searches::*;
+pub use item_group_names::*;
