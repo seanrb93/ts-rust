@@ -226,6 +226,10 @@ pub mod closest_explosion_light;
 pub mod map_maker_dialog;
 #[path = "set-animation.rs"]
 pub mod set_animation;
+#[path = "unlock-availability.rs"]
+pub mod unlock_availability;
+#[path = "look-at-transform-and-head-props.rs"]
+pub mod look_at_transform_and_head_props;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -343,3 +347,5 @@ pub use line_cylinder_test::*;
 pub use closest_explosion_light::*;
 pub use map_maker_dialog::*;
 pub use set_animation::*;
+pub use unlock_availability::*;
+pub use look_at_transform_and_head_props::*;
