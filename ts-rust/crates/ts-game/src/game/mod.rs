@@ -258,6 +258,8 @@ pub mod circle_to_line_hit;
 pub mod polygon_merging;
 #[path = "glass-shard.rs"]
 pub mod glass_shard;
+#[path = "texture-memory-slots.rs"]
+pub mod texture_memory_slots;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -391,3 +393,4 @@ pub use story_level_setup::*;
 pub use circle_to_line_hit::*;
 pub use polygon_merging::*;
 pub use glass_shard::*;
+pub use texture_memory_slots::*;
