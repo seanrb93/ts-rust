@@ -262,6 +262,8 @@ pub mod glass_shard;
 pub mod texture_memory_slots;
 #[path = "enemy-target-reselection.rs"]
 pub mod enemy_target_reselection;
+#[path = "enemy-target-tracking.rs"]
+pub mod enemy_target_tracking;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -397,3 +399,4 @@ pub use polygon_merging::*;
 pub use glass_shard::*;
 pub use texture_memory_slots::*;
 pub use enemy_target_reselection::*;
+pub use enemy_target_tracking::*;
