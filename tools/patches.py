@@ -87,21 +87,6 @@ FUNCS = {
     # last non-zero value in +340).  The weapon's walk bob is driven by it.  With frames of a fraction of a tick the divisor
     # must be the frame time, as a float, or the speed (and the bob) shrinks with the frame rate.
     'playerDirtyPosReset': [('sw(s0_1 + 340, 1);', 'swc1(s0_1 + 340, 1.0_f32);', 1)],
-    # the sign-on list wraps round: New Player (the top) goes up to the last sign-on and the last sign-on goes down to New Player.
-    # The links are made from the count of the sign-ons, but a sign-on that does not get an item (and with none at all) leaves a link
-    # on an item that is not there: the arrow vanishes and stays gone.  Make the links again from the items that were made (a1_2).
-    'makesignonmenu': [
-        ('    sh(g::signonplr_list, v0_1 + 2);', chr(10).join([
-            '    if a1_2 != v0_1 {',
-            '        let somi = g::somi;',
-            '        sh(somi + 16, if a1_2 > 0 { a1_2 } else { lhu(g::mi_signonload + 8) as i32 });',
-            '        sh(somi + 50, if a1_2 > 0 { 1 } else { lhu(g::mi_signonnew + 8) as i32 });',
-            '        if a1_2 > 0 {',
-            '            sh(somi + 64 + (a1_2 - 1) * 32 + 18, lhu(g::mi_signonnew + 8) as i32);',
-            '        }',
-            '    }',
-            '    sh(g::signonplr_list, v0_1 + 2);']), 1),
-    ],
     # a menu item with a value (the Audio / Video Options page): the slider's bar and a value that has a place of its own were drawn from the
     # screen's corner, not from the corner of the pane the page is in, so in the second and later panes of a split screen they were not seen
     'draw_menuitem': [

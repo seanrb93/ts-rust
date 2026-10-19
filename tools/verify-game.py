@@ -18,8 +18,8 @@ WS = os.path.join(ROOT, 'ts-rust')
 BY_DESIGN = set()
 
 
-# recursion over a structure the random data makes endless overflows the host stack (the interpreter stops, the Rust code cannot): reviewed only
-UNVERIFIABLE = {'partSetTextureOffset', 'obSetTexList', 'partTransform'}
+# recursion over a structure the random data makes endless overflows the host stack (the interpreter stops, the Rust code cannot), and pickupposGfx (the original faults on random data, the Rust loop over a random count takes minutes): reviewed only
+UNVERIFIABLE = {'partSetTextureOffset', 'obSetTexList', 'partTransform', 'pickupposGfx'}
 
 
 def arg(name, default):

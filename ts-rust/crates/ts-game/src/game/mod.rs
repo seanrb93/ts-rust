@@ -206,6 +206,16 @@ pub mod explosion_particles;
 pub mod map_maker_tile_rotation;
 #[path = "glass-hit-and-room-lists.rs"]
 pub mod glass_hit_and_room_lists;
+#[path = "in-game-menu-root.rs"]
+pub mod in_game_menu_root;
+#[path = "pickup-position-packets.rs"]
+pub mod pickup_position_packets;
+#[path = "sign-on-menu.rs"]
+pub mod sign_on_menu;
+#[path = "lasso-selection.rs"]
+pub mod lasso_selection;
+#[path = "pad-tile-adding.rs"]
+pub mod pad_tile_adding;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -313,3 +323,8 @@ pub use part_transform::*;
 pub use explosion_particles::*;
 pub use map_maker_tile_rotation::*;
 pub use glass_hit_and_room_lists::*;
+pub use in_game_menu_root::*;
+pub use pickup_position_packets::*;
+pub use sign_on_menu::*;
+pub use lasso_selection::*;
+pub use pad_tile_adding::*;
