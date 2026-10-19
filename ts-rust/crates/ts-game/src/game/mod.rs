@@ -204,6 +204,8 @@ pub mod part_transform;
 pub mod explosion_particles;
 #[path = "map-maker-tile-rotation.rs"]
 pub mod map_maker_tile_rotation;
+#[path = "glass-hit-and-room-lists.rs"]
+pub mod glass_hit_and_room_lists;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -310,3 +312,4 @@ pub use particle_render_packet::*;
 pub use part_transform::*;
 pub use explosion_particles::*;
 pub use map_maker_tile_rotation::*;
+pub use glass_hit_and_room_lists::*;

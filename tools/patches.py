@@ -272,10 +272,6 @@ FUNCS = {
         ('s0_2 = lbu(s2_2 * 200 + s1_1 + 0x1fc4a78);', 's0_2 = lhu(s2_2 * 1024 + (s1_1 << 1) + 0x2500000);', 1),
         ('sb(a1_2, v0_3);', '', 1),
     ],
-    'bgGetRoomsTick': [
-        ('sb(v1_3 + a2_1 * 200 + 0x1fc4a78, a5_1);', 'sh((v1_3 << 1) + a2_1 * 1024 + 0x2500000, a5_1);', 1),
-        ('a5_2 = lbu(a4_2 * 200 + a3_2 + 0x1fc4a78);', 'a5_2 = lhu(a4_2 * 1024 + (a3_2 << 1) + 0x2500000);', 1),
-    ],
     'levelAvail': [('pub fn levelAvail(mut a0: i32) -> i32 {\n', 'pub fn levelAvail(mut a0: i32) -> i32 {\n    if a0 == 25 || (31..=99).contains(&a0) {\n        return 1;\n    }\n', 1)],
     'gmKnockOutTick': [('                if v1_2 == 0 {\n                    trap("break");\n                }\n', '                if v1_2 == 0 {\n                    // no bag spawn points in the level (Ron has none): nothing to put a bag on\n                    return;\n                }\n', 1)],
     # Square on the character select page picks a random character; on the weapon set page it fills the custom set
