@@ -190,6 +190,10 @@ pub mod prop_floor_height_in_room;
 pub mod line_box_and_triangle_tests;
 #[path = "part-centre-and-room-boxes.rs"]
 pub mod part_centre_and_room_boxes;
+#[path = "character-head-props.rs"]
+pub mod character_head_props;
+#[path = "unlock-tests-and-pad-choice.rs"]
+pub mod unlock_tests_and_pad_choice;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -289,3 +293,5 @@ pub use timesplitter_effect_ticks::*;
 pub use prop_floor_height_in_room::*;
 pub use line_box_and_triangle_tests::*;
 pub use part_centre_and_room_boxes::*;
+pub use character_head_props::*;
+pub use unlock_tests_and_pad_choice::*;
