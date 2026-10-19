@@ -210,3 +210,8 @@ pub fn StatsReset() {
         sw(rec + 1360, 0);
     }
 }
+
+/// @ 0x220ba0
+pub fn StatsRestart() {
+    StatsReset();
+}
