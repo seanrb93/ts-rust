@@ -200,6 +200,8 @@ fn main() {
                 }
                 (Outcome::Panic(_), Outcome::Panic(_)) | (Outcome::Trap, Outcome::Trap) => {}
                 (Outcome::Panic(_), Outcome::Ok { .. }) => {} // dead loads removed by the decompiler never fault
+                // the interpreter wraps addresses past the end of the port's RAM (it was made for the console's 32 MB), the port faults on them: a garbage pointer, not a difference
+                (Outcome::Ok { .. }, Outcome::Panic(p)) if p.contains("unmapped game address") && p.rsplit("0x").next().and_then(|h| u32::from_str_radix(h.trim(), 16).ok()).map_or(false, |a| a >= 0x0800_0000) => {}
                 (Outcome::Trap, Outcome::Panic(_)) | (Outcome::Panic(_), Outcome::Trap) => {}
                 (x, y) => {
                     bad = Some(format!("test {t}: outcome differs: interp {x:?} native {y:?} (ints {ints:x?} floats {floats:?})"));

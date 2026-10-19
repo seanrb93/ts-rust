@@ -208,3 +208,34 @@ pub fn dlSetBlend(mode: i32) -> i32 {
     }
     previous
 }
+
+/// Draw the tick lines of a profile bar (three, 240 pixels apart, with a dark frame around each) at (`x`, `y`); `step` is the game's constant that moves the first line.
+fn profile_ticks(x: i32, y: i32, step: f32) {
+    let mut position = 0.0_f32;
+    let mut offset = 0.0_f32 * 240.0;
+    loop {
+        position += step;
+        let at = x + offset as i32;
+        dlFillRectangle(at, y, at, y + 8, 0x7f7f7fff);
+        if !(position <= 2.0) {
+            break;
+        }
+        offset = position * 240.0;
+    }
+    for k in 0..3 {
+        dlFillRectangle(x - 1 + 240 * k, y - 1, x + 1 + 240 * k, y + 9, 127);
+        dlFillRectangle(x + 240 * k, y, x + 240 * k, y + 8, -129);
+    }
+}
+
+/// The simple profile bar: the ticks, the filled part up to `from` (at most 2) in a colour, and a line at `to` if it is beyond `from` (@ 0x2b6058).
+pub fn profileSimpleTimeBar(x: i32, y: i32, colour: i32, from: f32, to: f32) {
+    profile_ticks(x, y, lwc1(0x3ad7c0));
+    let end = if from <= 2.0 { from } else { 2.0 };
+    dlFillRectangle(x, y + 2, x + (end * 240.0) as i32, y + 6, colour);
+    if !(from < to) {
+        return;
+    }
+    let offset = (to * 240.0) as i32;
+    dlFillRectangle(x + offset, y, x + (offset + 1), y + 8, 0x7f7f7fff);
+}

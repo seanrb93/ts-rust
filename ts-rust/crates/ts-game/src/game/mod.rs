@@ -148,6 +148,8 @@ pub mod interface_drawing;
 pub mod overrides_teams_and_glass;
 #[path = "model-relocation-and-animation-bases.rs"]
 pub mod model_relocation_and_animation_bases;
+#[path = "hit-tests-and-lifestats.rs"]
+pub mod hit_tests_and_lifestats;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -226,3 +228,4 @@ pub use gradients_and_screen_textures::*;
 pub use interface_drawing::*;
 pub use overrides_teams_and_glass::*;
 pub use model_relocation_and_animation_bases::*;
+pub use hit_tests_and_lifestats::*;
