@@ -194,6 +194,12 @@ pub mod part_centre_and_room_boxes;
 pub mod character_head_props;
 #[path = "unlock-tests-and-pad-choice.rs"]
 pub mod unlock_tests_and_pad_choice;
+#[path = "route-calculation.rs"]
+pub mod route_calculation;
+#[path = "particle-render-packet.rs"]
+pub mod particle_render_packet;
+#[path = "part-transform.rs"]
+pub mod part_transform;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -295,3 +301,6 @@ pub use line_box_and_triangle_tests::*;
 pub use part_centre_and_room_boxes::*;
 pub use character_head_props::*;
 pub use unlock_tests_and_pad_choice::*;
+pub use route_calculation::*;
+pub use particle_render_packet::*;
+pub use part_transform::*;
