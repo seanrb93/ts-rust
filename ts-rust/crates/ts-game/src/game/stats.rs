@@ -149,3 +149,33 @@ pub fn cheatOnChange(item: i32) {
 pub fn numAllowedTeams() -> i32 {
     (0..4).filter(|&i| lbu(0x1fc1234 + i) != 0).count() as i32
 }
+
+/// Count a hit on a body part (0 to 17) in the statistics: parts 0-2 count for the attacker (`attacker`'s first word is its slot) as statistic 15,
+/// 3-10 as 16, 12-17 as 17, and part 11 as 13 for the attacker and 27 for the victim (@ 0x2211a8).
+pub fn StatsBodyPartHit(attacker: i32, victim: i32, part: i32) {
+    if (part as u32) < 18 {
+        match part {
+            0..=2 => {
+                if attacker != 0 {
+                    StatsAdd(15, lw(attacker), 1.0);
+                }
+            }
+            3..=10 => {
+                if attacker != 0 {
+                    StatsAdd(16, lw(attacker), 1.0);
+                }
+            }
+            11 => {
+                if attacker != 0 {
+                    StatsAdd(13, lw(attacker), 1.0);
+                }
+                StatsAdd(27, lw(victim), 1.0);
+            }
+            _ => {
+                if attacker != 0 {
+                    StatsAdd(17, lw(attacker), 1.0);
+                }
+            }
+        }
+    }
+}

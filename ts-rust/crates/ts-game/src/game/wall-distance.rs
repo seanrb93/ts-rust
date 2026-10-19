@@ -39,3 +39,29 @@ pub fn DistFromWallSq(pos: i32, wall: i32, out: i32, _unused: f32, limit: f32) -
     }
     d2
 }
+
+/// The smallest squared distance (below 4) of the point `pos` from the walls of room `room`; 0 when the room has no walls, 4 when none is nearer (@ 0x2ae240).
+pub fn specialfxCalcDistSqFromWall(pos: i32, room: i32) -> f32 {
+    let mut nearest = 4.0_f32;
+    let walls = bgGetWalls(room);
+    if walls == 0 {
+        return 0.0;
+    }
+    let mut wall = lw(walls);
+    let mut at = walls + 4;
+    if wall == 0 {
+        return nearest;
+    }
+    loop {
+        let d2 = DistFromWallSq(pos, wall, 0, lwc1(0x3ad74c), 4.0);
+        if d2 < nearest {
+            nearest = d2;
+        }
+        wall = lw(at);
+        at += 4;
+        if wall == 0 {
+            break;
+        }
+    }
+    nearest
+}

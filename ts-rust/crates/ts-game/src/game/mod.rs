@@ -102,6 +102,12 @@ pub mod enemy_moves;
 pub mod wall_distance;
 #[path = "animation-keyframes.rs"]
 pub mod animation_keyframes;
+#[path = "room-box-searches.rs"]
+pub mod room_box_searches;
+#[path = "menu-layout.rs"]
+pub mod menu_layout;
+#[path = "bullet-mines.rs"]
+pub mod bullet_mines;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -157,3 +163,6 @@ pub use map_maker_geometry::*;
 pub use enemy_moves::*;
 pub use wall_distance::*;
 pub use animation_keyframes::*;
+pub use room_box_searches::*;
+pub use menu_layout::*;
+pub use bullet_mines::*;
