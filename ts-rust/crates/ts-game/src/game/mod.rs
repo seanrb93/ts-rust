@@ -240,6 +240,8 @@ pub mod front_end_logo_and_glass_line_test;
 pub mod zoom_box_drawing;
 #[path = "enemy-idle-animation.rs"]
 pub mod enemy_idle_animation;
+#[path = "goodies-floor-and-following.rs"]
+pub mod goodies_floor_and_following;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -364,3 +366,4 @@ pub use screen_effects_and_textured_icons::*;
 pub use front_end_logo_and_glass_line_test::*;
 pub use zoom_box_drawing::*;
 pub use enemy_idle_animation::*;
+pub use goodies_floor_and_following::*;
