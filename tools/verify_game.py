@@ -18,7 +18,7 @@ WS = os.path.join(ROOT, 'ts-rust')
 BY_DESIGN = {'getPropType', 'propSetOb', 'propNeedsBoundsCalculating', 'propNeedsWallsFloorsCalculating', 'propDoCollisionsCanPush',
              'propDoCollisionsCanNotPush', 'propGetOriginalWalls', 'propGetOriginalFloors', 'gunLeftHandActive',
              'gunRightHandActive', 'gunBothHandsActive', 'gunIsLeftGunVisible',
-             'propEditValidPropnum', 'gunSetAmmoToMax', 'lvGetNameFromNum', 'lvGetBgCol', 'gunGetGunAmmo'}
+             'propEditValidPropnum', 'gunSetAmmoToMax', 'lvGetNameFromNum', 'lvGetBgCol', 'gunGetGunAmmo', 'gunAddAmmo'}
 
 
 def arg(name, default):
