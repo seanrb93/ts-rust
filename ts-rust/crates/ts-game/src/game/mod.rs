@@ -234,6 +234,8 @@ pub mod look_at_transform_and_head_props;
 pub mod tiles_and_path_steps;
 #[path = "screen-effects-and-textured-icons.rs"]
 pub mod screen_effects_and_textured_icons;
+#[path = "front-end-logo-and-glass-line-test.rs"]
+pub mod front_end_logo_and_glass_line_test;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -355,3 +357,4 @@ pub use unlock_availability::*;
 pub use look_at_transform_and_head_props::*;
 pub use tiles_and_path_steps::*;
 pub use screen_effects_and_textured_icons::*;
+pub use front_end_logo_and_glass_line_test::*;
