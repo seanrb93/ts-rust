@@ -224,6 +224,8 @@ pub mod line_cylinder_test;
 pub mod closest_explosion_light;
 #[path = "map-maker-dialog.rs"]
 pub mod map_maker_dialog;
+#[path = "set-animation.rs"]
+pub mod set_animation;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -340,3 +342,4 @@ pub use look_matrix_and_texture_rectangle::*;
 pub use line_cylinder_test::*;
 pub use closest_explosion_light::*;
 pub use map_maker_dialog::*;
+pub use set_animation::*;
