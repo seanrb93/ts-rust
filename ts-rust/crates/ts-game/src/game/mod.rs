@@ -200,6 +200,10 @@ pub mod route_calculation;
 pub mod particle_render_packet;
 #[path = "part-transform.rs"]
 pub mod part_transform;
+#[path = "explosion-particles.rs"]
+pub mod explosion_particles;
+#[path = "map-maker-tile-rotation.rs"]
+pub mod map_maker_tile_rotation;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -304,3 +308,5 @@ pub use unlock_tests_and_pad_choice::*;
 pub use route_calculation::*;
 pub use particle_render_packet::*;
 pub use part_transform::*;
+pub use explosion_particles::*;
+pub use map_maker_tile_rotation::*;
