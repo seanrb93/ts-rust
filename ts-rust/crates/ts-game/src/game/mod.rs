@@ -242,6 +242,8 @@ pub mod zoom_box_drawing;
 pub mod enemy_idle_animation;
 #[path = "goodies-floor-and-following.rs"]
 pub mod goodies_floor_and_following;
+#[path = "zoom-box-pages-and-character-select.rs"]
+pub mod zoom_box_pages_and_character_select;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -367,3 +369,4 @@ pub use front_end_logo_and_glass_line_test::*;
 pub use zoom_box_drawing::*;
 pub use enemy_idle_animation::*;
 pub use goodies_floor_and_following::*;
+pub use zoom_box_pages_and_character_select::*;
