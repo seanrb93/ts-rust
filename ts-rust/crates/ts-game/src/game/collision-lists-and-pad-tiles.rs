@@ -2,37 +2,6 @@
 
 use crate::*;
 
-/// Put item `item` back on the free list of the map maker; if `owner` is not 0 it is first taken out of the owner's list (head at +52, links at +4) (@ 0x248a18).
-pub fn mmFreeItem(owner: i32, item: i32) {
-    let head = lw(0x3b0018);
-    let count = lw(0x3b001c);
-    if owner != 0 {
-        let mut previous = 0;
-        let mut current = lw(owner + 52);
-        if current != 0 && current != item {
-            previous = current;
-            loop {
-                current = lw(previous + 4);
-                if current == 0 || current == item {
-                    break;
-                }
-                previous = current;
-            }
-        }
-        if current == item {
-            let next = lw(item + 4);
-            if previous == 0 {
-                sw(owner + 52, next);
-            } else {
-                sw(previous + 4, next);
-            }
-        }
-    }
-    sw(item + 4, head);
-    sw(0x3b0018, item);
-    sw(0x3b001c, count + 1);
-}
-
 /// Take a prop out of the list of the props that push (`0x1fd3410`, the count at 0x3b00ec) or of those that do not (`0x1fd2f60`, the count at
 /// 0x3b00e8): its entry is cleared and the count of cleared entries goes up (at 0x3b00f4 and 0x3b00f0) (@ 0x2693c8).
 pub fn propRemovePropFromCollisionList(prop: i32) {

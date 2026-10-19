@@ -7,33 +7,6 @@ pub fn windowReset() {
     windowRestart();
 }
 
-/// Copy the translation of bone `from` to the bone `to` that mirrors it, for the bones of kind 2, and walk the skeleton (80-byte bones; kind
-/// at +0, matrix number at +1, child at +3, sibling at +4) (@ 0x214b58).
-pub fn calDoubleFilletTrans(skeleton: i32, bone: i32) {
-    let mut bone = bone;
-    loop {
-        let base = lw(skeleton);
-        let bones = base - lw(base) * 80;
-        let this = bones + bone * 80;
-        let mut child = lb(this + 3);
-        if lb(this) == 2 {
-            let other = child * 80 + bones;
-            for at in [48, 52, 56] {
-                let matrices = lw(skeleton + 4);
-                swc1((lb(this + 1) << 6) + matrices + at, lwc1((lb(other + 1) << 6) + matrices + at));
-            }
-            child = lb(this + 3);
-        }
-        if child >= 0 && lb(this) != 3 {
-            calDoubleFilletTrans(skeleton, child);
-        }
-        bone = lb(this + 4);
-        if bone < 0 {
-            break;
-        }
-    }
-}
-
 /// A stick axis of a player's controller as -1 to 1 (0 left x, 1 left y, 2 right x, 3 right y, y axes up positive) (@ 0x203ee0).
 pub fn joyGetAxisLOCAL(player: i32, axis: i32) -> f32 {
     let c = lw((player << 2) + g::playercontrollers) * 384 + g::controllers;

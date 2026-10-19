@@ -114,6 +114,16 @@ pub mod display_list_shapes;
 pub mod collision_lists_and_pad_tiles;
 #[path = "map-maker-drawing.rs"]
 pub mod map_maker_drawing;
+#[path = "hud-timers.rs"]
+pub mod hud_timers;
+#[path = "pickup-positions.rs"]
+pub mod pickup_positions;
+#[path = "character-sets-and-teams.rs"]
+pub mod character_sets_and_teams;
+#[path = "map-maker-object-lists.rs"]
+pub mod map_maker_object_lists;
+#[path = "skeleton-walks.rs"]
+pub mod skeleton_walks;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -175,3 +185,8 @@ pub use bullet_mines::*;
 pub use display_list_shapes::*;
 pub use collision_lists_and_pad_tiles::*;
 pub use map_maker_drawing::*;
+pub use hud_timers::*;
+pub use pickup_positions::*;
+pub use character_sets_and_teams::*;
+pub use map_maker_object_lists::*;
+pub use skeleton_walks::*;

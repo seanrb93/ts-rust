@@ -82,7 +82,6 @@ FUNCS = {
         ('lwc1(a1_4 + 48) + lwc1(a1_4 + 60)', 'lwc1(a1_4 + 48) + lwc1(a1_4 + 60) * lwc1(g::updateframesf)', 1),
     ],
     # constant increments on every call (a HUD ring angle, the spin of an explosion ring): scale by the time of the frame
-    'hudTick': [('f2_1 = lwc1(0x3b0190) + lwc1(0x3ad780);', 'f2_1 = lwc1(0x3b0190) + lwc1(0x3ad780) * lwc1(g::tickframesf);', 1)],
     'blastringGfx': [('f0_1 = lwc1(s2_1) + lwc1(s1_1 + lo_1 - 4);', 'f0_1 = lwc1(s2_1) + lwc1(s1_1 + lo_1 - 4) * lwc1(g::tickframesf);', 1)],
     # The player's speed is the distance moved in the last frame divided by the whole ticks that frame lasted (player +292,
     # last non-zero value in +340).  The weapon's walk bob is driven by it.  With frames of a fraction of a tick the divisor
