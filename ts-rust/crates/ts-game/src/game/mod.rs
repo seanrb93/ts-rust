@@ -88,6 +88,10 @@ pub mod depth_test_bias;
 pub mod pad_and_room_searches;
 #[path = "item-group-names.rs"]
 pub mod item_group_names;
+#[path = "level-transforms.rs"]
+pub mod level_transforms;
+#[path = "menu-item-search.rs"]
+pub mod menu_item_search;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -136,3 +140,5 @@ pub use circle_hit_tests::*;
 pub use depth_test_bias::*;
 pub use pad_and_room_searches::*;
 pub use item_group_names::*;
+pub use level_transforms::*;
+pub use menu_item_search::*;

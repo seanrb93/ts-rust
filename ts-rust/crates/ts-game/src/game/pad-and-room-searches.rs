@@ -69,3 +69,18 @@ pub fn bgFloorBBIntersectionXZ(bb: i32, out: i32, want: i32) -> i32 {
     }
     count
 }
+
+/// Make a non-player character head for the pad nearest to it among its own pad and the pads linked to it; a new pad resets two of its counters (@ 0x2bfc28).
+pub fn updateNPCPadPos(chr: i32) {
+    let frame = Frame::new(128);
+    let sp = frame.sp();
+    let data = lw(chr + 352);
+    let linked = findpadslinked2pad(lw(data + 680), sp | 4, 19);
+    sw(sp, lw(data + 680));
+    let nearest = closestpadinlist(chr + 48, linked + 1, sp);
+    if nearest != lw(data + 680) {
+        sw(data + 680, nearest);
+        sw(data + 2692, 0);
+        sw(data + 1688, 0);
+    }
+}
