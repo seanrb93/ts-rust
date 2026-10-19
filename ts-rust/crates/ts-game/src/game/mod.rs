@@ -244,6 +244,8 @@ pub mod enemy_idle_animation;
 pub mod goodies_floor_and_following;
 #[path = "zoom-box-pages-and-character-select.rs"]
 pub mod zoom_box_pages_and_character_select;
+#[path = "rooms-of-pads-and-props-and-page-background.rs"]
+pub mod rooms_of_pads_and_props_and_page_background;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -370,3 +372,4 @@ pub use zoom_box_drawing::*;
 pub use enemy_idle_animation::*;
 pub use goodies_floor_and_following::*;
 pub use zoom_box_pages_and_character_select::*;
+pub use rooms_of_pads_and_props_and_page_background::*;
