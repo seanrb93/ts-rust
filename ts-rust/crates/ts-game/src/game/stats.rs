@@ -6,7 +6,7 @@ const PLAYER_STATS_SIZE: i32 = 1368;
 
 /// Whether `n` is a slot of the statistics table that is in play: below 14, and either one of the players or characters in the match, or
 /// (in the two modes 6 and 7 and when the game parameters' flag 32 is set) one of the four players (shared by all `Stats...` functions).
-fn stats_slot_in_play(n: i32) -> bool {
+pub(super) fn stats_slot_in_play(n: i32) -> bool {
     if n >= 14 {
         return false;
     }
