@@ -17,7 +17,8 @@ WS = os.path.join(ROOT, 'ts-rust')
 # functions that read the port's relocated tables (manual/proptable.rs): they differ from the machine code on purpose
 BY_DESIGN = {'getPropType', 'propSetOb', 'propNeedsBoundsCalculating', 'propNeedsWallsFloorsCalculating', 'propDoCollisionsCanPush',
              'propDoCollisionsCanNotPush', 'propGetOriginalWalls', 'propGetOriginalFloors', 'gunLeftHandActive',
-             'gunRightHandActive', 'gunBothHandsActive', 'gunIsLeftGunVisible'}
+             'gunRightHandActive', 'gunBothHandsActive', 'gunIsLeftGunVisible',
+             'propEditValidPropnum'}
 
 
 def arg(name, default):
