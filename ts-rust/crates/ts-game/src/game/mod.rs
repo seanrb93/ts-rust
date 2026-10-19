@@ -144,6 +144,8 @@ pub mod animation_data_and_colours;
 pub mod gradients_and_screen_textures;
 #[path = "interface-drawing.rs"]
 pub mod interface_drawing;
+#[path = "overrides-teams-and-glass.rs"]
+pub mod overrides_teams_and_glass;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -220,3 +222,4 @@ pub use enemy_choices_and_room_lights::*;
 pub use animation_data_and_colours::*;
 pub use gradients_and_screen_textures::*;
 pub use interface_drawing::*;
+pub use overrides_teams_and_glass::*;
