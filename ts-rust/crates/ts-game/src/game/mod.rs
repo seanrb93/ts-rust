@@ -140,6 +140,8 @@ pub mod credits_and_front_end_lights;
 pub mod enemy_choices_and_room_lights;
 #[path = "animation-data-and-colours.rs"]
 pub mod animation_data_and_colours;
+#[path = "gradients-and-screen-textures.rs"]
+pub mod gradients_and_screen_textures;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -214,3 +216,4 @@ pub use pad_editor_input::*;
 pub use credits_and_front_end_lights::*;
 pub use enemy_choices_and_room_lights::*;
 pub use animation_data_and_colours::*;
+pub use gradients_and_screen_textures::*;
