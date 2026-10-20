@@ -520,3 +520,6 @@ pub use gui_and_effect_restarts_and_pad_info::*;
 #[path = "menu-item-text-loading-and-hud-bases.rs"]
 pub mod menu_item_text_loading_and_hud_bases;
 pub use menu_item_text_loading_and_hud_bases::*;
+#[path = "colour-slide-popups-menu-boxes-and-front-effect-reset.rs"]
+pub mod colour_slide_popups_menu_boxes_and_front_effect_reset;
+pub use colour_slide_popups_menu_boxes_and_front_effect_reset::*;

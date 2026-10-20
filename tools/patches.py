@@ -253,7 +253,6 @@ FUNCS = {
     # the slider of the MapMaker's menus shows arrows while it is being changed
     'draw_mi': [(' '*12+'draw_slider(a0_1, a1_1, a2_1, a3_1, a4_2);'+chr(10)+' '*12+'return;', ' '*12+'draw_slider(a0_1, a1_1, a2_1, a3_1, a4_2);'+chr(10)+' '*12+'slider_arrows(a0, a0_1, a1_1);'+chr(10)+' '*12+'return;', 1)],
     'padact_pageTick': [('< 0x1389', '< mm_limit()', 1)],
-    'mmDrawMemFree': [('pub fn mmDrawMemFree(mut a0: i32, mut a1: i32) {'+chr(10), 'pub fn mmDrawMemFree(mut a0: i32, mut a1: i32) {'+chr(10)+'    if mm_unlimited() {'+chr(10)+'        return;'+chr(10)+'    }'+chr(10), 1)],
     'weaponSetInc': [('pub fn weaponSetInc() {'+chr(10), 'pub fn weaponSetInc() {'+chr(10)+'    weapon_set_step(1);'+chr(10)+'    return;'+chr(10), 1)],
     'weaponSetDec': [('pub fn weaponSetDec() {'+chr(10), 'pub fn weaponSetDec() {'+chr(10)+'    weapon_set_step(-1);'+chr(10)+'    return;'+chr(10), 1)],
     # test aid (TS_FORCEPLAYERS=<n>): the match has n players, whatever the front end set up
