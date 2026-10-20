@@ -272,6 +272,10 @@ pub mod move_test_wall;
 pub mod spaceship_prop_ticks;
 #[path = "restarts-and-file-names.rs"]
 pub mod restarts_and_file_names;
+#[path = "rotation-matrices-and-quaternions.rs"]
+pub mod rotation_matrices_and_quaternions;
+#[path = "euler-matrices-and-perspective.rs"]
+pub mod euler_matrices_and_perspective;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -412,3 +416,5 @@ pub use chunk_polygon_merging::*;
 pub use move_test_wall::*;
 pub use spaceship_prop_ticks::*;
 pub use restarts_and_file_names::*;
+pub use rotation_matrices_and_quaternions::*;
+pub use euler_matrices_and_perspective::*;
