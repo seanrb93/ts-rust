@@ -811,3 +811,6 @@ pub use statistics_setup_test_map_and_level_tick_functions::*;
 #[path = "zoom-tile-flares-sounds-enemy-death-and-map-room-drawing.rs"]
 pub mod zoom_tile_flares_sounds_enemy_death_and_map_room_drawing;
 pub use zoom_tile_flares_sounds_enemy_death_and_map_room_drawing::*;
+#[path = "object-textures-damaged-props-enemy-wake-and-front-end-pages.rs"]
+pub mod object_textures_damaged_props_enemy_wake_and_front_end_pages;
+pub use object_textures_damaged_props_enemy_wake_and_front_end_pages::*;
