@@ -757,3 +757,12 @@ pub use object_instance_ambient_light::*;
 #[path = "statistics-page-info-drawing.rs"]
 pub mod statistics_page_info_drawing;
 pub use statistics_page_info_drawing::*;
+#[path = "glass-particle-spawning.rs"]
+pub mod glass_particle_spawning;
+pub use glass_particle_spawning::*;
+#[path = "player-select-animation.rs"]
+pub mod player_select_animation;
+pub use player_select_animation::*;
+#[path = "segment-to-segment-distance.rs"]
+pub mod segment_to_segment_distance;
+pub use segment_to_segment_distance::*;
