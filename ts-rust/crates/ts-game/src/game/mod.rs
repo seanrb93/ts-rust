@@ -601,3 +601,6 @@ pub use ring_and_sphere_spawn_effects::*;
 #[path = "planet-spawn-roll-menu-and-last-stand-drawing.rs"]
 pub mod planet_spawn_roll_menu_and_last_stand_drawing;
 pub use planet_spawn_roll_menu_and_last_stand_drawing::*;
+#[path = "menu-reset-level-flags-skeleton-slots-and-debug-menu.rs"]
+pub mod menu_reset_level_flags_skeleton_slots_and_debug_menu;
+pub use menu_reset_level_flags_skeleton_slots_and_debug_menu::*;
