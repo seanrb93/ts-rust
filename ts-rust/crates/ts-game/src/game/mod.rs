@@ -616,3 +616,6 @@ pub use enemy_window_and_death_animation_choice::*;
 #[path = "stats-combine-and-add-to-life.rs"]
 pub mod stats_combine_and_add_to_life;
 pub use stats_combine_and_add_to_life::*;
+#[path = "goodie-message-glass-room-pad-buttons-and-team-bars.rs"]
+pub mod goodie_message_glass_room_pad_buttons_and_team_bars;
+pub use goodie_message_glass_room_pad_buttons_and_team_bars::*;
