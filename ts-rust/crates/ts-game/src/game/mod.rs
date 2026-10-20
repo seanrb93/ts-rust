@@ -739,3 +739,15 @@ pub use prop_walls_and_floors_original::*;
 #[path = "instance-line-test.rs"]
 pub mod instance_line_test;
 pub use instance_line_test::*;
+#[path = "select-target.rs"]
+pub mod select_target;
+pub use select_target::*;
+#[path = "rotate-character.rs"]
+pub mod rotate_character;
+pub use rotate_character::*;
+#[path = "character-bounding-box-data.rs"]
+pub mod character_bounding_box_data;
+pub use character_bounding_box_data::*;
+#[path = "zombie-animation.rs"]
+pub mod zombie_animation;
+pub use zombie_animation::*;
