@@ -306,6 +306,8 @@ pub mod wavy_and_colour_prop_ticks;
 pub mod door_hologram_and_lift_ticks;
 #[path = "level-availability-and-gun-switching.rs"]
 pub mod level_availability_and_gun_switching;
+#[path = "spaceship-reflection-ticks-and-text-size.rs"]
+pub mod spaceship_reflection_ticks_and_text_size;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -463,3 +465,4 @@ pub use hit_reaction_pitches_cheats_and_heads::*;
 pub use wavy_and_colour_prop_ticks::*;
 pub use door_hologram_and_lift_ticks::*;
 pub use level_availability_and_gun_switching::*;
+pub use spaceship_reflection_ticks_and_text_size::*;

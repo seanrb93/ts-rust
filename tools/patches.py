@@ -67,11 +67,6 @@ FUNCS = {
     'enemyAIFutureLastStandHandler': [('a0_18 = lw(g::updateframesi);', 'a0_18 = running_i();', 1)],
     # animation phases taken from the integer tick counter
     'vtxlistWaterxyz': [('f5_1 = a7_1 as f32;', 'f5_1 = gameframe_f();', 1)],
-    'spaceship1PropTick': [
-        ('f2_1 = a1_1 as f32;', 'f2_1 = gameframe_f();', 1),
-        ('((a1_1 - lw(g::updateframesi)) as f32 * f8_1', '((gameframe_f() - lwc1(g::updateframesf)) * f8_1', 1),
-    ],
-    'reflectionsPropTick': [('f4_1 = a4_2 as f32 * lwc1(0x3ace98);', 'f4_1 = gameframe_f() * lwc1(0x3ace98);', 1)],
     # the ejected shotgun shells move by their velocity on every call: scale it by the frame time
     'updateShotgunReload': [
         ('lwc1(a0_6 + 52) + lwc1(a0_6 + 64)', 'lwc1(a0_6 + 52) + lwc1(a0_6 + 64) * lwc1(g::updateframesf)', 1),
@@ -285,7 +280,6 @@ FUNCS = {
     # the buttons in the texts are named for the device in use (manual/nativetext.rs)
     'textPrint': [('pub fn textPrint(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32) {'+chr(10), 'pub fn textPrint(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
     'textOutline': [('pub fn textOutline(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32) {'+chr(10), 'pub fn textOutline(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
-    'textSize': [('pub fn textSize(mut a0: i32, mut a1: i32, mut a2: i32) {'+chr(10), 'pub fn textSize(mut a0: i32, mut a1: i32, mut a2: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
     # the MapMaker's Options page (manual/mmoptions.rs): a slider changed with X, a row that takes the limit of the map away
     'settings_pageTick': [
         ('pub fn settings_pageTick(mut a0: i32) {'+chr(10), 'pub fn settings_pageTick(mut a0: i32) {'+chr(10)+'    mm_options_tick(a0);'+chr(10), 1),
