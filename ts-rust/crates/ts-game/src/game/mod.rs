@@ -667,3 +667,12 @@ pub use glass_particle_drawing::*;
 #[path = "weapon-route-precalculation-and-map-file-saving.rs"]
 pub mod weapon_route_precalculation_and_map_file_saving;
 pub use weapon_route_precalculation_and_map_file_saving::*;
+#[path = "vif-data-precalculation-and-rgb-picture-opening.rs"]
+pub mod vif_data_precalculation_and_rgb_picture_opening;
+pub use vif_data_precalculation_and_rgb_picture_opening::*;
+#[path = "particle-ray-and-pulse-drawing.rs"]
+pub mod particle_ray_and_pulse_drawing;
+pub use particle_ray_and_pulse_drawing::*;
+#[path = "portal-screen-boxes-and-blast-ring-drawing.rs"]
+pub mod portal_screen_boxes_and_blast_ring_drawing;
+pub use portal_screen_boxes_and_blast_ring_drawing::*;
