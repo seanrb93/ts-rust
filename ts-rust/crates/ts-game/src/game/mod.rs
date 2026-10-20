@@ -284,6 +284,8 @@ pub mod stats_gun_counters;
 pub mod team_names_signons_pads_and_messages;
 #[path = "facing-tests-pads-and-ricochets.rs"]
 pub mod facing_tests_pads_and_ricochets;
+#[path = "remote-props-swing-and-messages.rs"]
+pub mod remote_props_swing_and_messages;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -430,3 +432,4 @@ pub use messages_map_files_and_formatting::*;
 pub use stats_gun_counters::*;
 pub use team_names_signons_pads_and_messages::*;
 pub use facing_tests_pads_and_ricochets::*;
+pub use remote_props_swing_and_messages::*;
