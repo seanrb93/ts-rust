@@ -700,3 +700,6 @@ pub use front_end_logo_layers_drawing::*;
 #[path = "enemy-attack-object-behaviour.rs"]
 pub mod enemy_attack_object_behaviour;
 pub use enemy_attack_object_behaviour::*;
+#[path = "game-statistics-calculation-and-challenge-page.rs"]
+pub mod game_statistics_calculation_and_challenge_page;
+pub use game_statistics_calculation_and_challenge_page::*;
