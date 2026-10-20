@@ -268,6 +268,8 @@ pub mod enemy_target_tracking;
 pub mod chunk_polygon_merging;
 #[path = "move-test-wall.rs"]
 pub mod move_test_wall;
+#[path = "spaceship-prop-ticks.rs"]
+pub mod spaceship_prop_ticks;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -406,3 +408,4 @@ pub use enemy_target_reselection::*;
 pub use enemy_target_tracking::*;
 pub use chunk_polygon_merging::*;
 pub use move_test_wall::*;
+pub use spaceship_prop_ticks::*;

@@ -44,6 +44,9 @@ def main():
         for fn in fns:
             if fn.endswith('.rs'):
                 names += re.findall(r'^pub fn (\w+)', open(os.path.join(dp, fn), encoding='utf8').read(), re.M)
+    if '--only' in sys.argv:
+        wanted = set(sys.argv[sys.argv.index('--only') + 1:])
+        names = [n for n in names if n in wanted]
     names = [n for n in names if n not in UNVERIFIABLE]
     exe = os.path.join(WS, 'target', 'release', 'ts-verify.exe' if os.name == 'nt' else 'ts-verify')
     r = subprocess.run([exe, '-v', '--elf', elf, '--n', n] + sorted(names), capture_output=True, text=True)
