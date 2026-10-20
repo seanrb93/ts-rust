@@ -526,3 +526,6 @@ pub use colour_slide_popups_menu_boxes_and_front_effect_reset::*;
 #[path = "front-end-drawing-particle-and-decal-restarts-and-prop-update.rs"]
 pub mod front_end_drawing_particle_and_decal_restarts_and_prop_update;
 pub use front_end_drawing_particle_and_decal_restarts_and_prop_update::*;
+#[path = "credits-text-formatted-text-escort-completed-and-disconnect.rs"]
+pub mod credits_text_formatted_text_escort_completed_and_disconnect;
+pub use credits_text_formatted_text_escort_completed_and_disconnect::*;
