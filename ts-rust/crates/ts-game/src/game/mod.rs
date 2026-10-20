@@ -865,3 +865,6 @@ pub use ambush_walls_ambush_crouch_and_last_stand_handler::*;
 #[path = "player-restart-stats-drawing-character-player-page-and-decal-sides.rs"]
 pub mod player_restart_stats_drawing_character_player_page_and_decal_sides;
 pub use player_restart_stats_drawing_character_player_page_and_decal_sides::*;
+#[path = "special-prop-creation-chr-swipe-test-level-setup-and-robot-ai.rs"]
+pub mod special_prop_creation_chr_swipe_test_level_setup_and_robot_ai;
+pub use special_prop_creation_chr_swipe_test_level_setup_and_robot_ai::*;
