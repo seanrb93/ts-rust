@@ -100,6 +100,7 @@ pub fn call_extern(name: &str, c: &mut Cpu) -> Option<()> {
         "floor" => ret_i(c, floor(d0)),
         "atan2" => ret_i(c, atan2(d0, d1)),
         "pow" => ret_i(c, pow(d0, d1)),
+        "__divdi3" => ret_i(c, __divdi3(d0, d1)),
         _ => return None,
     }
     Some(())

@@ -538,3 +538,6 @@ pub use controls_menu_ambush_colour_page_and_defend_pad::*;
 #[path = "prop-floors-colour-wheel-and-front-logo-layers.rs"]
 pub mod prop_floors_colour_wheel_and_front_logo_layers;
 pub use prop_floors_colour_wheel_and_front_logo_layers::*;
+#[path = "map-maker-items-center-map-and-debug-state.rs"]
+pub mod map_maker_items_center_map_and_debug_state;
+pub use map_maker_items_center_map_and_debug_state::*;
