@@ -196,9 +196,6 @@ FUNCS = {
     # one more arcade level, Ron (the console game has an arcade set-up for it, but it is not in its list): the list is in `av_arcade_levels`, MapMaker keeps its place (index 18), it goes after it
     'arcade_pageTick': [('s1_3 = if s1_2 >= 19 { 0 } else { s1_2 };', 's1_3 = if s1_2 >= av_arcade_count() { 0 } else { s1_2 };', 1), ('lw((s1_3 << 2) + g::arcadelevels)', 'lw((s1_3 << 2) + av_arcade_levels())', 1), ('lw((s0_3 << 2) + g::arcadelevels)', 'lw((s0_3 << 2) + av_arcade_levels())', 1), ('s0_3 = if -1 >= s0_2 { 18 } else { s0_2 };', 's0_3 = if -1 >= s0_2 { av_arcade_count() - 1 } else { s0_2 };', 1), ('lw((a1_5 << 2) + g::arcadelevels)', 'lw((a1_5 << 2) + av_arcade_levels())', 1)],
     # (the instances of models: a room has one too)
-    'propReset': [('a0_9 = 712;', 'a0_9 = PROP_LAST;', 1), ('a0_10 = 712;', 'a0_10 = PROP_LAST;', 1),
-                  # (a level's props, the rooms' among them: 300 of them were room for 200 rooms and the rest)
-                  ('{ 20 } else { 300 }', '{ 20 } else { 1000 }', 1)],
     # the game's memory pool cannot be longer (the stacks and static data are after it): big allocations of a level of a mod are made in a pool of the port's own
     'bgGfx': [
         ('sb(v1_3 + a2_1 * 200 + 0x1fc4a78, s0_1);', 'sh((v1_3 << 1) + a2_1 * 1024 + 0x2500000, s0_1);', 1),

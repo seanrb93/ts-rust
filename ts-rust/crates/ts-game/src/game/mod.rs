@@ -592,3 +592,6 @@ pub use blast_radius_menu_list_portal_clip_and_tune_number::*;
 #[path = "multiplayer-set-up-score-box-image-effects-and-fuse.rs"]
 pub mod multiplayer_set_up_score_box_image_effects_and_fuse;
 pub use multiplayer_set_up_score_box_image_effects_and_fuse::*;
+#[path = "prop-reset-challenge-failed-water-tick-and-defend.rs"]
+pub mod prop_reset_challenge_failed_water_tick_and_defend;
+pub use prop_reset_challenge_failed_water_tick_and_defend::*;
