@@ -60,7 +60,6 @@ FUNCS = {
         # the dynamite and the brick are held rolled over in the left hand
         ('            swc1(s0_1 + 88, f23_1 + -2.0_f32);'+chr(10), '            swc1(s0_1 + 88, f23_1 + -2.0_f32 + if a1 != 0 && (lw(s3_1) == 18 || lw(s3_1) == 25) { 95.0_f32 } else { 0.0_f32 });'+chr(10), 1),
     ],
-    'particleBurstTick': [('v0_1 = lw(g::updateframesi);\n                    if lwc1(a3_1) < f1_1 {', 'v0_1 = running_i();\n                    if lwc1(a3_1) < f1_1 {', 1)],
     'dying': [('v0_9 = lw(g::updateframesi);', 'v0_9 = running_i();', 1), ('v0_29 = lw(g::updateframesi);', 'v0_29 = running_i();', 1)],
     'enemyAmbushWallRight': [('v0_2 = lw(g::updateframesi);\n                        if v0_1 != 0 {', 'v0_2 = running_i();\n                        if v0_1 != 0 {', 1)],
     'enemyAmbushWallLeft': [('v0_2 = lw(g::updateframesi);\n                        if v0_1 != 0 {', 'v0_2 = running_i();\n                        if v0_1 != 0 {', 1)],
@@ -119,10 +118,6 @@ FUNCS = {
         (' '*8+'s0_3 = if s0_4 < s4_1 { 32 } else { s0_4 };', ' '*8+'s0_3 = if s0_4 < s4_1 { combo_count() - 1 } else { s0_4 };', 1),
     ],
     'getmostpowerfulcombo': [(' '*8+'if s0_1 >= 33 {', ' '*8+'if s0_1 >= combo_count() {', 1)],
-    'gunPickedUpAmmo': [
-        (' '*28+'if lw(a5_1) != 0 {', ' '*28+'if own_get(a0, a6_1) != 0 {', 1),
-        (' '*24+'if a6_1 >= 33 {', ' '*24+'if a6_1 >= combo_count() {', 1),
-    ],
     'playerSetStartGun': [
         (' '*4+'if (v0_2 as u32) >= (32 as u32) {', ' '*4+'if (v0_2 as u32) >= ((combo_count() - 1) as u32) {', 1),
         (' '*4+'sw(s0_1 + (a2_1 << 2) + 488, 1);', ' '*4+'own_set(s0_1, a2_1);', 1),

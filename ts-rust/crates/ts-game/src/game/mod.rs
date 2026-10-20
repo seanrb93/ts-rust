@@ -469,3 +469,6 @@ pub use door_hologram_and_lift_ticks::*;
 pub use level_availability_and_gun_switching::*;
 pub use spaceship_reflection_ticks_and_text_size::*;
 pub use text_print::*;
+#[path = "ammo-pickup-and-particle-burst-tick.rs"]
+pub mod ammo_pickup_and_particle_burst_tick;
+pub use ammo_pickup_and_particle_burst_tick::*;
