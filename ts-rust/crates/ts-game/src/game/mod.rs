@@ -841,3 +841,6 @@ pub use pad_halls_credits_tunnel_story_page_sound_tick_explosions_start_position
 #[path = "cartridges-character-prop-tick-room-drawing-level-preload-map-copy-gun-preload-weapons-page-and-prop-wall-test.rs"]
 pub mod cartridges_character_prop_tick_room_drawing_level_preload_map_copy_gun_preload_weapons_page_and_prop_wall_test;
 pub use cartridges_character_prop_tick_room_drawing_level_preload_map_copy_gun_preload_weapons_page_and_prop_wall_test::*;
+#[path = "electricity-menu-tick-pad-save-level-load-bearings-path-position-and-character-drawing.rs"]
+pub mod electricity_menu_tick_pad_save_level_load_bearings_path_position_and_character_drawing;
+pub use electricity_menu_tick_pad_save_level_load_bearings_path_position_and_character_drawing::*;
