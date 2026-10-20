@@ -286,6 +286,8 @@ pub mod team_names_signons_pads_and_messages;
 pub mod facing_tests_pads_and_ricochets;
 #[path = "remote-props-swing-and-messages.rs"]
 pub mod remote_props_swing_and_messages;
+#[path = "game-variable-text-scores-and-colours.rs"]
+pub mod game_variable_text_scores_and_colours;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -433,3 +435,4 @@ pub use stats_gun_counters::*;
 pub use team_names_signons_pads_and_messages::*;
 pub use facing_tests_pads_and_ricochets::*;
 pub use remote_props_swing_and_messages::*;
+pub use game_variable_text_scores_and_colours::*;
