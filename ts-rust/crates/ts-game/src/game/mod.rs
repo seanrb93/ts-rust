@@ -685,3 +685,12 @@ pub use smoke_and_tracer_particle_drawing::*;
 #[path = "gun-spark-and-sprite-spark-group-drawing.rs"]
 pub mod gun_spark_and_sprite_spark_group_drawing;
 pub use gun_spark_and_sprite_spark_group_drawing::*;
+#[path = "explosion-and-spark-group-drawing.rs"]
+pub mod explosion_and_spark_group_drawing;
+pub use explosion_and_spark_group_drawing::*;
+#[path = "trail-particle-drawing.rs"]
+pub mod trail_particle_drawing;
+pub use trail_particle_drawing::*;
+#[path = "manual-particle-drawing.rs"]
+pub mod manual_particle_drawing;
+pub use manual_particle_drawing::*;
