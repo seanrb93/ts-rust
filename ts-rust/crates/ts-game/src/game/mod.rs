@@ -751,3 +751,9 @@ pub use character_bounding_box_data::*;
 #[path = "zombie-animation.rs"]
 pub mod zombie_animation;
 pub use zombie_animation::*;
+#[path = "object-instance-ambient-light.rs"]
+pub mod object_instance_ambient_light;
+pub use object_instance_ambient_light::*;
+#[path = "statistics-page-info-drawing.rs"]
+pub mod statistics_page_info_drawing;
+pub use statistics_page_info_drawing::*;
