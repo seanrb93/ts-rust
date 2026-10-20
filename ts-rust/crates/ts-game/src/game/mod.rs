@@ -619,3 +619,6 @@ pub use stats_combine_and_add_to_life::*;
 #[path = "goodie-message-glass-room-pad-buttons-and-team-bars.rs"]
 pub mod goodie_message_glass_room_pad_buttons_and_team_bars;
 pub use goodie_message_glass_room_pad_buttons_and_team_bars::*;
+#[path = "map-maker-main-page-tick-and-part-transform.rs"]
+pub mod map_maker_main_page_tick_and_part_transform;
+pub use map_maker_main_page_tick_and_part_transform::*;
