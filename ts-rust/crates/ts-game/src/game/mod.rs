@@ -586,3 +586,6 @@ pub use challenge_hud_boxes_fillets_decals_and_split_pages::*;
 #[path = "sign-on-slots-game-reset-menu-lists-and-pad-numbers.rs"]
 pub mod sign_on_slots_game_reset_menu_lists_and_pad_numbers;
 pub use sign_on_slots_game_reset_menu_lists_and_pad_numbers::*;
+#[path = "blast-radius-menu-list-portal-clip-and-tune-number.rs"]
+pub mod blast_radius_menu_list_portal_clip_and_tune_number;
+pub use blast_radius_menu_list_portal_clip_and_tune_number::*;
