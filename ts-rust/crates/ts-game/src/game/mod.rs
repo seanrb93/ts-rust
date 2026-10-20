@@ -808,3 +808,6 @@ pub use game_tick_glass_smash_doors_credits_and_effect_group_ticks::*;
 #[path = "statistics-setup-test-map-and-level-tick-functions.rs"]
 pub mod statistics_setup_test_map_and_level_tick_functions;
 pub use statistics_setup_test_map_and_level_tick_functions::*;
+#[path = "zoom-tile-flares-sounds-enemy-death-and-map-room-drawing.rs"]
+pub mod zoom_tile_flares_sounds_enemy_death_and_map_room_drawing;
+pub use zoom_tile_flares_sounds_enemy_death_and_map_room_drawing::*;
