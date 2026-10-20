@@ -694,3 +694,9 @@ pub use trail_particle_drawing::*;
 #[path = "manual-particle-drawing.rs"]
 pub mod manual_particle_drawing;
 pub use manual_particle_drawing::*;
+#[path = "front-end-logo-layers-drawing.rs"]
+pub mod front_end_logo_layers_drawing;
+pub use front_end_logo_layers_drawing::*;
+#[path = "enemy-attack-object-behaviour.rs"]
+pub mod enemy_attack_object_behaviour;
+pub use enemy_attack_object_behaviour::*;
