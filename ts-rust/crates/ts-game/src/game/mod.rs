@@ -649,3 +649,12 @@ pub use story_page_goodies_store_effects_draw_and_part_relocate::*;
 #[path = "goodies-compare-front-background-and-controls-page.rs"]
 pub mod goodies_compare_front_background_and_controls_page;
 pub use goodies_compare_front_background_and_controls_page::*;
+#[path = "tile-set-setup-credits-quad-and-menu-box.rs"]
+pub mod tile_set_setup_credits_quad_and_menu_box;
+pub use tile_set_setup_credits_quad_and_menu_box::*;
+#[path = "enemy-sniper-behaviour.rs"]
+pub mod enemy_sniper_behaviour;
+pub use enemy_sniper_behaviour::*;
+#[path = "radar-and-wind-at-time.rs"]
+pub mod radar_and_wind_at_time;
+pub use radar_and_wind_at_time::*;
