@@ -826,3 +826,6 @@ pub use gun_reload_cheats_page_bullet_line_test_base_damage_map_maker_main_menu_
 #[path = "map-maker-drawing-part-relocation-zoom-tile-game-type-page-and-challenge-tick.rs"]
 pub mod map_maker_drawing_part_relocation_zoom_tile_game_type_page_and_challenge_tick;
 pub use map_maker_drawing_part_relocation_zoom_tile_game_type_page_and_challenge_tick::*;
+#[path = "auto-aim-audio-video-page-spawn-handler-prop-save-menu-tick-deathmatch-and-bag-drop.rs"]
+pub mod auto_aim_audio_video_page_spawn_handler_prop_save_menu_tick_deathmatch_and_bag_drop;
+pub use auto_aim_audio_video_page_spawn_handler_prop_save_menu_tick_deathmatch_and_bag_drop::*;
