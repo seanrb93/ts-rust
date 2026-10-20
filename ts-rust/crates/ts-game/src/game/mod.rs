@@ -308,6 +308,8 @@ pub mod door_hologram_and_lift_ticks;
 pub mod level_availability_and_gun_switching;
 #[path = "spaceship-reflection-ticks-and-text-size.rs"]
 pub mod spaceship_reflection_ticks_and_text_size;
+#[path = "text-print.rs"]
+pub mod text_print;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -466,3 +468,4 @@ pub use wavy_and_colour_prop_ticks::*;
 pub use door_hologram_and_lift_ticks::*;
 pub use level_availability_and_gun_switching::*;
 pub use spaceship_reflection_ticks_and_text_size::*;
+pub use text_print::*;

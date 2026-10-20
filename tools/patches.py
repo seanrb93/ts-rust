@@ -278,7 +278,6 @@ FUNCS = {
     'findweapon': [(' '*32+'a0_6 = a0;'+chr(10)+' '*32+'enemySetIdleAnimation(a0_6);'+chr(10)+' '*32+'return;'+chr(10), ' '*32+'if ts_sdk::bots_punch() {'+chr(10)+' '*36+'sw(s0_1 + 2720, lw(s0_1 + 2716));'+chr(10)+' '*36+'sw(s0_1 + 2716, 128);'+chr(10)+' '*36+'sw(s0_1 + 2892, 0);'+chr(10)+' '*36+'return;'+chr(10)+' '*32+'}'+chr(10)+' '*32+'a0_6 = a0;'+chr(10)+' '*32+'enemySetIdleAnimation(a0_6);'+chr(10)+' '*32+'return;'+chr(10), 1)],
     'enemyTick': [('pub fn enemyTick(mut a0: i32) {'+chr(10), 'pub fn enemyTick(mut a0: i32) {'+chr(10)+'    bot_punch(a0);'+chr(10), 1)],
     # the buttons in the texts are named for the device in use (manual/nativetext.rs)
-    'textPrint': [('pub fn textPrint(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32) {'+chr(10), 'pub fn textPrint(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
     'textOutline': [('pub fn textOutline(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32) {'+chr(10), 'pub fn textOutline(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
     # the MapMaker's Options page (manual/mmoptions.rs): a slider changed with X, a row that takes the limit of the map away
     'settings_pageTick': [
