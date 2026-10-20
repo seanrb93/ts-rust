@@ -72,6 +72,7 @@ pub fn call_extern(name: &str, c: &mut Cpu) -> Option<()> {
         "sceVu0UnitMatrix" => ret_i32(c, sceVu0UnitMatrix(a0)),
         "sceVu0TransposeMatrix" => ret_i32(c, sceVu0TransposeMatrix(a0, a1)),
         "sceVu0InversMatrix" => ret_i32(c, sceVu0InversMatrix(a0, a1)),
+        "vsprintf" => ret_i32(c, vsprintf(a0, a1, a2)),
         "sprintf" => {
             let v: Vec<i64> = (4..12).map(|i| c.r[i] as i64).collect();
             ret_i32(c, sprintf(&v))

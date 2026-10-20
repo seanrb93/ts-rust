@@ -580,3 +580,6 @@ pub use split_windows_enemy_room_bullet_search_and_last_stand_npcs::*;
 #[path = "reset-wrappers-bullet-lists-message-pages-and-swinging-signs.rs"]
 pub mod reset_wrappers_bullet_lists_message_pages_and_swinging_signs;
 pub use reset_wrappers_bullet_lists_message_pages_and_swinging_signs::*;
+#[path = "challenge-hud-boxes-fillets-decals-and-split-pages.rs"]
+pub mod challenge_hud_boxes_fillets_decals_and_split_pages;
+pub use challenge_hud_boxes_fillets_decals_and_split_pages::*;

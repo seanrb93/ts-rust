@@ -180,6 +180,17 @@ pub fn sprintf(args: &[i64]) -> i32 {
     s.len() as i32
 }
 
+/// `vsprintf(dst, fmt, ap)`: `ap` points at the saved 8-byte argument slots (the verifier runs the original `vafmt`, which builds them from its registers).
+pub fn vsprintf(dst: i32, fmt: i32, ap: i32) -> i32 {
+    let slots: Vec<i64> = (0..7).map(|k| ld(ap.wrapping_add(k * 8))).collect();
+    let s = format_c(&cstr(fmt), &slots);
+    for (k, c) in s.bytes().enumerate() {
+        sb(dst.wrapping_add(k as i32), c as i32);
+    }
+    sb(dst.wrapping_add(s.len() as i32), 0);
+    s.len() as i32
+}
+
 /// `scePrintf(fmt, ...)`: debug console output.
 pub fn scePrintf(args: &[i64]) -> i32 {
     let s = format_c(&cstr(args[0] as i32), &args[1..]);
