@@ -163,10 +163,26 @@ pub fn is_nan_bytes(b: &[u8; 16]) -> bool {
     (w >> 23) & 0xff == 0xff && w & 0x7f_ffff != 0
 }
 
+fn lane_is_nan(b: &[u8]) -> bool {
+    let w = u32::from_le_bytes([b[0], b[1], b[2], b[3]]);
+    (w >> 23) & 0xff == 0xff && w & 0x7f_ffff != 0
+}
+
+/// Two stored values equal, treating a NaN in the same 4-byte lane of both as equal (x86 NaN sign / payload is not meaningful); the 8- and 16-byte stores are compared lane by lane.
+fn same_mod_nan(x: &[u8], y: &[u8], size: usize) -> bool {
+    if x[..size] == y[..size] {
+        return true;
+    }
+    if size % 4 != 0 {
+        return false;
+    }
+    (0..size / 4).all(|k| {
+        let (a, b) = (&x[k * 4..k * 4 + 4], &y[k * 4..k * 4 + 4]);
+        a == b || (lane_is_nan(a) && lane_is_nan(b))
+    })
+}
+
 /// Store sequences equal, treating any two NaN words as equal (x86 NaN sign / payload is not meaningful).
 pub fn stores_equal_mod_nan(s1: &[trace::Store], s2: &[trace::Store]) -> bool {
-    s1.len() == s2.len()
-        && s1.iter().zip(s2).all(|(x, y)| {
-            x.addr == y.addr && x.size == y.size && (x.new == y.new || (x.size == 4 && is_nan_bytes(&x.new) && is_nan_bytes(&y.new)))
-        })
+    s1.len() == s2.len() && s1.iter().zip(s2).all(|(x, y)| x.addr == y.addr && x.size == y.size && same_mod_nan(&x.new, &y.new, x.size as usize))
 }

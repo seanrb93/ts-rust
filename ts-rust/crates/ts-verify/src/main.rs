@@ -93,6 +93,29 @@ fn same_f(a: f32, b: f32) -> bool {
     a.to_bits() == b.to_bits() || (a.is_nan() && b.is_nan()) || (a - b).abs() <= 1e-5 * a.abs().max(b.abs())
 }
 
+/// The bytes that differ are all in 4-byte words that both runs last stored as a NaN (x86 and the console's NaN differ in sign and payload; the store logs tell what word was stored).
+fn changes_equal_mod_nan(w1: &[(u32, u8)], w2: &[(u32, u8)], s1: &[trace::Store], s2: &[trace::Store]) -> bool {
+    let m1: HashMap<_, _> = w1.iter().cloned().collect();
+    let m2: HashMap<_, _> = w2.iter().cloned().collect();
+    let lane = |ss: &[trace::Store], a: u32| -> Option<u32> {
+        let s = ss.iter().rev().find(|x| a >= x.addr && a < x.addr + x.size as u32)?;
+        let base = a & !3;
+        if base < s.addr || base + 4 > s.addr + s.size as u32 {
+            return None;
+        }
+        let o = (base - s.addr) as usize;
+        Some(u32::from_le_bytes([s.new[o], s.new[o + 1], s.new[o + 2], s.new[o + 3]]))
+    };
+    let is_nan = |w: u32| (w >> 23) & 0xff == 0xff && w & 0x7f_ffff != 0;
+    let mut keys: Vec<u32> = m1.keys().chain(m2.keys()).cloned().collect();
+    keys.sort_unstable();
+    keys.dedup();
+    keys.iter().filter(|k| m1.get(k) != m2.get(k)).all(|&k| match (lane(s1, k), lane(s2, k)) {
+        (Some(a), Some(b)) => is_nan(a) && is_nan(b),
+        _ => false,
+    })
+}
+
 fn find_root() -> PathBuf {
     let mut d = std::env::current_dir().unwrap();
     loop {
@@ -197,7 +220,7 @@ fn main() {
                         bad = Some(format!("test {t}: int return differs: interp {r1:#x} native {r2:#x} (ints {ints:x?})"));
                     } else if !same_f(*f1, *f2) && _rk == 2 {
                         bad = Some(format!("test {t}: float return differs: interp {f1} native {f2} (ints {ints:x?} floats {floats:?})"));
-                    } else if w1 != w2 && !stores_equal_mod_nan(s1, s2) {
+                    } else if w1 != w2 && !stores_equal_mod_nan(s1, s2) && !changes_equal_mod_nan(&w1, &w2, s1, s2) {
                         let mut d = String::new();
                         let m1: HashMap<_, _> = w1.iter().cloned().collect();
                         let m2: HashMap<_, _> = w2.iter().cloned().collect();
