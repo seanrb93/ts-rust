@@ -838,3 +838,6 @@ pub use game_status_signon_player_swipe_corpse_special_props_front_reset_and_lev
 #[path = "pad-halls-credits-tunnel-story-page-sound-tick-explosions-start-position-remote-gun-and-particle-tick.rs"]
 pub mod pad_halls_credits_tunnel_story_page_sound_tick_explosions_start_position_remote_gun_and_particle_tick;
 pub use pad_halls_credits_tunnel_story_page_sound_tick_explosions_start_position_remote_gun_and_particle_tick::*;
+#[path = "cartridges-character-prop-tick-room-drawing-level-preload-map-copy-gun-preload-weapons-page-and-prop-wall-test.rs"]
+pub mod cartridges_character_prop_tick_room_drawing_level_preload_map_copy_gun_preload_weapons_page_and_prop_wall_test;
+pub use cartridges_character_prop_tick_room_drawing_level_preload_map_copy_gun_preload_weapons_page_and_prop_wall_test::*;
