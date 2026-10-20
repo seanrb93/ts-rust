@@ -124,7 +124,6 @@ FUNCS = {
         (' '*8+'s0_3 = if s0_4 < s4_1 { 32 } else { s0_4 };', ' '*8+'s0_3 = if s0_4 < s4_1 { combo_count() - 1 } else { s0_4 };', 1),
     ],
     'getmostpowerfulcombo': [(' '*8+'if s0_1 >= 33 {', ' '*8+'if s0_1 >= combo_count() {', 1)],
-    'gunShouldSwitchTo': [(' '*12+'if lw(a0 + (a1 << 2) + 488) == 0 {', ' '*12+'if own_get(a0, a1) == 0 {', 1)],
     'gunPickedUpAmmo': [
         (' '*28+'if lw(a5_1) != 0 {', ' '*28+'if own_get(a0, a6_1) != 0 {', 1),
         (' '*24+'if a6_1 >= 33 {', ' '*24+'if a6_1 >= combo_count() {', 1),
@@ -253,7 +252,6 @@ FUNCS = {
         ('s0_2 = lbu(s2_2 * 200 + s1_1 + 0x1fc4a78);', 's0_2 = lhu(s2_2 * 1024 + (s1_1 << 1) + 0x2500000);', 1),
         ('sb(a1_2, v0_3);', '', 1),
     ],
-    'levelAvail': [('pub fn levelAvail(mut a0: i32) -> i32 {\n', 'pub fn levelAvail(mut a0: i32) -> i32 {\n    if a0 == 25 || (31..=99).contains(&a0) {\n        return 1;\n    }\n', 1)],
     'gmKnockOutTick': [('                if v1_2 == 0 {\n                    trap("break");\n                }\n', '                if v1_2 == 0 {\n                    // no bag spawn points in the level (Ron has none): nothing to put a bag on\n                    return;\n                }\n', 1)],
     # Square on the character select page picks a random character; on the weapon set page it fills the custom set
     'chrplayer_pageTick': [('pub fn chrplayer_pageTick(mut a0: i32) {'+chr(10), 'pub fn chrplayer_pageTick(mut a0: i32) {'+chr(10)+'    char_randomise(a0);'+chr(10), 1)],
@@ -310,7 +308,6 @@ FUNCS = {
     # the renderer is told which file each texture came from (a mod can have a picture of any size for it)
     'emLoadTexture': [('    sw(s1_31 + 4, 0);'+chr(10)+'    return;'+chr(10), '    sw(s1_31 + 4, 0);'+chr(10)+'    tex_loaded(lw(sp + 48), a1, a2);'+chr(10)+'    return;'+chr(10), 1)],
     # the arcade set-up (the modes) of a level of a mod
-    'lvGetARCADESetup': [('    v1_1 = a0 - 1;'+chr(10)+'    a1_1 = 0;'+chr(10), '    if let Some(p) = custom_setup(a0) {'+chr(10)+'        return p;'+chr(10)+'    }'+chr(10)+'    v1_1 = a0 - 1;'+chr(10)+'    a1_1 = 0;'+chr(10), 1)],
     # the arcade options page has a row more (Level Music): its table is a copy in the port's memory, which has room for it; the hint line says Edit for it as for Weapon Set and Bot Set
     'arcadeoptions_pageTick': [('g::i0410', '(av_opt_menu() + 16)', 7), ('    s0_1 = g::arcadeoptions_menu;'+chr(10), '    s0_1 = av_opt_ready();'+chr(10), 1), ('            if v1_5 < 14 {'+chr(10), '            if v1_5 < 14 || v1_5 == 15 {'+chr(10), 1)],
 }

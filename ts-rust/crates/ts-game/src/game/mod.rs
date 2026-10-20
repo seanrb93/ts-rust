@@ -304,6 +304,8 @@ pub mod hit_reaction_pitches_cheats_and_heads;
 pub mod wavy_and_colour_prop_ticks;
 #[path = "door-hologram-and-lift-ticks.rs"]
 pub mod door_hologram_and_lift_ticks;
+#[path = "level-availability-and-gun-switching.rs"]
+pub mod level_availability_and_gun_switching;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -460,3 +462,4 @@ pub use prop_damage_and_enemy_awareness::*;
 pub use hit_reaction_pitches_cheats_and_heads::*;
 pub use wavy_and_colour_prop_ticks::*;
 pub use door_hologram_and_lift_ticks::*;
+pub use level_availability_and_gun_switching::*;
