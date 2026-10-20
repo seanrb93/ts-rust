@@ -138,9 +138,6 @@ FUNCS = {
         (' '*12+'if ((a0_2 - 1) as u32) < (32 as u32) {', ' '*12+'if ((a0_2 - 1) as u32) < ((combo_count() - 1) as u32) {', 1),
         (' '*16+'if ((a0_3 - 1) as u32) < (32 as u32) {', ' '*16+'if ((a0_3 - 1) as u32) < ((combo_count() - 1) as u32) {', 1),
     ],
-    'StatsGetGun': [('pub fn StatsGetGun(mut a0: i32, mut a1: i32, mut a2: i32) -> f32 {'+chr(10), 'pub fn StatsGetGun(mut a0: i32, mut a1: i32, mut a2: i32) -> f32 {'+chr(10)+'    a2 = stats_combo(a2);'+chr(10), 1)],
-    'StatsSetGun': [('pub fn StatsSetGun(mut a0: i32, mut a1: i32, mut a2: i32, mut f12: f32) {'+chr(10), 'pub fn StatsSetGun(mut a0: i32, mut a1: i32, mut a2: i32, mut f12: f32) {'+chr(10)+'    a2 = stats_combo(a2);'+chr(10), 1)],
-    'StatsAddGun': [('pub fn StatsAddGun(mut a0: i32, mut a1: i32, mut a2: i32, mut f12: f32) {'+chr(10), 'pub fn StatsAddGun(mut a0: i32, mut a1: i32, mut a2: i32, mut f12: f32) {'+chr(10)+'    a2 = stats_combo(a2);'+chr(10), 1)],
     # the prompt that asks whether to save the game's data after a match is answered with Yes (X)
     # (and so is the message that follows it, "Save completed", which has only an OK)
     # the title of the pause menu's pages: the name of the page

@@ -63,9 +63,14 @@ A patch in `tools/patches.py` is dropped when the function it changes is decompi
 To put back later, on top of the matching code: the frame-rate change of the particle streams (`particleStreamTick` used the whole frames of the game
 tick, the port used the float frame time) and the changes the port made to `propGfxRoomPreproc` and `hudTick`, and the wider table of rooms by level of `bgGetRoomsTick` (the original keeps 200 one-byte room numbers a level, the port 1024 two-byte ones; `bgGfx` still has that change), and the front end's page numbers mapped through `av_front_page` (`frontPageSet`), and the links of the sign-on menu made again from the items that were made (`makesignonmenu`: the list wraps round, and an arrow no longer vanishes when a sign-on gets no item).
 
+## The platform layer
+
+Functions that only drive the console (system calls, the memory card, the CD, the clock, the GS, the sound chip, the start-up and exit code, the interrupt handlers) are not decompiled:
+the port replaces them (`ts-port`, `ts-sdk`).  They are left as generated code and not counted.
+
 ## Functions the verifier cannot check
 
-`tools/verify-game.py` runs each function on random memory in the original machine code and in the Rust.  Sixteen hand-written functions are **not** machine-verified and are only
+`tools/verify-game.py` runs each function on random memory in the original machine code and in the Rust.  Some hand-written functions are **not** machine-verified (the script prints the current list at the end of each run; it was sixteen when this was written, and grows with the functions that call the C library or a function pointer, which the interpreter does not run: `memFree`, `gvSetValue`, `gameGetTeamName`, `padFlagsToString`, `gameFormatBagTagTime`, `FDiv`, `demoFileName`, `hudGetBagIconFileName`, `gettextfromfunction`) and are only
 reviewed against the generated code: `memMark`, `memMake`, `obSetTexList`, `partSetTextureOffset`, `partTransform`, `obTransform`, `partColour`, `obColour`, `calDoubleFilletTrans`
 (recursion over a model that the random data makes endless overflows the host stack), `pickupposGfx` (a loop over a random count takes minutes), `mmAllocTile`,
 `mmMakeTileRotations`, `bgTileSetTextureNums`, `texinfoRelocate`, `padAddTilePads` and `dlDrawTriangleStrip` (the interpreter stops at an instruction it does not run: a special,

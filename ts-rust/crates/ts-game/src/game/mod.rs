@@ -278,6 +278,10 @@ pub mod rotation_matrices_and_quaternions;
 pub mod euler_matrices_and_perspective;
 #[path = "messages-map-files-and-formatting.rs"]
 pub mod messages_map_files_and_formatting;
+#[path = "stats-gun-counters.rs"]
+pub mod stats_gun_counters;
+#[path = "team-names-signons-pads-and-messages.rs"]
+pub mod team_names_signons_pads_and_messages;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -421,3 +425,5 @@ pub use restarts_and_file_names::*;
 pub use rotation_matrices_and_quaternions::*;
 pub use euler_matrices_and_perspective::*;
 pub use messages_map_files_and_formatting::*;
+pub use stats_gun_counters::*;
+pub use team_names_signons_pads_and_messages::*;
