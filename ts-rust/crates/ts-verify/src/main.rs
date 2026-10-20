@@ -35,6 +35,8 @@ impl Rng {
             1 => 1.0,
             2 => -1.0,
             3 => (self.below(2000) as f32 - 1000.0) / 4.0,
+            // large values too (times, angles in the wind and the sines of the weather change little over small ones), except when the small numbers are asked for
+            4 if std::env::var_os("TS_VERIFY_SMALL").is_none() => self.below(2_000_000) as f32 - 1_000_000.0,
             _ => (self.below(200_000) as f32 - 100_000.0) / 10_000.0,
         }
     }
@@ -76,17 +78,36 @@ fn gen_inputs(rng: &mut Rng, ni: u8, nf: u8) -> ([i64; 8], [f32; 8]) {
     (ints, floats)
 }
 
-fn fill_scratch(rng: &mut Rng) {
-    for a in (0..SCRATCH_LEN).step_by(4) {
-        let v: u32 = match rng.below(4) {
-            0 => rng.float().to_bits(),
-            1 => rng.below(16) as u32,
-            2 => rng.float().to_bits(),
-            _ => (rng.next() as u32) & 0x00ff_ffff,
-        };
-        sw((SCRATCH + a) as i32, v as i32);
+fn random_word(rng: &mut Rng) -> u32 {
+    match rng.below(7) {
+        0 => rng.float().to_bits(),
+        1 => rng.below(16) as u32,
+        2 => rng.float().to_bits(),
+        // a pointer into the random area, so that chains of pointers lead to data and not to zeros
+        3 | 4 => SCRATCH + 4 * rng.below(SCRATCH_LEN as u64 / 4) as u32,
+        // TS_VERIFY_SMALL=1: no huge counts, so that loops over the data finish
+        _ if std::env::var_os("TS_VERIFY_SMALL").is_some() => rng.below(64) as u32,
+        _ => (rng.next() as u32) & 0x00ff_ffff,
     }
 }
+
+fn fill_scratch(rng: &mut Rng) {
+    for a in (0..SCRATCH_LEN).step_by(4) {
+        sw((SCRATCH + a) as i32, random_word(rng) as i32);
+    }
+    // the game's variables (the start of the zero-filled data and the structures high in it) are random too: otherwise a function that works from them
+    // finds counts of 0 everywhere and its work is never tested. `TS_VERIFY_ZERO_GLOBALS=1` leaves them as they are.
+    if std::env::var_os("TS_VERIFY_ZERO_GLOBALS").is_none() {
+        for &(from, to) in GLOBAL_RANGES {
+            for a in (from..to).step_by(4) {
+                sw(a as i32, random_word(rng) as i32);
+            }
+        }
+    }
+}
+
+/// The ranges of the zero-filled data where the game keeps its variables and tables.
+const GLOBAL_RANGES: &[(u32, u32)] = &[(0x3afe00, 0x420000), (0x1fb0000, 0x1ff5390)];
 
 
 fn same_f(a: f32, b: f32) -> bool {
@@ -153,6 +174,13 @@ fn main() {
     let externs: HashMap<u32, String> =
         syms.iter().filter(|s| s.is_func && s.addr >= split).map(|s| (s.addr, s.name.clone())).collect();
     let ctx = Ctx { externs, gp };
+    // the table of sines is made by the game's start-up code (it is not in the executable): without it every sine and cosine reads 0 and the drawing functions' results hide their mistakes
+    if let Some(table) = syms.iter().find(|s| s.name == "g_SinTable") {
+        for i in 0..2048u32 {
+            let value = (i as f64 * std::f64::consts::TAU / 2048.0).sin() as f32;
+            sw((table.addr + i * 4) as i32, value.to_bits() as i32);
+        }
+    }
     // the memory areas of the allocator: room for the usual small allocations (a function that calls `memAlloc` would otherwise end every run in `exit`)
     let seeds: Vec<(u32, i32)> = [
         ("mem_level_free", 0x2_8000),

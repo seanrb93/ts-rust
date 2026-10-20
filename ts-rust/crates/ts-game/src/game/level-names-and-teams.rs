@@ -181,7 +181,8 @@ pub fn mmPopCursorPos() {
 pub fn nullOverridePointers(prop: i32) {
     let model = lw(prop + 32);
     let mut i = 0;
-    while i < (lw(lw(model)) << 1) {
+    let records = lw(lw(model)) << 1;
+    while i < records {
         let rec = i * 24 + lw(model + 248);
         i += 1;
         for at in [20, 0, 4, 8, 12, 16] {
