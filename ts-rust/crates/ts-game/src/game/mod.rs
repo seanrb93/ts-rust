@@ -844,3 +844,6 @@ pub use cartridges_character_prop_tick_room_drawing_level_preload_map_copy_gun_p
 #[path = "electricity-menu-tick-pad-save-level-load-bearings-path-position-and-character-drawing.rs"]
 pub mod electricity_menu_tick_pad_save_level_load_bearings_path_position_and_character_drawing;
 pub use electricity_menu_tick_pad_save_level_load_bearings_path_position_and_character_drawing::*;
+#[path = "object-dma-precalc-starfield-bullet-line-test-move-slide-level-gfx-pickups-and-prop-drop.rs"]
+pub mod object_dma_precalc_starfield_bullet_line_test_move_slide_level_gfx_pickups_and_prop_drop;
+pub use object_dma_precalc_starfield_bullet_line_test_move_slide_level_gfx_pickups_and_prop_drop::*;
