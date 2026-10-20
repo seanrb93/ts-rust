@@ -556,3 +556,15 @@ pub use hud_ammo_starfield_game_mode_check_and_swing::*;
 #[path = "replay-random-pad-map-grid-and-map-file-loading.rs"]
 pub mod replay_random_pad_map_grid_and_map_file_loading;
 pub use replay_random_pad_map_grid_and_map_file_loading::*;
+#[path = "page-background-menu-tick-glass-particles-and-top-menu.rs"]
+pub mod page_background_menu_tick_glass_particles_and_top_menu;
+pub use page_background_menu_tick_glass_particles_and_top_menu::*;
+#[path = "light-search-quad-rendering-and-zoom-tile.rs"]
+pub mod light_search_quad_rendering_and_zoom_tile;
+pub use light_search_quad_rendering_and_zoom_tile::*;
+#[path = "mines-hud-path-position-shotgun-reload-and-gun-sparks.rs"]
+pub mod mines_hud_path_position_shotgun_reload_and_gun_sparks;
+pub use mines_hud_path_position_shotgun_reload_and_gun_sparks::*;
+#[path = "fish-eye-particle-stream-part-bounds-and-prop-numbers.rs"]
+pub mod fish_eye_particle_stream_part_bounds_and_prop_numbers;
+pub use fish_eye_particle_stream_part_bounds_and_prop_numbers::*;

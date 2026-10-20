@@ -66,14 +66,6 @@ FUNCS = {
     'enemyAIFutureLastStandHandler': [('a0_18 = lw(g::updateframesi);', 'a0_18 = running_i();', 1)],
     # animation phases taken from the integer tick counter
     # the ejected shotgun shells move by their velocity on every call: scale it by the frame time
-    'updateShotgunReload': [
-        ('lwc1(a0_6 + 52) + lwc1(a0_6 + 64)', 'lwc1(a0_6 + 52) + lwc1(a0_6 + 64) * lwc1(g::updateframesf)', 1),
-        ('lwc1(a0_6 + 56) + lwc1(a0_6 + 68)', 'lwc1(a0_6 + 56) + lwc1(a0_6 + 68) * lwc1(g::updateframesf)', 1),
-        ('lwc1(a0_6 + 48) + lwc1(a0_6 + 60)', 'lwc1(a0_6 + 48) + lwc1(a0_6 + 60) * lwc1(g::updateframesf)', 1),
-        ('lwc1(a1_4 + 52) + lwc1(a1_4 + 64)', 'lwc1(a1_4 + 52) + lwc1(a1_4 + 64) * lwc1(g::updateframesf)', 1),
-        ('lwc1(a1_4 + 56) + lwc1(a1_4 + 68)', 'lwc1(a1_4 + 56) + lwc1(a1_4 + 68) * lwc1(g::updateframesf)', 1),
-        ('lwc1(a1_4 + 48) + lwc1(a1_4 + 60)', 'lwc1(a1_4 + 48) + lwc1(a1_4 + 60) * lwc1(g::updateframesf)', 1),
-    ],
     # constant increments on every call (a HUD ring angle, the spin of an explosion ring): scale by the time of the frame
     'blastringGfx': [('f0_1 = lwc1(s2_1) + lwc1(s1_1 + lo_1 - 4);', 'f0_1 = lwc1(s2_1) + lwc1(s1_1 + lo_1 - 4) * lwc1(g::tickframesf);', 1)],
     # The player's speed is the distance moved in the last frame divided by the whole ticks that frame lasted (player +292,
@@ -115,7 +107,6 @@ FUNCS = {
     # the prompt that asks whether to save the game's data after a match is answered with Yes (X)
     # (and so is the message that follows it, "Save completed", which has only an OK)
     # the title of the pause menu's pages: the name of the page
-    'topmenuGfx': [('    a0_4 = s0_1;'+chr(10)+'    v0_3 = textWidth(a0_4);', '    s0_1 = av_pause_title(lw(s1_1 + (lhu(s1_1 + 4) << 2) + 12), s0_1);'+chr(10)+'    a0_4 = s0_1;'+chr(10)+'    v0_3 = textWidth(a0_4);', 1)],
     # going back from the Custom controls page leads to the Controls page
     'pageOut': [('pub fn pageOut() {'+chr(10), 'pub fn pageOut() {'+chr(10)+'    av_page_out();'+chr(10), 1)],
     'outPage': [('pub fn outPage(mut a0: i32, mut a1: i32) {'+chr(10), 'pub fn outPage(mut a0: i32, mut a1: i32) {'+chr(10)+'    av_page_out();'+chr(10), 1)],
