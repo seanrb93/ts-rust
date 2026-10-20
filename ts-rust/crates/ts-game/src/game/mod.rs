@@ -475,3 +475,6 @@ pub use ammo_pickup_and_particle_burst_tick::*;
 #[path = "map-maker-cost-and-placing.rs"]
 pub mod map_maker_cost_and_placing;
 pub use map_maker_cost_and_placing::*;
+#[path = "front-end-background-and-goodies-ticks.rs"]
+pub mod front_end_background_and_goodies_ticks;
+pub use front_end_background_and_goodies_ticks::*;

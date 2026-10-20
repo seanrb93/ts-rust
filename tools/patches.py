@@ -171,16 +171,6 @@ FUNCS = {
         # the width of the logo during its entrance is added up call by call
         ('swc1(g::globalscalex, f2_2 + f1_2 * f4_1 * f5_1);', 'swc1(g::globalscalex, f2_2 + f1_2 * f4_1 * f5_1 * menu_dt());', 1),
     ],
-    'frontfxBgTick': [
-        ('lwc1(g::frontbgtranslatey1) + lwc1(0x3ac938)', 'lwc1(g::frontbgtranslatey1) + lwc1(0x3ac938) * menu_dt()', 1),
-        ('lwc1(g::frontbgtime) + lwc1(0x3ac93c)', 'lwc1(g::frontbgtime) + lwc1(0x3ac93c) * menu_dt()', 1),
-        ('lwc1(g::frontbgtranslatey2) + lwc1(0x3ac940)', 'lwc1(g::frontbgtranslatey2) + lwc1(0x3ac940) * menu_dt()', 1),
-        ('v0_2 = dpsub(a0_1, a1_1);', 'v0_2 = dpsub(a0_1, dpmul(a1_1, fptodp(menu_dt())));', 1),
-    ],
-    'frontfxGoodiesTick': [
-        ('lwc1(g::frontfxgoodiestime) + lwc1(0x3ac968)', 'lwc1(g::frontfxgoodiestime) + lwc1(0x3ac968) * menu_dt()', 1),
-        ('a1_1 = lw(g::frontfxlpos) + 3;', 'a1_1 = lw(g::frontfxlpos) + menu_steps(3);', 1),
-    ],
     # drawChar (character select) moves and turns the model by one step each time it is called: only once per tick
     'drawChar': [
         ('swc1(a0 + 48, lwc1(a0 + 48) + lwc1(sp + 64));', 'if !menu_skip() {\n                swc1(a0 + 48, lwc1(a0 + 48) + lwc1(sp + 64));\n            }', 1),
