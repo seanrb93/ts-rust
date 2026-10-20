@@ -300,6 +300,8 @@ pub mod menu_pages_and_texture_preload;
 pub mod prop_damage_and_enemy_awareness;
 #[path = "hit-reaction-pitches-cheats-and-heads.rs"]
 pub mod hit_reaction_pitches_cheats_and_heads;
+#[path = "wavy-and-colour-prop-ticks.rs"]
+pub mod wavy_and_colour_prop_ticks;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -454,3 +456,4 @@ pub use resets_and_preload_registration::*;
 pub use menu_pages_and_texture_preload::*;
 pub use prop_damage_and_enemy_awareness::*;
 pub use hit_reaction_pitches_cheats_and_heads::*;
+pub use wavy_and_colour_prop_ticks::*;
