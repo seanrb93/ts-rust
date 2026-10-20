@@ -270,7 +270,6 @@ FUNCS = {
         ('        a0_10 = 302 - v0_4;', '        a0_10 = 326 - v0_4;', 1), ('            a0_11 = 314;', '            a0_11 = 338;', 1),
         ('        a0_12 = 312;', '        a0_12 = 336;', 1), ('        a2_7 = 575;', '        a2_7 = 599;', 1),
     ],
-    'frontmpgGetGunComboNum': [('    return v0_3;'+chr(10), '    return dual_combo(a0, v0_3);'+chr(10), 1)],
     'weapons_pageTick': [
         ('pub fn weapons_pageTick(mut a0: i32) {'+chr(10), 'pub fn weapons_pageTick(mut a0: i32) {'+chr(10)+'    weapons_randomise(a0);'+chr(10), 1),
         ('v0_9 = lw(lw((lw(g::cur_language) << 2) + g::languages) + 1656);', 'v0_9 = weapons_legend();', 1),

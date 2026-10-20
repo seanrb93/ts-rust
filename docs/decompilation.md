@@ -67,7 +67,7 @@ and take back the other limits the port raised (instance and prop counts of a le
 
 A patch in `tools/patches.py` is dropped when the function it changes is decompiled by hand, because the hand-written function has to match the original.
 To put back later, on top of the matching code: the frame-rate change of the particle streams (`particleStreamTick` used the whole frames of the game
-tick, the port used the float frame time) and the changes the port made to `propGfxRoomPreproc` and `hudTick`, and the wider table of rooms by level of `bgGetRoomsTick` (the original keeps 200 one-byte room numbers a level, the port 1024 two-byte ones; `bgGfx` still has that change), and the front end's page numbers mapped through `av_front_page` (`frontPageSet`), and the links of the sign-on menu made again from the items that were made (`makesignonmenu`: the list wraps round, and an arrow no longer vanishes when a sign-on gets no item).
+tick, the port used the float frame time) and the changes the port made to `propGfxRoomPreproc` and `hudTick`, and the wider table of rooms by level of `bgGetRoomsTick` (the original keeps 200 one-byte room numbers a level, the port 1024 two-byte ones; `bgGfx` still has that change), and the front end's page numbers mapped through `av_front_page` (`frontPageSet`), the dual weapon combination of `frontmpgGetGunComboNum`, and the links of the sign-on menu made again from the items that were made (`makesignonmenu`: the list wraps round, and an arrow no longer vanishes when a sign-on gets no item).
 
 ## The platform layer
 

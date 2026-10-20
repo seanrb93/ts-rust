@@ -292,6 +292,8 @@ pub mod game_variable_text_scores_and_colours;
 pub mod timers_teams_and_new_stats;
 #[path = "weapon-pads-highlight-and-unavailable-things.rs"]
 pub mod weapon_pads_highlight_and_unavailable_things;
+#[path = "resets-and-preload-registration.rs"]
+pub mod resets_and_preload_registration;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -442,3 +444,4 @@ pub use remote_props_swing_and_messages::*;
 pub use game_variable_text_scores_and_colours::*;
 pub use timers_teams_and_new_stats::*;
 pub use weapon_pads_highlight_and_unavailable_things::*;
+pub use resets_and_preload_registration::*;
