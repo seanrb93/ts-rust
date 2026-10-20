@@ -703,3 +703,6 @@ pub use enemy_attack_object_behaviour::*;
 #[path = "game-statistics-calculation-and-challenge-page.rs"]
 pub mod game_statistics_calculation_and_challenge_page;
 pub use game_statistics_calculation_and_challenge_page::*;
+#[path = "decal-drawing.rs"]
+pub mod decal_drawing;
+pub use decal_drawing::*;
