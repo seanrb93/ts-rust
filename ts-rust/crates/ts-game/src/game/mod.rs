@@ -298,6 +298,8 @@ pub mod resets_and_preload_registration;
 pub mod menu_pages_and_texture_preload;
 #[path = "prop-damage-and-enemy-awareness.rs"]
 pub mod prop_damage_and_enemy_awareness;
+#[path = "hit-reaction-pitches-cheats-and-heads.rs"]
+pub mod hit_reaction_pitches_cheats_and_heads;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -451,3 +453,4 @@ pub use weapon_pads_highlight_and_unavailable_things::*;
 pub use resets_and_preload_registration::*;
 pub use menu_pages_and_texture_preload::*;
 pub use prop_damage_and_enemy_awareness::*;
+pub use hit_reaction_pitches_cheats_and_heads::*;
