@@ -625,3 +625,6 @@ pub use map_maker_main_page_tick_and_part_transform::*;
 #[path = "time-splitter-radius-and-menu-item-drawing.rs"]
 pub mod time_splitter_radius_and_menu_item_drawing;
 pub use time_splitter_radius_and_menu_item_drawing::*;
+#[path = "time-splitter-hands-and-sound-page-drawing.rs"]
+pub mod time_splitter_hands_and_sound_page_drawing;
+pub use time_splitter_hands_and_sound_page_drawing::*;
