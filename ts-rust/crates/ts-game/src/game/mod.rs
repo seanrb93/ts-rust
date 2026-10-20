@@ -805,3 +805,6 @@ pub use swinging_props_gun_clearing_and_player_tick_functions::*;
 #[path = "game-tick-glass-smash-doors-credits-and-effect-group-ticks.rs"]
 pub mod game_tick_glass_smash_doors_credits_and_effect_group_ticks;
 pub use game_tick_glass_smash_doors_credits_and_effect_group_ticks::*;
+#[path = "statistics-setup-test-map-and-level-tick-functions.rs"]
+pub mod statistics_setup_test_map_and_level_tick_functions;
+pub use statistics_setup_test_map_and_level_tick_functions::*;
