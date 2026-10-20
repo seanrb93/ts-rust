@@ -613,3 +613,6 @@ pub use story_end_screens_and_awards_list::*;
 #[path = "enemy-window-and-death-animation-choice.rs"]
 pub mod enemy_window_and_death_animation_choice;
 pub use enemy_window_and_death_animation_choice::*;
+#[path = "stats-combine-and-add-to-life.rs"]
+pub mod stats_combine_and_add_to_life;
+pub use stats_combine_and_add_to_life::*;
