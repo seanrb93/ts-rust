@@ -715,3 +715,6 @@ pub use front_end_effects_tick::*;
 #[path = "rankings-table-drawing.rs"]
 pub mod rankings_table_drawing;
 pub use rankings_table_drawing::*;
+#[path = "string-edit-drawing.rs"]
+pub mod string_edit_drawing;
+pub use string_edit_drawing::*;
