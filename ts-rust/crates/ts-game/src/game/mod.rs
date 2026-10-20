@@ -574,3 +574,6 @@ pub use enemy_restart_water_setup_lobster_and_no_route::*;
 #[path = "particle-burst-cartridges-credits-background-and-line-drawing.rs"]
 pub mod particle_burst_cartridges_credits_background_and_line_drawing;
 pub use particle_burst_cartridges_credits_background_and_line_drawing::*;
+#[path = "split-windows-enemy-room-bullet-search-and-last-stand-npcs.rs"]
+pub mod split_windows_enemy_room_bullet_search_and_last_stand_npcs;
+pub use split_windows_enemy_room_bullet_search_and_last_stand_npcs::*;
