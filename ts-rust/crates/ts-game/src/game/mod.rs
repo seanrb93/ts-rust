@@ -868,3 +868,6 @@ pub use player_restart_stats_drawing_character_player_page_and_decal_sides::*;
 #[path = "special-prop-creation-chr-swipe-test-level-setup-and-robot-ai.rs"]
 pub mod special_prop_creation_chr_swipe_test_level_setup_and_robot_ai;
 pub use special_prop_creation_chr_swipe_test_level_setup_and_robot_ai::*;
+#[path = "update-position-enemy-tick-and-gun-fire.rs"]
+pub mod update_position_enemy_tick_and_gun_fire;
+pub use update_position_enemy_tick_and_gun_fire::*;
