@@ -499,3 +499,6 @@ pub use credits_tunnel_and_text_wave::*;
 #[path = "gun-presets-floor-move-and-tile-set-setup.rs"]
 pub mod gun_presets_floor_move_and_tile_set_setup;
 pub use gun_presets_floor_move_and_tile_set_setup::*;
+#[path = "gun-choices-and-front-end-props.rs"]
+pub mod gun_choices_and_front_end_props;
+pub use gun_choices_and_front_end_props::*;

@@ -107,19 +107,6 @@ FUNCS = {
     # test aid: TS_FILELOG lists the files the game loads
     'fileLoadTo': [('pub fn fileLoadTo(mut a0: i32, mut a1: i32, mut a2: i32) -> i32 {'+chr(10), 'pub fn fileLoadTo(mut a0: i32, mut a1: i32, mut a2: i32) -> i32 {'+chr(10)+'    file_log(a0);'+chr(10), 1)],
     'nplayers_pageTick': [('    v0_1 = joyUpdatePorts();'+chr(10), '    if av_nplayers_exit(a0) {'+chr(10)+'        return;'+chr(10)+'    }'+chr(10)+'    v0_1 = joyUpdatePorts();'+chr(10), 1)],
-    'getnextcombo': [
-        (' '*8+'if s2_1 >= 33 {', ' '*8+'if s2_1 >= combo_count() {', 1),
-        (' '*8+'s0_3 = if s0_2 >= 33 { s4_1 } else { s0_2 };', ' '*8+'s0_3 = if s0_2 >= combo_count() { s4_1 } else { s0_2 };', 1),
-    ],
-    'getprevcombo': [
-        (' '*8+'if s2_1 >= 33 {', ' '*8+'if s2_1 >= combo_count() {', 1),
-        (' '*4+'s0_3 = if s0_2 < s4_1 { 32 } else { s0_2 };', ' '*4+'s0_3 = if s0_2 < s4_1 { combo_count() - 1 } else { s0_2 };', 1),
-        (' '*8+'s0_3 = if s0_4 < s4_1 { 32 } else { s0_4 };', ' '*8+'s0_3 = if s0_4 < s4_1 { combo_count() - 1 } else { s0_4 };', 1),
-    ],
-    'playerSetStartGun': [
-        (' '*4+'if (v0_2 as u32) >= (32 as u32) {', ' '*4+'if (v0_2 as u32) >= ((combo_count() - 1) as u32) {', 1),
-        (' '*4+'sw(s0_1 + (a2_1 << 2) + 488, 1);', ' '*4+'own_set(s0_1, a2_1);', 1),
-    ],
     'chrClearGuns': [(' '*12+'sw(a0 + 260, 0);', ' '*12+'own_clear(a0);'+chr(10)+' '*12+'sw(a0 + 260, 0);', 1)],
     'propDrop': [
         (' '*12+'if ((a0_2 - 1) as u32) < (32 as u32) {', ' '*12+'if ((a0_2 - 1) as u32) < ((combo_count() - 1) as u32) {', 1),
