@@ -571,3 +571,6 @@ pub use fish_eye_particle_stream_part_bounds_and_prop_numbers::*;
 #[path = "enemy-restart-water-setup-lobster-and-no-route.rs"]
 pub mod enemy_restart_water_setup_lobster_and_no_route;
 pub use enemy_restart_water_setup_lobster_and_no_route::*;
+#[path = "particle-burst-cartridges-credits-background-and-line-drawing.rs"]
+pub mod particle_burst_cartridges_credits_background_and_line_drawing;
+pub use particle_burst_cartridges_credits_background_and_line_drawing::*;
