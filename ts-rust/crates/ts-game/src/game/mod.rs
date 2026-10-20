@@ -622,3 +622,6 @@ pub use goodie_message_glass_room_pad_buttons_and_team_bars::*;
 #[path = "map-maker-main-page-tick-and-part-transform.rs"]
 pub mod map_maker_main_page_tick_and_part_transform;
 pub use map_maker_main_page_tick_and_part_transform::*;
+#[path = "time-splitter-radius-and-menu-item-drawing.rs"]
+pub mod time_splitter_radius_and_menu_item_drawing;
+pub use time_splitter_radius_and_menu_item_drawing::*;
