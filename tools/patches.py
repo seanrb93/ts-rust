@@ -65,7 +65,6 @@ FUNCS = {
     'enemyAmbushWallLeft': [('v0_2 = lw(g::updateframesi);\n                        if v0_1 != 0 {', 'v0_2 = running_i();\n                        if v0_1 != 0 {', 1)],
     'enemyAIFutureLastStandHandler': [('a0_18 = lw(g::updateframesi);', 'a0_18 = running_i();', 1)],
     # animation phases taken from the integer tick counter
-    'vtxlistWaterxyz': [('f5_1 = a7_1 as f32;', 'f5_1 = gameframe_f();', 1)],
     # the ejected shotgun shells move by their velocity on every call: scale it by the frame time
     'updateShotgunReload': [
         ('lwc1(a0_6 + 52) + lwc1(a0_6 + 64)', 'lwc1(a0_6 + 52) + lwc1(a0_6 + 64) * lwc1(g::updateframesf)', 1),
@@ -225,7 +224,6 @@ FUNCS = {
                   # (a level's props, the rooms' among them: 300 of them were room for 200 rooms and the rest)
                   ('{ 20 } else { 300 }', '{ 20 } else { 1000 }', 1)],
     # the game's memory pool cannot be longer (the stacks and static data are after it): big allocations of a level of a mod are made in a pool of the port's own
-    'memAlloc': [('    if a1 == 1 {'+chr(10)+'        v1_2 = lw(g::mem_level_free);', '    if a1 == 1 && big_wants(a2_1) {'+chr(10)+'        a3_1 = big_alloc(a2_1);'+chr(10)+'    } else if a1 == 1 {'+chr(10)+'        v1_2 = lw(g::mem_level_free);', 1)],
     'memReset': [('pub fn memReset() {'+chr(10), 'pub fn memReset() {'+chr(10)+'    big_reset();'+chr(10), 1)],
     'bgGfx': [
         ('sb(v1_3 + a2_1 * 200 + 0x1fc4a78, s0_1);', 'sh((v1_3 << 1) + a2_1 * 1024 + 0x2500000, s0_1);', 1),

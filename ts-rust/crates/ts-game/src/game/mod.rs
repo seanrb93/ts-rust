@@ -478,3 +478,6 @@ pub use map_maker_cost_and_placing::*;
 #[path = "front-end-background-and-goodies-ticks.rs"]
 pub mod front_end_background_and_goodies_ticks;
 pub use front_end_background_and_goodies_ticks::*;
+#[path = "water-vertices-and-memory-allocation.rs"]
+pub mod water_vertices_and_memory_allocation;
+pub use water_vertices_and_memory_allocation::*;
