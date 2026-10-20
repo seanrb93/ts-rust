@@ -790,3 +790,6 @@ pub use room_props_level_preload_player_death_and_clock_props::*;
 #[path = "game-end-modes-menus-and-small-prop-functions.rs"]
 pub mod game_end_modes_menus_and_small_prop_functions;
 pub use game_end_modes_menus_and_small_prop_functions::*;
+#[path = "enemy-hit-mines-preload-animation-load-and-level-end.rs"]
+pub mod enemy_hit_mines_preload_animation_load_and_level_end;
+pub use enemy_hit_mines_preload_animation_load_and_level_end::*;
