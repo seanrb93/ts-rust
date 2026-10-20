@@ -550,3 +550,6 @@ pub use bot_weapon_search_prop_walls_and_map_view_init::*;
 #[path = "patrol-pillar-alien-and-left-ambush.rs"]
 pub mod patrol_pillar_alien_and_left_ambush;
 pub use patrol_pillar_alien_and_left_ambush::*;
+#[path = "hud-ammo-starfield-game-mode-check-and-swing.rs"]
+pub mod hud_ammo_starfield_game_mode_check_and_swing;
+pub use hud_ammo_starfield_game_mode_check_and_swing::*;
