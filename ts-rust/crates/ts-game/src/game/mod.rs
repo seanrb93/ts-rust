@@ -799,3 +799,6 @@ pub use object_load_resets_menus_and_turret_damage_functions::*;
 #[path = "prop-room-drawing-menu-ticks-grenade-and-head-props.rs"]
 pub mod prop_room_drawing_menu_ticks_grenade_and_head_props;
 pub use prop_room_drawing_menu_ticks_grenade_and_head_props::*;
+#[path = "swinging-props-gun-clearing-and-player-tick-functions.rs"]
+pub mod swinging_props_gun_clearing_and_player_tick_functions;
+pub use swinging_props_gun_clearing_and_player_tick_functions::*;
