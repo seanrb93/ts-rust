@@ -853,3 +853,9 @@ pub use background_line_test_player_fire_character_select_tick_prop_tick_head_pr
 #[path = "enemy-gun-tile-load-dying-particle-drawing-string-edit-pad-action-arcade-options-and-death-view.rs"]
 pub mod enemy_gun_tile_load_dying_particle_drawing_string_edit_pad_action_arcade_options_and_death_view;
 pub use enemy_gun_tile_load_dying_particle_drawing_string_edit_pad_action_arcade_options_and_death_view::*;
+#[path = "prop-creation-hud-drawing-multiplayer-game-start-and-prop-move-test.rs"]
+pub mod prop_creation_hud_drawing_multiplayer_game_start_and_prop_move_test;
+pub use prop_creation_hud_drawing_multiplayer_game_start_and_prop_move_test::*;
+#[path = "spawn-effects-arcade-page-tick-and-decal-creation.rs"]
+pub mod spawn_effects_arcade_page_tick_and_decal_creation;
+pub use spawn_effects_arcade_page_tick_and_decal_creation::*;
