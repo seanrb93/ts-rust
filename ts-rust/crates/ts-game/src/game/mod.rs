@@ -276,6 +276,8 @@ pub mod restarts_and_file_names;
 pub mod rotation_matrices_and_quaternions;
 #[path = "euler-matrices-and-perspective.rs"]
 pub mod euler_matrices_and_perspective;
+#[path = "messages-map-files-and-formatting.rs"]
+pub mod messages_map_files_and_formatting;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -418,3 +420,4 @@ pub use spaceship_prop_ticks::*;
 pub use restarts_and_file_names::*;
 pub use rotation_matrices_and_quaternions::*;
 pub use euler_matrices_and_perspective::*;
+pub use messages_map_files_and_formatting::*;
