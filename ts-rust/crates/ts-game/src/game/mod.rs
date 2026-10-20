@@ -535,3 +535,6 @@ pub use front_tick_game_restart_view_tick_and_prop_restart::*;
 #[path = "controls-menu-ambush-colour-page-and-defend-pad.rs"]
 pub mod controls_menu_ambush_colour_page_and_defend_pad;
 pub use controls_menu_ambush_colour_page_and_defend_pad::*;
+#[path = "prop-floors-colour-wheel-and-front-logo-layers.rs"]
+pub mod prop_floors_colour_wheel_and_front_logo_layers;
+pub use prop_floors_colour_wheel_and_front_logo_layers::*;
