@@ -712,3 +712,6 @@ pub use map_maker_main_page_drawing::*;
 #[path = "front-end-effects-tick.rs"]
 pub mod front_end_effects_tick;
 pub use front_end_effects_tick::*;
+#[path = "rankings-table-drawing.rs"]
+pub mod rankings_table_drawing;
+pub use rankings_table_drawing::*;
