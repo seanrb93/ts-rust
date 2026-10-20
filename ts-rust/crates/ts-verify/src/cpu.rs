@@ -476,6 +476,14 @@ impl Cpu {
                     50 => self.fcc = x == y,
                     52 => self.fcc = x < y,
                     54 => self.fcc = x <= y,
+                    // the signalling forms of the compares and their negations (the console's FPU has no NaN, so they are the plain ones)
+                    56 => self.fcc = false,
+                    58 => self.fcc = x == y,
+                    59 => self.fcc = x == y,
+                    60 => self.fcc = x < y,
+                    61 => self.fcc = x < y,
+                    62 => self.fcc = x <= y,
+                    63 => self.fcc = x <= y,
                     _ => return Err(Stop::Unsupported(format!("cop1.s {}", w & 63))),
                 }
             }

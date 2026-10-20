@@ -508,3 +508,9 @@ pub use pause_warning_and_title_box_drawing::*;
 #[path = "effects-ends-and-small-forwarders.rs"]
 pub mod effects_ends_and_small_forwarders;
 pub use effects_ends_and_small_forwarders::*;
+#[path = "menu-item-size-names-and-boss-parameters.rs"]
+pub mod menu_item_size_names_and_boss_parameters;
+pub use menu_item_size_names_and_boss_parameters::*;
+#[path = "water-portals-decals-escort-and-model-view.rs"]
+pub mod water_portals_decals_escort_and_model_view;
+pub use water_portals_decals_escort_and_model_view::*;
