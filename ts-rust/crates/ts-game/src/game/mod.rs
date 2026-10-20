@@ -589,3 +589,6 @@ pub use sign_on_slots_game_reset_menu_lists_and_pad_numbers::*;
 #[path = "blast-radius-menu-list-portal-clip-and-tune-number.rs"]
 pub mod blast_radius_menu_list_portal_clip_and_tune_number;
 pub use blast_radius_menu_list_portal_clip_and_tune_number::*;
+#[path = "multiplayer-set-up-score-box-image-effects-and-fuse.rs"]
+pub mod multiplayer_set_up_score_box_image_effects_and_fuse;
+pub use multiplayer_set_up_score_box_image_effects_and_fuse::*;
