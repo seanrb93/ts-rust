@@ -607,3 +607,6 @@ pub use menu_reset_level_flags_skeleton_slots_and_debug_menu::*;
 #[path = "blast-spawn-tick-menu-making-and-profile-timing.rs"]
 pub mod blast_spawn_tick_menu_making_and_profile_timing;
 pub use blast_spawn_tick_menu_making_and_profile_timing::*;
+#[path = "story-end-screens-and-awards-list.rs"]
+pub mod story_end_screens_and_awards_list;
+pub use story_end_screens_and_awards_list::*;
