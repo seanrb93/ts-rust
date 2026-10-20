@@ -628,3 +628,6 @@ pub use time_splitter_radius_and_menu_item_drawing::*;
 #[path = "time-splitter-hands-and-sound-page-drawing.rs"]
 pub mod time_splitter_hands_and_sound_page_drawing;
 pub use time_splitter_hands_and_sound_page_drawing::*;
+#[path = "flares-gzip-header-and-memory-card-page-drawing.rs"]
+pub mod flares_gzip_header_and_memory_card_page_drawing;
+pub use flares_gzip_header_and_memory_card_page_drawing::*;
