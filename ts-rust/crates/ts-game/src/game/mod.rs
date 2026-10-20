@@ -490,3 +490,12 @@ pub use start_messages_hud_restart_and_enemy_trigger::*;
 #[path = "text-outline-and-adsr-value.rs"]
 pub mod text_outline_and_adsr_value;
 pub use text_outline_and_adsr_value::*;
+#[path = "sound-volume-and-image-rows.rs"]
+pub mod sound_volume_and_image_rows;
+pub use sound_volume_and_image_rows::*;
+#[path = "credits-tunnel-and-text-wave.rs"]
+pub mod credits_tunnel_and_text_wave;
+pub use credits_tunnel_and_text_wave::*;
+#[path = "gun-presets-floor-move-and-tile-set-setup.rs"]
+pub mod gun_presets_floor_move_and_tile_set_setup;
+pub use gun_presets_floor_move_and_tile_set_setup::*;
