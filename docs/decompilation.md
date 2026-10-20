@@ -63,6 +63,16 @@ A patch in `tools/patches.py` is dropped when the function it changes is decompi
 To put back later, on top of the matching code: the frame-rate change of the particle streams (`particleStreamTick` used the whole frames of the game
 tick, the port used the float frame time) and the changes the port made to `propGfxRoomPreproc` and `hudTick`, and the wider table of rooms by level of `bgGetRoomsTick` (the original keeps 200 one-byte room numbers a level, the port 1024 two-byte ones; `bgGfx` still has that change), and the links of the sign-on menu made again from the items that were made (`makesignonmenu`: the list wraps round, and an arrow no longer vanishes when a sign-on gets no item).
 
+## Functions the verifier cannot check
+
+`tools/verify-game.py` runs each function on random memory in the original machine code and in the Rust.  Sixteen hand-written functions are **not** machine-verified and are only
+reviewed against the generated code: `memMark`, `memMake`, `obSetTexList`, `partSetTextureOffset`, `partTransform`, `obTransform`, `partColour`, `obColour`, `calDoubleFilletTrans`
+(recursion over a model that the random data makes endless overflows the host stack), `pickupposGfx` (a loop over a random count takes minutes), `mmAllocTile`,
+`mmMakeTileRotations`, `bgTileSetTextureNums`, `texinfoRelocate`, `padAddTilePads` and `dlDrawTriangleStrip` (the interpreter stops at an instruction it does not run: a special,
+syscall or vector opcode), and `obMergeChunkPolys` (a random count makes the write log run out of memory).  Earlier the second pass of the script ran all the skipped functions in
+one process, and a crash in it hid the rest; it now runs one process for each, and the list above is what it reports.  The way to check them is to replay real game memory (record the
+arguments and memory at a call during play, run the original on it, compare).
+
 ## Transliterated functions
 
 Two functions are too long and too tangled to understand yet, and are kept as the machine translation with the frame's scratch words turned into named locals (`slot_N`) and the

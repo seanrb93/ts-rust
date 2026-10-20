@@ -53,12 +53,20 @@ def main():
     skipped = [l.split(':')[0][5:] for l in lines if l.startswith('skip ')]
     if skipped:
         # second pass: small numbers only, runs that do not finish are left out (slow: few runs)
+        arg_skipped = list(skipped)
         env = dict(os.environ, TS_VERIFY_SMALL='1')
-        r2 = subprocess.run([exe, '-v', '--elf', elf, '--n', '40'] + skipped, capture_output=True, text=True, env=env)
-        l2 = (r2.stdout + r2.stderr).splitlines()
+        # one process for each function: a crash (for instance out of memory on an endless loop) or a hang in one must not hide the others
+        l2 = []
+        for name in skipped:
+            try:
+                r2 = subprocess.run([exe, '-v', '--elf', elf, '--n', '40', name], capture_output=True, text=True, env=env, timeout=600)
+                l2 += (r2.stdout + r2.stderr).splitlines()
+            except subprocess.TimeoutExpired:
+                l2.append('skip %s: timeout' % name)
         bad += [l for l in l2 if l.startswith('FAIL')]
         print(chr(10).join(l for l in l2 if l.startswith('FAIL')))
-        skipped = [l.split(':')[0][5:] for l in l2 if l.startswith('skip ')]
+        reported = {l.split()[1].rstrip(':') for l in l2 if l.split() and l.split()[0] in ('ok', 'skip', 'vacuous', 'FAIL')}
+        skipped = [n for n in skipped if n not in reported or any(l.startswith('skip %s' % n) for l in l2)]
     skipped += sorted(UNVERIFIABLE)
     if skipped:
         print('not machine-verified (the original code did not finish on random data, or recursion overflowed): ' + ' '.join(skipped))
