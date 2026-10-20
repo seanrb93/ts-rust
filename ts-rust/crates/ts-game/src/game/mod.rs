@@ -553,3 +553,6 @@ pub use patrol_pillar_alien_and_left_ambush::*;
 #[path = "hud-ammo-starfield-game-mode-check-and-swing.rs"]
 pub mod hud_ammo_starfield_game_mode_check_and_swing;
 pub use hud_ammo_starfield_game_mode_check_and_swing::*;
+#[path = "replay-random-pad-map-grid-and-map-file-loading.rs"]
+pub mod replay_random_pad_map_grid_and_map_file_loading;
+pub use replay_random_pad_map_grid_and_map_file_loading::*;

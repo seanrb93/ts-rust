@@ -138,9 +138,19 @@ fn main() {
         ("mem_local_at", (SCRATCH + 0x3_fff0) as i32),
         ("mem_eternal_free", 0x4000),
         ("mem_eternal_at", (SCRATCH + 0x1_8000) as i32),
+        // the display list being built and the debug memory the drawing functions take their packets from
+        ("gfxtag", (SCRATCH + 0x3_8000) as i32),
+        // the map maker's view of the map and the window
+        ("w_w", 640),
+        ("w_h", 224),
+        ("m_w", 0x200_0000),
+        ("m_h", 0x100_0000),
+        ("scale_mtowx", 0x1_0000),
+        ("scale_mtowy", 0x1_0000),
     ]
     .iter()
     .filter_map(|(n, v)| syms.iter().find(|s| s.name == *n).map(|s| (s.addr, *v)))
+    .chain(std::iter::once((0x3afe14u32, (SCRATCH + 0x3_0000) as i32)))
     .collect();
 
     let (mut pass, mut fail, mut skip, mut vacuous) = (0, 0, 0, 0);
