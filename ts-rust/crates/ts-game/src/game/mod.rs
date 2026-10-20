@@ -676,3 +676,12 @@ pub use particle_ray_and_pulse_drawing::*;
 #[path = "portal-screen-boxes-and-blast-ring-drawing.rs"]
 pub mod portal_screen_boxes_and_blast_ring_drawing;
 pub use portal_screen_boxes_and_blast_ring_drawing::*;
+#[path = "menu-item-tick-and-kill-statistics.rs"]
+pub mod menu_item_tick_and_kill_statistics;
+pub use menu_item_tick_and_kill_statistics::*;
+#[path = "smoke-and-tracer-particle-drawing.rs"]
+pub mod smoke_and_tracer_particle_drawing;
+pub use smoke_and_tracer_particle_drawing::*;
+#[path = "gun-spark-and-sprite-spark-group-drawing.rs"]
+pub mod gun_spark_and_sprite_spark_group_drawing;
+pub use gun_spark_and_sprite_spark_group_drawing::*;
