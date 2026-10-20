@@ -302,6 +302,8 @@ pub mod prop_damage_and_enemy_awareness;
 pub mod hit_reaction_pitches_cheats_and_heads;
 #[path = "wavy-and-colour-prop-ticks.rs"]
 pub mod wavy_and_colour_prop_ticks;
+#[path = "door-hologram-and-lift-ticks.rs"]
+pub mod door_hologram_and_lift_ticks;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -457,3 +459,4 @@ pub use menu_pages_and_texture_preload::*;
 pub use prop_damage_and_enemy_awareness::*;
 pub use hit_reaction_pitches_cheats_and_heads::*;
 pub use wavy_and_colour_prop_ticks::*;
+pub use door_hologram_and_lift_ticks::*;
