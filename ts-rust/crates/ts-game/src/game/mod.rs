@@ -514,3 +514,6 @@ pub use menu_item_size_names_and_boss_parameters::*;
 #[path = "water-portals-decals-escort-and-model-view.rs"]
 pub mod water_portals_decals_escort_and_model_view;
 pub use water_portals_decals_escort_and_model_view::*;
+#[path = "gui-and-effect-restarts-and-pad-info.rs"]
+pub mod gui_and_effect_restarts_and_pad_info;
+pub use gui_and_effect_restarts_and_pad_info::*;
