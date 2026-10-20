@@ -568,3 +568,6 @@ pub use mines_hud_path_position_shotgun_reload_and_gun_sparks::*;
 #[path = "fish-eye-particle-stream-part-bounds-and-prop-numbers.rs"]
 pub mod fish_eye_particle_stream_part_bounds_and_prop_numbers;
 pub use fish_eye_particle_stream_part_bounds_and_prop_numbers::*;
+#[path = "enemy-restart-water-setup-lobster-and-no-route.rs"]
+pub mod enemy_restart_water_setup_lobster_and_no_route;
+pub use enemy_restart_water_setup_lobster_and_no_route::*;
