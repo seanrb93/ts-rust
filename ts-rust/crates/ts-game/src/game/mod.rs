@@ -634,3 +634,9 @@ pub use flares_gzip_header_and_memory_card_page_drawing::*;
 #[path = "hud-message-prop-animation-and-centre-position.rs"]
 pub mod hud_message_prop_animation_and_centre_position;
 pub use hud_message_prop_animation_and_centre_position::*;
+#[path = "signon-file-adding-and-standard-menu-item-drawing.rs"]
+pub mod signon_file_adding_and_standard_menu_item_drawing;
+pub use signon_file_adding_and_standard_menu_item_drawing::*;
+#[path = "xpm-opening-prop-attach-and-bone-positions.rs"]
+pub mod xpm_opening_prop_attach_and_bone_positions;
+pub use xpm_opening_prop_attach_and_bone_positions::*;
