@@ -523,3 +523,6 @@ pub use menu_item_text_loading_and_hud_bases::*;
 #[path = "colour-slide-popups-menu-boxes-and-front-effect-reset.rs"]
 pub mod colour_slide_popups_menu_boxes_and_front_effect_reset;
 pub use colour_slide_popups_menu_boxes_and_front_effect_reset::*;
+#[path = "front-end-drawing-particle-and-decal-restarts-and-prop-update.rs"]
+pub mod front_end_drawing_particle_and_decal_restarts_and_prop_update;
+pub use front_end_drawing_particle_and_decal_restarts_and_prop_update::*;
