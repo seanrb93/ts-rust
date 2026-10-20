@@ -832,3 +832,6 @@ pub use auto_aim_audio_video_page_spawn_handler_prop_save_menu_tick_deathmatch_a
 #[path = "hud-preload-game-reset-knock-out-decals-character-select-and-sound-test.rs"]
 pub mod hud_preload_game_reset_knock_out_decals_character_select_and_sound_test;
 pub use hud_preload_game_reset_knock_out_decals_character_select_and_sound_test::*;
+#[path = "game-status-signon-player-swipe-corpse-special-props-front-reset-and-level-tick.rs"]
+pub mod game_status_signon_player_swipe_corpse_special_props_front_reset_and_level_tick;
+pub use game_status_signon_player_swipe_corpse_special_props_front_reset_and_level_tick::*;
