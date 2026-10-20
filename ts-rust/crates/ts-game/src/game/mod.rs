@@ -847,3 +847,6 @@ pub use electricity_menu_tick_pad_save_level_load_bearings_path_position_and_cha
 #[path = "object-dma-precalc-starfield-bullet-line-test-move-slide-level-gfx-pickups-and-prop-drop.rs"]
 pub mod object_dma_precalc_starfield_bullet_line_test_move_slide_level_gfx_pickups_and_prop_drop;
 pub use object_dma_precalc_starfield_bullet_line_test_move_slide_level_gfx_pickups_and_prop_drop::*;
+#[path = "background-line-test-player-fire-character-select-tick-prop-tick-head-props-proximity-cartridges-and-prop-line-test.rs"]
+pub mod background_line_test_player_fire_character_select_tick_prop_tick_head_props_proximity_cartridges_and_prop_line_test;
+pub use background_line_test_player_fire_character_select_tick_prop_tick_head_props_proximity_cartridges_and_prop_line_test::*;
