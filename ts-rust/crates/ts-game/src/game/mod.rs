@@ -595,3 +595,9 @@ pub use multiplayer_set_up_score_box_image_effects_and_fuse::*;
 #[path = "prop-reset-challenge-failed-water-tick-and-defend.rs"]
 pub mod prop_reset_challenge_failed_water_tick_and_defend;
 pub use prop_reset_challenge_failed_water_tick_and_defend::*;
+#[path = "ring-and-sphere-spawn-effects.rs"]
+pub mod ring_and_sphere_spawn_effects;
+pub use ring_and_sphere_spawn_effects::*;
+#[path = "planet-spawn-roll-menu-and-last-stand-drawing.rs"]
+pub mod planet_spawn_roll_menu_and_last_stand_drawing;
+pub use planet_spawn_roll_menu_and_last_stand_drawing::*;
