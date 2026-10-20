@@ -643,3 +643,9 @@ pub use xpm_opening_prop_attach_and_bone_positions::*;
 #[path = "wavy-texture-effect.rs"]
 pub mod wavy_texture_effect;
 pub use wavy_texture_effect::*;
+#[path = "story-page-goodies-store-effects-draw-and-part-relocate.rs"]
+pub mod story_page_goodies_store_effects_draw_and_part_relocate;
+pub use story_page_goodies_store_effects_draw_and_part_relocate::*;
+#[path = "goodies-compare-front-background-and-controls-page.rs"]
+pub mod goodies_compare_front_background_and_controls_page;
+pub use goodies_compare_front_background_and_controls_page::*;
