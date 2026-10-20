@@ -658,3 +658,12 @@ pub use enemy_sniper_behaviour::*;
 #[path = "radar-and-wind-at-time.rs"]
 pub mod radar_and_wind_at_time;
 pub use radar_and_wind_at_time::*;
+#[path = "special-particles-and-spawn-effect-tick.rs"]
+pub mod special_particles_and_spawn_effect_tick;
+pub use special_particles_and_spawn_effect_tick::*;
+#[path = "glass-particle-drawing.rs"]
+pub mod glass_particle_drawing;
+pub use glass_particle_drawing::*;
+#[path = "weapon-route-precalculation-and-map-file-saving.rs"]
+pub mod weapon_route_precalculation_and_map_file_saving;
+pub use weapon_route_precalculation_and_map_file_saving::*;
