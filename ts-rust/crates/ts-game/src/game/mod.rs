@@ -859,3 +859,9 @@ pub use prop_creation_hud_drawing_multiplayer_game_start_and_prop_move_test::*;
 #[path = "spawn-effects-arcade-page-tick-and-decal-creation.rs"]
 pub mod spawn_effects_arcade_page_tick_and_decal_creation;
 pub use spawn_effects_arcade_page_tick_and_decal_creation::*;
+#[path = "ambush-walls-ambush-crouch-and-last-stand-handler.rs"]
+pub mod ambush_walls_ambush_crouch_and_last_stand_handler;
+pub use ambush_walls_ambush_crouch_and_last_stand_handler::*;
+#[path = "player-restart-stats-drawing-character-player-page-and-decal-sides.rs"]
+pub mod player_restart_stats_drawing_character_player_page_and_decal_sides;
+pub use player_restart_stats_drawing_character_player_page_and_decal_sides::*;
