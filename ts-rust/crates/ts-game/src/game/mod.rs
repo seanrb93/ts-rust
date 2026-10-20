@@ -631,3 +631,6 @@ pub use time_splitter_hands_and_sound_page_drawing::*;
 #[path = "flares-gzip-header-and-memory-card-page-drawing.rs"]
 pub mod flares_gzip_header_and_memory_card_page_drawing;
 pub use flares_gzip_header_and_memory_card_page_drawing::*;
+#[path = "hud-message-prop-animation-and-centre-position.rs"]
+pub mod hud_message_prop_animation_and_centre_position;
+pub use hud_message_prop_animation_and_centre_position::*;
