@@ -294,6 +294,8 @@ pub mod timers_teams_and_new_stats;
 pub mod weapon_pads_highlight_and_unavailable_things;
 #[path = "resets-and-preload-registration.rs"]
 pub mod resets_and_preload_registration;
+#[path = "menu-pages-and-texture-preload.rs"]
+pub mod menu_pages_and_texture_preload;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -445,3 +447,4 @@ pub use game_variable_text_scores_and_colours::*;
 pub use timers_teams_and_new_stats::*;
 pub use weapon_pads_highlight_and_unavailable_things::*;
 pub use resets_and_preload_registration::*;
+pub use menu_pages_and_texture_preload::*;
