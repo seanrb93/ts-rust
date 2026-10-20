@@ -610,3 +610,6 @@ pub use blast_spawn_tick_menu_making_and_profile_timing::*;
 #[path = "story-end-screens-and-awards-list.rs"]
 pub mod story_end_screens_and_awards_list;
 pub use story_end_screens_and_awards_list::*;
+#[path = "enemy-window-and-death-animation-choice.rs"]
+pub mod enemy_window_and_death_animation_choice;
+pub use enemy_window_and_death_animation_choice::*;
