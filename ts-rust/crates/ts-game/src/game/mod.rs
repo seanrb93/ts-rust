@@ -706,3 +706,9 @@ pub use game_statistics_calculation_and_challenge_page::*;
 #[path = "decal-drawing.rs"]
 pub mod decal_drawing;
 pub use decal_drawing::*;
+#[path = "map-maker-main-page-drawing.rs"]
+pub mod map_maker_main_page_drawing;
+pub use map_maker_main_page_drawing::*;
+#[path = "front-end-effects-tick.rs"]
+pub mod front_end_effects_tick;
+pub use front_end_effects_tick::*;
