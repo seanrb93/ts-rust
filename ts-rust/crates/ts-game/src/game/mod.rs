@@ -796,3 +796,6 @@ pub use enemy_hit_mines_preload_animation_load_and_level_end::*;
 #[path = "object-load-resets-menus-and-turret-damage-functions.rs"]
 pub mod object_load_resets_menus_and_turret_damage_functions;
 pub use object_load_resets_menus_and_turret_damage_functions::*;
+#[path = "prop-room-drawing-menu-ticks-grenade-and-head-props.rs"]
+pub mod prop_room_drawing_menu_ticks_grenade_and_head_props;
+pub use prop_room_drawing_menu_ticks_grenade_and_head_props::*;

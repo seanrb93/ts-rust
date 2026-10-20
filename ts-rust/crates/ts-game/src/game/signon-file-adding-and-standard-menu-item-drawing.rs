@@ -113,8 +113,8 @@ pub fn draw_menuitem(item: i32) {
         let low = lw(value + 4);
         let thumb = (((flags as u32) >> 6) as i32 ^ 1) & 1;
         let high = lw(value + 8) - low;
-        let x = lw(g::window) + lhu(item) as i32;
-        let y = lw(g::window + 20) + lhu(item + 2) as i32 + 14;
+        let x = lhu(item) as i32;
+        let y = lhu(item + 2) as i32 + 14;
         let width = lw(value) - low;
         draw_slider(x, y, width, high, thumb);
         return;
@@ -127,11 +127,11 @@ pub fn draw_menuitem(item: i32) {
     sw(sp, text);
     let place;
     if (lhu(entry + 10) & 256) == 0 {
-        place = if lw(value + 28) != 0 { lw(value + 28) + lw(g::window) } else { 0 };
+        place = lw(value + 28);
     } else {
         let font = textSelect(lw(g::menuitem_bigfont));
         sw(sp + 4, font);
-        place = if lw(value + 28) != 0 { lw(value + 28) + lw(g::window) } else { 0 };
+        place = lw(value + 28);
     }
     let mut right = place;
     if place == 0 {
@@ -143,9 +143,6 @@ pub fn draw_menuitem(item: i32) {
             let window = lw(g::window);
             right = if lw(g::window + 12) >= 500 { x + 448 + window } else { x + 320 + window };
         }
-    }
-    if value == g::gv_weaponset && weapons_page_active() {
-        right += 24;
     }
     let window = g::window;
     let line = right;
