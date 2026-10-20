@@ -117,9 +117,15 @@ pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> O
     c.pc = addr;
     trace::start();
     let mut unsupported: Option<String> = None;
+    let mut exited = false;
     let res = silent(|| {
         let mut hook = |pc: u32, cpu: &mut Cpu| -> bool {
             if let Some(name) = ctx.externs.get(&pc) {
+                if name == "exit" {
+                    exited = true;
+                    cpu.pc = SENTINEL;
+                    return true;
+                }
                 if call_extern(name, cpu).is_none() {
                     unsupported = Some(format!("extern {name}"));
                     cpu.pc = SENTINEL;
@@ -138,6 +144,9 @@ pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> O
     let log: Vec<trace::Store> = log.into_iter().filter(|s| !s.bulk && s.addr < STACK_LIMIT).collect();
     if let Some(u) = unsupported {
         return Outcome::Skip(u);
+    }
+    if exited {
+        return Outcome::Trap;
     }
     match res {
         Err(p) => Outcome::Panic(p),

@@ -136,6 +136,9 @@ pub fn free(_a0: i32) -> i32 {
 }
 
 pub fn exit(a0: i32) -> i32 {
+    if ts_rt::VERIFYING.load(std::sync::atomic::Ordering::Relaxed) {
+        panic!("trap: exit({a0})");
+    }
     eprintln!("[libc] the game called exit({a0})");
     #[cfg(feature = "calltrace")]
     ts_rt::calltrace::dump_now();

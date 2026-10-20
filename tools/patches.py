@@ -116,7 +116,6 @@ FUNCS = {
         (' '*4+'s0_3 = if s0_2 < s4_1 { 32 } else { s0_2 };', ' '*4+'s0_3 = if s0_2 < s4_1 { combo_count() - 1 } else { s0_2 };', 1),
         (' '*8+'s0_3 = if s0_4 < s4_1 { 32 } else { s0_4 };', ' '*8+'s0_3 = if s0_4 < s4_1 { combo_count() - 1 } else { s0_4 };', 1),
     ],
-    'getmostpowerfulcombo': [(' '*8+'if s0_1 >= 33 {', ' '*8+'if s0_1 >= combo_count() {', 1)],
     'playerSetStartGun': [
         (' '*4+'if (v0_2 as u32) >= (32 as u32) {', ' '*4+'if (v0_2 as u32) >= ((combo_count() - 1) as u32) {', 1),
         (' '*4+'sw(s0_1 + (a2_1 << 2) + 488, 1);', ' '*4+'own_set(s0_1, a2_1);', 1),
@@ -219,12 +218,10 @@ FUNCS = {
     # one more arcade level, Ron (the console game has an arcade set-up for it, but it is not in its list): the list is in `av_arcade_levels`, MapMaker keeps its place (index 18), it goes after it
     'arcade_pageTick': [('s1_3 = if s1_2 >= 19 { 0 } else { s1_2 };', 's1_3 = if s1_2 >= av_arcade_count() { 0 } else { s1_2 };', 1), ('lw((s1_3 << 2) + g::arcadelevels)', 'lw((s1_3 << 2) + av_arcade_levels())', 1), ('lw((s0_3 << 2) + g::arcadelevels)', 'lw((s0_3 << 2) + av_arcade_levels())', 1), ('s0_3 = if -1 >= s0_2 { 18 } else { s0_2 };', 's0_3 = if -1 >= s0_2 { av_arcade_count() - 1 } else { s0_2 };', 1), ('lw((a1_5 << 2) + g::arcadelevels)', 'lw((a1_5 << 2) + av_arcade_levels())', 1)],
     # (the instances of models: a room has one too)
-    'obReset': [('{ 20 } else { 300 }', '{ 20 } else { 1000 }', 1)],
     'propReset': [('a0_9 = 712;', 'a0_9 = PROP_LAST;', 1), ('a0_10 = 712;', 'a0_10 = PROP_LAST;', 1),
                   # (a level's props, the rooms' among them: 300 of them were room for 200 rooms and the rest)
                   ('{ 20 } else { 300 }', '{ 20 } else { 1000 }', 1)],
     # the game's memory pool cannot be longer (the stacks and static data are after it): big allocations of a level of a mod are made in a pool of the port's own
-    'memReset': [('pub fn memReset() {'+chr(10), 'pub fn memReset() {'+chr(10)+'    big_reset();'+chr(10), 1)],
     'bgGfx': [
         ('sb(v1_3 + a2_1 * 200 + 0x1fc4a78, s0_1);', 'sh((v1_3 << 1) + a2_1 * 1024 + 0x2500000, s0_1);', 1),
         ('s0_2 = lbu(s2_2 * 200 + s1_1 + 0x1fc4a78);', 's0_2 = lhu(s2_2 * 1024 + (s1_1 << 1) + 0x2500000);', 1),
@@ -261,7 +258,6 @@ FUNCS = {
     'findweapon': [(' '*32+'a0_6 = a0;'+chr(10)+' '*32+'enemySetIdleAnimation(a0_6);'+chr(10)+' '*32+'return;'+chr(10), ' '*32+'if ts_sdk::bots_punch() {'+chr(10)+' '*36+'sw(s0_1 + 2720, lw(s0_1 + 2716));'+chr(10)+' '*36+'sw(s0_1 + 2716, 128);'+chr(10)+' '*36+'sw(s0_1 + 2892, 0);'+chr(10)+' '*36+'return;'+chr(10)+' '*32+'}'+chr(10)+' '*32+'a0_6 = a0;'+chr(10)+' '*32+'enemySetIdleAnimation(a0_6);'+chr(10)+' '*32+'return;'+chr(10), 1)],
     'enemyTick': [('pub fn enemyTick(mut a0: i32) {'+chr(10), 'pub fn enemyTick(mut a0: i32) {'+chr(10)+'    bot_punch(a0);'+chr(10), 1)],
     # the buttons in the texts are named for the device in use (manual/nativetext.rs)
-    'textOutline': [('pub fn textOutline(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32) {'+chr(10), 'pub fn textOutline(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32) {'+chr(10)+'    a2 = button_text(a2);'+chr(10), 1)],
     # the MapMaker's Options page (manual/mmoptions.rs): a slider changed with X, a row that takes the limit of the map away
     'settings_pageTick': [
         ('pub fn settings_pageTick(mut a0: i32) {'+chr(10), 'pub fn settings_pageTick(mut a0: i32) {'+chr(10)+'    mm_options_tick(a0);'+chr(10), 1),

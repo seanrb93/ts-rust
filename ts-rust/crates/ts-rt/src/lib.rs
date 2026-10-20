@@ -32,6 +32,9 @@ pub fn trap(what: &str) {
     panic!("trap: {what}");
 }
 
+/// Set by the verifier: `exit` then ends the run like a trap (a panic starting with "trap:") instead of ending the process.
+pub static VERIFYING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// Called by auto-generated stubs of SDK functions that have no native implementation yet.
 /// Logs each distinct name once; the stub then returns 0.
 pub fn stub_called(name: &str) {

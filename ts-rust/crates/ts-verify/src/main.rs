@@ -107,6 +107,7 @@ fn find_root() -> PathBuf {
 
 fn main() {
     std::panic::set_hook(Box::new(|_| {}));
+    ts_rt::VERIFYING.store(true, std::sync::atomic::Ordering::Relaxed);
     let mut n = 12usize;
     let mut elf: Option<PathBuf> = None;
     let mut names = Vec::new();
@@ -129,6 +130,18 @@ fn main() {
     let externs: HashMap<u32, String> =
         syms.iter().filter(|s| s.is_func && s.addr >= split).map(|s| (s.addr, s.name.clone())).collect();
     let ctx = Ctx { externs, gp };
+    // the memory areas of the allocator: room for the usual small allocations (a function that calls `memAlloc` would otherwise end every run in `exit`)
+    let seeds: Vec<(u32, i32)> = [
+        ("mem_level_free", 0x2_8000),
+        ("mem_level_at", (SCRATCH + 0x8000) as i32),
+        ("mem_level_end", (SCRATCH + 0x3_fff0) as i32),
+        ("mem_local_at", (SCRATCH + 0x3_fff0) as i32),
+        ("mem_eternal_free", 0x4000),
+        ("mem_eternal_at", (SCRATCH + 0x1_8000) as i32),
+    ]
+    .iter()
+    .filter_map(|(n, v)| syms.iter().find(|s| s.name == *n).map(|s| (s.addr, *v)))
+    .collect();
 
     let (mut pass, mut fail, mut skip, mut vacuous) = (0, 0, 0, 0);
     let mut failures = Vec::new();
@@ -147,6 +160,9 @@ fn main() {
         for t in 0..n {
             let mut rng = Rng(0x9E37_79B9_7F4A_7C15 ^ (addr as u64) << 20 ^ (t as u64 + 1) * 0x1234567);
             fill_scratch(&mut rng);
+            for &(a, v) in &seeds {
+                sw(a as i32, v);
+            }
             let (ints, floats) = gen_inputs(&mut rng, ni, nf);
             let a = run_interp(&ctx, addr, &ints, &floats);
             if let Outcome::Skip(s) = &a {

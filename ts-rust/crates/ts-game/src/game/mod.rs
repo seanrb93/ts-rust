@@ -481,3 +481,12 @@ pub use front_end_background_and_goodies_ticks::*;
 #[path = "water-vertices-and-memory-allocation.rs"]
 pub mod water_vertices_and_memory_allocation;
 pub use water_vertices_and_memory_allocation::*;
+#[path = "memory-resets-and-small-wrappers.rs"]
+pub mod memory_resets_and_small_wrappers;
+pub use memory_resets_and_small_wrappers::*;
+#[path = "start-messages-hud-restart-and-enemy-trigger.rs"]
+pub mod start_messages_hud_restart_and_enemy_trigger;
+pub use start_messages_hud_restart_and_enemy_trigger::*;
+#[path = "text-outline-and-adsr-value.rs"]
+pub mod text_outline_and_adsr_value;
+pub use text_outline_and_adsr_value::*;
