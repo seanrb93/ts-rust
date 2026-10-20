@@ -282,6 +282,8 @@ pub mod messages_map_files_and_formatting;
 pub mod stats_gun_counters;
 #[path = "team-names-signons-pads-and-messages.rs"]
 pub mod team_names_signons_pads_and_messages;
+#[path = "facing-tests-pads-and-ricochets.rs"]
+pub mod facing_tests_pads_and_ricochets;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -427,3 +429,4 @@ pub use euler_matrices_and_perspective::*;
 pub use messages_map_files_and_formatting::*;
 pub use stats_gun_counters::*;
 pub use team_names_signons_pads_and_messages::*;
+pub use facing_tests_pads_and_ricochets::*;
