@@ -266,6 +266,8 @@ pub mod enemy_target_reselection;
 pub mod enemy_target_tracking;
 #[path = "chunk-polygon-merging.rs"]
 pub mod chunk_polygon_merging;
+#[path = "move-test-wall.rs"]
+pub mod move_test_wall;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -403,3 +405,4 @@ pub use texture_memory_slots::*;
 pub use enemy_target_reselection::*;
 pub use enemy_target_tracking::*;
 pub use chunk_polygon_merging::*;
+pub use move_test_wall::*;
