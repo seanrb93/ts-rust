@@ -472,3 +472,6 @@ pub use text_print::*;
 #[path = "ammo-pickup-and-particle-burst-tick.rs"]
 pub mod ammo_pickup_and_particle_burst_tick;
 pub use ammo_pickup_and_particle_burst_tick::*;
+#[path = "map-maker-cost-and-placing.rs"]
+pub mod map_maker_cost_and_placing;
+pub use map_maker_cost_and_placing::*;
