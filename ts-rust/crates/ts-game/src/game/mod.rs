@@ -721,3 +721,6 @@ pub use string_edit_drawing::*;
 #[path = "line-cylinder-hit-test.rs"]
 pub mod line_cylinder_hit_test;
 pub use line_cylinder_hit_test::*;
+#[path = "decal-clip-to-polygon.rs"]
+pub mod decal_clip_to_polygon;
+pub use decal_clip_to_polygon::*;
