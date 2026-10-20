@@ -547,3 +547,6 @@ pub use move_cylinder_and_loading_screen_drawing::*;
 #[path = "bot-weapon-search-prop-walls-and-map-view-init.rs"]
 pub mod bot_weapon_search_prop_walls_and_map_view_init;
 pub use bot_weapon_search_prop_walls_and_map_view_init::*;
+#[path = "patrol-pillar-alien-and-left-ambush.rs"]
+pub mod patrol_pillar_alien_and_left_ambush;
+pub use patrol_pillar_alien_and_left_ambush::*;
