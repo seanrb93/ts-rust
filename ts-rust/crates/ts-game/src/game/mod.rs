@@ -640,3 +640,6 @@ pub use signon_file_adding_and_standard_menu_item_drawing::*;
 #[path = "xpm-opening-prop-attach-and-bone-positions.rs"]
 pub mod xpm_opening_prop_attach_and_bone_positions;
 pub use xpm_opening_prop_attach_and_bone_positions::*;
+#[path = "wavy-texture-effect.rs"]
+pub mod wavy_texture_effect;
+pub use wavy_texture_effect::*;
