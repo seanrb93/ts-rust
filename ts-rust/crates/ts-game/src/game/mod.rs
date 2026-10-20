@@ -718,3 +718,6 @@ pub use rankings_table_drawing::*;
 #[path = "string-edit-drawing.rs"]
 pub mod string_edit_drawing;
 pub use string_edit_drawing::*;
+#[path = "line-cylinder-hit-test.rs"]
+pub mod line_cylinder_hit_test;
+pub use line_cylinder_hit_test::*;
