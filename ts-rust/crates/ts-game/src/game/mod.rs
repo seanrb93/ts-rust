@@ -541,3 +541,9 @@ pub use prop_floors_colour_wheel_and_front_logo_layers::*;
 #[path = "map-maker-items-center-map-and-debug-state.rs"]
 pub mod map_maker_items_center_map_and_debug_state;
 pub use map_maker_items_center_map_and_debug_state::*;
+#[path = "move-cylinder-and-loading-screen-drawing.rs"]
+pub mod move_cylinder_and_loading_screen_drawing;
+pub use move_cylinder_and_loading_screen_drawing::*;
+#[path = "bot-weapon-search-prop-walls-and-map-view-init.rs"]
+pub mod bot_weapon_search_prop_walls_and_map_view_init;
+pub use bot_weapon_search_prop_walls_and_map_view_init::*;

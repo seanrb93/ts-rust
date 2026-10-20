@@ -242,7 +242,6 @@ FUNCS = {
     'chrsetInc': [('pub fn chrsetInc() {'+chr(10), 'pub fn chrsetInc() {'+chr(10)+'    chrset_step(1);'+chr(10)+'    return;'+chr(10), 1)],
     'chrsetDec': [('pub fn chrsetDec() {'+chr(10), 'pub fn chrsetDec() {'+chr(10)+'    chrset_step(-1);'+chr(10)+'    return;'+chr(10), 1)],
     # a bot without a weapon in a level that has none to pick up goes after its target (bare handed) instead of standing still
-    'findweapon': [(' '*32+'a0_6 = a0;'+chr(10)+' '*32+'enemySetIdleAnimation(a0_6);'+chr(10)+' '*32+'return;'+chr(10), ' '*32+'if ts_sdk::bots_punch() {'+chr(10)+' '*36+'sw(s0_1 + 2720, lw(s0_1 + 2716));'+chr(10)+' '*36+'sw(s0_1 + 2716, 128);'+chr(10)+' '*36+'sw(s0_1 + 2892, 0);'+chr(10)+' '*36+'return;'+chr(10)+' '*32+'}'+chr(10)+' '*32+'a0_6 = a0;'+chr(10)+' '*32+'enemySetIdleAnimation(a0_6);'+chr(10)+' '*32+'return;'+chr(10), 1)],
     'enemyTick': [('pub fn enemyTick(mut a0: i32) {'+chr(10), 'pub fn enemyTick(mut a0: i32) {'+chr(10)+'    bot_punch(a0);'+chr(10), 1)],
     # the buttons in the texts are named for the device in use (manual/nativetext.rs)
     # the MapMaker's Options page (manual/mmoptions.rs): a slider changed with X, a row that takes the limit of the map away
