@@ -222,7 +222,6 @@ FUNCS = {
         ('s0_2 = g::confirmendgame_menu;', 's0_2 = av_confirm_table(a0);', 1),
     ],
     'mainsetup_pageTick': [('s0_1 = g::mainsetup_menu;', 's0_1 = av_mainsetup_menu();', 1)],
-    'frontPageSet': [('pub fn frontPageSet(mut a0: i32, mut a1: i32) {\n', 'pub fn frontPageSet(mut a0: i32, mut a1: i32) {\n    a1 = av_front_page(a1);\n', 1)],
     'inPage': [('pub fn inPage(mut a0: i32, mut a1: i32) {\n', 'pub fn inPage(mut a0: i32, mut a1: i32) {\n    if av_in_page(a0, a1) {\n        return;\n    }\n', 1)],
     'gametype_pageTick': [
         ('s0_1 = g::gamemode_menu;', 's0_1 = av_gamemode_menu();', 1),
