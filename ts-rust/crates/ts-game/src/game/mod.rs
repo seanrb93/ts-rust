@@ -532,3 +532,6 @@ pub use credits_text_formatted_text_escort_completed_and_disconnect::*;
 #[path = "front-tick-game-restart-view-tick-and-prop-restart.rs"]
 pub mod front_tick_game_restart_view_tick_and_prop_restart;
 pub use front_tick_game_restart_view_tick_and_prop_restart::*;
+#[path = "controls-menu-ambush-colour-page-and-defend-pad.rs"]
+pub mod controls_menu_ambush_colour_page_and_defend_pad;
+pub use controls_menu_ambush_colour_page_and_defend_pad::*;
