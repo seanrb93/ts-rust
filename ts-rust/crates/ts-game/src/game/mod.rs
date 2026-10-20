@@ -820,3 +820,6 @@ pub use glass_swipes_mines_player_respawn_gun_creation_and_pad_loading::*;
 #[path = "prop-ticks-after-guns-lights-character-creation-and-glass-moves.rs"]
 pub mod prop_ticks_after_guns_lights_character_creation_and_glass_moves;
 pub use prop_ticks_after_guns_lights_character_creation_and_glass_moves::*;
+#[path = "gun-reload-cheats-page-bullet-line-test-base-damage-map-maker-main-menu-and-select-brick.rs"]
+pub mod gun_reload_cheats_page_bullet_line_test_base_damage_map_maker_main_menu_and_select_brick;
+pub use gun_reload_cheats_page_bullet_line_test_base_damage_map_maker_main_menu_and_select_brick::*;
