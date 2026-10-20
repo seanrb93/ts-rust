@@ -505,3 +505,6 @@ pub use gun_choices_and_front_end_props::*;
 #[path = "pause-warning-and-title-box-drawing.rs"]
 pub mod pause_warning_and_title_box_drawing;
 pub use pause_warning_and_title_box_drawing::*;
+#[path = "effects-ends-and-small-forwarders.rs"]
+pub mod effects_ends_and_small_forwarders;
+pub use effects_ends_and_small_forwarders::*;
