@@ -583,3 +583,6 @@ pub use reset_wrappers_bullet_lists_message_pages_and_swinging_signs::*;
 #[path = "challenge-hud-boxes-fillets-decals-and-split-pages.rs"]
 pub mod challenge_hud_boxes_fillets_decals_and_split_pages;
 pub use challenge_hud_boxes_fillets_decals_and_split_pages::*;
+#[path = "sign-on-slots-game-reset-menu-lists-and-pad-numbers.rs"]
+pub mod sign_on_slots_game_reset_menu_lists_and_pad_numbers;
+pub use sign_on_slots_game_reset_menu_lists_and_pad_numbers::*;
