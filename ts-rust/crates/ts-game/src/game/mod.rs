@@ -829,3 +829,6 @@ pub use map_maker_drawing_part_relocation_zoom_tile_game_type_page_and_challenge
 #[path = "auto-aim-audio-video-page-spawn-handler-prop-save-menu-tick-deathmatch-and-bag-drop.rs"]
 pub mod auto_aim_audio_video_page_spawn_handler_prop_save_menu_tick_deathmatch_and_bag_drop;
 pub use auto_aim_audio_video_page_spawn_handler_prop_save_menu_tick_deathmatch_and_bag_drop::*;
+#[path = "hud-preload-game-reset-knock-out-decals-character-select-and-sound-test.rs"]
+pub mod hud_preload_game_reset_knock_out_decals_character_select_and_sound_test;
+pub use hud_preload_game_reset_knock_out_decals_character_select_and_sound_test::*;
