@@ -290,6 +290,8 @@ pub mod remote_props_swing_and_messages;
 pub mod game_variable_text_scores_and_colours;
 #[path = "timers-teams-and-new-stats.rs"]
 pub mod timers_teams_and_new_stats;
+#[path = "weapon-pads-highlight-and-unavailable-things.rs"]
+pub mod weapon_pads_highlight_and_unavailable_things;
 
 pub use ammo_and_preload_order::*;
 pub use bcd::*;
@@ -439,3 +441,4 @@ pub use facing_tests_pads_and_ricochets::*;
 pub use remote_props_swing_and_messages::*;
 pub use game_variable_text_scores_and_colours::*;
 pub use timers_teams_and_new_stats::*;
+pub use weapon_pads_highlight_and_unavailable_things::*;

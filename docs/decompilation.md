@@ -46,6 +46,12 @@ A file holds one subsystem or theme; when a theme grows, split it and name the p
 Order of work: leaf functions first (maths, strings, lists, memory), then the systems built on them, working towards `gameTick` and the
 front end.  When a structure is understood (its size and fields), give it a type in `game/types.rs` and use it in every function that touches it.
 
+
+**Read the generated code with the patches in mind.**  `tools/patches.py` changes the generated code after it is made, and some of its changes apply to every function (`GLOBAL`: the
+frame counter read as `gameframe_f()`, the weapon and bot set reads as `weaponset_effective()` and `chrset_effective()`, the relocated tables).  A hand-written function must do what the
+**original** does: `lw(g::gameframe) as f32`, `lw(g::gv_weaponset)`, and so on.  `register.py`-style checks list the per-function patches of a function; a per-function patch is removed
+(and noted below) when the function is written by hand.  The verifier compares with the original machine code, so a copied change shows up only if the random data reaches it.
+
 ## Fidelity first, extensions later
 
 The decompilation has to match the original executable exactly before anything is changed.  The port used to move four of the game's tables into
