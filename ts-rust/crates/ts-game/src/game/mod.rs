@@ -502,3 +502,6 @@ pub use gun_presets_floor_move_and_tile_set_setup::*;
 #[path = "gun-choices-and-front-end-props.rs"]
 pub mod gun_choices_and_front_end_props;
 pub use gun_choices_and_front_end_props::*;
+#[path = "pause-warning-and-title-box-drawing.rs"]
+pub mod pause_warning_and_title_box_drawing;
+pub use pause_warning_and_title_box_drawing::*;
