@@ -835,3 +835,6 @@ pub use hud_preload_game_reset_knock_out_decals_character_select_and_sound_test:
 #[path = "game-status-signon-player-swipe-corpse-special-props-front-reset-and-level-tick.rs"]
 pub mod game_status_signon_player_swipe_corpse_special_props_front_reset_and_level_tick;
 pub use game_status_signon_player_swipe_corpse_special_props_front_reset_and_level_tick::*;
+#[path = "pad-halls-credits-tunnel-story-page-sound-tick-explosions-start-position-remote-gun-and-particle-tick.rs"]
+pub mod pad_halls_credits_tunnel_story_page_sound_tick_explosions_start_position_remote_gun_and_particle_tick;
+pub use pad_halls_credits_tunnel_story_page_sound_tick_explosions_start_position_remote_gun_and_particle_tick::*;
