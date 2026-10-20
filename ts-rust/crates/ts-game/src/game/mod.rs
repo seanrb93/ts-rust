@@ -793,3 +793,6 @@ pub use game_end_modes_menus_and_small_prop_functions::*;
 #[path = "enemy-hit-mines-preload-animation-load-and-level-end.rs"]
 pub mod enemy_hit_mines_preload_animation_load_and_level_end;
 pub use enemy_hit_mines_preload_animation_load_and_level_end::*;
+#[path = "object-load-resets-menus-and-turret-damage-functions.rs"]
+pub mod object_load_resets_menus_and_turret_damage_functions;
+pub use object_load_resets_menus_and_turret_damage_functions::*;
