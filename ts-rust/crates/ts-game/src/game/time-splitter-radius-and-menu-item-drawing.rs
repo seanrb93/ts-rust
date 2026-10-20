@@ -118,7 +118,6 @@ pub fn draw_mi(item: i32) {
         let y = lhu(item + 2) as i32 + 14;
         let width = lw(value) - low;
         draw_slider(x, y, width, high, thumb);
-        slider_arrows(item, x, y);
         return;
     }
     let dim = flags & 64;

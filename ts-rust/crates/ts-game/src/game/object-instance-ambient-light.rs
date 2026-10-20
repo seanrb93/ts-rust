@@ -135,13 +135,7 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
                 swc1(sp + 36, lwc1(a1_5 + 4) + f2_1);
                 swc1(sp + 40, lwc1(a1_5 + 8));
                 let mut a5_1 = lw(sp + 300);
-                let mut rooms_tried = 0;
                 loop {
-                    // an object with an invalid position (NaN) would pass from room to room for ever (the console's FPU has no NaN)
-                    rooms_tried += 1;
-                    if rooms_tried > 64 {
-                        break;
-                    }
                     let v0_13 = lw(g::bgNumRooms);
                     if a5_1 <= 0 {
                         break;
