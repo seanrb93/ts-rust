@@ -814,3 +814,6 @@ pub use zoom_tile_flares_sounds_enemy_death_and_map_room_drawing::*;
 #[path = "object-textures-damaged-props-enemy-wake-and-front-end-pages.rs"]
 pub mod object_textures_damaged_props_enemy_wake_and_front_end_pages;
 pub use object_textures_damaged_props_enemy_wake_and_front_end_pages::*;
+#[path = "glass-swipes-mines-player-respawn-gun-creation-and-pad-loading.rs"]
+pub mod glass_swipes_mines_player_respawn_gun_creation_and_pad_loading;
+pub use glass_swipes_mines_player_respawn_gun_creation_and_pad_loading::*;
