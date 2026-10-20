@@ -850,3 +850,6 @@ pub use object_dma_precalc_starfield_bullet_line_test_move_slide_level_gfx_picku
 #[path = "background-line-test-player-fire-character-select-tick-prop-tick-head-props-proximity-cartridges-and-prop-line-test.rs"]
 pub mod background_line_test_player_fire_character_select_tick_prop_tick_head_props_proximity_cartridges_and_prop_line_test;
 pub use background_line_test_player_fire_character_select_tick_prop_tick_head_props_proximity_cartridges_and_prop_line_test::*;
+#[path = "enemy-gun-tile-load-dying-particle-drawing-string-edit-pad-action-arcade-options-and-death-view.rs"]
+pub mod enemy_gun_tile_load_dying_particle_drawing_string_edit_pad_action_arcade_options_and_death_view;
+pub use enemy_gun_tile_load_dying_particle_drawing_string_edit_pad_action_arcade_options_and_death_view::*;
