@@ -871,3 +871,6 @@ pub use special_prop_creation_chr_swipe_test_level_setup_and_robot_ai::*;
 #[path = "update-position-enemy-tick-and-gun-fire.rs"]
 pub mod update_position_enemy_tick_and_gun_fire;
 pub use update_position_enemy_tick_and_gun_fire::*;
+#[path = "character-prop-tick-gun-parts-spawn-and-move-test.rs"]
+pub mod character_prop_tick_gun_parts_spawn_and_move_test;
+pub use character_prop_tick_gun_parts_spawn_and_move_test::*;
