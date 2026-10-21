@@ -889,3 +889,6 @@ pub use pickup_prop_tick::*;
 #[path = "map-maker-tick-and-front-end-animation-reset.rs"]
 pub mod map_maker_tick_and_front_end_animation_reset;
 pub use map_maker_tick_and_front_end_animation_reset::*;
+#[path = "time-splitter-animation-and-character-sets-page-drawing.rs"]
+pub mod time_splitter_animation_and_character_sets_page_drawing;
+pub use time_splitter_animation_and_character_sets_page_drawing::*;
