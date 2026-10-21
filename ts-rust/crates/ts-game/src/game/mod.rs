@@ -874,3 +874,6 @@ pub use update_position_enemy_tick_and_gun_fire::*;
 #[path = "character-prop-tick-gun-parts-spawn-and-move-test.rs"]
 pub mod character_prop_tick_gun_parts_spawn_and_move_test;
 pub use character_prop_tick_gun_parts_spawn_and_move_test::*;
+#[path = "enemy-setup-ai-tick-before-player-fire-shots-and-map-memory-load-page.rs"]
+pub mod enemy_setup_ai_tick_before_player_fire_shots_and_map_memory_load_page;
+pub use enemy_setup_ai_tick_before_player_fire_shots_and_map_memory_load_page::*;
