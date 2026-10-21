@@ -898,3 +898,6 @@ pub use front_end_animation_tick::*;
 #[path = "prop-damage-and-special-effect-creation.rs"]
 pub mod prop_damage_and_special_effect_creation;
 pub use prop_damage_and_special_effect_creation::*;
+#[path = "background-tile-level-loading.rs"]
+pub mod background_tile_level_loading;
+pub use background_tile_level_loading::*;
