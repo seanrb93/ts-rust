@@ -886,3 +886,6 @@ pub use car_prop_tick_and_camera_tick::*;
 #[path = "pickup-prop-tick.rs"]
 pub mod pickup_prop_tick;
 pub use pickup_prop_tick::*;
+#[path = "map-maker-tick-and-front-end-animation-reset.rs"]
+pub mod map_maker_tick_and_front_end_animation_reset;
+pub use map_maker_tick_and_front_end_animation_reset::*;
