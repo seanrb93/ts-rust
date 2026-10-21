@@ -895,3 +895,6 @@ pub use time_splitter_animation_and_character_sets_page_drawing::*;
 #[path = "front-end-animation-tick.rs"]
 pub mod front_end_animation_tick;
 pub use front_end_animation_tick::*;
+#[path = "prop-damage-and-special-effect-creation.rs"]
+pub mod prop_damage_and_special_effect_creation;
+pub use prop_damage_and_special_effect_creation::*;
