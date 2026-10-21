@@ -901,3 +901,6 @@ pub use prop_damage_and_special_effect_creation::*;
 #[path = "background-tile-level-loading.rs"]
 pub mod background_tile_level_loading;
 pub use background_tile_level_loading::*;
+#[path = "map-file-page-tick.rs"]
+pub mod map_file_page_tick;
+pub use map_file_page_tick::*;
