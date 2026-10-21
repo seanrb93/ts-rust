@@ -880,3 +880,9 @@ pub use enemy_setup_ai_tick_before_player_fire_shots_and_map_memory_load_page::*
 #[path = "character-line-test-gun-character-fire-instance-light-update-and-character-sets-page.rs"]
 pub mod character_line_test_gun_character_fire_instance_light_update_and_character_sets_page;
 pub use character_line_test_gun_character_fire_instance_light_update_and_character_sets_page::*;
+#[path = "car-prop-tick-and-camera-tick.rs"]
+pub mod car_prop_tick_and_camera_tick;
+pub use car_prop_tick_and_camera_tick::*;
+#[path = "pickup-prop-tick.rs"]
+pub mod pickup_prop_tick;
+pub use pickup_prop_tick::*;
