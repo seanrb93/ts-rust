@@ -907,3 +907,6 @@ pub use map_file_page_tick::*;
 #[path = "character-animation-matrices.rs"]
 pub mod character_animation_matrices;
 pub use character_animation_matrices::*;
+#[path = "decal-creation-tick.rs"]
+pub mod decal_creation_tick;
+pub use decal_creation_tick::*;
