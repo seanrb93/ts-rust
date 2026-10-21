@@ -904,3 +904,6 @@ pub use background_tile_level_loading::*;
 #[path = "map-file-page-tick.rs"]
 pub mod map_file_page_tick;
 pub use map_file_page_tick::*;
+#[path = "character-animation-matrices.rs"]
+pub mod character_animation_matrices;
+pub use character_animation_matrices::*;
