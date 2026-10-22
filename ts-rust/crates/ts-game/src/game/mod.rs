@@ -970,3 +970,6 @@ pub use graphics_and_boss_and_time::*;
 #[path = "sign-on-player-list-pages.rs"]
 pub mod sign_on_player_list_pages;
 pub use sign_on_player_list_pages::*;
+#[path = "player-tick.rs"]
+pub mod player_tick;
+pub use player_tick::*;

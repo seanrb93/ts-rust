@@ -58,6 +58,157 @@ fn run_native(addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> Outcome {
     }
 }
 
+/// Change the state of the first player and of its pad at random (see `TS_VERIFY_PERTURB`).
+fn perturb_player(rng: &mut Rng) {
+    use ts_game::g;
+    let p = lw(g::players);
+    let pad = lw(p);
+    let ctrl = g::controllers + (pad & 7) * 384;
+    let mut buttons = 0;
+    for bit in 0..16 {
+        if rng.below(4) == 0 {
+            buttons |= 1 << bit;
+        }
+    }
+    let before = {
+        let mut m = 0;
+        for bit in 0..16 {
+            if rng.below(3) == 0 {
+                m |= 1 << bit;
+            }
+        }
+        m
+    };
+    sw(ctrl + 284, before);
+    sw(ctrl + 288, buttons);
+    sw(ctrl + 292, buttons & !before);
+    sw(ctrl + 296, before & !buttons);
+    for axis in 0..4 {
+        let value = match rng.below(4) {
+            0 | 1 => 128,
+            2 => [0, 255, 64, 192][rng.below(4) as usize],
+            _ => rng.below(256) as i32,
+        };
+        sw(ctrl + 300 + axis * 4, value);
+    }
+    if rng.below(5) < 3 {
+        sw(p + 296, rng.below(8) as i32);
+    }
+    let mut spread = |rng: &mut Rng, low: f32, high: f32| low + (high - low) * (rng.below(10001) as f32 / 10000.0);
+    if rng.below(2) == 0 {
+        swc1(p + 128, spread(rng, -0.5, 0.5));
+    }
+    if rng.below(2) == 0 {
+        swc1(p + 124, spread(rng, -1.0, 0.0));
+    }
+    for offset in [300, 304, 308] {
+        if rng.below(2) == 0 {
+            swc1(p + offset, spread(rng, -3.0, 3.0));
+        }
+    }
+    for offset in [856, 864] {
+        if rng.below(2) == 0 {
+            swc1(p + offset, spread(rng, -0.6, 0.6));
+        }
+    }
+    let character = lw(lw(p + 384) + 352);
+    if character != 0 {
+        if rng.below(2) == 0 {
+            swc1(character + 2864, spread(rng, -1.0, 1.0));
+        }
+        if rng.below(2) == 0 {
+            swc1(character + 2956, lwc1(p + 144) + spread(rng, -2.0, 14.0));
+        }
+    }
+    // the characters the player sees, with the weights of the aim
+    for offset in [260, 264, 268, 272] {
+        if rng.below(2) == 0 {
+            swc1(p + offset, spread(rng, 20.0, 60.0));
+        }
+    }
+    for (offset, low, high) in [(276, 0.0, 360.0), (284, -60.0, 60.0), (312, 0.0, 4.0), (320, 0.0, 1.5), (324, 0.0, 360.0), (328, 0.0, 360.0)] {
+        if rng.below(2) == 0 {
+            swc1(p + offset, spread(rng, low, high));
+        }
+    }
+    if rng.below(3) == 0 {
+        sw(p + 792, rng.below(70) as i32);
+    }
+    let records = lw(p + 820);
+    if records != 0 {
+        for i in 0..(lw(g::lvnumplayers) + lw(g::numactivechars)).clamp(0, 64) {
+            if rng.below(2) == 0 {
+                sw(records + i * 12, 1 + rng.below(2) as i32);
+                swc1(records + i * 12 + 4, spread(rng, 0.0, 3.0));
+            }
+        }
+    }
+    let ground = lw(p + 824);
+    if ground != 0 && rng.below(3) == 0 {
+        sh(ground + 6, lhu(ground + 6) ^ (1 << rng.below(3)) as i32);
+    }
+    // the polygon of the ground gets slopes
+    if ground != 0 && rng.below(2) == 0 {
+        for k in 0..9 {
+            swc1(ground + 8 + 4 * k, lwc1(ground + 8 + 4 * k) + spread(rng, -2.0, 2.0));
+        }
+    }
+    let body = lw(p + 384);
+    if rng.below(2) == 0 {
+        sw(p + 388, body);
+    }
+    if rng.below(3) == 0 {
+        sw(p + 904, body);
+    }
+    if rng.below(3) == 0 {
+        swc1(body + 520, spread(rng, -2.0, 2.0));
+    }
+    if rng.below(3) == 0 {
+        swc1(p + 1776, spread(rng, 0.0, 1.5));
+        swc1(p + 1780, spread(rng, 0.0, 1.0));
+    }
+    if character != 0 {
+        if rng.below(3) == 0 {
+            sw(character + 0x11b0, rng.below(2) as i32);
+        }
+        if rng.below(3) == 0 {
+            sw(character + 0x11b4, if rng.below(2) == 0 { body } else { 0 });
+        }
+    }
+    if rng.below(3) == 0 {
+        sw(g::curgameparms + 72, [0, 6, 7][rng.below(3) as usize]);
+    }
+    if rng.below(3) == 0 {
+        sw(g::curgameparms + 80, lw(g::curgameparms + 80) ^ 32);
+        sw(g::curgameparms + 68, [17, 0][rng.below(2) as usize]);
+    }
+    if rng.below(3) == 0 {
+        sw(p + 20, (lw(p + 20) & !3) | rng.below(4) as i32);
+    }
+    if rng.below(3) == 0 {
+        sw(p + 288, rng.below(3) as i32);
+    }
+    if rng.below(4) == 0 {
+        sw(p + 612, rng.below(2) as i32);
+    }
+    if rng.below(4) == 0 {
+        sw(p + 420, rng.below(2) as i32);
+    }
+    let gun = lw(p + 24);
+    if gun != 0 {
+        let mut flags = lhu(gun + 2);
+        for bit in [0, 1, 2, 3, 4, 5, 7] {
+            if rng.below(3) == 0 {
+                flags ^= 1 << bit;
+            }
+        }
+        sh(gun + 2, flags);
+    }
+    let ticks = 1 + rng.below(3) as i32;
+    sw(g::updateframesi, ticks);
+    swc1(g::updateframesf, ticks as f32);
+}
+
 fn gen_inputs(rng: &mut Rng, ni: u8, nf: u8) -> ([i64; 8], [f32; 8]) {
     let mut ints = [0i64; 8];
     let mut floats = [0f32; 8];
@@ -204,6 +355,12 @@ fn main() {
     .chain(std::iter::once((0x3afe14u32, (SCRATCH + 0x3_0000) as i32)))
     .collect();
 
+    // `TS_VERIFY_SNAPSHOT=a.bin,b.bin`: instead of random memory, test on snapshots of the game's RAM (written by `TS_SNAP` of the port while a level is played),
+    // one for each run in turn; the functions that work from the whole game's state (a player's tick, a bullet's tick) get real data this way
+    let snapshots: Vec<Vec<u8>> = std::env::var("TS_VERIFY_SNAPSHOT")
+        .map(|v| v.split(',').filter_map(|f| std::fs::read(f.trim()).ok()).collect())
+        .unwrap_or_default();
+
     let (mut pass, mut fail, mut skip, mut vacuous) = (0, 0, 0, 0);
     let mut failures = Vec::new();
     for &(addr, name, ni, nf, _rk) in FUNC_INFO {
@@ -221,9 +378,19 @@ fn main() {
         let from: usize = std::env::var("TS_VERIFY_FROM").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
         for t in from..n {
             let mut rng = Rng(0x9E37_79B9_7F4A_7C15 ^ (addr as u64) << 20 ^ (t as u64 + 1) * 0x1234567);
-            fill_scratch(&mut rng);
-            for &(a, v) in &seeds {
-                sw(a as i32, v);
+            if snapshots.is_empty() {
+                fill_scratch(&mut rng);
+                for &(a, v) in &seeds {
+                    sw(a as i32, v);
+                }
+            } else {
+                let image = &snapshots[t % snapshots.len()];
+                host_slice(0, image.len()).copy_from_slice(image);
+                sw(ts_game::g::currentplayer, lw(ts_game::g::players));
+                // `TS_VERIFY_PERTURB=1`: change the player's modes, flags, buttons and sticks too (from the same random numbers each time), so that the branches of the player's tick that the snapshots do not reach are tested
+                if std::env::var_os("TS_VERIFY_PERTURB").is_some() {
+                    perturb_player(&mut rng);
+                }
             }
             let (ints, floats) = gen_inputs(&mut rng, ni, nf);
             let a = run_interp(&ctx, addr, &ints, &floats);
@@ -288,6 +455,27 @@ fn main() {
             }
             if bad.is_some() {
                 break;
+            }
+        }
+        if std::env::var_os("TS_VERIFY_COVERAGE").is_some() {
+            if let Some(sym) = syms.iter().find(|x| x.addr == addr && x.is_func) {
+                let covered = COVERAGE.lock().unwrap().take().unwrap_or_default();
+                let total = sym.size / 4;
+                let hit = (0..total).filter(|k| covered.contains(&(addr + k * 4))).count();
+                println!("coverage {name}: {hit} of {total} instructions");
+                let mut run_start: Option<u32> = None;
+                for k in 0..=total {
+                    let pc = addr + k * 4;
+                    let missed = k < total && !covered.contains(&pc);
+                    match (missed, run_start) {
+                        (true, None) => run_start = Some(pc),
+                        (false, Some(start)) => {
+                            println!("  not run: {start:#x} to {:#x} ({} instructions)", pc - 4, (pc - start) / 4);
+                            run_start = None;
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
         if let Some(b) = bad {

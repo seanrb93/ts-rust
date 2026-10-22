@@ -107,6 +107,9 @@ pub fn call_extern(name: &str, c: &mut Cpu) -> Option<()> {
     Some(())
 }
 
+/// The addresses of the instructions the interpreter ran (kept only when `TS_VERIFY_COVERAGE` is set, to show which parts of a function the tests reach).
+pub static COVERAGE: std::sync::Mutex<Option<std::collections::HashSet<u32>>> = std::sync::Mutex::new(None);
+
 pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> Outcome {
     let mut c = Cpu::new();
     for i in 0..8 {
@@ -121,7 +124,15 @@ pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> O
     let mut unsupported: Option<String> = None;
     let mut exited = false;
     let res = silent(|| {
+        let cover = std::env::var_os("TS_VERIFY_COVERAGE").is_some();
+        let mut seen: Vec<u32> = Vec::new();
         let mut hook = |pc: u32, cpu: &mut Cpu| -> bool {
+            if cover {
+                seen.push(pc);
+                if seen.len() >= 4096 {
+                    COVERAGE.lock().unwrap().get_or_insert_with(Default::default).extend(seen.drain(..));
+                }
+            }
             if let Some(name) = ctx.externs.get(&pc) {
                 if name == "exit" {
                     exited = true;
@@ -138,7 +149,11 @@ pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> O
             }
             false
         };
-        c.run(&mut hook)
+        let r = c.run(&mut hook);
+        if cover {
+            COVERAGE.lock().unwrap().get_or_insert_with(Default::default).extend(seen.drain(..));
+        }
+        r
     });
     let log = trace::stop();
     let writes = changed(&log);
