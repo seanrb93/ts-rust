@@ -928,3 +928,6 @@ pub use part_graphics_drawing::*;
 #[path = "statistics-medals.rs"]
 pub mod statistics_medals;
 pub use statistics_medals::*;
+#[path = "animation-loading.rs"]
+pub mod animation_loading;
+pub use animation_loading::*;
