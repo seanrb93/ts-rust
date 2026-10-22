@@ -916,3 +916,6 @@ pub use character_animation_choice::*;
 #[path = "remote-prop-tick.rs"]
 pub mod remote_prop_tick;
 pub use remote_prop_tick::*;
+#[path = "enemy-attack.rs"]
+pub mod enemy_attack;
+pub use enemy_attack::*;
