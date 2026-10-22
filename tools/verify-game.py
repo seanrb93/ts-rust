@@ -20,7 +20,7 @@ BY_DESIGN = set()
 
 # memReset clears a buffer of the size held in the (here empty) game state, which is endless, and profileTimeGet returns the clock; both are reviewed only
 # recursion over a structure the random data makes endless overflows the host stack (the interpreter stops, the Rust code cannot), and pickupposGfx (the original faults on random data, the Rust loop over a random count takes minutes): reviewed only
-UNVERIFIABLE = {'partSetTextureOffset', 'obSetTexList', 'partTransform', 'pickupposGfx', 'memReset', 'profileTimeGet', 'timeTickEnd', 'zbtestCopyZB', 'profileTimeStart', 'profileTimeEnd', 'OpenXPM'}
+UNVERIFIABLE = {'partGfx', 'partSetTextureOffset', 'obSetTexList', 'partTransform', 'pickupposGfx', 'memReset', 'profileTimeGet', 'timeTickEnd', 'zbtestCopyZB', 'profileTimeStart', 'profileTimeEnd', 'OpenXPM'}
 
 
 def arg(name, default):

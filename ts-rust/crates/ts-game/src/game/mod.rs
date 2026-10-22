@@ -922,3 +922,6 @@ pub use enemy_attack::*;
 #[path = "player-gun-update.rs"]
 pub mod player_gun_update;
 pub use player_gun_update::*;
+#[path = "part-graphics-drawing.rs"]
+pub mod part_graphics_drawing;
+pub use part_graphics_drawing::*;
