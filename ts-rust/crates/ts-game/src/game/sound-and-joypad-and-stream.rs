@@ -1,1211 +1,482 @@
 //! Functions: the sound loading and playing, the joypads, the controller and the streams.
+//!
+//! A sound is an entry of 36 bytes in the table `sounds`: the name (+4), the data on the IOP (+24), the sizes (+32) and the settings of the voice (+8 to +20), and the flags (+22). The commands for the sound chip are collected in a batch (`soundBatchAdd`) and sent to it in one go by `soundBatchExec`.
 
 use crate::*;
 
-/// Run the sound batch.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Send the batch of commands for the sound chip to the IOP and run it there.
 pub fn soundBatchExec() {
-    let mut a2_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a2_3: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a3_2: i32 = 0;
-    a2_1 = lw(g::soundbatchlen);
-    if a2_1 <= 0 {
+    let length = lw(g::soundbatchlen);
+    if length <= 0 {
         return;
     }
-    a1_1 = lw(0x3afe24);
-    a2_2 = (a2_1 << 3) + 15 & -16;
-    a0_1 = 0x1fb19c0;
-    a3_1 = 1;
-    sceSdTransToIOP(&[a0_1 as i64, a1_1 as i64, a2_2 as i64, a3_1 as i64]);
-    a2_3 = lw(0x3afe24);
-    a0_2 = 0;
-    a4_1 = lw(g::soundbatchlen);
-    a1_2 = 0x80b0;
-    a3_2 = 0;
-    sceSdRemote(&[a0_2 as i64, a1_2 as i64, a2_3 as i64, a3_2 as i64, a4_1 as i64]);
-    return;
+    sceSdTransToIOP(&[0x1fb19c0, lw(0x3afe24) as i64, ((length << 3) + 15 & -16) as i64, 1]);
+    sceSdRemote(&[0, 0x80b0, lw(0x3afe24) as i64, 0, lw(g::soundbatchlen) as i64]);
 }
 
-/// Start the sound.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Start the sound: take the memory on the IOP for the sound data (0x40000 bytes) and for the batch (1600 bytes), and set the sound chip up. The game ends if the IOP has no memory.
 pub fn soundMake() {
-    let mut a0_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut a3_1: i32 = 0;
     sceSifInitIopHeap(&[]);
-    a0_1 = 0x40000;
-    v0_1 = sceSifAllocIopHeap(&[a0_1 as i64]);
-    sw(0x3afe20, v0_1);
-    if v0_1 < 0 {
-        a0_2 = -1;
-        exit(a0_2);
+    let data = sceSifAllocIopHeap(&[0x40000]);
+    sw(0x3afe20, data);
+    if data < 0 {
+        exit(-1);
     }
-    a0_3 = 1600;
-    v0_2 = sceSifAllocIopHeap(&[a0_3 as i64]);
-    sw(0x3afe24, v0_2);
-    if v0_2 < 0 {
-        a0_4 = -1;
-        exit(a0_4);
+    let batch = sceSifAllocIopHeap(&[1600]);
+    sw(0x3afe24, batch);
+    if batch < 0 {
+        exit(-1);
     }
     sceSdRemoteInit(&[]);
-    a0_5 = 1;
-    a1_1 = 0x8000;
-    a2_1 = 0;
-    sceSdRemote(&[a0_5 as i64, a1_1 as i64, a2_1 as i64]);
-    a0_6 = 1;
-    a1_2 = 0x8070;
-    a2_2 = 10;
-    a3_1 = 2048;
-    sceSdRemote(&[a0_6 as i64, a1_2 as i64, a2_2 as i64, a3_1 as i64]);
-    return;
+    sceSdRemote(&[1, 0x8000, 0]);
+    sceSdRemote(&[1, 0x8070, 10, 2048]);
 }
 
-/// Load the sound.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn soundLoad(mut a0: i32) {
+/// Load the sound `a0` from its file to the memory of the sound chip, if it is not loaded yet. The file is read to the scratch buffer, made to end on a block of 64 bytes (the last 16 bytes are repeated to fill it), and sent to the IOP.
+pub fn soundLoad(a0: i32) {
     let frame = Frame::new(160);
     let sp = frame.sp();
-    let mut s2_1: i32 = 0;
-    let mut s2_2: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut s0_1: i32 = 0;
-    let mut s1_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut s3_1: i32 = 0;
-    let mut s5_1: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut s1_2: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut a1_4: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a1_5: i32 = 0;
-    let mut a1_6: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut a2_3: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a5_1: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut a6_1: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut a1_7: i32 = 0;
-    let mut a7_1: i32 = 0;
-    let mut a2_4: i32 = 0;
-    let mut a3_2: i32 = 0;
-    let mut v1_2: i32 = 0;
-    let mut a5_2: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut a1_8: i32 = 0;
-    let mut a2_5: i32 = 0;
-    let mut a3_3: i32 = 0;
-    'b1: {
-        s2_1 = g::sounds;
-        if lw(s2_1 + a0 * 36 + 24) == 0 {
-            'b2: {
-                s2_2 = a0 * 36 + (s2_1 + 4);
-                a0_1 = lw(s2_2);
-                v0_1 = fileSize(a0_1);
-                s0_1 = g::scratchbuffer;
-                s1_1 = v0_1 + 63 & -64;
-                a0_2 = s0_1;
-                a1_1 = s1_1;
-                s3_1 = v0_1 - 64;
-                sceSifWriteBackDCache(&[a0_2 as i64, a1_1 as i64]);
-                s5_1 = s0_1 + 64;
-                a1_2 = s1_1 + s0_1;
-                a0_3 = s0_1;
-                InvalidDCache(a0_3, a1_2);
-                a0_4 = lw(s2_2);
-                a1_3 = s0_1;
-                a2_1 = v0_1;
-                fileLoadTo(a0_4, a1_3, a2_1);
-                if (s3_1 & 63) != 0 {
-                    s1_2 = v0_1 - 80 + s5_1;
-                    'l3: loop {
-                        a0_5 = s1_2;
-                        a1_4 = s5_1 + s3_1;
-                        a2_2 = 16;
-                        s3_1 = s3_1 + 16;
-                        bcopy(a0_5, a1_4, a2_2);
-                        s1_2 = s1_2 + 16;
-                        if (s3_1 & 63) == 0 {
-                            break 'b2;
-                        }
-                    }
-                }
-            }
-            a0_6 = s5_1;
-            a1_5 = s3_1;
-            sceSifWriteBackDCache(&[a0_6 as i64, a1_5 as i64]);
-            a1_6 = lw(0x3afe20);
-            a0_7 = s5_1;
-            a2_3 = s3_1;
-            a3_1 = 1;
-            sceSdTransToIOP(&[a0_7 as i64, a1_6 as i64, a2_3 as i64, a3_1 as i64]);
-            a5_1 = lw(g::thissoundbuf);
-            v1_1 = g::sounds;
-            a4_1 = lw(0x3afe20);
-            a6_1 = s3_1;
-            a0_8 = 1;
-            a1_7 = 0x80d0;
-            a7_1 = a0 * 36 + (v1_1 + 24);
-            sw(a7_1, lw(a5_1 + 8));
-            a2_4 = 1;
-            sw(v1_1 + a0 * 36 + 32, s3_1);
-            a3_2 = 0;
-            v1_2 = lw(a5_1 + 12) - s3_1;
-            sw(a5_1 + 8, lw(a5_1 + 8) + s3_1);
-            sw(a5_1 + 12, v1_2);
-            a5_2 = lw(a7_1);
-            sceSdRemote(&[a0_8 as i64, a1_7 as i64, a2_4 as i64, a3_2 as i64, a4_1 as i64, a5_2 as i64, a6_1 as i64, a7_1 as i64]);
-            a0_9 = 1;
-            a1_8 = 0x80f0;
-            a2_5 = 1;
-            a3_3 = 1;
-            sceSdRemote(&[a0_9 as i64, a1_8 as i64, a2_5 as i64, a3_3 as i64]);
-            sw(sp, 0);
-            if 0xf423f >= lw(sp) {
-                'l4: loop {
-                    sw(sp + 4, lw(sp) * lw(sp));
-                    sw(sp, lw(sp) + 1);
-                    if 0xf423f < lw(sp) {
-                        break 'b1;
-                    }
-                }
+    let entry = g::sounds + a0 * 36;
+    if lw(entry + 24) != 0 {
+        return;
+    }
+    let name_at = entry + 4;
+    let size = fileSize(lw(name_at));
+    let buffer = g::scratchbuffer;
+    let padded = size + 63 & -64;
+    let mut length = size - 64;
+    sceSifWriteBackDCache(&[buffer as i64, padded as i64]);
+    let data = buffer + 64;
+    InvalidDCache(buffer, padded + buffer);
+    fileLoadTo(lw(name_at), buffer, size);
+    if length & 63 != 0 {
+        let mut from = size - 80 + data;
+        loop {
+            bcopy(from, data + length, 16);
+            length += 16;
+            from += 16;
+            if length & 63 == 0 {
+                break;
             }
         }
     }
-    return;
+    sceSifWriteBackDCache(&[data as i64, length as i64]);
+    sceSdTransToIOP(&[data as i64, lw(0x3afe20) as i64, length as i64, 1]);
+    let buffers = lw(g::thissoundbuf);
+    let iop = lw(0x3afe20);
+    let slot = a0 * 36 + g::sounds + 24;
+    sw(slot, lw(buffers + 8));
+    sw(g::sounds + a0 * 36 + 32, length);
+    let left = lw(buffers + 12) - length;
+    sw(buffers + 8, lw(buffers + 8) + length);
+    sw(buffers + 12, left);
+    sceSdRemote(&[1, 0x80d0, 1, 0, iop as i64, lw(slot) as i64, length as i64, slot as i64]);
+    sceSdRemote(&[1, 0x80f0, 1, 1]);
+    // A pause for the IOP, as a loop on the stack.
+    for count in 0..=0xf423f_i32 {
+        std::hint::black_box(count.wrapping_mul(count));
+    }
+    let _ = sp;
 }
 
-/// Start a range of sounds.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn soundStartRange(mut a0: i32, mut a1: i32, mut a2: i32, mut f12: f32) -> i32 {
+/// Start the sound `a0` with the volume and pan `a1`, `a2` and the pitch `f12`, on a voice chosen by the sound chip (or on the voice kept in `sound_voice`), and give the number of the voice; -1 if it cannot be played: the sound is off, the same sound was started in this frame already, or it is not loaded.
+pub fn soundStartRange(a0: i32, a1: i32, a2: i32, f12: f32) -> i32 {
     let frame = Frame::new(96);
     let sp = frame.sp();
-    let mut s0_1: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut v1_2: i32 = 0;
-    let mut v1_3: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut f12_1: f32 = 0.0;
-    let mut a4_2: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a2_3: i32 = 0;
-    let mut a1_4: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut a2_4: i32 = 0;
-    let mut a1_5: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a2_5: i32 = 0;
-    let mut a1_6: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut a1_7: i32 = 0;
-    let mut a2_6: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut a1_8: i32 = 0;
-    let mut a2_7: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut a2_8: i32 = 0;
-    let mut a1_9: i32 = 0;
-    let mut a0_10: i32 = 0;
-    let mut a1_10: i32 = 0;
-    let mut a2_9: i32 = 0;
-    let mut v0_3: i32 = 0;
-    'b1: {
-        'b2: {
-            s0_1 = a0 * 36 + g::sounds;
-            if lw(g::gv_playsound) != 0 {
-                'b3: {
-                    v1_1 = lw(g::tickframenum);
-                    a2_1 = 0;
-                    if v1_1 == lw(g::lastsoundframenum_160) {
-                        a2_1 = lw(g::numsounds_161);
-                        a1_1 = 0;
-                        a4_1 = a2_1;
-                        if a2_1 > 0 {
-                            v0_1 = 0x1fb1600;
-                            'l4: loop {
-                                a0_1 = lw((a1_1 << 2) + v0_1);
-                                a1_1 = a1_1 + 1;
-                                if a0_1 == a0 {
-                                    break 'b2;
-                                }
-                                v0_1 = 0x1fb1600;
-                                if a1_1 >= a4_1 {
-                                    break 'b3;
-                                }
-                            }
-                        }
-                    } else {
-                        sw(g::lastsoundframenum_160, v1_1);
-                        sw(g::numsounds_161, 0);
-                    }
-                }
-                v1_2 = a2_1 << 2;
-                if a2_1 < 100 {
-                    sw(g::numsounds_161, a2_1 + 1);
-                    sw(v1_2 + 0x1fb1600, a0);
-                }
-                v1_3 = lw(g::sound_voice);
-                if lw(s0_1 + 24) != 0 {
-                    v0_2 = lw(g::sound_core);
-                    if v1_3 < 0 {
-                        a0_2 = sp;
-                        a1_2 = sp | 4;
-                        getNextChannel(a0_2, a1_2);
-                    } else {
-                        sw(sp + 4, v1_3);
-                        sw(sp, v0_2);
-                    }
-                    a1_3 = a1;
-                    f12_1 = f12;
-                    a4_2 = a2;
-                    a0_3 = s0_1;
-                    a2_2 = sp | 8;
-                    a3_1 = sp | 12;
-                    soundCalcVol(a0_3, a1_3, a2_2, a3_1, a4_2, f12_1);
-                    a0_4 = 1;
-                    a2_3 = lw(sp + 8);
-                    a1_4 = (lhu(sp) | lhu(sp + 4) << 1) & 0xffff;
-                    soundBatchAdd(a0_4, a1_4, a2_3);
-                    a0_5 = 1;
-                    a2_4 = lw(sp + 12);
-                    a1_5 = (lhu(sp) | lhu(sp + 4) << 1 | 256) & 0xffff;
-                    soundBatchAdd(a0_5, a1_5, a2_4);
-                    a0_6 = 1;
-                    a2_5 = lhu(s0_1 + 18);
-                    a1_6 = (lhu(sp) | lhu(sp + 4) << 1 | 512) & 0xffff;
-                    soundBatchAdd(a0_6, a1_6, a2_5);
-                    a0_7 = 1;
-                    a1_7 = (lhu(sp) | lhu(sp + 4) << 1 | 768) & 0xffff;
-                    a2_6 = (lhu(s0_1 + 8) & 127) << 8 | lhu(s0_1 + 14) & 15 | ((lhu(s0_1 + 10) & 15) << 4 | 0x8000);
-                    soundBatchAdd(a0_7, a1_7, a2_6);
-                    a0_8 = 1;
-                    a1_8 = (lhu(sp) | lhu(sp + 4) << 1 | 1024) & 0xffff;
-                    a2_7 = (lhu(s0_1 + 12) & 127) << 6 | (lhu(s0_1 + 16) & 31 | 0xc020);
-                    soundBatchAdd(a0_8, a1_8, a2_7);
-                    a0_9 = 3;
-                    a2_8 = lw(s0_1 + 24);
-                    a1_9 = (lhu(sp) | lhu(sp + 4) << 1 | 0x2040) & 0xffff;
-                    soundBatchAdd(a0_9, a1_9, a2_8);
-                    a0_10 = 2;
-                    a1_10 = lhu(sp) | 0x1500;
-                    a2_9 = 1 << (lw(sp + 4) & 31);
-                    soundBatchAdd(a0_10, a1_10, a2_9);
-                    v0_3 = lw(sp) | lw(sp + 4) << 1;
-                    break 'b1;
-                }
+    let sound = a0 * 36 + g::sounds;
+    if lw(g::gv_playsound) == 0 {
+        return -1;
+    }
+    let mut started = 0;
+    let tick = lw(g::tickframenum);
+    if tick == lw(g::lastsoundframenum_160) {
+        started = lw(g::numsounds_161);
+        for i in 0..started {
+            if lw(0x1fb1600 + (i << 2)) == a0 {
+                return -1;
             }
         }
-        v0_3 = -1;
+    } else {
+        sw(g::lastsoundframenum_160, tick);
+        sw(g::numsounds_161, 0);
     }
-    return v0_3;
+    if started < 100 {
+        sw(g::numsounds_161, started + 1);
+        sw((started << 2) + 0x1fb1600, a0);
+    }
+    let voice = lw(g::sound_voice);
+    if lw(sound + 24) == 0 {
+        return -1;
+    }
+    let core = lw(g::sound_core);
+    if voice < 0 {
+        getNextChannel(sp, sp + 4);
+    } else {
+        sw(sp + 4, voice);
+        sw(sp, core);
+    }
+    soundCalcVol(sound, a1, sp + 8, sp + 12, a2, f12);
+    let channel = lhu(sp) | lhu(sp + 4) << 1;
+    soundBatchAdd(1, channel & 0xffff, lw(sp + 8));
+    soundBatchAdd(1, (channel | 256) & 0xffff, lw(sp + 12));
+    soundBatchAdd(1, (channel | 512) & 0xffff, lhu(sound + 18));
+    soundBatchAdd(
+        1,
+        (channel | 768) & 0xffff,
+        (lhu(sound + 8) & 127) << 8 | lhu(sound + 14) & 15 | ((lhu(sound + 10) & 15) << 4 | 0x8000),
+    );
+    soundBatchAdd(1, (channel | 1024) & 0xffff, (lhu(sound + 12) & 127) << 6 | (lhu(sound + 16) & 31 | 0xc020));
+    soundBatchAdd(3, (channel | 0x2040) & 0xffff, lw(sound + 24));
+    soundBatchAdd(2, lhu(sp) | 0x1500, 1 << (lw(sp + 4) & 31));
+    lw(sp) | lw(sp + 4) << 1
 }
 
-/// Restart the sounds.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Reset the sound chip and the state of the sounds (after a load of a level, or the restart of the game): the 10 voices of the table at 0x1fb1870 are cleared, both cores are keyed off, set to the same volumes and effect and the memory taken is forgotten, and the sounds the level needs are queued for loading.
 pub fn soundRestart() {
     let frame = Frame::new(96);
     let sp = frame.sp();
-    let mut v0_1: i32 = 0;
-    let mut s0_1: i32 = 0;
-    let mut s0_2: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a3_2: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a2_3: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut a3_3: i32 = 0;
-    let mut a2_4: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a1_4: i32 = 0;
-    let mut a3_4: i32 = 0;
-    let mut a2_5: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut a1_5: i32 = 0;
-    let mut a3_5: i32 = 0;
-    let mut a2_6: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a1_6: i32 = 0;
-    let mut a3_6: i32 = 0;
-    let mut a2_7: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut a1_7: i32 = 0;
-    let mut a3_7: i32 = 0;
-    let mut a2_8: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut a1_8: i32 = 0;
-    let mut a3_8: i32 = 0;
-    let mut s0_3: i32 = 0;
-    let mut s1_1: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut a0_10: i32 = 0;
-    v0_1 = 0x1fb1870;
-    s0_1 = 9;
-    'l1: loop {
-        sw(v0_1, 0);
-        s0_1 = s0_1 - 1;
-        sh(v0_1 + 10, 0);
-        v0_1 = v0_1 + 32;
-        if s0_1 < 0 {
-            break;
-        }
+    let mut voice = 0x1fb1870;
+    for _ in 0..10 {
+        sw(voice, 0);
+        sh(voice + 10, 0);
+        voice += 32;
     }
     sw(g::transinprogress, 0);
     sw(0x3afe28, 0);
-    s0_2 = 0;
-    'l3: loop {
-        a2_1 = s0_2 | 0x1600;
-        a0_1 = 1;
-        a1_1 = 0x8030;
-        a3_1 = 0xffffff;
-        sceSdRemote(&[a0_1 as i64, a1_1 as i64, a2_1 as i64, a3_1 as i64]);
-        a2_2 = s0_2 | 0x1d00;
-        a0_2 = 1;
-        a3_2 = if s0_2 != 0 { 0x1fffff } else { 0x1dffff };
-        a1_2 = 0x8050;
-        sceSdRemote(&[a0_2 as i64, a1_2 as i64, a2_2 as i64, a3_2 as i64]);
-        a2_3 = s0_2 | 2;
-        a0_3 = 1;
-        a1_3 = 0x8070;
-        a3_3 = 1;
-        sceSdRemote(&[a0_3 as i64, a1_3 as i64, a2_3 as i64, a3_3 as i64]);
-        a2_4 = s0_2 | 2944;
-        a0_4 = 1;
-        a1_4 = 0x8010;
-        a3_4 = 0;
-        sceSdRemote(&[a0_4 as i64, a1_4 as i64, a2_4 as i64, a3_4 as i64]);
-        a2_5 = s0_2 | 3200;
-        a0_5 = 1;
-        a1_5 = 0x8010;
-        a3_5 = 0;
-        sceSdRemote(&[a0_5 as i64, a1_5 as i64, a2_5 as i64, a3_5 as i64]);
-        a2_6 = s0_2 | 2432;
-        a0_6 = 1;
-        a1_6 = 0x8010;
-        a3_6 = 0x3fff;
-        sceSdRemote(&[a0_6 as i64, a1_6 as i64, a2_6 as i64, a3_6 as i64]);
-        a2_7 = s0_2 | 2688;
-        a0_7 = 1;
-        a1_7 = 0x8010;
-        a3_7 = 0x3fff;
-        sceSdRemote(&[a0_7 as i64, a1_7 as i64, a2_7 as i64, a3_7 as i64]);
-        a2_8 = s0_2;
+    for core in 0..2 {
+        sceSdRemote(&[1, 0x8030, (core | 0x1600) as i64, 0xffffff]);
+        sceSdRemote(&[1, 0x8050, (core | 0x1d00) as i64, if core != 0 { 0x1fffff } else { 0x1dffff }]);
+        sceSdRemote(&[1, 0x8070, (core | 2) as i64, 1]);
+        sceSdRemote(&[1, 0x8010, (core | 2944) as i64, 0]);
+        sceSdRemote(&[1, 0x8010, (core | 3200) as i64, 0]);
+        sceSdRemote(&[1, 0x8010, (core | 2432) as i64, 0x3fff]);
+        sceSdRemote(&[1, 0x8010, (core | 2688) as i64, 0x3fff]);
         sh(sp + 8, 0);
         sh(sp + 10, 0);
-        a0_8 = 1;
         sw(sp + 4, 261);
-        a1_8 = 0x8130;
-        a3_8 = sp;
-        s0_2 = s0_2 + 1;
-        sceSdRemote(&[a0_8 as i64, a1_8 as i64, a2_8 as i64, a3_8 as i64]);
-        if s0_2 >= 2 {
-            break;
-        }
+        sceSdRemote(&[1, 0x8130, core as i64, sp as i64]);
     }
-    s0_3 = 0;
-    s1_1 = g::sounds + 22;
-    'l5: loop {
-        'b7: {
-            a0_9 = lhu(s1_1);
-            if (a0_9 & 16) != 0 {
-                v1_1 = lw(g::lvlevelnum);
-                if (a0_9 & 8) != 0 {
-                    if (((a0_9 as u32) >> 8) as i32) != v1_1 {
-                        s0_3 = s0_3 + 1;
-                        break 'b7;
-                    }
-                    a0_10 = s0_3;
-                    soundAddPreLoad(a0_10);
+    for index in 0..1215 {
+        let flags = lhu(g::sounds + 22 + index * 36);
+        if flags & 16 != 0 {
+            let level = lw(g::lvlevelnum);
+            if flags & 8 != 0 {
+                if ((flags as u32) >> 8) as i32 != level {
+                    continue;
                 }
+                soundAddPreLoad(index);
             }
-            s0_3 = s0_3 + 1;
-        }
-        s1_1 = s1_1 + 36;
-        if s0_3 >= 1215 {
-            break;
         }
     }
     sw(g::announcecountdown, -1);
     sw(g::lastannounce, -1);
-    return;
 }
 
-/// Save the sound data.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Write the table of the sounds as the text of a file (@ 0x3998b0) for the sound tool: one line for each sound, in a format that depends on its flags. The old file is copied to a backup first.
 pub fn sounddataSave() {
     let frame = Frame::new(1216);
     let sp = frame.sp();
-    let mut a0_1: i32 = 0;
-    let mut s3_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut s2_1: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut s0_1: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a7_1: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut a5_1: i32 = 0;
-    let mut a6_1: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut a7_2: i32 = 0;
-    let mut v1_2: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a3_2: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut t4_1: i32 = 0;
-    let mut a4_2: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut a5_2: i32 = 0;
-    let mut a6_2: i32 = 0;
-    let mut v1_3: i32 = 0;
-    let mut v0_3: i32 = 0;
-    let mut a3_3: i32 = 0;
-    let mut a7_3: i32 = 0;
-    let mut a2_3: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut a4_3: i32 = 0;
-    let mut a1_4: i32 = 0;
-    let mut a5_3: i32 = 0;
-    let mut a6_3: i32 = 0;
-    let mut v1_4: i32 = 0;
-    let mut v0_4: i32 = 0;
-    let mut a3_4: i32 = 0;
-    let mut a7_4: i32 = 0;
-    let mut a2_4: i32 = 0;
-    let mut v0_5: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut a1_5: i32 = 0;
-    let mut a0_10: i32 = 0;
-    let mut v0_6: i32 = 0;
-    let mut s0_2: i32 = 0;
-    let mut a1_6: i32 = 0;
-    let mut a0_11: i32 = 0;
-    let mut a2_5: i32 = 0;
-    let mut a0_12: i32 = 0;
-    let mut v0_7: i32 = 0;
-    let mut a0_13: i32 = 0;
-    let mut a1_7: i32 = 0;
-    let mut a2_6: i32 = 0;
-    let mut a1_8: i32 = 0;
-    let mut a0_14: i32 = 0;
-    a0_1 = 0x100000;
-    s3_1 = 0x3998b0;
-    v0_1 = malloc(a0_1);
-    if v0_1 != 0 {
-        a0_2 = v0_1;
-        a1_1 = 0x3998c8;
-        s2_1 = 0;
-        sprintf(&[a0_2 as i64, a1_1 as i64]);
-        a0_3 = v0_1;
-        v0_2 = strlen(a0_3);
-        s0_1 = v0_1 + v0_2;
-        'l2: loop {
-            'b4: {
-                a2_1 = s2_1 * 36 + g::sounds;
-                a3_1 = lhu(a2_1 + 22);
-                a7_1 = a2_1 + 8;
-                if (a3_1 & 8) == 0 {
-                    a0_7 = s0_1;
-                    if (a3_1 & 16) == 0 {
-                        a1_3 = 0x3999d8;
-                        if (a3_1 & 4) == 0 {
-                            a0_7 = s0_1;
-                            if (a3_1 & 1) == 0 {
-                                a1_3 = 0x399a58;
-                                if (a3_1 & 2) == 0 {
-                                    a0_8 = s0_1;
-                                    a4_3 = lh(a2_1 + 8);
-                                    a1_4 = 0x399a98;
-                                    a5_3 = lh(a7_1 + 2);
-                                    a6_3 = lh(a7_1 + 4);
-                                    v1_4 = lhu(a2_1 + 18);
-                                    v0_4 = lhu(a2_1 + 20);
-                                    a3_4 = lw(a2_1 + 4);
-                                    a7_4 = lh(a7_1 + 6);
-                                    a2_4 = lw(a2_1);
-                                    sw(sp, lh(a7_1 + 8));
-                                    sw(sp + 8, v1_4);
-                                    sw(sp + 16, v0_4);
-                                    sprintf(&[a0_8 as i64, a1_4 as i64, a2_4 as i64, a3_4 as i64, a4_3 as i64, a5_3 as i64, a6_3 as i64, a7_4 as i64]);
-                                    a0_6 = s0_1;
-                                    break 'b4;
-                                }
-                                t4_1 = lh(a7_1 + 8);
-                                a4_2 = lh(a2_1 + 8);
-                            } else {
-                                t4_1 = lh(a7_1 + 8);
-                                a4_2 = lh(a2_1 + 8);
-                                a1_3 = 0x399a18;
-                            }
-                        } else {
-                            t4_1 = lh(a7_1 + 8);
-                            a4_2 = lh(a2_1 + 8);
-                        }
-                    } else {
-                        t4_1 = lh(a7_1 + 8);
-                        a4_2 = lh(a2_1 + 8);
-                        a1_3 = 0x399998;
-                    }
-                    a5_2 = lh(a7_1 + 2);
-                    a6_2 = lh(a7_1 + 4);
-                    v1_3 = lhu(a2_1 + 18);
-                    v0_3 = lhu(a2_1 + 20);
-                    a3_3 = lw(a2_1 + 4);
-                    a7_3 = lh(a7_1 + 6);
-                    a2_3 = lw(a2_1);
-                    sw(sp, t4_1);
-                    sw(sp + 8, v1_3);
-                    sw(sp + 16, v0_3);
-                    sprintf(&[a0_7 as i64, a1_3 as i64, a2_3 as i64, a3_3 as i64, a4_2 as i64, a5_2 as i64, a6_2 as i64, a7_3 as i64]);
-                    a0_6 = s0_1;
-                } else {
-                    a0_4 = lhu(a2_1 + 18);
-                    v1_1 = lhu(a2_1 + 20);
-                    sw(sp, lh(a7_1 + 8));
-                    sw(sp + 8, a0_4);
-                    sw(sp + 16, v1_1);
-                    a5_1 = lh(a7_1 + 2);
-                    a6_1 = lh(a7_1 + 4);
-                    a4_1 = lh(a2_1 + 8);
-                    a7_2 = lh(a7_1 + 6);
-                    if (a3_1 & 16) == 0 {
-                        v1_2 = g::snd + 8;
-                    } else {
-                        v1_2 = 0x399980;
-                    }
-                    a1_2 = 0x399938;
-                    a3_2 = lw(a2_1 + 4);
-                    a2_2 = lw(a2_1);
-                    a0_5 = s0_1;
-                    sw(sp + 24, v1_2);
-                    sw(sp + 32, (((a3_1 & 0xffff) as u32) >> 8) as i32);
-                    sprintf(&[a0_5 as i64, a1_2 as i64, a2_2 as i64, a3_2 as i64, a4_1 as i64, a5_1 as i64, a6_1 as i64, a7_2 as i64]);
-                    a0_6 = s0_1;
-                }
-            }
-            s2_1 = s2_1 + 1;
-            v0_5 = strlen(a0_6);
-            s0_1 = s0_1 + v0_5;
-            if s2_1 >= 1215 {
-                break;
-            }
-        }
-        a0_9 = s0_1;
-        a1_5 = 0x3ae340;
-        sprintf(&[a0_9 as i64, a1_5 as i64]);
-        a0_10 = s0_1;
-        v0_6 = strlen(a0_10);
-        s0_2 = s0_1 + v0_6;
-        a1_6 = 0x3ae348;
-        a0_11 = sp + 48;
-        a2_5 = s3_1;
-        sprintf(&[a0_11 as i64, a1_6 as i64, a2_5 as i64]);
-        a0_12 = s3_1;
-        v0_7 = fileSize(a0_12);
-        a0_13 = s3_1;
-        if v0_7 > 0 {
-            a1_7 = sp + 48;
-            fileCopy(a0_13, a1_7);
-            a0_13 = s3_1;
-        }
-        a2_6 = s0_2 - v0_1;
-        a1_8 = v0_1;
-        fileSave(a0_13, a1_8, a2_6);
-        a0_14 = v0_1;
-        free(a0_14);
+    let path = 0x3998b0;
+    let buffer = malloc(0x100000);
+    if buffer == 0 {
+        return;
     }
-    return;
-}
-
-/// Tick of the multitap.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn joyMtapTick() {
-    let mut v1_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut hi_1: i32 = 0;
-    'b1: {
-        v1_1 = lw(g::mtappollcount);
-        if v1_1 != 0 {
-            if v1_1 != 60 {
-                break 'b1;
-            }
-            a0_2 = 1;
-            v0_2 = scePadGetSlotMax(&[a0_2 as i64]);
-            sw(g::max_slots + 4, v0_2);
+    sprintf(&[buffer as i64, 0x3998c8]);
+    let mut at = buffer + strlen(buffer);
+    for index in 0..1215 {
+        let entry = index * 36 + g::sounds;
+        let flags = lhu(entry + 22);
+        if flags & 8 != 0 {
+            sw(sp, lh(entry + 16));
+            sw(sp + 8, lhu(entry + 18));
+            sw(sp + 16, lhu(entry + 20));
+            let voice = if flags & 16 == 0 { g::snd + 8 } else { 0x399980 };
+            sw(sp + 24, voice);
+            sw(sp + 32, (((flags & 0xffff) as u32) >> 8) as i32);
+            sprintf(&[
+                at as i64,
+                0x399938,
+                lw(entry) as i64,
+                lw(entry + 4) as i64,
+                lh(entry + 8) as i64,
+                lh(entry + 10) as i64,
+                lh(entry + 12) as i64,
+                lh(entry + 14) as i64,
+            ]);
         } else {
-            a0_1 = 0;
-            v0_1 = scePadGetSlotMax(&[a0_1 as i64]);
-            sw(g::max_slots, v0_1);
+            let format = if flags & 16 != 0 {
+                0x399998
+            } else if flags & 4 != 0 {
+                0x3999d8
+            } else if flags & 1 != 0 {
+                0x399a18
+            } else if flags & 2 != 0 {
+                0x399a58
+            } else {
+                0x399a98
+            };
+            sw(sp, lh(entry + 16));
+            sw(sp + 8, lhu(entry + 18));
+            sw(sp + 16, lhu(entry + 20));
+            sprintf(&[
+                at as i64,
+                format,
+                lw(entry) as i64,
+                lw(entry + 4) as i64,
+                lh(entry + 8) as i64,
+                lh(entry + 10) as i64,
+                lh(entry + 12) as i64,
+                lh(entry + 14) as i64,
+            ]);
         }
-        v1_1 = lw(g::mtappollcount);
+        at += strlen(at);
     }
-    hi_1 = (v1_1 + 1).wrapping_rem(120);
-    sw(g::mtappollcount, hi_1);
-    return;
+    sprintf(&[at as i64, 0x3ae340]);
+    let end = at + strlen(at);
+    sprintf(&[(sp + 48) as i64, 0x3ae348, path as i64]);
+    if fileSize(path) > 0 {
+        fileCopy(path, sp + 48);
+    }
+    fileSave(path, buffer, end - buffer);
+    free(buffer);
 }
 
-/// Tick of the joypads.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Ask a multitap how many pads it has, one of the two each time the counter of the polls gets to 0 or 60 (it counts to 120).
+pub fn joyMtapTick() {
+    let mut count = lw(g::mtappollcount);
+    if count == 0 {
+        sw(g::max_slots, scePadGetSlotMax(&[0]));
+        count = lw(g::mtappollcount);
+    } else if count == 60 {
+        sw(g::max_slots + 4, scePadGetSlotMax(&[1]));
+        count = lw(g::mtappollcount);
+    }
+    sw(g::mtappollcount, (count + 1).wrapping_rem(120));
+}
+
+/// The tick of all the 8 controllers, and then of the cheats and of the replay.
 pub fn joyTick() {
-    let mut s0_1: i32 = 0;
-    let mut s1_1: i32 = 0;
-    let mut a0_1: i32 = 0;
     joyMtapTick();
     sw(g::joy_justdisconnected, 0);
-    s0_1 = g::controllers;
-    s1_1 = s0_1 + 3072;
-    sw(s0_1 + 340, 0);
-    'l1: loop {
-        a0_1 = s0_1;
-        controllerTick(a0_1);
-        s0_1 = s0_1 + 384;
-        if s0_1 >= s1_1 {
-            break;
-        }
-        sw(s0_1 + 340, 0);
+    for index in 0..8 {
+        let controller = g::controllers + index * 384;
+        sw(controller + 340, 0);
+        controllerTick(controller);
     }
     cheatTick();
     replayTick();
-    return;
 }
 
-/// Start the joypads.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Start the pad library and the multitaps, open all the 8 controllers, and ask how many pads are on each of the two ports.
 pub fn joyMake() {
-    let mut a0_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut s0_1: i32 = 0;
-    let mut s1_1: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut v0_3: i32 = 0;
-    let mut v0_4: i32 = 0;
-    let mut a0_10: i32 = 0;
     sceMtapInit(&[]);
-    a0_1 = 0;
-    sceMtapPortOpen(&[a0_1 as i64]);
-    a0_2 = 1;
-    sceMtapPortOpen(&[a0_2 as i64]);
-    a0_3 = 2;
-    sceMtapPortOpen(&[a0_3 as i64]);
-    a0_4 = 3;
-    sceMtapPortOpen(&[a0_4 as i64]);
-    a0_5 = 0;
-    scePadInit(&[a0_5 as i64]);
-    s0_1 = g::controllers;
-    s1_1 = s0_1 + 3072;
-    'l1: loop {
-        a0_6 = s0_1;
-        controllerOpen(a0_6);
-        s0_1 = s0_1 + 384;
-        if s0_1 >= s1_1 {
-            break;
-        }
+    for port in 0..4 {
+        sceMtapPortOpen(&[port]);
     }
-    a0_7 = 0;
-    v0_1 = sceMtapGetConnection(&[a0_7 as i64]);
-    if v0_1 == 0 {
+    scePadInit(&[0]);
+    for index in 0..8 {
+        controllerOpen(g::controllers + index * 384);
+    }
+    if sceMtapGetConnection(&[0]) == 0 {
         sw(g::max_slots, 1);
     } else {
-        a0_8 = 0;
-        v0_2 = scePadGetSlotMax(&[a0_8 as i64]);
-        sw(g::max_slots, v0_2);
+        sw(g::max_slots, scePadGetSlotMax(&[0]));
     }
-    a0_9 = 1;
-    v0_3 = sceMtapGetConnection(&[a0_9 as i64]);
-    v0_4 = 1;
-    if v0_3 != 0 {
-        a0_10 = 1;
-        v0_4 = scePadGetSlotMax(&[a0_10 as i64]);
+    let mut slots = 1;
+    if sceMtapGetConnection(&[1]) != 0 {
+        slots = scePadGetSlotMax(&[1]);
     }
-    sw(g::max_slots + 4, v0_4);
-    return;
+    sw(g::max_slots + 4, slots);
 }
 
-/// Open the controller.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn controllerOpen(mut a0: i32) {
-    let mut a3_1: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut a0_2: i32 = 0;
-    a3_1 = a0;
-    v1_1 = 5;
-    v0_1 = a0 + 325;
-    'l1: loop {
-        sb(v0_1, 0);
-        v1_1 = v1_1 - 1;
-        v0_1 = v0_1 - 1;
-        if v1_1 < 0 {
-            break;
-        }
+/// Open the pad of the controller `a0` and clear its state (the vibration bytes at +320 to +325); the game ends if the pad cannot be opened.
+pub fn controllerOpen(a0: i32) {
+    for offset in 0..6 {
+        sb(a0 + 320 + offset, 0);
     }
-    a2_1 = a0;
-    a0_1 = lw(a0 + 256);
-    a1_1 = lw(a0 + 260);
     swc1(a0 + 316, 0.25_f32);
-    v0_2 = scePadPortOpen(&[a0_1 as i64, a1_1 as i64, a2_1 as i64, a3_1 as i64]);
-    if v0_2 != 0 {
+    if scePadPortOpen(&[lw(a0 + 256) as i64, lw(a0 + 260) as i64, a0 as i64, a0 as i64]) != 0 {
         return;
     }
-    a0_2 = 0;
-    exit(a0_2);
-    return;
+    exit(0);
 }
 
-/// Tick of the controller.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn controllerTick(mut a0: i32) {
+/// Go to the next state of the pad.
+fn next_pad_state(pad: i32) {
+    sw(pad + 272, lw(pad + 272) + 1);
+}
+
+/// Move the pad `pad` along the states of the start: 0 (not known) asks what kind of pad it is, 40 and 41 set the mode with the analogue sticks, 70 and 71 set the vibration motors, and 99 is a pad that works. 42 waits for the answer to the mode.
+fn step_pad_state(pad: i32) {
+    let port = lw(pad + 256) as i64;
+    let slot = lw(pad + 260) as i64;
+    match lw(pad + 272) {
+        70 => {
+            if scePadInfoAct(&[port, slot, -1, 0]) == 0 {
+                sw(pad + 272, 99);
+            }
+            sb(pad + 326, 0);
+            sb(pad + 327, 1);
+            sb(pad + 331, 255);
+            sb(pad + 328, 255);
+            sb(pad + 329, 255);
+            sb(pad + 330, 255);
+            if scePadSetActAlign(&[port, slot, (pad + 326) as i64]) != 0 {
+                next_pad_state(pad);
+            }
+        }
+        71 => {
+            if scePadGetReqState(&[port, slot, port]) == 1 {
+                sw(pad + 272, 70);
+            }
+            if scePadGetReqState(&[port, slot]) == 0 {
+                sw(pad + 272, 99);
+            }
+        }
+        41 => {
+            if scePadSetMainMode(&[port, slot, 1, 3]) == 1 {
+                next_pad_state(pad);
+            }
+        }
+        42 => {
+            if scePadGetReqState(&[port, slot, port]) == 1 {
+                sw(pad + 272, 41);
+            }
+            if scePadGetReqState(&[port, slot]) == 0 {
+                sw(pad + 272, 0);
+            }
+        }
+        0 => {
+            let state = lw(pad + 264);
+            if state != 6 && state != 2 {
+                return;
+            }
+            let first = scePadInfoMode(&[port, slot, 1, 0]);
+            if first == 0 {
+                return;
+            }
+            let second = scePadInfoMode(&[port, slot, 2, 0]);
+            let kind = if second >= 1 { second } else { first };
+            if kind == 4 {
+                sw(pad + 272, 40);
+            } else if kind == 7 {
+                sw(pad + 272, 70);
+            }
+        }
+        40 => {
+            if scePadInfoMode(&[port, slot, 2, 0]) != 0 {
+                next_pad_state(pad);
+            } else {
+                sw(pad + 272, 0);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Read the pad in the state 99 into the controller `pad`: the buttons (+288, with the ones of the last read at +284), the sticks (+300 to +312) and the pressed (+292) and released (+296) buttons. It also keeps the last button presses in the buffer of the cheats, and sets the vibration of the motors.
+fn read_pad(pad: i32, buffer: i32) {
+    sw(pad + 284, lw(pad + 288));
+    let result = scePadRead(&[lw(pad + 256) as i64, lw(pad + 260) as i64, buffer as i64]);
+    let high = lbu(buffer + 2);
+    let previous;
+    if result <= 0 {
+        sw(pad + 272, 0);
+        previous = lw(pad + 284);
+    } else {
+        let mode = lbu(buffer + 1);
+        let kept = lw(pad + 280);
+        sw(pad + 288, (high << 8 | lbu(buffer + 3)) ^ 0xffff);
+        sw(pad + 300, lbu(buffer + 6));
+        sw(pad + 308, lbu(buffer + 7));
+        sw(pad + 304, lbu(buffer + 4));
+        sw(pad + 312, lbu(buffer + 5));
+        sw(pad + 276, mode);
+        if kept != 0 && mode != kept {
+            sw(pad + 280, 0);
+            sw(pad + 272, 0);
+        }
+        sw(pad + 280, lw(pad + 276));
+        let motor = lbu(pad + 320);
+        if motor != 0 {
+            sb(pad + 320, motor + 128);
+        }
+        let motor = lbu(pad + 321);
+        if motor != 0 {
+            sb(pad + 321, motor + 128);
+        }
+        scePadSetActDirect(&[lw(pad + 256) as i64, lw(pad + 260) as i64, (pad + 320) as i64, kept as i64, mode as i64]);
+        previous = lw(pad + 284);
+    }
+    let now = lw(pad + 288);
+    let pressed = now & !previous;
+    sw(pad + 296, previous & !now);
+    sw(pad + 292, pressed);
+    if pressed & 0xf0f0 != 0 {
+        let position = lw(g::cycbufpos);
+        sh((position << 1) + g::cycbuf, lhu(pad + 288) & 0xf0ff);
+        sw(g::cycbufpos, (position + 1).wrapping_rem(20));
+    }
+}
+
+/// The tick of the controller `a0`: ask the state of the pad and move it along the states of the start (see `step_pad_state`), and read it if it works. A pad that does not work has no buttons pressed and its sticks in the middle (128).
+pub fn controllerTick(a0: i32) {
     let frame = Frame::new(96);
     let sp = frame.sp();
-    let mut a2_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut v0_3: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut v0_4: i32 = 0;
-    let mut v0_5: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a2_3: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut a3_2: i32 = 0;
-    let mut v0_6: i32 = 0;
-    let mut a2_4: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut a1_4: i32 = 0;
-    let mut a3_3: i32 = 0;
-    let mut v0_7: i32 = 0;
-    let mut s1_1: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a1_5: i32 = 0;
-    let mut v0_8: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut a1_6: i32 = 0;
-    let mut v0_9: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut a2_5: i32 = 0;
-    let mut a1_7: i32 = 0;
-    let mut a3_4: i32 = 0;
-    let mut v0_10: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut a1_8: i32 = 0;
-    let mut v0_11: i32 = 0;
-    let mut a0_10: i32 = 0;
-    let mut a1_9: i32 = 0;
-    let mut v0_12: i32 = 0;
-    let mut a0_11: i32 = 0;
-    let mut a2_6: i32 = 0;
-    let mut a1_10: i32 = 0;
-    let mut a3_5: i32 = 0;
-    let mut v0_13: i32 = 0;
-    let mut a2_7: i32 = 0;
-    let mut a0_12: i32 = 0;
-    let mut a1_11: i32 = 0;
-    let mut v0_14: i32 = 0;
-    let mut v0_15: i32 = 0;
-    let mut a2_8: i32 = 0;
-    let mut a0_13: i32 = 0;
-    let mut a1_12: i32 = 0;
-    let mut v0_16: i32 = 0;
-    let mut v0_17: i32 = 0;
-    let mut a2_9: i32 = 0;
-    let mut a0_14: i32 = 0;
-    let mut a1_13: i32 = 0;
-    let mut v1_2: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut a3_6: i32 = 0;
-    let mut v0_18: i32 = 0;
-    let mut v1_3: i32 = 0;
-    let mut v0_19: i32 = 0;
-    let mut a0_15: i32 = 0;
-    let mut a2_10: i32 = 0;
-    let mut a1_14: i32 = 0;
-    let mut v1_4: i32 = 0;
-    let mut v0_20: i32 = 0;
-    let mut v0_21: i32 = 0;
-    let mut a0_16: i32 = 0;
-    a2_1 = lw(a0 + 256);
-    a1_1 = lw(a0 + 260);
+    let port = lw(a0 + 256);
+    let slot = lw(a0 + 260);
     sw(a0 + 268, lw(a0 + 264));
-    if lw((a2_1 << 2) + g::max_slots) >= a1_1 {
-        a0_1 = a2_1;
-        v0_1 = scePadGetState(&[a0_1 as i64, a1_1 as i64, a2_1 as i64]);
-        sw(a0 + 264, v0_1);
+    if lw((port << 2) + g::max_slots) >= slot {
+        sw(a0 + 264, scePadGetState(&[port as i64, slot as i64, port as i64]));
     } else {
         sw(a0 + 264, 0);
     }
-    if lw(a0 + 264) != 0 {
-        v1_1 = lw(a0 + 272);
-    } else {
+    if lw(a0 + 264) == 0 {
         if lw(a0 + 268) != 0 {
             sw(g::joy_justdisconnected, 1);
         }
         sw(a0 + 272, 0);
-        v1_1 = lw(a0 + 272);
     }
-    'b4: {
-        'b5: {
-            v0_2 = (v1_1 < 71) as i32;
-            if v1_1 == 70 {
-                a0_11 = lw(a0 + 256);
-                a2_6 = -1;
-                a1_10 = lw(a0 + 260);
-                a3_5 = 0;
-                v0_13 = scePadInfoAct(&[a0_11 as i64, a1_10 as i64, a2_6 as i64, a3_5 as i64]);
-                if v0_13 == 0 {
-                    sw(a0 + 272, 99);
-                }
-                sb(a0 + 326, 0);
-                a2_7 = a0 + 326;
-                a0_12 = lw(a0 + 256);
-                a1_11 = lw(a0 + 260);
-                sb(a0 + 327, 1);
-                sb(a0 + 331, 255);
-                sb(a0 + 328, 255);
-                sb(a0 + 329, 255);
-                sb(a0 + 330, 255);
-                v0_14 = scePadSetActAlign(&[a0_12 as i64, a1_11 as i64, a2_7 as i64]);
-                if v0_14 == 0 {
-                    v1_1 = lw(a0 + 272);
-                    break 'b4;
-                }
-                v0_5 = lw(a0 + 272);
-            } else {
-                if v0_2 == 0 {
-                    if v1_1 == 71 {
-                        a0_9 = lw(a0 + 256);
-                        a1_8 = lw(a0 + 260);
-                        v0_11 = scePadGetReqState(&[a0_9 as i64, a1_8 as i64, a2_1 as i64]);
-                        if v0_11 == 1 {
-                            sw(a0 + 272, 70);
-                        }
-                        a0_10 = lw(a0 + 256);
-                        a1_9 = lw(a0 + 260);
-                        v0_12 = scePadGetReqState(&[a0_10 as i64, a1_9 as i64]);
-                        if v0_12 != 0 {
-                            v1_1 = lw(a0 + 272);
-                            break 'b4;
-                        }
-                        v1_1 = 99;
-                        sw(a0 + 272, 99);
-                        break 'b4;
-                    }
-                    break 'b4;
-                }
-                v0_3 = (v1_1 < 42) as i32;
-                if v1_1 != 41 {
-                    if v0_3 == 0 {
-                        if v1_1 != 42 {
-                            break 'b4;
-                        }
-                        a0_6 = lw(a0 + 256);
-                        a1_5 = lw(a0 + 260);
-                        v0_8 = scePadGetReqState(&[a0_6 as i64, a1_5 as i64, a2_1 as i64]);
-                        if v0_8 == 1 {
-                            sw(a0 + 272, 41);
-                        }
-                        a0_7 = lw(a0 + 256);
-                        a1_6 = lw(a0 + 260);
-                        v0_9 = scePadGetReqState(&[a0_7 as i64, a1_6 as i64]);
-                        if v0_9 != 0 {
-                            v1_1 = lw(a0 + 272);
-                            break 'b4;
-                        }
-                        sw(a0 + 272, 0);
-                    } else {
-                        if v1_1 == 0 {
-                            a0_3 = lw(a0 + 264);
-                            if a0_3 != 6 {
-                                if a0_3 != 2 {
-                                    break 'b4;
-                                }
-                            }
-                            a0_4 = lw(a0 + 256);
-                            a2_3 = 1;
-                            a1_3 = lw(a0 + 260);
-                            a3_2 = 0;
-                            v0_6 = scePadInfoMode(&[a0_4 as i64, a1_3 as i64, a2_3 as i64, a3_2 as i64]);
-                            a2_4 = 2;
-                            if v0_6 == 0 {
-                                v1_1 = lw(a0 + 272);
-                                break 'b4;
-                            }
-                            a0_5 = lw(a0 + 256);
-                            a1_4 = lw(a0 + 260);
-                            a3_3 = 0;
-                            v0_7 = scePadInfoMode(&[a0_5 as i64, a1_4 as i64, a2_4 as i64, a3_3 as i64]);
-                            s1_1 = if v0_7 >= 1 { v0_7 } else { v0_6 };
-                            if s1_1 == 4 {
-                                v1_1 = 40;
-                                sw(a0 + 272, 40);
-                                break 'b4;
-                            }
-                            if s1_1 == 7 {
-                                sw(a0 + 272, 70);
-                                v1_1 = 70;
-                                break 'b4;
-                            }
-                            v1_1 = lw(a0 + 272);
-                            break 'b4;
-                        }
-                        if v1_1 != 40 {
-                            break 'b4;
-                        }
-                        a0_2 = lw(a0 + 256);
-                        a2_2 = 2;
-                        a1_2 = lw(a0 + 260);
-                        a3_1 = 0;
-                        v0_4 = scePadInfoMode(&[a0_2 as i64, a1_2 as i64, a2_2 as i64, a3_1 as i64]);
-                        if v0_4 != 0 {
-                            v0_5 = lw(a0 + 272);
-                            break 'b5;
-                        }
-                        sw(a0 + 272, 0);
-                    }
-                    v1_1 = 0;
-                    break 'b4;
-                }
-                a0_8 = lw(a0 + 256);
-                a2_5 = 1;
-                a1_7 = lw(a0 + 260);
-                a3_4 = 3;
-                v0_10 = scePadSetMainMode(&[a0_8 as i64, a1_7 as i64, a2_5 as i64, a3_4 as i64]);
-                if v0_10 != 1 {
-                    v1_1 = lw(a0 + 272);
-                    break 'b4;
-                }
-                v0_5 = lw(a0 + 272);
-            }
+    step_pad_state(a0);
+    if lw(a0 + 272) == 99 {
+        read_pad(a0, sp);
+        if lw(a0 + 272) == 99 {
+            return;
         }
-        v0_15 = v0_5 + 1;
-        v1_1 = v0_15;
-        sw(a0 + 272, v0_15);
     }
-    'b11: {
-        if v1_1 == 99 {
-            a2_8 = sp;
-            a0_13 = lw(a0 + 256);
-            a1_12 = lw(a0 + 260);
-            sw(a0 + 284, lw(a0 + 288));
-            v0_16 = scePadRead(&[a0_13 as i64, a1_12 as i64, a2_8 as i64]);
-            v0_17 = lbu(sp + 2);
-            if v0_16 <= 0 {
-                sw(a0 + 272, 0);
-                v1_4 = lw(a0 + 284);
-            } else {
-                'b14: {
-                    a2_9 = lbu(sp + 6);
-                    a0_14 = lbu(sp + 7);
-                    a1_13 = lbu(sp + 4);
-                    v1_2 = lbu(sp + 5);
-                    a4_1 = lbu(sp + 1);
-                    a3_6 = lw(a0 + 280);
-                    sw(a0 + 288, (v0_17 << 8 | lbu(sp + 3)) ^ 0xffff);
-                    sw(a0 + 300, a2_9);
-                    sw(a0 + 308, a0_14);
-                    sw(a0 + 304, a1_13);
-                    sw(a0 + 312, v1_2);
-                    sw(a0 + 276, a4_1);
-                    if a3_6 != 0 {
-                        if a4_1 == a3_6 {
-                            v0_18 = lw(a0 + 276);
-                            break 'b14;
-                        }
-                        sw(a0 + 280, 0);
-                        sw(a0 + 272, 0);
-                    }
-                    v0_18 = lw(a0 + 276);
-                }
-                v1_3 = lbu(a0 + 320);
-                sw(a0 + 280, v0_18);
-                if v1_3 != 0 {
-                    sb(a0 + 320, v1_3 + 128);
-                }
-                v0_19 = lbu(a0 + 321);
-                if v0_19 != 0 {
-                    sb(a0 + 321, v0_19 + 128);
-                }
-                a0_15 = lw(a0 + 256);
-                a2_10 = a0 + 320;
-                a1_14 = lw(a0 + 260);
-                scePadSetActDirect(&[a0_15 as i64, a1_14 as i64, a2_10 as i64, a3_6 as i64, a4_1 as i64]);
-                v1_4 = lw(a0 + 284);
-            }
-            v0_20 = lw(a0 + 288);
-            v0_21 = v0_20 & !(0 | v1_4);
-            sw(a0 + 296, v1_4 & !(0 | v0_20));
-            sw(a0 + 292, v0_21);
-            if (v0_21 & 0xf0f0) != 0 {
-                a0_16 = lw(g::cycbufpos);
-                sh((a0_16 << 1) + g::cycbuf, lhu(a0 + 288) & 0xf0ff);
-                sw(g::cycbufpos, (a0_16 + 1).wrapping_rem(20));
-            }
-            if lw(a0 + 272) == 99 {
-                break 'b11;
-            }
-        }
-        sw(a0 + 292, 0);
-        sw(a0 + 312, 128);
-        sw(a0 + 296, 0);
-        sw(a0 + 288, 0);
-        sw(a0 + 300, 128);
-        sw(a0 + 308, 128);
-        sw(a0 + 304, 128);
-    }
-    return;
+    sw(a0 + 292, 0);
+    sw(a0 + 312, 128);
+    sw(a0 + 296, 0);
+    sw(a0 + 288, 0);
+    sw(a0 + 300, 128);
+    sw(a0 + 308, 128);
+    sw(a0 + 304, 128);
 }
 
-/// Start the stream RPC.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Connect to the stream server on the IOP (the id 0x534a4521) and wait for it to be there. Gives 0, or -1 if the connection fails.
 pub fn stream_RPCinit() -> i32 {
-    let mut s0_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut v0_3: i32 = 0;
-    'b3: {
-        'l1: loop {
-            s0_1 = 0x1fb2040;
-            a0_1 = s0_1;
-            a1_1 = 0x534a4521;
-            a2_1 = 0;
-            v0_1 = sceSifBindRpc(&[a0_1 as i64, a1_1 as i64, a2_1 as i64]);
-            if v0_1 < 0 {
-                break;
-            }
-            v0_3 = lw(s0_1 + 36);
-            v0_2 = 0;
-            if v0_3 != 0 {
-                break 'b3;
-            }
+    loop {
+        let client = 0x1fb2040;
+        if sceSifBindRpc(&[client as i64, 0x534a4521, 0]) < 0 {
+            return -1;
         }
-        v0_2 = -1;
+        if lw(client + 36) != 0 {
+            return 0;
+        }
     }
-    return v0_2;
 }
 
-/// Stream RPC.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn stream_RPC(mut a0: i32, mut a1: i32) -> i32 {
+/// Call the function `a0` of the stream server with the argument `a1`, and give the answer. A function of the kind 0x802x gets `a1` as the buffer of its argument (64 bytes); any other gets it as a word.
+pub fn stream_RPC(a0: i32, a1: i32) -> i32 {
     let frame = Frame::new(48);
     let sp = frame.sp();
-    let mut a1_1: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut a5_1: i32 = 0;
-    let mut a6_1: i32 = 0;
-    let mut a7_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a3_2: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut a4_2: i32 = 0;
-    let mut a5_2: i32 = 0;
-    let mut a6_2: i32 = 0;
-    let mut a7_2: i32 = 0;
-    if (a0 & 0xfff0) != 0x8020 {
+    if a0 & 0xfff0 != 0x8020 {
         sw(0x1fb2000, a1);
-        a3_2 = 0x1fb2000;
-        a1_2 = a0;
-        a0_2 = 0x1fb2040;
         sw(sp, 0);
-        a2_2 = 0;
-        a4_2 = 16;
-        a5_2 = a3_2;
-        a6_2 = 64;
-        a7_2 = 0;
-        sceSifCallRpc(&[a0_2 as i64, a1_2 as i64, a2_2 as i64, a3_2 as i64, a4_2 as i64, a5_2 as i64, a6_2 as i64, a7_2 as i64]);
-        v0_1 = lw(0x1fb2000);
+        sceSifCallRpc(&[0x1fb2040, a0 as i64, 0, 0x1fb2000, 16, 0x1fb2000, 64, 0]);
     } else {
-        a1_1 = a0;
-        a3_1 = a1;
-        a0_1 = 0x1fb2040;
         sw(sp, 0);
-        a2_1 = 0;
-        a4_1 = 64;
-        a5_1 = 0x1fb2000;
-        a6_1 = 64;
-        a7_1 = 0;
-        sceSifCallRpc(&[a0_1 as i64, a1_1 as i64, a2_1 as i64, a3_1 as i64, a4_1 as i64, a5_1 as i64, a6_1 as i64, a7_1 as i64]);
-        v0_1 = lw(0x1fb2000);
+        sceSifCallRpc(&[0x1fb2040, a0 as i64, 0, a1 as i64, 64, 0x1fb2000, 64, 0]);
     }
-    return v0_1;
+    lw(0x1fb2000)
 }
