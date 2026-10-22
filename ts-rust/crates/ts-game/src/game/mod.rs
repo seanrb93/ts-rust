@@ -925,3 +925,6 @@ pub use player_gun_update::*;
 #[path = "part-graphics-drawing.rs"]
 pub mod part_graphics_drawing;
 pub use part_graphics_drawing::*;
+#[path = "statistics-medals.rs"]
+pub mod statistics_medals;
+pub use statistics_medals::*;
