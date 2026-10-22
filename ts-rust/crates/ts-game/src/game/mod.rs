@@ -967,3 +967,6 @@ pub use sound_and_joypad_and_stream::*;
 #[path = "graphics-and-boss-and-time.rs"]
 pub mod graphics_and_boss_and_time;
 pub use graphics_and_boss_and_time::*;
+#[path = "sign-on-player-list-pages.rs"]
+pub mod sign_on_player_list_pages;
+pub use sign_on_player_list_pages::*;
