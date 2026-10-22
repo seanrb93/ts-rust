@@ -931,3 +931,6 @@ pub use statistics_medals::*;
 #[path = "animation-loading.rs"]
 pub mod animation_loading;
 pub use animation_loading::*;
+#[path = "player-and-bullet-ticks.rs"]
+pub mod player_and_bullet_ticks;
+pub use player_and_bullet_ticks::*;
