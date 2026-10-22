@@ -919,3 +919,6 @@ pub use remote_prop_tick::*;
 #[path = "enemy-attack.rs"]
 pub mod enemy_attack;
 pub use enemy_attack::*;
+#[path = "player-gun-update.rs"]
+pub mod player_gun_update;
+pub use player_gun_update::*;
