@@ -913,3 +913,6 @@ pub use decal_creation_tick::*;
 #[path = "character-animation-choice.rs"]
 pub mod character_animation_choice;
 pub use character_animation_choice::*;
+#[path = "remote-prop-tick.rs"]
+pub mod remote_prop_tick;
+pub use remote_prop_tick::*;
