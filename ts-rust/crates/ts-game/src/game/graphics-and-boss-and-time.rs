@@ -2,452 +2,218 @@
 
 use crate::*;
 
-/// Set the default double buffer.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn sjeGsSetDefDBuff(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32, mut a4: i32, mut a5: i32, mut a6: i32) {
-    let mut s0_1: i32 = 0;
-    let mut a7_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut a5_1: i32 = 0;
-    let mut a6_1: i32 = 0;
-    let mut v1_1: i64 = 0;
-    let mut v0_1: i32 = 0;
-    s0_1 = g::db;
-    a7_1 = a3 << 16;
-    a1_1 = (a0 << 16) >> 16;
-    a0_1 = s0_1;
-    a2_1 = (a1 << 16) >> 16;
-    a3_1 = (a2 << 16) >> 16;
-    a4_1 = a7_1 >> 16;
-    a5_1 = (a4 << 16) >> 16;
-    a6_1 = (a5 << 16) >> 16;
-    sceGsSetDefDBuff(&[a0_1 as i64, a1_1 as i64, a2_1 as i64, a3_1 as i64, a4_1 as i64, a5_1 as i64, a6_1 as i64, a7_1 as i64]);
-    v1_1 = ld(s0_1 + 64) & -0x1000_i64;
-    sd(s0_1 + 24, ld(s0_1 + 24) & -0x1000_i64 | 676_i64);
-    sd(s0_1 + 432, a6 as i64);
-    v0_1 = lw(s0_1 + 24);
-    sd(s0_1 + 192, a6 as i64);
-    sd(s0_1 + 64, v1_1 | (v0_1 & 4095) as i64);
-    return;
-}
-
-/// Set the frame buffer mask in the display list.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn dlSetFBMSK(mut a0: i32) {
-    let frame = Frame::new(48);
-    let sp = frame.sp();
-    let mut s0_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut v0_3: i32 = 0;
-    let mut v0_4: i32 = 0;
-    let mut a0_2: i64 = 0;
-    let mut v0_5: i32 = 0;
-    let mut v0_6: i32 = 0;
-    let mut v0_7: i32 = 0;
-    let mut v0_8: i32 = 0;
-    let mut v0_9: i32 = 0;
-    let mut v0_10: i32 = 0;
-    let mut v0_11: i32 = 0;
-    if lw(g::lastfrbuf) == 0 {
-        s0_1 = g::db + 96;
-    } else {
-        s0_1 = g::db + 336;
+/// Write the words `words` one after the other from `at`.
+fn put_words(at: i32, words: &[i32]) {
+    for (i, word) in words.iter().enumerate() {
+        sw(at + (i as i32) * 4, *word);
     }
-    a0_1 = 48;
-    sd(sp, lwu(s0_1) | (a0 as i64) << 32);
-    v0_1 = memdbAlloc(a0_1);
-    sb(lw(g::gfxtag) + 3, 48);
-    sw(v0_1, 0x6c028000);
-    v1_1 = lw(g::gfxtag);
-    sw(v1_1 + 4, v0_1);
-    v0_2 = v0_1 + 4;
-    sh(v1_1, 3);
-    sw(v0_2, 0x8001);
-    v0_3 = v0_2 + 4;
-    sw(g::gfxtag, v1_1 + 16);
-    sw(v0_3, 0x10000000);
-    v0_4 = v0_3 + 4;
-    a0_2 = ld(s0_1 + 8);
-    sw(v0_4, 14);
-    v0_5 = v0_4 + 4;
-    sw(v0_5, 0);
-    v0_6 = v0_5 + 4;
-    sw(v0_6, ((ld(sp) << 32) >> 32) as i32);
-    v0_7 = v0_6 + 4;
-    sw(v0_7, lw(sp + 4));
-    v0_8 = v0_7 + 4;
-    sw(v0_8, ((a0_2 << 32) >> 32) as i32);
-    v0_9 = v0_8 + 4;
-    sw(v0_9, 0);
-    v0_10 = v0_9 + 4;
-    sw(v0_10, 0x140007fc);
-    v0_11 = v0_10 + 4;
-    sw(v0_11, 0x11000000);
-    sw(v0_11 + 4, 0);
-    return;
 }
 
-/// Interrupt of the vertical blank.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Add the packet `packet` of `count` quad words to the list of the display being built: the tag with the id byte `id` goes at the end of the list (the global `gfxtag`) and the pointer moves on.
+fn link_packet(id: i32, packet: i32, count: i32) {
+    sb(lw(g::gfxtag) + 3, id);
+    let tag = lw(g::gfxtag);
+    sw(tag + 4, packet);
+    sh(tag, count);
+    sw(g::gfxtag, tag + 16);
+}
+
+/// Set the double buffer of the graphics synthesizer to the defaults for a screen of the given sizes (`a6` is the clear colour), and set the clear colour of both of its environments.
+pub fn sjeGsSetDefDBuff(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32) {
+    let db = g::db;
+    let a7 = a3 << 16;
+    sceGsSetDefDBuff(&[
+        db as i64,
+        ((a0 << 16) >> 16) as i64,
+        ((a1 << 16) >> 16) as i64,
+        ((a2 << 16) >> 16) as i64,
+        (a7 >> 16) as i64,
+        ((a4 << 16) >> 16) as i64,
+        ((a5 << 16) >> 16) as i64,
+        a7 as i64,
+    ]);
+    let other = ld(db + 64) & -0x1000_i64;
+    sd(db + 24, ld(db + 24) & -0x1000_i64 | 676_i64);
+    sd(db + 432, a6 as i64);
+    let low = lw(db + 24);
+    sd(db + 192, a6 as i64);
+    sd(db + 64, other | (low & 4095) as i64);
+}
+
+/// Add a packet to the display list that sets the mask of the frame buffer to `a0`; the register FRAME is taken from the environment of the buffer that is not being shown.
+pub fn dlSetFBMSK(a0: i32) {
+    let env = if lw(g::lastfrbuf) == 0 { g::db + 96 } else { g::db + 336 };
+    let frame_low = lw(env);
+    let packet = memdbAlloc(48);
+    sw(packet, 0x6c028000);
+    link_packet(48, packet, 3);
+    put_words(
+        packet + 4,
+        &[0x8001, 0x10000000, 14, 0, frame_low, a0, lw(env + 8), 0, 0x140007fc, 0x11000000, 0],
+    );
+}
+
+/// The interrupt of the vertical blank. It swaps the double buffer when the picture on the graphics synthesizer is done, and starts the drawing of the next list of the display when the one for the other buffer is due.
 pub fn vblIntHandler() {
-    let mut a0_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut s1_1: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut s0_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut v1_2: i32 = 0;
-    let mut v1_3: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut a0_6: i32 = 0;
-    'b1: {
-        timeTickRetrace();
-        if lw(g::gsdone) != 0 {
-            a0_1 = lw(g::gsavail_sid);
-            v0_1 = iPollSema(a0_1);
-            v1_1 = lw(g::lastfrbuf);
-            if v0_1 != 0 {
-                a1_1 = lw(g::framedropcount);
-                s1_1 = 0;
-                v0_2 = 1 - v1_1;
-                s0_1 = 0;
-                sw(g::lastfrbuf, v0_2);
-                if a1_1 != 0 {
-                    a1_1 = a1_1 - 1;
-                    sw(g::framedropcount, a1_1);
-                }
-                a0_2 = ((0 as u32) < (v0_2 as u32)) as i32;
-                if a1_1 != 0 {
-                    a1_2 = 0;
+    timeTickRetrace();
+    if lw(g::gsdone) != 0 && iPollSema(lw(g::gsavail_sid)) != 0 {
+        let shown = 1 - lw(g::lastfrbuf);
+        let mut dropped = lw(g::framedropcount);
+        sw(g::lastfrbuf, shown);
+        if dropped != 0 {
+            dropped -= 1;
+            sw(g::framedropcount, dropped);
+        }
+        let half = if dropped != 0 { 0 } else { lw(g::framenum) & 1 };
+        sjeGsSetHalfOffset((shown != 0) as i32, half);
+        sjeGsSwapDBuff(lw(g::lastfrbuf));
+        iSignalSema(lw(g::gsavail_sid));
+        let info = g::dbinfo;
+        // A list is due when its buffer is free and the frame it was drawn for is at least 2 frames past, counted from 128 before, modulo 128.
+        let mut first = false;
+        let mut second = false;
+        if lw(info) == 0 {
+            let age = lw(g::framenum) - (lw(info + 4) - 128);
+            first = age % 128 >= 2;
+        }
+        if lw(info + 12) == 0 {
+            let age = lw(g::framenum) - (lw(info + 16) - 128);
+            second = age % 128 >= 2;
+        }
+        if first {
+            if second {
+                if lw(info + 4) >= lw(info + 16) {
+                    second = false;
                 } else {
-                    a1_2 = lw(g::framenum) & 1;
+                    first = false;
                 }
-                sjeGsSetHalfOffset(a0_2, a1_2);
-                a0_3 = lw(g::lastfrbuf);
-                sjeGsSwapDBuff(a0_3);
-                a0_4 = lw(g::gsavail_sid);
-                iSignalSema(a0_4);
-                a1_3 = g::dbinfo;
-                if lw(g::dbinfo) == 0 {
-                    v1_2 = lw(g::framenum) - (lw(a1_3 + 4) - 128);
-                    s1_1 = ((v1_2 - (((if -1 < v1_2 { v1_2 } else { v1_2 + 127 }) >> 7) << 7)) < 2) as i32 ^ 1;
-                }
-                if lw(a1_3 + 12) == 0 {
-                    v1_3 = lw(g::framenum) - (lw(a1_3 + 16) - 128);
-                    s0_1 = ((v1_3 - (((if -1 < v1_3 { v1_3 } else { v1_3 + 127 }) >> 7) << 7)) < 2) as i32 ^ 1;
-                }
-                if s1_1 != 0 {
-                    if s0_1 != 0 {
-                        if lw(a1_3 + 4) >= lw(a1_3 + 16) {
-                            s0_1 = 0;
-                        } else {
-                            s1_1 = 0;
-                        }
-                    }
-                    a0_5 = lw(g::gsstart_sid);
-                    if s1_1 != 0 {
-                        sw(g::curgsdmabuf, 0);
-                        iSignalSema(a0_5);
-                        break 'b1;
-                    }
-                }
-                if s0_1 == 0 {
-                    break 'b1;
-                }
-                a0_6 = lw(g::gsstart_sid);
-                sw(g::curgsdmabuf, 1);
-                iSignalSema(a0_6);
-                break 'b1;
+            }
+            if first {
+                sw(g::curgsdmabuf, 0);
+                iSignalSema(lw(g::gsstart_sid));
+                return;
             }
         }
-        sw(g::framedropcount, 30);
+        if second {
+            sw(g::curgsdmabuf, 1);
+            iSignalSema(lw(g::gsstart_sid));
+        }
+        return;
     }
-    return;
+    sw(g::framedropcount, 30);
 }
 
-/// Main loop of the graphics.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// The main loop of the thread of the graphics synthesizer. Each time it is started it sends the list of the display that the interrupt of the vertical blank chose to the graphics synthesizer, and tests the depth buffer the first time, and notes the times of the frame.
 pub fn gsMain() {
-    let mut a0_1: i32 = 0;
-    let mut f0_1: f32 = 0.0;
-    let mut f1_1: f32 = 0.0;
-    let mut f0_2: f32 = 0.0;
-    let mut a1_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut a0_10: i32 = 0;
-    let mut a0_11: i32 = 0;
-    let mut a0_12: i32 = 0;
-    let mut a1_4: i32 = 0;
-    let mut f0_3: f32 = 0.0;
-    let mut f2_1: f32 = 0.0;
-    let mut f1_2: f32 = 0.0;
-    let mut v0_2: i32 = 0;
-    let mut a0_13: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut a0_14: i32 = 0;
-    'l1: loop {
-        a0_1 = lw(g::gsstart_sid);
+    loop {
+        let start = lw(g::gsstart_sid);
         sw(g::gsdone, 1);
-        WaitSema(a0_1);
-        f0_1 = lwc1(0x3afe04);
-        f1_1 = lwc1(0x3afe08);
+        WaitSema(start);
+        let last_start = lwc1(0x3afe04);
+        let last_end = lwc1(0x3afe08);
         sw(g::gsdone, 0);
-        swc1(g::lastgfxstarttime, f0_1);
-        swc1(g::lastgfxendtime, f1_1);
-        f0_2 = timeGet();
+        swc1(g::lastgfxstarttime, last_start);
+        swc1(g::lastgfxendtime, last_end);
+        let now = timeGet();
         sw(0x10000010, 131);
         sw(0x10000000, 0);
-        a1_1 = g::dbinfo + 8;
-        swc1(0x3afe04, f0_2);
-        a0_2 = lw(g::curgsdmabuf) * 12 + a1_1;
-        sw(a0_2, lw(a0_2) + 1);
-        if lw(lw(g::curgsdmabuf) * 12 + a1_1) < 3 {
-            if lw(lw(g::curgsdmabuf) * 12 + a1_1) == 1 {
-                a0_3 = lw(g::gsavail_sid);
-                WaitSema(a0_3);
+        let counts = g::dbinfo + 8;
+        swc1(0x3afe04, now);
+        let count_at = lw(g::curgsdmabuf) * 12 + counts;
+        sw(count_at, lw(count_at) + 1);
+        if lw(lw(g::curgsdmabuf) * 12 + counts) < 3 {
+            if lw(lw(g::curgsdmabuf) * 12 + counts) == 1 {
+                WaitSema(lw(g::gsavail_sid));
                 zbtestCopyZB();
-                a0_4 = lw(g::gsavail_sid);
-                SignalSema(a0_4);
+                SignalSema(lw(g::gsavail_sid));
                 zbtestDoTest();
                 zbtestAdvanceTestPtr();
             }
-            a0_5 = 3144;
-            a1_2 = 0x200f10;
-            a2_1 = lw((lw(g::curgsdmabuf) << 2) + g::dmalists);
-            v0_1 = SetAlarm(&[a0_5 as i64, a1_2 as i64, a2_1 as i64]);
-            a0_6 = lw(g::gsavail_sid);
+            // An alarm watches that the DMA finishes in time.
+            let list = lw((lw(g::curgsdmabuf) << 2) + g::dmalists);
+            let alarm = SetAlarm(&[3144, 0x200f10, list as i64]);
             sw(g::alarm_activated, 0);
-            WaitSema(a0_6);
-            a0_7 = 0;
-            FlushCache(a0_7);
-            a0_8 = lw(g::dmaVif1);
-            a1_3 = lw((lw(g::curgsdmabuf) << 2) + g::dmalists);
-            sceDmaSend(&[a0_8 as i64, a1_3 as i64]);
-            a0_9 = lw(g::gsdone_sid);
-            WaitSema(a0_9);
-            a0_10 = lw(g::gsavail_sid);
-            SignalSema(a0_10);
+            WaitSema(lw(g::gsavail_sid));
+            FlushCache(0);
+            sceDmaSend(&[lw(g::dmaVif1) as i64, lw((lw(g::curgsdmabuf) << 2) + g::dmalists) as i64]);
+            WaitSema(lw(g::gsdone_sid));
+            SignalSema(lw(g::gsavail_sid));
             if lw(g::alarm_activated) != 0 {
-                a0_12 = 0x3838d0;
-                scePrintf(&[a0_12 as i64]);
-                a1_4 = 0x1000f590;
+                scePrintf(&[0x3838d0]);
                 sw(g::numdmafail, lw(g::numdmafail) + 1);
-                sw(a1_4, 0);
+                sw(0x1000f590, 0);
                 sw(0x10009000, 5);
                 sw(0x10003c10, 1);
                 sw(0x10003000, 1);
                 sd(0x12001000, 256_i64);
-                sw(a1_4, 1);
+                sw(0x1000f590, 1);
             } else {
-                a0_11 = v0_1;
-                ReleaseAlarm(&[a0_11 as i64]);
+                ReleaseAlarm(&[alarm as i64]);
             }
         }
-        'b4: {
-            f0_3 = timeGet();
-            f2_1 = lwc1(0x3afe04);
-            f1_2 = f0_3;
-            swc1(0x3afe08, f1_2);
-            if f1_2 < f2_1 {
-                'l5: loop {
-                    f1_2 = f1_2 + 128.0_f32;
-                    swc1(0x3afe08, f1_2);
-                    if !(f1_2 < f2_1) {
-                        break 'b4;
-                    }
-                }
-            }
+        let mut end = timeGet();
+        let start_time = lwc1(0x3afe04);
+        swc1(0x3afe08, end);
+        while end < start_time {
+            end += 128.0_f32;
+            swc1(0x3afe08, end);
         }
         sw(0x10000810, 131);
-        v0_2 = lw(0x10000800);
-        a0_13 = 0x112492;
-        v1_1 = lw(g::cpudone);
-        sw(g::ucodecycles, (((((((v0_2 as i64) * (a0_13 as i64)) >> 32) as i32 as i64) << 32 | (((((v0_2 * a0_13) as i64) << 32) as u64) >> 32) as i64) << 32) >> 32) as i32);
-        if v1_1 != 0 {
-            a0_14 = lw(g::bufffree_sid);
-            SignalSema(a0_14);
+        let cycles = lw(0x10000800);
+        let cpu_done = lw(g::cpudone);
+        sw(g::ucodecycles, cycles.wrapping_mul(0x112492));
+        if cpu_done != 0 {
+            SignalSema(lw(g::bufffree_sid));
         }
     }
 }
 
-/// Clear the video memory.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn clearvram(mut a0: i32, mut a1: i32, mut a2: i32, mut a3: i32) {
+/// Clear the video memory of the graphics synthesizer to the colour (`a0`, `a1`, `a2`, `a3` are red, green, blue and alpha), with a packet that is sent by DMA on the channel 2.
+pub fn clearvram(a0: i32, a1: i32, a2: i32, a3: i32) {
     let frame = Frame::new(112);
     let sp = frame.sp();
-    let mut a0_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a1_2: i64 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a1_4: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut a1_5: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut a1_6: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut a1_7: i32 = 0;
-    let mut a0_10: i32 = 0;
-    let mut a1_8: i32 = 0;
-    let mut a0_11: i32 = 0;
-    let mut a1_9: i32 = 0;
-    let mut a1_10: i64 = 0;
-    let mut a0_12: i32 = 0;
-    let mut a0_13: i32 = 0;
-    let mut a1_11: i32 = 0;
-    let mut a0_14: i32 = 0;
-    let mut a1_12: i32 = 0;
-    let mut a0_15: i32 = 0;
-    let mut a1_13: i32 = 0;
-    let mut a0_16: i32 = 0;
-    let mut a1_14: i32 = 0;
-    let mut a0_17: i32 = 0;
-    let mut a1_15: i32 = 0;
-    let mut a0_18: i32 = 0;
-    let mut a1_16: i64 = 0;
-    let mut a0_19: i32 = 0;
-    let mut a1_17: i32 = 0;
-    let mut a0_20: i32 = 0;
-    let mut a1_18: i32 = 0;
-    let mut a0_21: i32 = 0;
-    let mut a1_19: i32 = 0;
-    let mut a1_20: i32 = 0;
-    let mut a0_22: i32 = 0;
-    let mut a0_23: i32 = 0;
-    let mut a1_21: i32 = 0;
-    let mut a0_24: i32 = 0;
-    let mut a0_25: i32 = 0;
-    let mut a0_26: i32 = 0;
-    let mut s0_1: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut a0_27: i32 = 0;
-    let mut a1_22: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a0_28: i32 = 0;
-    let mut a1_23: i32 = 0;
-    a0_1 = 2;
-    v0_1 = sceDmaGetChan(&[a0_1 as i64, a1 as i64, a2 as i64, a3 as i64]);
-    a1_1 = g::base_ptr;
-    a0_2 = sp;
-    sceGifPkInit(&[a0_2 as i64, a1_1 as i64]);
-    a0_3 = sp;
-    sceGifPkReset(&[a0_3 as i64]);
-    a1_2 = 0x1000000000008009_i64;
-    a0_4 = sp;
-    sceGifPkAddGsData(&[a0_4 as i64, a1_2]);
-    a0_5 = sp;
-    a1_3 = 14;
-    sceGifPkAddGsData(&[a0_5 as i64, a1_3 as i64]);
-    a0_6 = sp;
-    a1_4 = 1;
-    sceGifPkAddGsData(&[a0_6 as i64, a1_4 as i64]);
-    a0_7 = sp;
-    a1_5 = 26;
-    sceGifPkAddGsData(&[a0_7 as i64, a1_5 as i64]);
-    a0_8 = sp;
-    a1_6 = 0x100000;
-    sceGifPkAddGsData(&[a0_8 as i64, a1_6 as i64]);
-    a0_9 = sp;
-    a1_7 = 76;
-    sceGifPkAddGsData(&[a0_9 as i64, a1_7 as i64]);
-    a0_10 = sp;
-    a1_8 = 0;
-    sceGifPkAddGsData(&[a0_10 as i64, a1_8 as i64]);
-    a0_11 = sp;
-    a1_9 = 24;
-    sceGifPkAddGsData(&[a0_11 as i64, a1_9 as i64]);
-    a1_10 = 0x400000004000000_i64;
-    a0_12 = sp;
-    sceGifPkAddGsData(&[a0_12 as i64, a1_10]);
-    a0_13 = sp;
-    a1_11 = 64;
-    sceGifPkAddGsData(&[a0_13 as i64, a1_11 as i64]);
-    a0_14 = sp;
-    a1_12 = 0;
-    sceGifPkAddGsData(&[a0_14 as i64, a1_12 as i64]);
-    a0_15 = sp;
-    a1_13 = 71;
-    sceGifPkAddGsData(&[a0_15 as i64, a1_13 as i64]);
-    a0_16 = sp;
-    a1_14 = 6;
-    sceGifPkAddGsData(&[a0_16 as i64, a1_14 as i64]);
-    a0_17 = sp;
-    a1_15 = 0;
-    sceGifPkAddGsData(&[a0_17 as i64, a1_15 as i64]);
-    a0_18 = sp;
-    a1_16 = (a0 & 255) as i64 | 0x3f80000000000000_i64 | (((a2 & 255) as i64) << 16 | ((a1 & 255) as i64) << 8) | ((a3 & 255) as i64) << 24;
-    sceGifPkAddGsData(&[a0_18 as i64, a1_16]);
-    a0_19 = sp;
-    a1_17 = 1;
-    sceGifPkAddGsData(&[a0_19 as i64, a1_17 as i64]);
-    a0_20 = sp;
-    a1_18 = 0;
-    sceGifPkAddGsData(&[a0_20 as i64, a1_18 as i64]);
-    a0_21 = sp;
-    a1_19 = 4;
-    sceGifPkAddGsData(&[a0_21 as i64, a1_19 as i64]);
-    a1_20 = 0x40004000;
-    a0_22 = sp;
-    sceGifPkAddGsData(&[a0_22 as i64, a1_20 as i64]);
-    a0_23 = sp;
-    a1_21 = 4;
-    sceGifPkAddGsData(&[a0_23 as i64, a1_21 as i64]);
-    a0_24 = sp;
-    sceGifPkTerminate(&[a0_24 as i64]);
-    a0_25 = 0;
-    FlushCache(a0_25);
-    a0_26 = sp;
-    s0_1 = lw(sp + 4) & 0xfffffff;
-    v0_2 = sceGifPkSize(&[a0_26 as i64]);
-    a0_27 = v0_1;
-    a1_22 = s0_1;
-    a2_1 = v0_2;
-    sceDmaSendN(&[a0_27 as i64, a1_22 as i64, a2_1 as i64]);
-    a0_28 = 0;
-    a1_23 = 0;
-    sceGsSyncPath(&[a0_28 as i64, a1_23 as i64]);
-    return;
+    let channel = sceDmaGetChan(&[2, a1 as i64, a2 as i64, a3 as i64]);
+    sceGifPkInit(&[sp as i64, g::base_ptr as i64]);
+    sceGifPkReset(&[sp as i64]);
+    let colour = (a0 & 255) as i64 | 0x3f80000000000000_i64 | (((a2 & 255) as i64) << 16 | ((a1 & 255) as i64) << 8) | ((a3 & 255) as i64) << 24;
+    let data: [i64; 20] = [
+        0x1000000000008009_i64,
+        14,
+        1,
+        26,
+        0x100000,
+        76,
+        0,
+        24,
+        0x400000004000000_i64,
+        64,
+        0,
+        71,
+        6,
+        0,
+        colour,
+        1,
+        0,
+        4,
+        0x40004000,
+        4,
+    ];
+    for value in data {
+        sceGifPkAddGsData(&[sp as i64, value]);
+    }
+    sceGifPkTerminate(&[sp as i64]);
+    FlushCache(0);
+    let address = lw(sp + 4) & 0xfffffff;
+    let size = sceGifPkSize(&[sp as i64]);
+    sceDmaSendN(&[channel as i64, address as i64, size as i64]);
+    sceGsSyncPath(&[0, 0]);
 }
 
-/// Start the boss routines.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Start all the parts of the game that are made once.
 pub fn bossMakeAll() {
-    let mut a0_1: i32 = 0;
-    let mut a1_1: i32 = 0;
     bossMake();
     trigMake();
-    a0_1 = 0x3b0380;
-    a1_1 = 0x1ae1c00;
-    memMake(a0_1, a1_1);
+    memMake(0x3b0380, 0x1ae1c00);
     packfileMake();
     profileMake();
     windowMake();
@@ -461,880 +227,302 @@ pub fn bossMakeAll() {
     signonMake();
     frontmpgMake();
     mapmakerMake();
-    return;
 }
 
-/// Main loop of the boss routines.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
+/// Fill the rectangle `x0`, `y0`, `x1`, `y1` of the screen around a window with the grey 128.
+fn fill_border(x0: i32, y0: i32, x1: i32, y1: i32) {
+    dlFillRectangle(x0, y0, x1, y1, 128);
+}
+
+/// Set the bit of the player `index` in the flags of the player of the current one, for the camera that can look at all of the players, or clear it.
+fn mark_camera_bit(index: i32) {
+    let mode = camGetMode();
+    let level = lw(g::lvlevelnum);
+    let bit = 0x1000000_i32 << (index & 31);
+    let flags_at = lw(lw(g::currentplayer) + 384) + 16;
+    if mode != 2 && level != 6 {
+        sw(flags_at, lw(flags_at) & !bit);
+    } else {
+        sw(flags_at, lw(flags_at) | bit);
+    }
+}
+
+/// Add the draw of one of the local players to the display list: its window, its camera and the world, the turtles of the tests, and the border.
+fn draw_player_window(index: i32) {
+    let player = lw(g::players) + index * 1820;
+    sw(g::currentplayer, player);
+    windowSet(lw(player + 4), lw(player + 8), lw(player + 12), lw(player + 16));
+    let packet = memdbAlloc(80);
+    sw(packet, 0x6c048000);
+    let camera = lw(lw(g::currentplayer) + 1760);
+    link_packet(48, packet, 5);
+    for word in 0..16 {
+        sw(packet + 4 + word * 4, lw(camera + word * 4));
+    }
+    put_words(packet + 68, &[0x1400079d, 0x11000000, 0]);
+    lvGfx();
+    if lw(g::turtlecpu) != 0 {
+        bossTurtleCpu();
+    }
+    if lw(g::turtlegs) != 0 {
+        bossTurtleGs();
+    }
+    dlSetClip(0, 0, 639, 223);
+    dlSetBlend(0);
+    let p = lw(g::currentplayer);
+    fill_border(lw(p + 4) - 2, lw(p + 8) - 1, lw(p + 12) + 1, lw(p + 8));
+    let p = lw(g::currentplayer);
+    fill_border(lw(p + 4) - 2, lw(p + 16), lw(p + 12) + 1, lw(p + 16) + 1);
+    let p = lw(g::currentplayer);
+    let left = lw(p + 4);
+    fill_border(left - 2, lw(p + 8) - 1, left + 1, lw(p + 16) + 1);
+    let p = lw(g::currentplayer);
+    let right = lw(p + 12);
+    fill_border(right - 1, lw(p + 8) - 1, right + 2, lw(p + 16) + 1);
+}
+
+/// The work of the game for a frame, run by the main thread: the tick of the world and the players, and the building of the list of the display of everything.
 pub fn bossMainLoop() {
-    let mut s0_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut s1_1: i32 = 0;
-    let mut s0_2: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut v1_1: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut v0_3: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut v0_4: i32 = 0;
-    let mut a3_2: i32 = 0;
-    let mut a2_3: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut v0_5: i32 = 0;
-    let mut v0_6: i32 = 0;
-    let mut v1_2: i32 = 0;
-    let mut t4_1: i32 = 0;
-    let mut t4_2: i32 = 0;
-    let mut t4_3: i32 = 0;
-    let mut t4_4: i32 = 0;
-    let mut a0_5: i32 = 0;
-    let mut t4_5: i32 = 0;
-    let mut a1_4: i32 = 0;
-    let mut t4_6: i32 = 0;
-    let mut a2_4: i32 = 0;
-    let mut a3_3: i32 = 0;
-    let mut t4_7: i32 = 0;
-    let mut t4_8: i32 = 0;
-    let mut t4_9: i32 = 0;
-    let mut t4_10: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut v0_7: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut a1_5: i32 = 0;
-    let mut a2_5: i32 = 0;
-    let mut a3_4: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut v0_8: i32 = 0;
-    let mut s1_2: i32 = 0;
-    let mut v0_9: i32 = 0;
-    let mut v0_10: i32 = 0;
-    let mut v0_11: i32 = 0;
-    let mut v0_12: i32 = 0;
-    let mut s0_3: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut v0_13: i32 = 0;
-    let mut s0_4: i32 = 0;
-    let mut a0_10: i32 = 0;
-    let mut a0_11: i32 = 0;
-    let mut a1_6: i32 = 0;
-    let mut a2_6: i32 = 0;
-    let mut a3_5: i32 = 0;
-    let mut a4_2: i32 = 0;
-    let mut a0_12: i32 = 0;
-    let mut a3_6: i32 = 0;
-    let mut a1_7: i32 = 0;
-    let mut a2_7: i32 = 0;
-    let mut a0_13: i32 = 0;
-    let mut a0_14: i32 = 0;
-    let mut a1_8: i32 = 0;
-    let mut a2_8: i32 = 0;
-    let mut a3_7: i32 = 0;
-    let mut v0_14: i32 = 0;
-    let mut a0_15: i32 = 0;
-    let mut a3_8: i32 = 0;
-    let mut a1_9: i32 = 0;
-    let mut a2_9: i32 = 0;
-    let mut v1_3: i32 = 0;
-    let mut v0_15: i32 = 0;
-    let mut a3_9: i32 = 0;
-    let mut a0_16: i32 = 0;
-    let mut a1_10: i32 = 0;
-    let mut a2_10: i32 = 0;
-    let mut a0_17: i32 = 0;
-    let mut v0_16: i32 = 0;
-    let mut a1_11: i32 = 0;
-    let mut a0_18: i32 = 0;
-    let mut v1_4: i32 = 0;
-    let mut t4_11: i32 = 0;
-    let mut t4_12: i32 = 0;
-    let mut t4_13: i32 = 0;
-    let mut t4_14: i32 = 0;
-    let mut t4_15: i32 = 0;
-    let mut t4_16: i32 = 0;
-    let mut t4_17: i32 = 0;
-    let mut t4_18: i32 = 0;
-    let mut t4_19: i32 = 0;
-    let mut t4_20: i32 = 0;
-    let mut t4_21: i32 = 0;
-    let mut t4_22: i32 = 0;
-    let mut t4_23: i32 = 0;
-    let mut t4_24: i32 = 0;
-    let mut t4_25: i32 = 0;
-    let mut t4_26: i32 = 0;
-    let mut t4_27: i32 = 0;
-    let mut t4_28: i32 = 0;
-    let mut v0_17: i32 = 0;
-    let mut a0_19: i32 = 0;
-    let mut a1_12: i32 = 0;
-    let mut a2_11: i32 = 0;
-    let mut a3_10: i32 = 0;
-    let mut a0_20: i32 = 0;
-    let mut v1_5: i32 = 0;
-    let mut a4_3: i32 = 0;
-    let mut a1_13: i32 = 0;
-    let mut a3_11: i32 = 0;
-    let mut a2_12: i32 = 0;
-    let mut a1_14: i32 = 0;
-    let mut a0_21: i32 = 0;
-    let mut v0_18: i32 = 0;
-    let mut a4_4: i32 = 0;
-    let mut a1_15: i32 = 0;
-    let mut a3_12: i32 = 0;
-    let mut a0_22: i32 = 0;
-    let mut a2_13: i32 = 0;
-    let mut v0_19: i32 = 0;
-    let mut a4_5: i32 = 0;
-    let mut a0_23: i32 = 0;
-    let mut a2_14: i32 = 0;
-    let mut a3_13: i32 = 0;
-    let mut a0_24: i32 = 0;
-    let mut a1_16: i32 = 0;
-    let mut v0_20: i32 = 0;
-    let mut a4_6: i32 = 0;
-    let mut a0_25: i32 = 0;
-    let mut a2_15: i32 = 0;
-    let mut a3_14: i32 = 0;
-    let mut a0_26: i32 = 0;
-    let mut a1_17: i32 = 0;
-    s0_1 = 0;
     sw(g::currentplayer, lw(g::players));
     profileTick();
     debugmenuTick();
-    a0_1 = 0;
-    a1_1 = 0;
-    a2_1 = 639;
-    a3_1 = 223;
-    windowSet(a0_1, a1_1, a2_1, a3_1);
+    windowSet(0, 0, 639, 223);
     ilinkTick();
-    a0_2 = s0_1;
-    'l1: loop {
-        a1_2 = 0;
-        a2_2 = 0;
-        s0_1 = s0_1 + 1;
-        joySetShock(a0_2, a1_2, a2_2);
-        a0_2 = s0_1;
-        if s0_1 >= 4 {
-            break;
-        }
+    for pad in 0..4 {
+        joySetShock(pad, 0, 0);
     }
-    'b3: {
-        s1_1 = 0;
-        memdbTick();
-        gameTick();
-        lvTickBefore();
-        if lw(g::lvnumplayers) > 0 {
-            s0_2 = 0;
-            'l4: loop {
-                v0_1 = lw(g::players) + s0_2;
-                v1_1 = lw(v0_1 + 384);
-                sw(g::currentplayer, v0_1);
-                if v1_1 != 0 {
-                    'b6: {
-                        v0_2 = camGetMode();
-                        v0_3 = lw(g::lvlevelnum);
-                        if v0_2 != 2 {
-                            a1_3 = lw(g::currentplayer);
-                            if v0_3 != 6 {
-                                a0_3 = lw(a1_3 + 384);
-                                v0_4 = lw(a0_3 + 16) & !(0 | 0x1000000 << (s1_1 & 31));
-                                break 'b6;
-                            }
-                        }
-                        a0_3 = lw(lw(g::currentplayer) + 384);
-                        v0_4 = lw(a0_3 + 16) | 0x1000000 << (s1_1 & 31);
-                    }
-                    sw(a0_3 + 16, v0_4);
-                }
-                s1_1 = s1_1 + 1;
-                lvTickPlayer();
-                s0_2 = s0_2 + 1820;
-                if s1_1 >= lw(g::lvnumplayers) {
-                    break 'b3;
-                }
+    memdbTick();
+    gameTick();
+    lvTickBefore();
+    let mut index = 0;
+    if lw(g::lvnumplayers) > 0 {
+        loop {
+            let player = lw(g::players) + index * 1820;
+            sw(g::currentplayer, player);
+            if lw(player + 384) != 0 {
+                mark_camera_bit(index);
+            }
+            index += 1;
+            lvTickPlayer();
+            if index >= lw(g::lvnumplayers) {
+                break;
             }
         }
     }
     lvTickAfter();
-    a3_2 = 0x2eeff0;
-    a2_3 = lw((lw(g::curcpudmabuf) << 2) + g::dmalists);
-    a0_4 = 48;
-    sw(g::gfxtag, a2_3);
-    sb(a2_3 + 3, 48);
-    v0_5 = lw(g::gfxtag);
-    sw(v0_5 + 4, a3_2);
-    sh(v0_5, (0x2f2bc0 - a3_2) >> 4);
-    sw(g::gfxtag, v0_5 + 16);
-    v0_6 = memdbAlloc(a0_4);
-    sb(lw(g::gfxtag) + 3, 48);
-    sw(v0_6, 0x1000404);
-    v1_2 = lw(g::gfxtag);
-    sw(v1_2 + 4, v0_6);
-    t4_1 = v0_6 + 4;
-    sw(t4_1, 0x6c028000);
-    t4_2 = t4_1 + 4;
-    sw(t4_2, 0x8001);
-    t4_3 = t4_2 + 4;
-    sw(t4_3, 0x10000000);
-    t4_4 = t4_3 + 4;
-    sw(g::gfxtag, v1_2 + 16);
-    sw(t4_4, 14);
-    a0_5 = 0;
-    t4_5 = t4_4 + 4;
-    sh(v1_2, 3);
-    sw(t4_5, 0);
-    a1_4 = 0;
-    t4_6 = t4_5 + 4;
-    a2_4 = 640;
-    sw(t4_6, 1);
-    a3_3 = 224;
-    t4_7 = t4_6 + 4;
-    sw(t4_7, 0);
-    t4_8 = t4_7 + 4;
-    sw(t4_8, 70);
-    t4_9 = t4_8 + 4;
-    sw(t4_9, 0);
-    t4_10 = t4_9 + 4;
-    sw(t4_10 + 4, 0x11000000);
-    sw(t4_10, 0x140007fc);
-    dlSetClip(a0_5, a1_4, a2_4, a3_3);
-    a0_6 = 1;
-    dlSetZB(a0_6);
-    v0_7 = lvGetBgCol();
-    a4_1 = v0_7;
-    a0_7 = 0;
-    a1_5 = 0;
-    a2_5 = 640;
-    a3_4 = 224;
-    dlClearFB(a0_7, a1_5, a2_5, a3_4, a4_1);
-    a0_8 = 3;
-    dlSetZB(a0_8);
-    v0_8 = ilinkGetStartLocalPlayerNum();
-    s1_2 = v0_8;
-    'l8: loop {
-        v0_9 = ilinkGetStartLocalPlayerNum();
-        v0_10 = ilinkGetNumLocalPlayers();
-        if s1_2 >= v0_9 + v0_10 {
-            break;
-        }
-        v0_15 = lw(g::players) + s1_2 * 1820;
-        a3_9 = lw(v0_15 + 16);
-        a0_16 = lw(v0_15 + 4);
-        a1_10 = lw(v0_15 + 8);
-        a2_10 = lw(v0_15 + 12);
-        sw(g::currentplayer, v0_15);
-        windowSet(a0_16, a1_10, a2_10, a3_9);
-        a0_17 = 80;
-        v0_16 = memdbAlloc(a0_17);
-        sb(lw(g::gfxtag) + 3, 48);
-        sw(v0_16, 0x6c048000);
-        a1_11 = lw(g::gfxtag);
-        a0_18 = lw(lw(g::currentplayer) + 1760);
-        sw(a1_11 + 4, v0_16);
-        v1_4 = lw(a0_18);
-        t4_11 = v0_16 + 4;
-        sw(g::gfxtag, a1_11 + 16);
-        sw(t4_11, v1_4);
-        t4_12 = t4_11 + 4;
-        sh(a1_11, 5);
-        sw(t4_12, lw(a0_18 + 4));
-        t4_13 = t4_12 + 4;
-        sw(t4_13, lw(a0_18 + 8));
-        t4_14 = t4_13 + 4;
-        sw(t4_14, lw(a0_18 + 12));
-        t4_15 = t4_14 + 4;
-        sw(t4_15, lw(a0_18 + 16));
-        t4_16 = t4_15 + 4;
-        sw(t4_16, lw(a0_18 + 20));
-        t4_17 = t4_16 + 4;
-        sw(t4_17, lw(a0_18 + 24));
-        t4_18 = t4_17 + 4;
-        sw(t4_18, lw(a0_18 + 28));
-        t4_19 = t4_18 + 4;
-        sw(t4_19, lw(a0_18 + 32));
-        t4_20 = t4_19 + 4;
-        sw(t4_20, lw(a0_18 + 36));
-        t4_21 = t4_20 + 4;
-        sw(t4_21, lw(a0_18 + 40));
-        t4_22 = t4_21 + 4;
-        sw(t4_22, lw(a0_18 + 44));
-        t4_23 = t4_22 + 4;
-        sw(t4_23, lw(a0_18 + 48));
-        t4_24 = t4_23 + 4;
-        sw(t4_24, lw(a0_18 + 52));
-        t4_25 = t4_24 + 4;
-        sw(t4_25, lw(a0_18 + 56));
-        t4_26 = t4_25 + 4;
-        sw(t4_26, lw(a0_18 + 60));
-        t4_27 = t4_26 + 4;
-        sw(t4_27, 0x1400079d);
-        t4_28 = t4_27 + 4;
-        sw(t4_28, 0x11000000);
-        sw(t4_28 + 4, 0);
-        lvGfx();
-        v0_17 = lw(g::turtlegs);
-        if lw(g::turtlecpu) != 0 {
-            bossTurtleCpu();
-            v0_17 = lw(g::turtlegs);
-        }
-        if v0_17 == 0 {
-            a0_19 = 0;
-        } else {
-            bossTurtleGs();
-            a0_19 = 0;
-        }
-        a1_12 = 0;
-        a2_11 = 639;
-        a3_10 = 223;
-        dlSetClip(a0_19, a1_12, a2_11, a3_10);
-        s1_2 = s1_2 + 1;
-        a0_20 = 0;
-        dlSetBlend(a0_20);
-        v1_5 = lw(g::currentplayer);
-        a4_3 = 128;
-        a1_13 = lw(v1_5 + 8);
-        a3_11 = a1_13;
-        a2_12 = lw(v1_5 + 12) + 1;
-        a1_14 = a1_13 - 1;
-        a0_21 = lw(v1_5 + 4) - 2;
-        dlFillRectangle(a0_21, a1_14, a2_12, a3_11, a4_3);
-        v0_18 = lw(g::currentplayer);
-        a4_4 = 128;
-        a1_15 = lw(v0_18 + 16);
-        a3_12 = a1_15 + 1;
-        a0_22 = lw(v0_18 + 4) - 2;
-        a2_13 = lw(v0_18 + 12) + 1;
-        dlFillRectangle(a0_22, a1_15, a2_13, a3_12, a4_4);
-        v0_19 = lw(g::currentplayer);
-        a4_5 = 128;
-        a0_23 = lw(v0_19 + 4);
-        a2_14 = a0_23 + 1;
-        a3_13 = lw(v0_19 + 16) + 1;
-        a0_24 = a0_23 - 2;
-        a1_16 = lw(v0_19 + 8) - 1;
-        dlFillRectangle(a0_24, a1_16, a2_14, a3_13, a4_5);
-        v0_20 = lw(g::currentplayer);
-        a4_6 = 128;
-        a0_25 = lw(v0_20 + 12);
-        a2_15 = a0_25 + 2;
-        a3_14 = lw(v0_20 + 16) + 1;
-        a0_26 = a0_25 - 1;
-        a1_17 = lw(v0_20 + 8) - 1;
-        dlFillRectangle(a0_26, a1_17, a2_15, a3_14, a4_6);
+
+    // The list starts with a jump to the memory of the vector unit.
+    sw(g::gfxtag, lw((lw(g::curcpudmabuf) << 2) + g::dmalists));
+    link_packet(48, 0x2eeff0, (0x2f2bc0 - 0x2eeff0) >> 4);
+    let packet = memdbAlloc(48);
+    sw(packet, 0x1000404);
+    link_packet(48, packet, 3);
+    put_words(packet + 4, &[0x6c028000, 0x8001, 0x10000000, 14, 0, 1, 0, 70, 0, 0x140007fc, 0x11000000]);
+    dlSetClip(0, 0, 640, 224);
+    dlSetZB(1);
+    dlClearFB(0, 0, 640, 224, lvGetBgCol());
+    dlSetZB(3);
+    let mut local = ilinkGetStartLocalPlayerNum();
+    while local < ilinkGetStartLocalPlayerNum() + ilinkGetNumLocalPlayers() {
+        draw_player_window(local);
+        local += 1;
     }
-    v0_11 = ilinkGetNumLocalPlayers();
-    if v0_11 == 3 {
-        v0_12 = lvGetBgCol();
-        s0_3 = lw(g::players);
-        if v0_12 != 128 {
-            a0_9 = 1;
-            v0_13 = dlSetZB(a0_9);
-            sw(s0_3 + 0x1554, v0_11);
-            s0_4 = s0_3 + 0x1554;
-            a0_10 = s0_4;
-            playerSetWindow(a0_10);
-            a0_11 = lw(s0_4 + 4);
-            a1_6 = lw(s0_4 + 8);
-            a2_6 = lw(s0_4 + 12);
-            a3_5 = lw(s0_4 + 16);
-            windowSet(a0_11, a1_6, a2_6, a3_5);
-            a4_2 = 128;
-            a0_12 = lw(s0_4 + 4) - 2;
-            a3_6 = lw(s0_4 + 16);
-            a1_7 = lw(s0_4 + 8) - 1;
-            a2_7 = lw(s0_4 + 12) + 2;
-            dlClearFB(a0_12, a1_7, a2_7, a3_6, a4_2);
-            a0_13 = v0_13;
-            dlSetZB(a0_13);
+    // With 3 players the fourth window is cleared (unless the background is the black one).
+    let local_players = ilinkGetNumLocalPlayers();
+    if local_players == 3 {
+        let background = lvGetBgCol();
+        let first = lw(g::players);
+        if background != 128 {
+            let old = dlSetZB(1);
+            sw(first + 0x1554, local_players);
+            let window = first + 0x1554;
+            playerSetWindow(window);
+            windowSet(lw(window + 4), lw(window + 8), lw(window + 12), lw(window + 16));
+            dlClearFB(lw(window + 4) - 2, lw(window + 8) - 1, lw(window + 12) + 2, lw(window + 16), 128);
+            dlSetZB(old);
         }
     }
     zbtestAdvanceAddPtr();
     zbtestAdvanceDrawPtr();
-    a0_14 = 0;
-    a1_8 = 0;
-    a2_8 = 639;
-    a3_7 = 223;
-    windowSet(a0_14, a1_8, a2_8, a3_7);
-    v0_14 = g::window;
-    a0_15 = lw(g::window);
-    a3_8 = lw(v0_14 + 24);
-    a1_9 = lw(v0_14 + 20);
-    a2_9 = lw(v0_14 + 4);
-    dlSetClip(a0_15, a1_9, a2_9, a3_8);
+    windowSet(0, 0, 639, 223);
+    let window = g::window;
+    dlSetClip(lw(g::window), lw(window + 20), lw(window + 4), lw(window + 24));
     if lw(g::gamestate) == 6 {
         guiLoadingGfx();
     }
     debugmenuGfx();
     profileGfx();
     dlFinish();
-    sb(lw(g::gfxtag) + 3, 112);
-    v1_3 = lw(g::gfxtag);
-    sw(v1_3 + 4, 0);
-    sw(g::gfxtag, v1_3 + 16);
-    sh(v1_3, 0);
-    return;
+    link_packet(112, 0, 0);
 }
 
-/// Load a texture.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn emLoadTexture(mut a0: i32, mut a1: i32, mut a2: i32) {
+/// Write a register of the graphics synthesizer to the packet at `at` as the quad word of a GIF A+D packet: the 64 bit value, the number of the register and 0. Gives the address after it.
+fn put_register(at: i32, value: i64, register: i32) -> i32 {
+    sw(at, value as i32);
+    sw(at + 4, (value >> 32) as i32);
+    sw(at + 8, register);
+    sw(at + 12, 0);
+    at + 16
+}
+
+/// Upload to the video memory the picture that `position` (a copy of the first 40 bytes of a texture) says is next, from the mip level `level`; the base pointer and the buffer width of the level are kept at sp+48 and sp+80.
+fn upload_level(texture: i32, position: i32, level_at: i32, width_at: i32) {
+    let target = g::pTex;
+    let format = if lbu(texture + 36) & 1 == 0 { 0 } else { 19 };
+    sceGsSetDefLoadImage(&[
+        target as i64,
+        lh(level_at) as i64,
+        lh(width_at) as i64,
+        format,
+        0,
+        0,
+        lh(position + 4) as i64,
+        lh(position + 2) as i64,
+    ]);
+    FlushCache(0);
+    WaitSema(lw(g::gsavail_sid));
+    sjeGsExecLoadImage(target, lw(position + 20));
+    sceGsSyncPath(&[0, 0]);
+    SignalSema(lw(g::gsavail_sid));
+}
+
+/// Load the picture `a1` (a file or, if `a2` says so, the download buffer) as the texture number `a0` of the textures being built: the picture is read, uploaded level by level to the video memory, and the GIF packet that selects it for drawing is made. `a2` is the info of the texture, or 0.
+pub fn emLoadTexture(a0: i32, a1: i32, a2: i32) {
     let frame = Frame::new(272);
     let sp = frame.sp();
-    let mut a0_1: i32 = 0;
-    let mut s3_1: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut a1_1: i32 = 0;
-    let mut v0_2: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a0_4: i32 = 0;
-    let mut a1_3: i32 = 0;
-    let mut v1_1: i64 = 0;
-    let mut a0_5: i64 = 0;
-    let mut a1_4: i64 = 0;
-    let mut s4_1: i32 = 0;
-    let mut fp_1: i32 = 0;
-    let mut a0_6: i32 = 0;
-    let mut a1_5: i32 = 0;
-    let mut v0_3: i32 = 0;
-    let mut v0_4: i32 = 0;
-    let mut s1_1: i32 = 0;
-    let mut s2_1: i32 = 0;
-    let mut a0_7: i32 = 0;
-    let mut v0_5: i32 = 0;
-    let mut a0_8: i32 = 0;
-    let mut a1_6: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a7_1: i32 = 0;
-    let mut s0_1: i32 = 0;
-    let mut a1_7: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a3_2: i32 = 0;
-    let mut a6_1: i32 = 0;
-    let mut a7_2: i32 = 0;
-    let mut a0_9: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut a5_1: i32 = 0;
-    let mut a0_10: i32 = 0;
-    let mut a0_11: i32 = 0;
-    let mut a1_8: i32 = 0;
-    let mut a0_12: i32 = 0;
-    let mut a0_13: i32 = 0;
-    let mut a1_9: i32 = 0;
-    let mut a0_14: i32 = 0;
-    let mut a0_15: i32 = 0;
-    let mut a2_2: i32 = 0;
-    let mut lo_1: i32 = 0;
-    let mut a1_10: i32 = 0;
-    let mut v0_6: i32 = 0;
-    let mut v0_7: i32 = 0;
-    let mut a1_11: i32 = 0;
-    let mut s0_2: i32 = 0;
-    let mut a2_3: i32 = 0;
-    let mut a0_16: i32 = 0;
-    let mut a3_3: i32 = 0;
-    let mut a4_2: i32 = 0;
-    let mut a5_2: i32 = 0;
-    let mut a6_2: i32 = 0;
-    let mut a7_3: i32 = 0;
-    let mut a0_17: i32 = 0;
-    let mut a0_18: i32 = 0;
-    let mut a1_12: i32 = 0;
-    let mut a0_19: i32 = 0;
-    let mut a0_20: i32 = 0;
-    let mut a1_13: i32 = 0;
-    let mut a0_21: i32 = 0;
-    let mut v0_8: i32 = 0;
-    let mut s1_2: i32 = 0;
-    let mut s1_3: i32 = 0;
-    let mut s1_4: i32 = 0;
-    let mut s1_5: i32 = 0;
-    let mut s1_6: i32 = 0;
-    let mut s1_7: i32 = 0;
-    let mut s1_8: i32 = 0;
-    let mut s1_9: i32 = 0;
-    let mut s1_10: i32 = 0;
-    let mut s1_11: i32 = 0;
-    let mut s1_12: i32 = 0;
-    let mut s1_13: i32 = 0;
-    let mut a1_14: i32 = 0;
-    let mut a0_22: i32 = 0;
-    let mut v0_9: i32 = 0;
-    let mut v1_2: i64 = 0;
-    let mut v0_10: i64 = 0;
-    let mut v0_11: i32 = 0;
-    let mut v0_12: i64 = 0;
-    let mut a0_23: i64 = 0;
-    let mut s1_14: i32 = 0;
-    let mut s1_15: i32 = 0;
-    let mut s1_16: i32 = 0;
-    let mut s1_17: i32 = 0;
-    let mut a0_24: i32 = 0;
-    let mut v0_13: i32 = 0;
-    let mut a0_25: i32 = 0;
-    let mut v0_14: i32 = 0;
-    let mut v0_15: i64 = 0;
-    let mut a0_26: i32 = 0;
-    let mut v0_16: i32 = 0;
-    let mut a0_27: i32 = 0;
-    let mut v0_17: i32 = 0;
-    let mut a0_28: i64 = 0;
-    let mut s1_18: i32 = 0;
-    let mut s1_19: i32 = 0;
-    let mut s1_20: i32 = 0;
-    let mut s1_21: i32 = 0;
-    let mut v0_18: i64 = 0;
-    let mut a0_29: i64 = 0;
-    let mut s1_22: i32 = 0;
-    let mut s1_23: i32 = 0;
-    let mut s1_24: i32 = 0;
-    let mut s1_25: i32 = 0;
-    let mut v0_19: i64 = 0;
-    let mut a0_30: i64 = 0;
-    let mut s1_26: i32 = 0;
-    let mut a0_31: i32 = 0;
-    let mut s1_27: i32 = 0;
-    let mut v0_20: i32 = 0;
-    let mut s1_28: i32 = 0;
-    let mut a1_15: i64 = 0;
-    let mut a0_32: i64 = 0;
-    let mut s1_29: i32 = 0;
-    let mut a2_4: i32 = 0;
-    let mut v0_21: i64 = 0;
-    let mut a0_33: i64 = 0;
-    let mut s1_30: i32 = 0;
-    let mut s1_31: i32 = 0;
-    a0_1 = 0;
-    s3_1 = lw(lw(g::thistexbuf) + 4) + a0 * 40;
-    if a2 != 0 {
-        a0_1 = lw(a2 + 4);
+    let texture = lw(lw(g::thistexbuf) + 4) + a0 * 40;
+    let info_flags = if a2 != 0 { lw(a2 + 12) } else { 0 };
+    sw(texture + 8, if a2 != 0 { lw(a2 + 4) } else { 0 });
+    sw(texture + 12, if a2 != 0 { lw(a2 + 8) } else { 0 });
+    if a2 != 0 && info_flags & 0x10000000 != 0 {
+        ImageLoadFromMem(a1, texture);
+    } else {
+        ImageLoad(a1, texture);
     }
-    sw(s3_1 + 8, a0_1);
-    v0_1 = 0;
-    if a2 != 0 {
-        v0_1 = lw(a2 + 8);
+    if lbu(texture + 36) & 1 != 0 {
+        emGetNextPos(texture, 1);
     }
-    'b3: {
-        sw(s3_1 + 12, v0_1);
+    for part in 0..5 {
+        sd(sp + part * 8, ld(texture + part * 8));
+    }
+    let mut levels = 0;
+    let slot = a0 << 7;
+    if lbu(texture + 37) != 0 {
+        loop {
+            if emGetNextPos(sp, 0) == 0 {
+                sw(sp + 16, 0);
+            }
+            let level_at = sp + 48 + (levels << 2);
+            let width_at = sp + 80 + (levels << 2);
+            sw(level_at, lw(sp + 16));
+            sw(width_at, GSBufferWidth(sp));
+            if lw(sp + 16) == 0 {
+                break;
+            }
+            sceDmaGetChan(&[2]);
+            let mut width = lw(sp + 4);
+            let mut height = lhu(sp + 2);
+            if width & 7 == 0 {
+                if height & 3 == 0 {
+                    upload_level(texture, sp, level_at, width_at);
+                    width = lw(sp + 4);
+                    height = lhu(sp + 2);
+                }
+            }
+            let area = width.wrapping_mul(lhu(sp + 2));
+            sw(sp + 4, ((width as u32) >> 1) as i32);
+            let at = lw(sp + 20);
+            let size = lhu(sp);
+            levels += 1;
+            sh(sp + 2, ((height as u32) >> 1) as i32);
+            sh(sp, ((size as u32) >> 1) as i32);
+            sw(sp + 20, at + if lbu(texture + 36) & 1 == 0 { area << 2 } else { area });
+            if levels >= lbu(texture + 37) {
+                break;
+            }
+        }
+    }
+    sb(texture + 37, levels);
+    if lbu(texture + 36) & 1 != 0 {
+        // The palette is uploaded as a picture of 16 by 16.
+        let target = g::pTex;
+        sceGsSetDefLoadImage(&[target as i64, lh(texture + 24) as i64, 1, 0, 0, 0, 16, 16]);
+        FlushCache(0);
+        WaitSema(lw(g::gsavail_sid));
+        sjeGsExecLoadImage(target, lw(texture + 28));
+        sceGsSyncPath(&[0, 0]);
+        SignalSema(lw(g::gsavail_sid));
+    }
+
+    // The GIF packet that sets the texture: the registers TEX1, TEX0, MIPTBP1, MIPTBP2 and CLAMP.
+    let packet = lw(lw(g::thistexbuf)) + slot;
+    sw(texture + 32, packet);
+    put_words(packet, &[0, 0, 0, 0x6c0780d8, 1, 0x60000000, 0xeeeeee, 0, 0, 0, 63, 0]);
+    let mut at = packet + 48;
+    let no_mips = info_flags & 0x20000000 != 0;
+    let (tex1_high, tex1_low);
+    if lbu(texture + 36) & 2 == 0 {
+        let c = if a2 != 0 && no_mips { 0_i64 } else { 1_i64 };
+        tex1_high = c << 6;
+        tex1_low = c << 5;
+    } else {
+        let mut filter = 4_i64;
         if a2 != 0 {
-            a0_2 = a1;
-            if (lw(a2 + 12) & 0x10000000) != 0 {
-                a1_1 = s3_1;
-                ImageLoadFromMem(a0_2, a1_1);
-                v0_2 = lbu(s3_1 + 36);
-                break 'b3;
-            }
+            filter = if no_mips { 2 } else { filter };
         }
-        a0_3 = a1;
-        a1_2 = s3_1;
-        ImageLoad(a0_3, a1_2);
-        v0_2 = lbu(s3_1 + 36);
+        let mipmap = if a2 != 0 && no_mips { 0_i64 } else { 1_i64 };
+        tex1_high = filter << 6 | mipmap << 5;
+        tex1_low = ((lbu(texture + 37) - 1) as i64) << 2 | -0x1e00000000_i64;
     }
-    a0_4 = s3_1;
-    if (v0_2 & 1) != 0 {
-        a1_3 = 1;
-        emGetNextPos(a0_4, a1_3);
-    }
-    'b6: {
-        v1_1 = ld(s3_1 + 8);
-        a0_5 = ld(s3_1 + 16);
-        a1_4 = ld(s3_1 + 24);
-        sd(sp, ld(s3_1));
-        sd(sp + 8, v1_1);
-        sd(sp + 16, a0_5);
-        sd(sp + 24, a1_4);
-        sd(sp + 32, ld(s3_1 + 32));
-        s4_1 = 0;
-        if lbu(s3_1 + 37) == 0 {
-            fp_1 = a0 << 7;
-            v0_7 = lbu(s3_1 + 36);
-        } else {
-            fp_1 = a0 << 7;
-            a0_6 = sp;
-            'b9: {
-                'l7: loop {
-                    a1_5 = 0;
-                    v0_3 = emGetNextPos(a0_6, a1_5);
-                    if v0_3 == 0 {
-                        sw(sp + 16, 0);
-                    }
-                    v0_4 = s4_1 << 2;
-                    s1_1 = sp + 48 + v0_4;
-                    s2_1 = sp + 80 + v0_4;
-                    sw(s1_1, lw(sp + 16));
-                    a0_7 = sp;
-                    v0_5 = GSBufferWidth(a0_7);
-                    sw(s2_1, v0_5);
-                    if lw(sp + 16) == 0 {
-                        break 'b9;
-                    }
-                    'b11: {
-                        a0_8 = 2;
-                        sceDmaGetChan(&[a0_8 as i64]);
-                        a1_6 = lw(sp + 4);
-                        a3_1 = lhu(sp + 2);
-                        if (a1_6 & 7) == 0 {
-                            if (a3_1 & 3) != 0 {
-                                a0_15 = lhu(sp + 2);
-                                break 'b11;
-                            }
-                            a7_1 = a3_1 << 16;
-                            s0_1 = g::pTex;
-                            a1_7 = lh(s1_1);
-                            a2_1 = lh(s2_1);
-                            a3_2 = if (lbu(s3_1 + 36) & 1) == 0 { 0 } else { 19 };
-                            a6_1 = (lhu(sp + 4) << 16) >> 16;
-                            a7_2 = a7_1 >> 16;
-                            a0_9 = s0_1;
-                            a4_1 = 0;
-                            a5_1 = 0;
-                            sceGsSetDefLoadImage(&[a0_9 as i64, a1_7 as i64, a2_1 as i64, a3_2 as i64, a4_1 as i64, a5_1 as i64, a6_1 as i64, a7_2 as i64]);
-                            a0_10 = 0;
-                            FlushCache(a0_10);
-                            a0_11 = lw(g::gsavail_sid);
-                            WaitSema(a0_11);
-                            a1_8 = lw(sp + 20);
-                            a0_12 = s0_1;
-                            sjeGsExecLoadImage(a0_12, a1_8);
-                            a0_13 = 0;
-                            a1_9 = 0;
-                            sceGsSyncPath(&[a0_13 as i64, a1_9 as i64]);
-                            a0_14 = lw(g::gsavail_sid);
-                            SignalSema(a0_14);
-                            a1_6 = lw(sp + 4);
-                            a3_1 = lhu(sp + 2);
-                        }
-                        a0_15 = lhu(sp + 2);
-                    }
-                    a2_2 = lbu(s3_1 + 36);
-                    lo_1 = a1_6 * a0_15;
-                    sw(sp + 4, ((a1_6 as u32) >> 1) as i32);
-                    a1_10 = lw(sp + 20);
-                    v0_6 = lhu(sp);
-                    s4_1 = s4_1 + 1;
-                    sh(sp + 2, ((a3_1 as u32) >> 1) as i32);
-                    sh(sp, ((v0_6 as u32) >> 1) as i32);
-                    sw(sp + 20, a1_10 + (if (a2_2 & 1) == 0 { lo_1 << 2 } else { lo_1 }));
-                    a0_6 = sp;
-                    if s4_1 >= lbu(s3_1 + 37) {
-                        break;
-                    }
-                }
-                v0_7 = lbu(s3_1 + 36);
-                break 'b6;
-            }
-            v0_7 = lbu(s3_1 + 36);
-        }
-    }
-    sb(s3_1 + 37, s4_1);
-    if (v0_7 & 1) != 0 {
-        a1_11 = lh(s3_1 + 24);
-        s0_2 = g::pTex;
-        a2_3 = 1;
-        a0_16 = s0_2;
-        a3_3 = 0;
-        a4_2 = 0;
-        a5_2 = 0;
-        a6_2 = 16;
-        a7_3 = 16;
-        sceGsSetDefLoadImage(&[a0_16 as i64, a1_11 as i64, a2_3 as i64, a3_3 as i64, a4_2 as i64, a5_2 as i64, a6_2 as i64, a7_3 as i64]);
-        a0_17 = 0;
-        FlushCache(a0_17);
-        a0_18 = lw(g::gsavail_sid);
-        WaitSema(a0_18);
-        a1_12 = lw(s3_1 + 28);
-        a0_19 = s0_2;
-        sjeGsExecLoadImage(a0_19, a1_12);
-        a0_20 = 0;
-        a1_13 = 0;
-        sceGsSyncPath(&[a0_20 as i64, a1_13 as i64]);
-        a0_21 = lw(g::gsavail_sid);
-        SignalSema(a0_21);
-    }
-    v0_8 = lw(lw(g::thistexbuf)) + fp_1;
-    sw(s3_1 + 32, v0_8);
-    sw(v0_8, 0);
-    s1_2 = v0_8 + 4;
-    sw(s1_2, 0);
-    s1_3 = s1_2 + 4;
-    sw(s1_3, 0);
-    s1_4 = s1_3 + 4;
-    sw(s1_4, 0x6c0780d8);
-    s1_5 = s1_4 + 4;
-    sw(s1_5, 1);
-    s1_6 = s1_5 + 4;
-    sw(s1_6, 0x60000000);
-    s1_7 = s1_6 + 4;
-    sw(s1_7, 0xeeeeee);
-    s1_8 = s1_7 + 4;
-    sw(s1_8, 0);
-    s1_9 = s1_8 + 4;
-    sw(s1_9, 0);
-    s1_10 = s1_9 + 4;
-    sw(s1_10, 0);
-    s1_11 = s1_10 + 4;
-    sw(s1_11, 63);
-    s1_12 = s1_11 + 4;
-    sw(s1_12, 0);
-    s1_13 = s1_12 + 4;
-    if (lbu(s3_1 + 36) & 2) == 0 {
-        'b15: {
-            if a2 != 0 {
-                v0_11 = 0;
-                if (lw(a2 + 12) & 0x20000000) != 0 {
-                    break 'b15;
-                }
-            }
-            v0_11 = 1;
-        }
-        v1_2 = (v0_11 as i64) << 6;
-        v0_10 = (v0_11 as i64) << 5;
+    at = put_register(at, tex1_low | tex1_high, 20);
+    let tex0;
+    if lbu(texture + 36) & 1 == 0 {
+        let width_log = PowerOf2(lhu(texture));
+        let height_log = PowerOf2(lhu(texture + 2));
+        tex0 = lwu(sp + 48) | 0x400000000_i64 | ((width_log as i64) << 26 | lwu(sp + 80) << 14) | (height_log as i64) << 30;
     } else {
-        a1_14 = 4;
-        if a2 != 0 {
-            a1_14 = if (lw(a2 + 12) & 0x20000000) != 0 { 2 } else { a1_14 };
-        }
-        'b18: {
-            a0_22 = 0;
-            if a2 != 0 {
-                if (lw(a2 + 12) & 0x20000000) != 0 {
-                    v0_9 = lbu(s3_1 + 37);
-                    break 'b18;
-                }
-            }
-            a0_22 = 1;
-            v0_9 = lbu(s3_1 + 37);
-        }
-        v1_2 = (a1_14 as i64) << 6 | (a0_22 as i64) << 5;
-        v0_10 = ((v0_9 - 1) as i64) << 2 | -0x1e00000000_i64;
+        let width_log = PowerOf2(lhu(texture));
+        let height_log = PowerOf2(lhu(texture + 2));
+        tex0 = lwu(sp + 48)
+            | -0x8000000000000000_i64
+            | (lwu(sp + 80) << 14 | 0x400000000_i64)
+            | ((width_log as i64) << 26 | 0x1300000_i64 | ((height_log as i64) << 30 | lwu(texture + 24) << 37));
     }
-    v0_12 = v0_10 | v1_2;
-    a0_23 = 0xffffffff_i64;
-    sw(s1_13, (((v0_12 & a0_23) << 32) >> 32) as i32);
-    s1_14 = s1_13 + 4;
-    sw(s1_14, (((((v0_12 as u64) >> 32) as i64 & a0_23) << 32) >> 32) as i32);
-    s1_15 = s1_14 + 4;
-    sw(s1_15, 20);
-    s1_16 = s1_15 + 4;
-    sw(s1_16, 0);
-    s1_17 = s1_16 + 4;
-    if (lbu(s3_1 + 36) & 1) == 0 {
-        a0_26 = lhu(s3_1);
-        v0_16 = PowerOf2(a0_26);
-        a0_27 = lhu(s3_1 + 2);
-        v0_17 = PowerOf2(a0_27);
-        v0_15 = lwu(sp + 48) | 0x400000000_i64 | ((v0_16 as i64) << 26 | lwu(sp + 80) << 14) | (v0_17 as i64) << 30;
+    at = put_register(at, tex0, 6);
+    let miptbp1 = if lbu(texture + 36) & 2 == 0 {
+        0_i64
     } else {
-        a0_24 = lhu(s3_1);
-        v0_13 = PowerOf2(a0_24);
-        a0_25 = lhu(s3_1 + 2);
-        v0_14 = PowerOf2(a0_25);
-        v0_15 = lwu(sp + 48) | -0x8000000000000000_i64 | (lwu(sp + 80) << 14 | 0x400000000_i64) | ((v0_13 as i64) << 26 | 0x1300000_i64 | ((v0_14 as i64) << 30 | lwu(s3_1 + 24) << 37));
-    }
-    a0_28 = 0xffffffff_i64;
-    sw(s1_17, (((v0_15 & a0_28) << 32) >> 32) as i32);
-    s1_18 = s1_17 + 4;
-    sw(s1_18, (((((v0_15 as u64) >> 32) as i64 & a0_28) << 32) >> 32) as i32);
-    s1_19 = s1_18 + 4;
-    sw(s1_19, 6);
-    s1_20 = s1_19 + 4;
-    sw(s1_20, 0);
-    s1_21 = s1_20 + 4;
-    if (lbu(s3_1 + 36) & 2) == 0 {
-        v0_18 = 0_i64;
+        lwu(sp + 52) | lwu(sp + 92) << 54 | (lwu(sp + 88) << 34 | lwu(sp + 56) << 20) | (lwu(sp + 84) << 14 | lwu(sp + 60) << 40)
+    };
+    at = put_register(at, miptbp1, 52);
+    let miptbp2 = if lbu(texture + 36) & 2 == 0 || (lbu(texture + 37) as u32) < 4 {
+        0_i64
     } else {
-        v0_18 = lwu(sp + 52) | lwu(sp + 92) << 54 | (lwu(sp + 88) << 34 | lwu(sp + 56) << 20) | (lwu(sp + 84) << 14 | lwu(sp + 60) << 40);
-    }
-    a0_29 = 0xffffffff_i64;
-    sw(s1_21, (((v0_18 & a0_29) << 32) >> 32) as i32);
-    s1_22 = s1_21 + 4;
-    sw(s1_22, (((((v0_18 as u64) >> 32) as i64 & a0_29) << 32) >> 32) as i32);
-    s1_23 = s1_22 + 4;
-    sw(s1_23, 52);
-    s1_24 = s1_23 + 4;
-    sw(s1_24, 0);
-    s1_25 = s1_24 + 4;
-    if (lbu(s3_1 + 36) & 2) == 0 {
-        v0_19 = 0_i64;
-    } else if (lbu(s3_1 + 37) as u32) < (4 as u32) {
-        v0_19 = 0_i64;
-    } else {
-        v0_19 = lwu(sp + 64) | lwu(sp + 104) << 54 | (lwu(sp + 100) << 34 | lwu(sp + 68) << 20) | (lwu(sp + 96) << 14 | lwu(sp + 72) << 40);
-    }
-    a0_30 = 0xffffffff_i64;
-    sw(s1_25, (((v0_19 & a0_30) << 32) >> 32) as i32);
-    s1_26 = s1_25 + 4;
-    a0_31 = lhu(s3_1);
-    sw(s1_26, (((((v0_19 as u64) >> 32) as i64 & a0_30) << 32) >> 32) as i32);
-    s1_27 = s1_26 + 4;
-    v0_20 = lhu(s3_1 + 2);
-    sw(s1_27, 54);
-    s1_28 = s1_27 + 4;
-    sw(s1_28, 0);
-    a1_15 = ((a0_31 - 1) as i64) << 14;
-    a0_32 = ((v0_20 - 1) as i64) << 34;
-    s1_29 = s1_28 + 4;
-    a2_4 = if lw(s3_1 + 8) == 0 { 0 } else { 2 };
-    if lw(s3_1 + 12) == 0 {
-        v0_21 = a2_4 as i64 | a1_15 | a0_32;
-    } else {
-        v0_21 = a2_4 as i64 | a0_32 | (a1_15 | 8_i64);
-    }
-    a0_33 = 0xffffffff_i64;
-    sw(s1_29, (((v0_21 & a0_33) << 32) >> 32) as i32);
-    s1_30 = s1_29 + 4;
-    sw(s1_30, (((((v0_21 as u64) >> 32) as i64 & a0_33) << 32) >> 32) as i32);
-    s1_31 = s1_30 + 4;
-    sw(s1_31, 8);
-    sw(s1_31 + 4, 0);
-    return;
+        lwu(sp + 64) | lwu(sp + 104) << 54 | (lwu(sp + 100) << 34 | lwu(sp + 68) << 20) | (lwu(sp + 96) << 14 | lwu(sp + 72) << 40)
+    };
+    at = put_register(at, miptbp2, 54);
+    let wrap_x = ((lhu(texture) - 1) as i64) << 14;
+    let wrap_y = ((lhu(texture + 2) - 1) as i64) << 34;
+    let mode = if lw(texture + 8) == 0 { 0 } else { 2_i64 };
+    let clamp = if lw(texture + 12) == 0 { mode | wrap_x | wrap_y } else { mode | wrap_y | (wrap_x | 8_i64) };
+    put_register(at, clamp, 8);
 }
 
-/// Format the time of the clock.
-#[allow(unused_assignments, unused_mut, unused_variables, unused_parens)]
-pub fn rtcFormatTime(mut a0: i32) -> i32 {
+/// The text of a time of the clock of the console (kept in the buffer `rettime_96`): `a0` is the time as a number, or -1 for a time that is not known, which gives the text at 0x3afc38. Gives the buffer.
+pub fn rtcFormatTime(a0: i32) -> i32 {
     let frame = Frame::new(32);
     let sp = frame.sp();
-    let mut a1_1: i32 = 0;
-    let mut a0_1: i32 = 0;
-    let mut a2_1: i32 = 0;
-    let mut a3_1: i32 = 0;
-    let mut a1_2: i32 = 0;
-    let mut a4_1: i32 = 0;
-    let mut a5_1: i32 = 0;
-    let mut a6_1: i32 = 0;
-    let mut a7_1: i32 = 0;
-    let mut a0_2: i32 = 0;
-    let mut v0_1: i32 = 0;
-    let mut a0_3: i32 = 0;
-    let mut a1_3: i32 = 0;
     if a0 == -1 {
-        a0_3 = lw(g::rettime_96);
-        a1_3 = 0x3afc38;
-        sprintf(&[a0_3 as i64, a1_3 as i64]);
-        v0_1 = lw(g::rettime_96);
+        sprintf(&[lw(g::rettime_96) as i64, 0x3afc38]);
     } else {
-        a1_1 = a0;
-        a0_1 = sp;
-        u322clock(a0_1, a1_1);
-        a2_1 = lbu(sp + 5);
-        a3_1 = lbu(sp + 6);
-        a1_2 = 0x3a9a60;
-        a4_1 = lbu(sp + 7);
-        a5_1 = lbu(sp + 3);
-        a6_1 = lbu(sp + 2);
-        a7_1 = lbu(sp + 1);
-        a0_2 = lw(g::rettime_96);
-        sprintf(&[a0_2 as i64, a1_2 as i64, a2_1 as i64, a3_1 as i64, a4_1 as i64, a5_1 as i64, a6_1 as i64, a7_1 as i64]);
-        v0_1 = lw(g::rettime_96);
+        u322clock(sp, a0);
+        let a2 = lbu(sp + 5);
+        let a3 = lbu(sp + 6);
+        let a4 = lbu(sp + 7);
+        let a5 = lbu(sp + 3);
+        let a6 = lbu(sp + 2);
+        let a7 = lbu(sp + 1);
+        sprintf(&[lw(g::rettime_96) as i64, 0x3a9a60, a2 as i64, a3 as i64, a4 as i64, a5 as i64, a6 as i64, a7 as i64]);
     }
-    return v0_1;
+    lw(g::rettime_96)
 }
