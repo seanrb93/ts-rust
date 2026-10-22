@@ -910,3 +910,6 @@ pub use character_animation_matrices::*;
 #[path = "decal-creation-tick.rs"]
 pub mod decal_creation_tick;
 pub use decal_creation_tick::*;
+#[path = "character-animation-choice.rs"]
+pub mod character_animation_choice;
+pub use character_animation_choice::*;
