@@ -934,3 +934,15 @@ pub use animation_loading::*;
 #[path = "player-and-bullet-ticks.rs"]
 pub mod player_and_bullet_ticks;
 pub use player_and_bullet_ticks::*;
+#[path = "memory-card-file-requests.rs"]
+pub mod memory_card_file_requests;
+pub use memory_card_file_requests::*;
+#[path = "pack-file-memory-and-inflating.rs"]
+pub mod pack_file_memory_and_inflating;
+pub use pack_file_memory_and_inflating::*;
+#[path = "system-calls-and-graphics-synthesizer-helpers.rs"]
+pub mod system_calls_and_graphics_synthesizer_helpers;
+pub use system_calls_and_graphics_synthesizer_helpers::*;
+#[path = "disc-clock-and-sound-tool-helpers.rs"]
+pub mod disc_clock_and_sound_tool_helpers;
+pub use disc_clock_and_sound_tool_helpers::*;
