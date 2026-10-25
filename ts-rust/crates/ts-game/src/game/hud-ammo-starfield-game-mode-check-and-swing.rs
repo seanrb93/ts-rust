@@ -100,7 +100,7 @@ pub fn starfieldRestart() {
         let third = lwc1(g::spacefirestart + 8);
         swc1(fire + 4, lwc1(g::spacefirestart + 4) + (unit + unit));
         swc1(offset + (g::spacefires + 8), third);
-        swc1(fire + 12, (random_as_float() * scale + lwc1(0x3ad63c)) * lwc1(0x3ad640));
+        swc1(fire + 16, (random_as_float() * scale + lwc1(0x3ad63c)) * lwc1(0x3ad640));
         let red = newrnd();
         let green = newrnd();
         let blue = newrnd();
@@ -108,7 +108,7 @@ pub fn starfieldRestart() {
             offset + (g::spacefires + 20),
             ((((red as i32 as u32) % 28) as i32 + 100) << 16) + ((((green as i32 as u32) % 28) as i32 + 50) << 8) + 50 + ((blue as i32 as u32) % 28) as i32,
         );
-        swc1(fire + 8, random_as_float() * scale);
+        swc1(fire + 12, random_as_float() * scale);
         fire += 24;
         offset += 24;
         if fire >= g::vif_load_mmtx_36c1a0 {
