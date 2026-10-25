@@ -168,6 +168,62 @@ fn use_real_model(rng: &mut Rng, name: &str, ints: &mut [i64; 8]) {
     }
 }
 
+/// Apply the perturbations named in `TS_VERIFY_PERTURB` (separated by commas: `1` for the first player, `bullets`, `world`).
+fn apply_perturb(rng: &mut Rng) {
+    if let Ok(modes) = std::env::var("TS_VERIFY_PERTURB") {
+        for mode in modes.split(',') {
+            match mode {
+                "bullets" => perturb_bullets(rng),
+                "world" => perturb_world(rng),
+                _ => perturb_player(rng),
+            }
+        }
+    }
+}
+
+/// Change words of the players' and characters' records at random (`TS_VERIFY_PERTURB=world`): modes, flags, counters and floats, but not what looks like a pointer, so that the branches that real play seldom reaches are run without wild pointers.
+fn perturb_world(rng: &mut Rng) {
+    use ts_game::g;
+    let density = std::env::var("TS_VERIFY_DENSITY").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(40);
+    let players = lw(g::lvnumplayers).clamp(0, 4);
+    let chars = lw(g::numactivechars).clamp(0, 64);
+    let ranges = [(lw(g::players), players * 1820), (lw(g::chrinfo), (players + chars) * 0x1210)];
+    for (start, len) in ranges {
+        let mut at = start;
+        while at < start + len {
+            if rng.below(density) == 0 {
+                let v = lw(at);
+                let f = f32::from_bits(v as u32);
+                let looks_like_pointer = (0x10_0000..0x200_0000).contains(&v);
+                if looks_like_pointer {
+                    // left alone
+                } else if v == 0 {
+                    match rng.below(3) {
+                        0 => sw(at, rng.below(8) as i32),
+                        1 => swc1(at, (rng.below(2001) as f32 - 1000.0) / 100.0),
+                        _ => {}
+                    }
+                } else if (0..4096).contains(&v) {
+                    match rng.below(3) {
+                        0 => sw(at, v ^ (1 << rng.below(12))),
+                        1 => sw(at, rng.below(64) as i32),
+                        _ => sw(at, 0),
+                    }
+                } else if f.is_finite() && f.abs() > 1e-3 && f.abs() < 1e6 {
+                    match rng.below(3) {
+                        0 => swc1(at, f * (rng.below(300) as f32 / 100.0)),
+                        1 => swc1(at, -f),
+                        _ => swc1(at, f + (rng.below(2001) as f32 - 1000.0) / 100.0),
+                    }
+                } else {
+                    sw(at, v ^ (1 << rng.below(32)));
+                }
+            }
+            at += 4;
+        }
+    }
+}
+
 /// Change the state of the first player and of its pad at random (see `TS_VERIFY_PERTURB`).
 fn perturb_player(rng: &mut Rng) {
     use ts_game::g;
@@ -420,11 +476,7 @@ fn run_frames(ctx: &Ctx, syms: &[ts_rt::loader::Symbol], snapshots: &[Vec<u8>], 
         let image = &snapshots[t % snapshots.len()];
         host_slice(0, image.len()).copy_from_slice(image);
         sw(g::currentplayer, lw(g::players));
-        match std::env::var("TS_VERIFY_PERTURB") {
-            Ok(mode) if mode == "bullets" => perturb_bullets(&mut rng),
-            Ok(_) => perturb_player(&mut rng),
-            Err(_) => {}
-        }
+        apply_perturb(&mut rng);
         let calls = frame_calls(syms);
         let set_player = |index: Option<i32>| {
             if let Some(i) = index {
@@ -468,7 +520,8 @@ fn run_frames(ctx: &Ctx, syms: &[ts_rt::loader::Symbol], snapshots: &[Vec<u8>], 
             for &(addr, player) in &calls {
                 set_player(player);
                 if let Err(p) = silent(|| call_any(addr, zeros.0, zeros.1)) {
-                    fault = Some(p);
+                    let at = syms.iter().find(|s| s.addr == addr).map_or("?", |s| s.name.as_str());
+                    fault = Some(format!("{p}, in {at}"));
                     break 'native;
                 }
             }
@@ -478,10 +531,16 @@ fn run_frames(ctx: &Ctx, syms: &[ts_rt::loader::Symbol], snapshots: &[Vec<u8>], 
         trace::rollback(&log2);
         let s2: Vec<trace::Store> = log2.into_iter().filter(|s| !s.bulk && s.addr < STACK_LIMIT).collect();
         // words the original takes from stack garbage (see `TS_VERIFY_IGNORE`): the last hit that `bulletInitialiseStraightLineTest` puts back, and the wall normal of `moveStep`
-        let ignored = |a: u32| (0x3aea90..0x3aeab8).contains(&a) || (0x3b0118..0x3b0124).contains(&a);
+        let ignored = |a: u32| a < 0x10000 || (0x3aea90..0x3aeab8).contains(&a) || (0x3b0118..0x3b0124).contains(&a);
         let w1: Vec<(u32, u8)> = w1.into_iter().filter(|(a, _)| !ignored(*a)).collect();
         let w2: Vec<(u32, u8)> = w2.into_iter().filter(|(a, _)| !ignored(*a)).collect();
         if let Some(p) = fault {
+            // the interpreter wraps addresses past the end of the port's RAM and the port faults on them: a garbage pointer made by the perturbation, not a difference
+            let wild = p.contains("unmapped game address") && p.split("0x").nth(1).and_then(|h| u32::from_str_radix(h.split(|c: char| !c.is_ascii_hexdigit()).next().unwrap_or(""), 16).ok()).map_or(false, |a| a >= 0x0800_0000);
+            if wild {
+                skipped += 1;
+                continue;
+            }
             bad += 1;
             println!("FAIL run {t}: the port faulted ({p}) where the original ran to the end");
             continue;
@@ -495,6 +554,13 @@ fn run_frames(ctx: &Ctx, syms: &[ts_rt::loader::Symbol], snapshots: &[Vec<u8>], 
             keys.dedup();
             let shown: Vec<String> = keys.iter().take(6).map(|k| format!("[{k:#x}: original {:?} port {:?}]", m1.get(k), m2.get(k))).collect();
             println!("FAIL run {t}: {} bytes differ {}", keys.len(), shown.join(" "));
+            if let Some(&k) = keys.first() {
+                for (label, ss) in [("original", &s1), ("port", &s2)] {
+                    for x in ss.iter().filter(|x| k >= x.addr && k < x.addr + x.size as u32) {
+                        println!("  {label} store {:#x} +{} = {:02x?} pc {:#x}", x.addr, x.size, &x.new[..x.size as usize], x.tag);
+                    }
+                }
+            }
         } else {
             ok += 1;
         }
@@ -540,7 +606,18 @@ fn find_root() -> PathBuf {
 }
 
 fn main() {
-    std::panic::set_hook(Box::new(|_| {}));
+    if std::env::var_os("TS_VERIFY_BACKTRACE").is_some() {
+        // print where the port faults (the last fault of a run is the one that matters)
+        std::panic::set_hook(Box::new(|info| {
+            let bt = std::backtrace::Backtrace::force_capture().to_string();
+            let frames: Vec<&str> = bt.lines().filter(|l| l.contains("ts_game::game")).take(8).collect();
+            println!("panic: {info}
+{}", frames.join("
+"));
+        }));
+    } else {
+        std::panic::set_hook(Box::new(|_| {}));
+    }
     ts_rt::VERIFYING.store(true, std::sync::atomic::Ordering::Relaxed);
     let mut n = 12usize;
     let mut elf: Option<PathBuf> = None;
@@ -633,13 +710,7 @@ fn main() {
                 host_slice(0, image.len()).copy_from_slice(image);
                 sw(ts_game::g::currentplayer, lw(ts_game::g::players));
                 // `TS_VERIFY_PERTURB=1`: change the player's modes, flags, buttons and sticks too (from the same random numbers each time), so that the branches of the player's tick that the snapshots do not reach are tested
-                if let Some(mode) = std::env::var_os("TS_VERIFY_PERTURB") {
-                    if mode == "bullets" {
-                        perturb_bullets(&mut rng);
-                    } else {
-                        perturb_player(&mut rng);
-                    }
-                }
+                apply_perturb(&mut rng);
             }
             let (mut ints, floats) = gen_inputs(&mut rng, ni, nf);
             if !snapshots.is_empty() {

@@ -136,12 +136,19 @@ pub fn exec_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> 
     let mut exited = false;
     let res = silent(|| {
         let cover = std::env::var_os("TS_VERIFY_COVERAGE").is_some();
+        // `TS_VERIFY_WATCH=hexaddress`: print the caller and the arguments each time the original enters that address
+        let watch_pc = std::env::var("TS_VERIFY_WATCH").ok().and_then(|v| u32::from_str_radix(v.trim_start_matches("0x"), 16).ok());
         let mut seen: Vec<u32> = Vec::new();
         let mut hook = |pc: u32, cpu: &mut Cpu| -> bool {
             if cover {
                 seen.push(pc);
                 if seen.len() >= 4096 {
                     COVERAGE.lock().unwrap().get_or_insert_with(Default::default).extend(seen.drain(..));
+                }
+            }
+            if let Some(watch) = watch_pc {
+                if pc == watch {
+                    println!("  entered {pc:#x} from {:#x}: a0 {:#x} f12 {:#x}", cpu.r[31], cpu.r[4], cpu.f[12]);
                 }
             }
             if let Some(name) = ctx.externs.get(&pc) {
