@@ -9,6 +9,7 @@
 
 pub mod mem;
 pub mod frame;
+pub mod capture;
 pub mod int;
 pub mod loader;
 pub mod texnames;

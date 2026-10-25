@@ -20,8 +20,8 @@ pub fn obMergeChunkPolys(model: i32, source: i32, chunk: i32, dest: i32) {
     loop {
         let mut ordinal = 0;
         sw(model + 28, 0);
-        let mut strip = lw(lw(source)) + (lw(chunk + 4) << 4);
-        let mut vertex = lw(lw(source) + 4) + lw(chunk + 12) * 12;
+        let mut strip = lw(source) + (lw(chunk + 4) << 4);
+        let mut vertex = lw(source + 4) + lw(chunk + 12) * 12;
         let scale = lwc1(0x3acb54);
         loop {
             let mut header = lw(strip);
@@ -127,9 +127,7 @@ pub fn obMergeChunkPolys(model: i32, source: i32, chunk: i32, dest: i32) {
         result_record = if result_record != sp { sp } else { sp + 48 };
         sw(model + 24, 0);
         sw(model + 28, 0);
-        let vertices = lw(lw(source) + 4) + lw(lw(chunk) + 12) * 12;
-        let _ = vertices;
-        let vertex_base = lw(lw(source) + 4);
+        let vertex_base = lw(source + 4);
         let first_vertex = lw(chunk + 12) * 12;
         sw(result_record + 32, next_buffer);
         sw(next_buffer + 8, source_count * 12 + next_buffer);

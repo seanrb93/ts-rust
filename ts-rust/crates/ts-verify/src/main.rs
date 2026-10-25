@@ -589,6 +589,63 @@ fn print_all_coverage(syms: &[ts_rt::loader::Symbol]) {
     }
 }
 
+/// Run the function of a capture in the original code and in the port, on the captured memory, and compare the memory they change (above the stack in use).
+fn run_capture(ctx: &Ctx, syms: &[ts_rt::loader::Symbol], path: &str) {
+    let Some((name, sp, ints_list, floats_list)) = ts_rt::capture::load(path) else {
+        println!("cannot read the capture {path}");
+        return;
+    };
+    let Some(&(addr, _, _, _, rk)) = FUNC_INFO.iter().find(|f| f.1 == name) else {
+        println!("no function {name}");
+        return;
+    };
+    let mut ints = [0i64; 8];
+    let mut floats = [0f32; 8];
+    for (i, v) in ints_list.iter().enumerate().take(8) {
+        ints[i] = *v;
+    }
+    for (i, v) in floats_list.iter().enumerate().take(8) {
+        floats[i] = *v;
+    }
+    // the stack of the original call is in use above the captured stack pointer: run below it
+    let sp = sp - 0x1000;
+    INTERP_SP.store(sp, std::sync::atomic::Ordering::Relaxed);
+    ts_rt::frame::set_sp(sp);
+    let a = run_interp(ctx, addr, &ints, &floats);
+    if std::env::var_os("TS_VERIFY_INTERP_ONLY").is_some() {
+        println!("original: {:?}", match &a { Outcome::Ok { ret, writes, .. } => format!("finished, returned {ret:#x}, {} bytes changed", writes.len()), other => format!("{other:?}") });
+        return;
+    }
+    let b = run_native(addr, &ints, &floats);
+    match (&a, &b) {
+        (Outcome::Ok { ret: r1, writes: w1, stores: s1, .. }, Outcome::Ok { ret: r2, writes: w2, stores: s2, .. }) => {
+            let same_ret = rk != 1 || (*r1 as i32) == (*r2 as i32);
+            if !same_ret {
+                println!("FAIL {name}: returned {r1:#x} in the original, {r2:#x} in the port");
+            } else if w1 != w2 && !stores_equal_mod_nan(s1, s2) && !changes_equal_mod_nan(w1, w2, s1, s2) {
+                let m1: HashMap<_, _> = w1.iter().cloned().collect();
+                let m2: HashMap<_, _> = w2.iter().cloned().collect();
+                let mut keys: Vec<_> = m1.keys().chain(m2.keys()).cloned().filter(|k| m1.get(k) != m2.get(k)).collect();
+                keys.sort_unstable();
+                keys.dedup();
+                let shown: Vec<String> = keys.iter().take(8).map(|k| format!("[{k:#x}: original {:?} port {:?}]", m1.get(k), m2.get(k))).collect();
+                println!("FAIL {name}: {} bytes differ {}", keys.len(), shown.join(" "));
+            } else {
+                println!("ok   {name}: {} bytes changed, returned {r1:#x}", w1.len());
+            }
+        }
+        _ => println!("{name}: original {a:?} / port {b:?}"),
+    }
+    if std::env::var("TS_VERIFY_COVERAGE").is_ok() {
+        if let Some(sym) = syms.iter().find(|x| x.addr == addr && x.is_func) {
+            let covered = COVERAGE.lock().unwrap().take().unwrap_or_default();
+            let total = sym.size / 4;
+            let hit = (0..total).filter(|k| covered.contains(&(addr + k * 4))).count();
+            println!("coverage {name}: {hit} of {total} instructions");
+        }
+    }
+}
+
 fn verbose_frames() -> bool {
     std::env::var_os("TS_VERIFY_FAULTS").is_some()
 }
@@ -683,6 +740,11 @@ fn main() {
         run_frames(&ctx, &syms, &snapshots, n);
         return;
     }
+    // `TS_VERIFY_CAPTURE=file.cap` (written by the port, see `ts_rt::capture`): run the function of the capture on the memory and the arguments of that call
+    if let Ok(path) = std::env::var("TS_VERIFY_CAPTURE") {
+        run_capture(&ctx, &syms, &path);
+        return;
+    }
     let (mut pass, mut fail, mut skip, mut vacuous) = (0, 0, 0, 0);
     let mut failures = Vec::new();
     for &(addr, name, ni, nf, _rk) in FUNC_INFO {
@@ -713,10 +775,33 @@ fn main() {
                 apply_perturb(&mut rng);
             }
             let (mut ints, floats) = gen_inputs(&mut rng, ni, nf);
+            // `TS_VERIFY_ARGS=name=hex,hex,...` (with `TS_VERIFY_SNAPSHOT` of a memory image captured in the port during a call, and `TS_VERIFY_SP` below the stack that was in use): run the function on the arguments it was called with
+            if let Ok(spec) = std::env::var("TS_VERIFY_ARGS") {
+                if let Some((n, list)) = spec.split_once('=') {
+                    if n == name {
+                        for (i, v) in list.split(',').enumerate().take(8) {
+                            ints[i] = i64::from_str_radix(v.trim().trim_start_matches("0x"), 16).unwrap_or(0) as i32 as i64;
+                        }
+                    }
+                }
+            }
+            if let Some(sp) = std::env::var("TS_VERIFY_SP").ok().and_then(|v| u32::from_str_radix(v.trim_start_matches("0x"), 16).ok()) {
+                INTERP_SP.store(sp, std::sync::atomic::Ordering::Relaxed);
+                ts_rt::frame::set_sp(sp);
+            }
             if !snapshots.is_empty() {
                 use_real_model(&mut rng, name, &mut ints);
             }
             let a = run_interp(&ctx, addr, &ints, &floats);
+            if std::env::var_os("TS_VERIFY_INTERP_ONLY").is_some() {
+                match &a {
+                    Outcome::Ok { ret, writes, stores, .. } => println!("interpreter: finished, returned {ret:#x}, {} bytes changed, {} stores", writes.len(), stores.len()),
+                    Outcome::Skip(s) => println!("interpreter: {s}"),
+                    Outcome::Panic(p) => println!("interpreter: fault {p}"),
+                    Outcome::Trap => println!("interpreter: trap"),
+                }
+                continue;
+            }
             if let Outcome::Skip(s) = &a {
                 // TS_VERIFY_SMALL: a run whose loops do not finish is left out, the others still count
                 // (a huge count also lets the original write past the end of RAM, where the interpreter wraps round over its own code: that run is left out too)

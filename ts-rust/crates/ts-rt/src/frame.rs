@@ -36,6 +36,11 @@ impl Drop for Frame {
     }
 }
 
+/// Move the stack of the thread (the verifier does this to run a function on a captured memory image, whose stack is in use above it).
+pub fn set_sp(sp: u32) {
+    SP.with(|s| s.set(sp));
+}
+
 /// Current native stack pointer (lowest address in use by live frames).
 pub fn current_sp() -> u32 {
     SP.with(|s| s.get())
