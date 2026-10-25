@@ -55,6 +55,8 @@ pub fn call_extern(name: &str, c: &mut Cpu) -> Option<()> {
     let ret_i32 = |c: &mut Cpu, v: i32| c.r[2] = v as i64 as u64;
     let ret_f = |c: &mut Cpu, v: f32| c.f[0] = v.to_bits();
     match name {
+        // calls to the console that change nothing in the game's memory (the port's sound transfer writes only to the sound chip's memory)
+        "FlushCache" | "InvalidDCache" | "sceSdTransToIOP" | "sceSdRemote" => ret_i32(c, 0),
         "memset" => ret_i32(c, memset(a0, a1, a2)),
         "memcpy" => ret_i32(c, memcpy(a0, a1, a2)),
         "bcopy" => ret_i32(c, bcopy(a0, a1, a2)),
@@ -110,7 +112,17 @@ pub fn call_extern(name: &str, c: &mut Cpu) -> Option<()> {
 /// The addresses of the instructions the interpreter ran (kept only when `TS_VERIFY_COVERAGE` is set, to show which parts of a function the tests reach).
 pub static COVERAGE: std::sync::Mutex<Option<std::collections::HashSet<u32>>> = std::sync::Mutex::new(None);
 
-pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> Outcome {
+/// What one run of the original code ended with (without the memory writes, which `run_interp` collects).
+pub struct Ran {
+    pub res: Result<Result<(), Stop>, String>,
+    pub unsupported: Option<String>,
+    pub exited: bool,
+    pub ret: i64,
+    pub fret: f32,
+}
+
+/// Run the original code at `addr` in the interpreter; the caller keeps the trace of the stores (and rolls them back).
+pub fn exec_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> Ran {
     let mut c = Cpu::new();
     for i in 0..8 {
         c.r[4 + i] = ints[i] as u64;
@@ -120,7 +132,6 @@ pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> O
     c.r[29] = match INTERP_SP.load(std::sync::atomic::Ordering::Relaxed) { 0 => STACK_TOP - 16, v => v } as u64;
     c.r[31] = SENTINEL as u64;
     c.pc = addr;
-    trace::start();
     let mut unsupported: Option<String> = None;
     let mut exited = false;
     let res = silent(|| {
@@ -155,22 +166,28 @@ pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> O
         }
         r
     });
+    Ran { res, unsupported, exited, ret: c.r[2] as i64, fret: f32::from_bits(c.f[0]) }
+}
+
+pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> Outcome {
+    trace::start();
+    let ran = exec_interp(ctx, addr, ints, floats);
     let log = trace::stop();
     let writes = changed(&log);
     trace::rollback(&log);
     let log: Vec<trace::Store> = log.into_iter().filter(|s| !s.bulk && s.addr < STACK_LIMIT).collect();
-    if let Some(u) = unsupported {
+    if let Some(u) = ran.unsupported {
         return Outcome::Skip(u);
     }
-    if exited {
+    if ran.exited {
         return Outcome::Trap;
     }
-    match res {
+    match ran.res {
         Err(p) => Outcome::Panic(p),
         Ok(Err(Stop::Unsupported(s))) => Outcome::Skip(s),
         Ok(Err(Stop::Timeout)) => Outcome::Skip("timeout".into()),
         Ok(Err(Stop::Trap)) => Outcome::Trap,
-        Ok(Ok(())) => Outcome::Ok { ret: c.r[2] as i64, fret: f32::from_bits(c.f[0]), writes, stores: log },
+        Ok(Ok(())) => Outcome::Ok { ret: ran.ret, fret: ran.fret, writes, stores: log },
     }
 }
 

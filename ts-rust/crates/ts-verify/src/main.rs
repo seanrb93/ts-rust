@@ -146,6 +146,28 @@ fn perturb_bullets(rng: &mut Rng) {
     }
 }
 
+/// With snapshots, the functions that walk a model get a real one (the model of a character of the level) as their first argument, and the bone 0 where they take one: a random pointer makes them recurse for ever.
+fn use_real_model(rng: &mut Rng, name: &str, ints: &mut [i64; 8]) {
+    use ts_game::g;
+    let takes_bone = matches!(name, "partColour" | "partTransform" | "partSetTextureOffset");
+    if !takes_bone && !matches!(name, "obColour" | "obTransform" | "obSetTexList") {
+        return;
+    }
+    let count = lw(g::numactivechars).clamp(0, 32);
+    let prop = if count > 0 && rng.below(4) != 0 {
+        lw(lw(g::chrinfo) + rng.below(count as u64) as i32 * 0x1210 + 3020)
+    } else {
+        lw(lw(g::players) + 384)
+    };
+    let model = lw(lw(prop + 32));
+    if model != 0 {
+        ints[0] = model as i64;
+        if takes_bone {
+            ints[1] = 0;
+        }
+    }
+}
+
 /// Change the state of the first player and of its pad at random (see `TS_VERIFY_PERTURB`).
 fn perturb_player(rng: &mut Rng) {
     use ts_game::g;
@@ -376,6 +398,135 @@ fn changes_equal_mod_nan(w1: &[(u32, u8)], w2: &[(u32, u8)], s1: &[trace::Store]
     })
 }
 
+/// The calls of one frame of the game in order (see `bossMainLoop`); the players' ticks each with its player current.
+fn frame_calls(syms: &[ts_rt::loader::Symbol]) -> Vec<(u32, Option<i32>)> {
+    let addr = |n: &str| syms.iter().find(|s| s.name == n).unwrap().addr;
+    let mut calls = vec![(addr("gameTick"), None), (addr("lvTickBefore"), None)];
+    let players = lw(ts_game::g::lvnumplayers).clamp(0, 4);
+    for index in 0..players {
+        calls.push((addr("lvTickPlayer"), Some(index)));
+    }
+    calls.push((addr("lvTickAfter"), None));
+    calls
+}
+
+fn run_frames(ctx: &Ctx, syms: &[ts_rt::loader::Symbol], snapshots: &[Vec<u8>], n: usize) {
+    use ts_game::g;
+    let frames: usize = std::env::var("TS_VERIFY_FRAMES").ok().and_then(|v| v.parse().ok()).unwrap_or(3);
+    let from: usize = std::env::var("TS_VERIFY_FROM").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
+    let (mut ok, mut bad, mut skipped) = (0, 0, 0);
+    for t in from..n {
+        let mut rng = Rng(0x51_7C_C1B7_2722_0A95 ^ (t as u64 + 1) * 0x1234567);
+        let image = &snapshots[t % snapshots.len()];
+        host_slice(0, image.len()).copy_from_slice(image);
+        sw(g::currentplayer, lw(g::players));
+        match std::env::var("TS_VERIFY_PERTURB") {
+            Ok(mode) if mode == "bullets" => perturb_bullets(&mut rng),
+            Ok(_) => perturb_player(&mut rng),
+            Err(_) => {}
+        }
+        let calls = frame_calls(syms);
+        let set_player = |index: Option<i32>| {
+            if let Some(i) = index {
+                sw(g::currentplayer, lw(g::players) + i * 1820);
+            }
+        };
+        let zeros = ([0i64; 8], [0f32; 8]);
+        // the original
+        trace::start();
+        let mut note: Option<String> = None;
+        'interp: for _ in 0..frames {
+            for &(addr, player) in &calls {
+                set_player(player);
+                let ran = exec_interp(ctx, addr, &zeros.0, &zeros.1);
+                if let Some(u) = ran.unsupported {
+                    note = Some(u);
+                    break 'interp;
+                }
+                if ran.exited || !matches!(ran.res, Ok(Ok(()))) {
+                    note = Some(format!("interpreter stopped: {:?}", ran.res.as_ref().err()));
+                    break 'interp;
+                }
+            }
+        }
+        let log1 = trace::stop();
+        let w1 = changed(&log1);
+        trace::rollback(&log1);
+        let s1: Vec<trace::Store> = log1.into_iter().filter(|s| !s.bulk && s.addr < STACK_LIMIT).collect();
+        if let Some(why) = note {
+            skipped += 1;
+            if verbose_frames() {
+                println!("run {t}: skipped ({why})");
+            }
+            continue;
+        }
+        // the port
+        sw(g::currentplayer, lw(g::players));
+        trace::start();
+        let mut fault: Option<String> = None;
+        'native: for _ in 0..frames {
+            for &(addr, player) in &calls {
+                set_player(player);
+                if let Err(p) = silent(|| call_any(addr, zeros.0, zeros.1)) {
+                    fault = Some(p);
+                    break 'native;
+                }
+            }
+        }
+        let log2 = trace::stop();
+        let w2 = changed(&log2);
+        trace::rollback(&log2);
+        let s2: Vec<trace::Store> = log2.into_iter().filter(|s| !s.bulk && s.addr < STACK_LIMIT).collect();
+        // words the original takes from stack garbage (see `TS_VERIFY_IGNORE`): the last hit that `bulletInitialiseStraightLineTest` puts back, and the wall normal of `moveStep`
+        let ignored = |a: u32| (0x3aea90..0x3aeab8).contains(&a) || (0x3b0118..0x3b0124).contains(&a);
+        let w1: Vec<(u32, u8)> = w1.into_iter().filter(|(a, _)| !ignored(*a)).collect();
+        let w2: Vec<(u32, u8)> = w2.into_iter().filter(|(a, _)| !ignored(*a)).collect();
+        if let Some(p) = fault {
+            bad += 1;
+            println!("FAIL run {t}: the port faulted ({p}) where the original ran to the end");
+            continue;
+        }
+        if w1 != w2 && !stores_equal_mod_nan(&s1, &s2) && !changes_equal_mod_nan(&w1, &w2, &s1, &s2) {
+            bad += 1;
+            let m1: HashMap<_, _> = w1.iter().cloned().collect();
+            let m2: HashMap<_, _> = w2.iter().cloned().collect();
+            let mut keys: Vec<_> = m1.keys().chain(m2.keys()).cloned().filter(|k| m1.get(k) != m2.get(k)).collect();
+            keys.sort_unstable();
+            keys.dedup();
+            let shown: Vec<String> = keys.iter().take(6).map(|k| format!("[{k:#x}: original {:?} port {:?}]", m1.get(k), m2.get(k))).collect();
+            println!("FAIL run {t}: {} bytes differ {}", keys.len(), shown.join(" "));
+        } else {
+            ok += 1;
+        }
+    }
+    if std::env::var("TS_VERIFY_COVERAGE").map_or(false, |v| v == "all") {
+        print_all_coverage(syms);
+    }
+    println!("
+== frames: {ok} ok, {bad} differ, {skipped} skipped ==");
+}
+
+/// Every function the runs went through: how much of it ran (the functions below the driver are checked as part of it).
+fn print_all_coverage(syms: &[ts_rt::loader::Symbol]) {
+    let covered = COVERAGE.lock().unwrap().take().unwrap_or_default();
+    let mut rows: Vec<(String, u32, u32)> = Vec::new();
+    for sym in syms.iter().filter(|x| x.is_func && x.size >= 4) {
+        let total = sym.size / 4;
+        let hit = (0..total).filter(|k| covered.contains(&(sym.addr + k * 4))).count() as u32;
+        if hit > 0 {
+            rows.push((sym.name.clone(), hit, total));
+        }
+    }
+    rows.sort_by(|a, b| (b.2 - b.1).cmp(&(a.2 - a.1)));
+    for (n, h, t) in &rows {
+        println!("cover {n}: {h} of {t}");
+    }
+}
+
+fn verbose_frames() -> bool {
+    std::env::var_os("TS_VERIFY_FAULTS").is_some()
+}
+
 fn find_root() -> PathBuf {
     let mut d = std::env::current_dir().unwrap();
     loop {
@@ -449,6 +600,12 @@ fn main() {
         .map(|v| v.split(',').filter_map(|f| std::fs::read(f.trim()).ok()).collect())
         .unwrap_or_default();
 
+    // `frames`: run whole frames of the game's tick (as `bossMainLoop` does) one after the other on each snapshot, in the interpreter and in the port, and compare all the memory they changed
+    // (`TS_VERIFY_FRAMES=k` frames a run, 3 by default); a difference that only shows after the state has moved on (a bullet that flies for a few frames) is found this way
+    if names.len() == 1 && names[0] == "frames" {
+        run_frames(&ctx, &syms, &snapshots, n);
+        return;
+    }
     let (mut pass, mut fail, mut skip, mut vacuous) = (0, 0, 0, 0);
     let mut failures = Vec::new();
     for &(addr, name, ni, nf, _rk) in FUNC_INFO {
@@ -484,7 +641,10 @@ fn main() {
                     }
                 }
             }
-            let (ints, floats) = gen_inputs(&mut rng, ni, nf);
+            let (mut ints, floats) = gen_inputs(&mut rng, ni, nf);
+            if !snapshots.is_empty() {
+                use_real_model(&mut rng, name, &mut ints);
+            }
             let a = run_interp(&ctx, addr, &ints, &floats);
             if let Outcome::Skip(s) = &a {
                 // TS_VERIFY_SMALL: a run whose loops do not finish is left out, the others still count
@@ -569,7 +729,9 @@ fn main() {
                 break;
             }
         }
-        if std::env::var_os("TS_VERIFY_COVERAGE").is_some() {
+        if std::env::var("TS_VERIFY_COVERAGE").map_or(false, |v| v == "all") {
+            print_all_coverage(&syms);
+        } else if std::env::var_os("TS_VERIFY_COVERAGE").is_some() {
             if let Some(sym) = syms.iter().find(|x| x.addr == addr && x.is_func) {
                 let covered = COVERAGE.lock().unwrap().take().unwrap_or_default();
                 let total = sym.size / 4;
