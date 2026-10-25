@@ -127,7 +127,7 @@ pub fn StatsGetChar(stat: i32, slot: i32, other: i32) -> f32 {
     }
 }
 
-/// The pad nearest to `pos` (three floats) and nearer than `radius` (+ a constant) squared and than the distance at 0x3aeb30; -1 if none (@ 0x266b90).
+/// The pad nearest to `pos` (three floats) that is at least `radius` (squared, plus a constant) away, and nearer than the distance at 0x3aeb30; -1 if none (@ 0x266b90).
 pub fn closestpad(pos: i32, radius: f32) -> i32 {
     let mut best_dist = lwc1(0x3aeb30);
     let mut best = -1;
@@ -142,7 +142,7 @@ pub fn closestpad(pos: i32, radius: f32) -> i32 {
             let dy = lwc1(pad + 16) - y;
             let dz = lwc1(pad + 20) - z;
             let d2 = dx * dx + dy * dy + dz * dz;
-            if d2 < best_dist && !(limit <= d2) {
+            if d2 < best_dist && limit <= d2 {
                 best_dist = d2;
                 best = i;
             }
