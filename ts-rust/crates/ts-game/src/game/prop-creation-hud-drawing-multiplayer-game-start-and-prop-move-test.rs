@@ -196,7 +196,7 @@ pub fn propNew(a0: i32, f12: f32, f13: f32, f14: f32, f15: f32) -> i32 {
     }
     if kind == 8 {
         let model = lw(slot + 32);
-        let first = lw(lw(model));
+        let first = lw(model);
         let parts_count = lw(first);
         let parts = first - parts_count * 80;
         if parts_count > 0 {

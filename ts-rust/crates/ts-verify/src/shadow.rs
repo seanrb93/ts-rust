@@ -11,6 +11,7 @@ use std::sync::{Mutex, OnceLock};
 
 static CTX: OnceLock<Ctx> = OnceLock::new();
 static FILTER: OnceLock<HashSet<String>> = OnceLock::new();
+static CALLS: Mutex<Option<HashMap<&'static str, u32>>> = Mutex::new(None);
 static STATS: Mutex<Option<HashMap<&'static str, (u32, u32, u32)>>> = Mutex::new(None); // ok, mismatch, skipped
 
 thread_local! {
@@ -56,7 +57,21 @@ pub fn summary() -> String {
 
 fn hook(addr: u32, name: &'static str, ints: [i64; 8], floats: [f32; 8]) -> Option<Box<dyn FnOnce()>> {
     let filter = FILTER.get()?;
-    if !filter.contains(name) || ACTIVE.with(|a| a.get()) {
+    if ACTIVE.with(|a| a.get()) {
+        return None;
+    }
+    if filter.contains("*") {
+        // every function, but only some of its calls: the first `TS_SHADOW_FIRST` (3) and then one in `TS_SHADOW_EVERY` (1000), so that a whole run can be checked
+        let first: u32 = std::env::var("TS_SHADOW_FIRST").ok().and_then(|v| v.parse().ok()).unwrap_or(3);
+        let every: u32 = std::env::var("TS_SHADOW_EVERY").ok().and_then(|v| v.parse().ok()).unwrap_or(1000).max(1);
+        let mut g = CALLS.lock().unwrap();
+        let n = g.get_or_insert_with(HashMap::new).entry(name).or_insert(0);
+        let this = *n;
+        *n += 1;
+        if this >= first && this % every != 0 {
+            return None;
+        }
+    } else if !filter.contains(name) {
         return None;
     }
     ACTIVE.with(|a| a.set(true));
