@@ -619,6 +619,14 @@ fn run_capture(ctx: &Ctx, syms: &[ts_rt::loader::Symbol], path: &str) {
     let b = run_native(addr, &ints, &floats);
     match (&a, &b) {
         (Outcome::Ok { ret: r1, writes: w1, stores: s1, .. }, Outcome::Ok { ret: r2, writes: w2, stores: s2, .. }) => {
+            // `TS_VERIFY_STORES=hexaddress`: every store of either side that covers that address, in order (where did a value come from)
+            if let Some(at) = std::env::var("TS_VERIFY_STORES").ok().and_then(|v| u32::from_str_radix(v.trim_start_matches("0x"), 16).ok()) {
+                for (label, ss) in [("original", s1), ("port", s2)] {
+                    for x in ss.iter().filter(|x| at >= x.addr && at < x.addr + x.size as u32) {
+                        println!("  {label} store {:#x} +{} = {:02x?} pc {:#x}", x.addr, x.size, &x.new[..x.size as usize], x.tag);
+                    }
+                }
+            }
             let same_ret = rk != 1 || (*r1 as i32) == (*r2 as i32);
             if !same_ret {
                 println!("FAIL {name}: returned {r1:#x} in the original, {r2:#x} in the port");
@@ -628,7 +636,7 @@ fn run_capture(ctx: &Ctx, syms: &[ts_rt::loader::Symbol], path: &str) {
                 let mut keys: Vec<_> = m1.keys().chain(m2.keys()).cloned().filter(|k| m1.get(k) != m2.get(k)).collect();
                 keys.sort_unstable();
                 keys.dedup();
-                let shown: Vec<String> = keys.iter().take(8).map(|k| format!("[{k:#x}: original {:?} port {:?}]", m1.get(k), m2.get(k))).collect();
+                let shown: Vec<String> = keys.iter().take(std::env::var("TS_VERIFY_SHOW").ok().and_then(|v| v.parse().ok()).unwrap_or(8)).map(|k| format!("[{k:#x}: original {:?} port {:?}]", m1.get(k), m2.get(k))).collect();
                 println!("FAIL {name}: {} bytes differ {}", keys.len(), shown.join(" "));
             } else {
                 println!("ok   {name}: {} bytes changed, returned {r1:#x}", w1.len());

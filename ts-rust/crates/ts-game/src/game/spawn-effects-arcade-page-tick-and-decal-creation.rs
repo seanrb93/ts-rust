@@ -357,25 +357,23 @@ pub fn arcade_pageTick(a0: i32) {
     let state = 0x1fc11f8;
     let mut count = lw(state + 56);
     if lw(state + 36) == 18 {
-        if lw(lw(g::mmtempbuffer)) == 0x1324626 {
-            if count > 0 {
-                y = ((y + 9) << 16) >> 16;
-            }
-            let language = lw(g::cur_language);
-            let flags = lbu(g::fontflags);
-            let flags_item = lhu(item + 10);
-            sh(item + 6, y);
-            let strings = lw((language << 2) + g::languages);
-            sh(item + 10, flags_item & 0xbdbf);
-            sw(item, lw(strings + 1632));
-            let second = item + 32;
-            let row = if (flags & 1) == 0 { y - 1 + lw(lw(g::curfont) + 12) } else { y - 1 + (lw(lw(g::curfont) + 12) >> 1) };
-            sh(second + 6, (row << 16) >> 16);
-            count += 2;
-            let label = lw(lw((language << 2) + g::languages) + 1636);
-            sh(second + 10, lhu(second + 10) & 0xbdbf);
-            sw(second, label);
+        if count > 0 {
+            y = ((y + 9) << 16) >> 16;
         }
+        let language = lw(g::cur_language);
+        let flags = lbu(g::fontflags);
+        let flags_item = lhu(item + 10);
+        sh(item + 6, y);
+        let strings = lw((language << 2) + g::languages);
+        sh(item + 10, flags_item & 0xbdbf);
+        sw(item, lw(strings + 1632));
+        let second = item + 32;
+        let row = if (flags & 1) == 0 { y - 1 + lw(lw(g::curfont) + 12) } else { y - 1 + (lw(lw(g::curfont) + 12) >> 1) };
+        sh(second + 6, (row << 16) >> 16);
+        count += 2;
+        let label = lw(lw((language << 2) + g::languages) + 1636);
+        sh(second + 10, lhu(second + 10) & 0xbdbf);
+        sw(second, label);
     }
     let picked = if lhu(a0 + 4) < count + 3 {
         lhu(a0 + 4)
