@@ -36,6 +36,38 @@ def function_addresses():
     return found
 
 
+def hook_platform(native):
+    """Put a call to `ts_rt::shadow::extern_hook` at the start of every routine of the SDK replacement that takes a slice of arguments or only 32-bit numbers, so that a live check can answer them
+    with made-up values and log them (`TS_SHADOW_EXTERN`, see `ts-verify/src/shadow.rs`)."""
+    count = 0
+    for fn in os.listdir(native):
+        if not fn.endswith('.rs'):
+            continue
+        path = os.path.join(native, fn)
+        result = []
+        for line in open(path, encoding='utf8').read().split(chr(10)):
+            result.append(line)
+            m = re.match(r'^pub fn (\w+)\((.*)\) -> i32 \{\s*$', line)
+            if not m:
+                continue
+            params = [x.strip() for x in m.group(2).split(',') if x.strip()]
+            if len(params) == 1 and params[0].endswith(': &[i64]'):
+                args = '&' + params[0].split(':')[0].strip()
+            elif all(re.match(r'^_?\w+: i32$', x) for x in params):
+                args = '&[%s]' % ', '.join(x.split(':')[0].strip() + ' as i64' for x in params)
+            else:
+                continue
+            result.append('    #[cfg(feature = "shadow")]' + chr(10) + '    if let Some(r) = ts_rt::shadow::extern_hook("%s", %s) { return r as i32; }' % (m.group(1), args))
+            count += 1
+        open(path, 'w', encoding='utf8').write(chr(10).join(result))
+    # the generated stubs of routines that the port does not implement (the graphics chip, threads, interrupts) are logged too
+    path = os.path.join(native, '..', 'stubs.rs')
+    text = open(path, encoding='utf8').read()
+    text, n = re.subn(r'pub fn (\w+)\(args: &\[i64\]\) -> i32 \{ ts_rt::stub_called', lambda m: 'pub fn %s(args: &[i64]) -> i32 { #[cfg(feature = "shadow")] if let Some(r) = ts_rt::shadow::extern_hook("%s", args) { return r as i32; } ts_rt::stub_called' % (m.group(1), m.group(1)), text)
+    open(path, 'w', encoding='utf8').write(text)
+    return count + n
+
+
 def main():
     out = os.path.join(os.environ.get('TEMP', '/tmp'), 'ts-capture-build')
     if '--out' in sys.argv:
@@ -81,6 +113,7 @@ def main():
                 count += 1
             open(path, 'w', encoding='utf8').write('\n'.join(result))
     print('hooked %d functions' % count)
+    print('hooked %d platform routines' % hook_platform(os.path.join(out, 'crates', 'ts-sdk', 'src', 'native')))
     env = dict(os.environ, CARGO_TARGET_DIR=os.path.join(out, 'target'))
     features = ['--features', 'shadow'] if '--shadow' in sys.argv else []
     r = subprocess.run(['cargo', 'build', '--release', '-p', 'ts-port'] + features, cwd=out, env=env)

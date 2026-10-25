@@ -28,3 +28,18 @@ pub fn enter(addr: u32, name: &'static str, ints: [i64; 8], floats: [f32; 8]) ->
         None => Guard(None),
     }
 }
+
+/// Called at the start of a platform routine (the Sony SDK, the sound and pad servers; the development build puts the call there): a hook may answer instead of the routine, so that
+/// the original code and the port see the same replies and the calls they make can be compared.
+pub type ExternHook = fn(&'static str, &[i64]) -> Option<i64>;
+
+static EXTERN_HOOK: OnceLock<ExternHook> = OnceLock::new();
+
+pub fn set_extern_hook(h: ExternHook) {
+    let _ = EXTERN_HOOK.set(h);
+}
+
+#[inline]
+pub fn extern_hook(name: &'static str, args: &[i64]) -> Option<i64> {
+    EXTERN_HOOK.get().and_then(|h| h(name, args))
+}

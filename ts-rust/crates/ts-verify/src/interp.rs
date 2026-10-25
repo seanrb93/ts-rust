@@ -46,6 +46,116 @@ pub struct Ctx {
     pub gp: u64,
 }
 
+/// One call of a platform routine that the original code made while the replies were stubbed (`TS_SHADOW_EXTERN`): the name and the first eight arguments as 32-bit numbers.
+pub type ExternCall = (String, Vec<i32>);
+
+thread_local! {
+    /// In the live check the routines that read the disc are not stubbed (the game would miss the file it loads): a function that calls one is left unchecked.
+    pub static DENY_DISC: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    pub static STUB_VARIANT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    /// Whether the routines that the interpreter cannot run answer with `stub_value` and are logged (set by the live shadow check).
+    pub static STUB_EXTERNS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    pub static EXTERN_LOG: std::cell::RefCell<Vec<ExternCall>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Take what was logged since the last call.
+pub fn take_extern_log() -> Vec<ExternCall> {
+    EXTERN_LOG.with(|l| std::mem::take(&mut *l.borrow_mut()))
+}
+
+/// The reply both sides get for the `index`-th stubbed call of a check (`variant` changes from check to check, so that different branches of the callers are reached).
+pub fn stub_value(name: &str, index: usize, variant: usize) -> i64 {
+    let list: &[i64] = match name {
+        "scePadGetState" => &[6, 1, 0, 2],
+        "scePadGetSlotMax" => &[1, 4],
+        "scePadGetReqState" => &[0, 1],
+        "scePadRead" => &[1, 0],
+        "sceMcSync" => &[1, 1, 0, -1],
+        "malloc" => return 0x0170_0000,
+        "sceSifAllocIopHeap" => return 0x1_0000 + index as i64 * 0x1000,
+        "scePadPortOpen" | "scePadInit" | "sceMtapInit" | "sceMtapPortOpen" | "sceSifLoadModule" | "sceMcInit" => &[1],
+        "sceMtapGetConnection" => &[0, 1, 1],
+        "CreateSema" => return 1,
+        _ => &[0, 0, 1, -1, 2],
+    };
+    list[(variant + index) % list.len()]
+}
+
+/// Platform routines that the interpreter runs itself or answers with 0 (they are neither stubbed nor logged).
+const NATIVE_EXTERNS: &[&str] = &[
+    "sscanf",
+    "sceCdRead", "sceCdSync", "sceCdInit", "sceCdMmode", "sceCdDiskReady", "sceCdGetError", "sceCdReadClock", "sceOpen", "sceLseek", "sceClose", "sceWrite",
+    "FlushCache",
+    "InvalidDCache",
+    "__divdi3",
+    "acosf",
+    "asinf",
+    "atan",
+    "atan2",
+    "atan2f",
+    "atoi",
+    "bcopy",
+    "cosf",
+    "dpadd",
+    "dpcmp",
+    "dpdiv",
+    "dpmul",
+    "dpsub",
+    "dptofp",
+    "dptoli",
+    "dptoul",
+    "exit",
+    "floor",
+    "floorf",
+    "fptodp",
+    "fptoui",
+    "memcpy",
+    "memset",
+    "pow",
+    "powf",
+    "sceSdRemote",
+    "sceSdTransToIOP",
+    "sceVu0CopyMatrix",
+    "sceVu0InversMatrix",
+    "sceVu0MulMatrix",
+    "sceVu0TransposeMatrix",
+    "sceVu0UnitMatrix",
+    "sinf",
+    "sprintf",
+    "sqrt",
+    "sqrtf",
+    "strcasecmp",
+    "strcat",
+    "strchr",
+    "strcmp",
+    "strcpy",
+    "strlen",
+    "strncmp",
+    "strncpy",
+    "tanf",
+    "vsprintf",
+];
+
+/// What a stubbed routine writes through its pointer arguments (the same on both sides): the memory card's answer, so that the code that reads it does not read stale stack.
+pub fn stub_effect(name: &str, args: &[i32], ret: i64, index: usize, variant: usize) {
+    if name == "sceMcSync" && ret == 1 && args.len() > 2 {
+        if args[1] != 0 {
+            sw(args[1], 0);
+        }
+        if args[2] != 0 {
+            sw(args[2], [0, -2, 3, 1, -1, 7][(variant + index) % 6]);
+        }
+    }
+}
+
+pub fn is_disc_routine(name: &str) -> bool {
+    ["sceCd", "sceOpen", "sceClose", "sceRead", "sceWrite", "sceLseek", "sceFs", "sceDev", "sceIo"].iter().any(|p| name.starts_with(p))
+}
+
+pub fn extern_is_native(name: &str) -> bool {
+    NATIVE_EXTERNS.contains(&name)
+}
+
 pub fn call_extern(name: &str, c: &mut Cpu) -> Option<()> {
     use ts_sdk::*;
     let (a0, a1, a2) = (c.r[4] as i32, c.r[5] as i32, c.r[6] as i32);
@@ -57,6 +167,24 @@ pub fn call_extern(name: &str, c: &mut Cpu) -> Option<()> {
     match name {
         // calls to the console that change nothing in the game's memory (the port's sound transfer writes only to the sound chip's memory)
         "FlushCache" | "InvalidDCache" | "sceSdTransToIOP" | "sceSdRemote" => ret_i32(c, 0),
+        // the disc and the files of the virtual disc: the port's own routines (they read files and change nothing but the memory, which the trace undoes, and the list of open files, which the game closes again)
+        "sceCdRead" | "sceCdSync" | "sceCdInit" | "sceCdMmode" | "sceCdDiskReady" | "sceCdGetError" | "sceCdReadClock" | "sceOpen" | "sceLseek" | "sceClose" | "sceWrite" => {
+            let args: Vec<i64> = (4..12).map(|i| c.r[i] as i32 as i64).collect();
+            let r = match name {
+                "sceCdRead" => sceCdRead(&args),
+                "sceCdSync" => sceCdSync(&args),
+                "sceCdInit" => sceCdInit(&args),
+                "sceCdMmode" => sceCdMmode(&args),
+                "sceCdDiskReady" => sceCdDiskReady(&args),
+                "sceCdGetError" => sceCdGetError(&args),
+                "sceCdReadClock" => sceCdReadClock(&args),
+                "sceOpen" => sceOpen(&args),
+                "sceLseek" => sceLseek(&args),
+                "sceClose" => sceClose(&args),
+                _ => sceWrite(&args),
+            };
+            ret_i32(c, r)
+        }
         "memset" => ret_i32(c, memset(a0, a1, a2)),
         "memcpy" => ret_i32(c, memcpy(a0, a1, a2)),
         "bcopy" => ret_i32(c, bcopy(a0, a1, a2)),
@@ -75,6 +203,10 @@ pub fn call_extern(name: &str, c: &mut Cpu) -> Option<()> {
         "sceVu0TransposeMatrix" => ret_i32(c, sceVu0TransposeMatrix(a0, a1)),
         "sceVu0InversMatrix" => ret_i32(c, sceVu0InversMatrix(a0, a1)),
         "vsprintf" => ret_i32(c, vsprintf(a0, a1, a2)),
+        "sscanf" => {
+            let v: Vec<i64> = (4..12).map(|i| c.r[i] as i64).collect();
+            ret_i32(c, sscanf(&v))
+        }
         "sprintf" => {
             let v: Vec<i64> = (4..12).map(|i| c.r[i] as i64).collect();
             ret_i32(c, sprintf(&v))
@@ -158,9 +290,18 @@ pub fn exec_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> 
                     return true;
                 }
                 if call_extern(name, cpu).is_none() {
-                    unsupported = Some(format!("extern {name}"));
-                    cpu.pc = SENTINEL;
-                    return true;
+                    if STUB_EXTERNS.with(|s| s.get()) && !(DENY_DISC.with(|d| d.get()) && is_disc_routine(name)) {
+                        let index = EXTERN_LOG.with(|l| l.borrow().len());
+                        EXTERN_LOG.with(|l| l.borrow_mut().push((name.clone(), (4..12).map(|i| cpu.r[i] as i32).collect())));
+                        let variant = STUB_VARIANT.with(|v| v.get());
+                        let value = stub_value(name, index, variant);
+                        cpu.r[2] = value as u64;
+                        stub_effect(name, &(4..12).map(|i| cpu.r[i] as i32).collect::<Vec<_>>(), value, index, variant);
+                    } else {
+                        unsupported = Some(format!("extern {name}"));
+                        cpu.pc = SENTINEL;
+                        return true;
+                    }
                 }
                 cpu.pc = cpu.r[31] as u32;
                 return true;

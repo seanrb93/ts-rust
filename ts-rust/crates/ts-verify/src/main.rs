@@ -794,7 +794,16 @@ fn main() {
             if !snapshots.is_empty() {
                 use_real_model(&mut rng, name, &mut ints);
             }
+            // `TS_VERIFY_EXTERN=1` (needs the build with `shadow-hook`): the platform calls (sound, pad, memory card, disc) get made-up replies on both sides and must be the same calls
+            #[cfg(feature = "shadow-hook")]
+            let stub = std::env::var_os("TS_VERIFY_EXTERN").is_some();
+            #[cfg(feature = "shadow-hook")]
+            if stub {
+                ts_verify::shadow::stub_begin(&ctx, t);
+            }
             let a = run_interp(&ctx, addr, &ints, &floats);
+            #[cfg(feature = "shadow-hook")]
+            let original_calls = if stub { ts_verify::shadow::stub_interp_done() } else { Vec::new() };
             if std::env::var_os("TS_VERIFY_INTERP_ONLY").is_some() {
                 match &a {
                     Outcome::Ok { ret, writes, stores, .. } => println!("interpreter: finished, returned {ret:#x}, {} bytes changed, {} stores", writes.len(), stores.len()),
@@ -814,6 +823,15 @@ fn main() {
                 break;
             }
             let b = run_native(addr, &ints, &floats);
+            #[cfg(feature = "shadow-hook")]
+            if stub {
+                let port_calls = ts_verify::shadow::stub_end();
+                // bossMakeAll: the port leaves out the setting up of the console (IOP, modules, DMA, threads, interrupts) on purpose, see `manual/boot.rs`
+                if name != "bossMakeAll" && !ts_verify::shadow::externs_match(&original_calls, &port_calls) {
+                    bad = Some(format!("test {t}: platform calls differ: original {original_calls:x?} port {port_calls:x?} (ints {ints:x?} floats {floats:?})"));
+                    break;
+                }
+            }
             if let Outcome::Skip(s) = &b {
                 skipped = Some(s.clone());
                 break;

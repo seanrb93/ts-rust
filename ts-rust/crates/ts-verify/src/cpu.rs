@@ -7,6 +7,12 @@ use ts_rt::*;
 pub const SENTINEL: u32 = 0xFFFF_FFF0;
 pub const STEP_LIMIT: u64 = 60_000_000;
 
+/// The number of instructions after which a run of the original is given up (`TS_VERIFY_STEPS` changes it: the loads of big files need more).
+fn step_limit() -> u64 {
+    static LIMIT: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *LIMIT.get_or_init(|| std::env::var("TS_VERIFY_STEPS").ok().and_then(|v| v.parse().ok()).unwrap_or(STEP_LIMIT))
+}
+
 #[derive(Debug)]
 pub enum Stop {
     Unsupported(String),
@@ -56,7 +62,7 @@ impl Cpu {
     pub fn run(&mut self, hook: &mut dyn FnMut(u32, &mut Cpu) -> bool) -> Result<(), Stop> {
         while self.pc != SENTINEL {
             self.steps += 1;
-            if self.steps > STEP_LIMIT {
+            if self.steps > step_limit() {
                 return Err(Stop::Timeout);
             }
             if hook(self.pc, self) {
