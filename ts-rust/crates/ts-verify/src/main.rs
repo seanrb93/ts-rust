@@ -692,6 +692,8 @@ fn main() {
     let elf = elf.unwrap_or_else(|| find_root().join("Game Files").join("SLUS_200.90"));
     init_memory();
     load_elf_data(&elf).expect("cannot load executable");
+    #[cfg(feature = "shadow-hook")]
+    ts_verify::shadow::install(&elf);
     let syms = read_symbols(&elf).unwrap();
     let gp = syms.iter().find(|s| s.name == "_gp").unwrap().addr as u64;
     let split = syms.iter().find(|s| s.name == "text_data_split").unwrap().addr;

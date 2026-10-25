@@ -10,4 +10,4 @@ ts-sdk = { path = "../ts-sdk" }
 ts-game = { path = "../ts-game" }
 
 [features]
-shadow-hook = ["ts-rt/shadow"]
+shadow-hook = ["ts-rt/shadow", "ts-game/shadow"]

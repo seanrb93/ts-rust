@@ -106,7 +106,12 @@ fn hook(addr: u32, name: &'static str, ints: [i64; 8], floats: [f32; 8]) -> Opti
     Some(Box::new(move || {
         let log = trace::stop();
         let full = log.clone();
+        // words the original takes from stack garbage (the last hit that `bulletInitialiseStraightLineTest` puts back, the wall normal of `moveStep`) and the first 64 KB are left out,
+        // and so is the clock that `timeTickEnd` reads: they differ for reasons that are not in the code
+        let ignored = |a: u32| a < 0x10000 || (0x3aea90..0x3aeab8).contains(&a) || (0x3b0118..0x3b0124).contains(&a) || (name == "timeTickEnd" && (0x3afc68..0x3afc70).contains(&a));
+        let w1: Vec<(u32, u8)> = w1.into_iter().filter(|(a, _)| !ignored(*a)).collect();
         let w2 = changed(&log);
+        let w2: Vec<(u32, u8)> = w2.into_iter().filter(|(a, _)| !ignored(*a)).collect();
         let log: Vec<trace::Store> = log.into_iter().filter(|s| !s.bulk && s.addr < STACK_TOP - 0x10_0000).collect();
         ACTIVE.with(|a| a.set(false));
         if w1 == w2 || stores_equal_mod_nan(&s1, &log) {

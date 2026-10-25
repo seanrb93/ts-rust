@@ -85,6 +85,10 @@ def main():
     features = ['--features', 'shadow'] if '--shadow' in sys.argv else []
     r = subprocess.run(['cargo', 'build', '--release', '-p', 'ts-port'] + features, cwd=out, env=env)
     print('built: ' + os.path.join(out, 'target', 'release', 'ts-port.exe' if os.name == 'nt' else 'ts-port'))
+    if r.returncode == 0 and '--shadow' in sys.argv:
+        # the verifier too, so that a run of whole frames on a snapshot can check the functions one by one (`TS_SHADOW=name,...`) and show which one differs
+        r = subprocess.run(['cargo', 'build', '--release', '-p', 'ts-verify', '--features', 'shadow-hook'], cwd=out, env=env)
+        print('built: ' + os.path.join(out, 'target', 'release', 'ts-verify.exe' if os.name == 'nt' else 'ts-verify'))
     sys.exit(r.returncode)
 
 

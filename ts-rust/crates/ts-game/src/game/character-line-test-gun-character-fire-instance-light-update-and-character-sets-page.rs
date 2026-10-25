@@ -472,7 +472,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
                                     loop {
                                         n += 1;
                                         let damage = lwc1(shot + 20) * scale * (1.0_f32 - lwc1(mind + 2836));
-                                        propDamage(lw(mind + 2788), a1, sp + 32, -1, 0, 0, 0, 0, damage);
+                                        propDamage(lw(mind + 2788), a0, sp + 32, -1, 0, 0, 0, 0, damage);
                                         sw(g::offscreenshots, lw(g::offscreenshots) + 1);
                                         if n >= bullets {
                                             break;
