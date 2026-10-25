@@ -931,9 +931,6 @@ pub use statistics_medals::*;
 #[path = "animation-loading.rs"]
 pub mod animation_loading;
 pub use animation_loading::*;
-#[path = "player-and-bullet-ticks.rs"]
-pub mod player_and_bullet_ticks;
-pub use player_and_bullet_ticks::*;
 #[path = "memory-card-file-requests.rs"]
 pub mod memory_card_file_requests;
 pub use memory_card_file_requests::*;
@@ -973,3 +970,6 @@ pub use sign_on_player_list_pages::*;
 #[path = "player-tick.rs"]
 pub mod player_tick;
 pub use player_tick::*;
+#[path = "bullet-tick.rs"]
+pub mod bullet_tick;
+pub use bullet_tick::*;

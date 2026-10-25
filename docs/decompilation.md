@@ -94,11 +94,21 @@ out like a timeout.  `TS_VERIFY_FROM=n` starts a run at test number `n` (to find
 which is empty in the test memory), `profileTimeGet` and `timeTickEnd` (they return the port's clock), and the functions that call `vafmt`/`vsprintf` or a function pointer
 (`challengeFormatScore`, `gameFormatTime`, `menuitemGfx`, `menuitemCalcSize`, `hudRestart`, `obFreeTextures`, `hudReset`).
 
-## Transliterated functions
+## Functions that were machine translated
 
-Two functions are too long and too tangled to understand yet, and are kept as the machine translation with the frame's scratch words turned into named locals (`slot_N`) and the
-names of the original's registers: `obMergePolys` (`polygon-merging.rs`, matches the original on the verifier's small-number pass) and `glassSetQuad` (`glass-shard.rs`; the verifier
-does not pass stack arguments, so every run faults and it is **not** machine-verified).  They are counted as decompiled but should be rewritten when the structures they use are typed.
+Every function of `game/` is now written by hand.  The last ones that had been kept as the machine translation (`obMergePolys`, `glassSetQuad`, `playerTick`, `bulletTick`, and 62 platform functions) were rewritten with named locals, small helper functions for the repeated pieces, and the records described in the file headers.  Where the machine code spilled the address of a scratch word into the frame and loaded it again before each call (`bulletTick` keeps `sp+208` and the like in slots at `sp+244`), the hand-written code passes the address directly: the value is the same, only the stack words that nothing else reads are not written.
+
+## Verifier: game memory snapshots
+
+Random memory seldom reaches the deep branches of the big functions, so `ts-verify` can run on real game memory.  `TS_VERIFY_SNAPSHOT=a.bin,b.bin,...` loads a dump of the console's 32 MB (taken during play) into both machines before each run, and run `t` uses dump `t mod count`.  Three more variables make the snapshots reach more:
+
+- `TS_VERIFY_PERTURB=1` changes the first player at random before each run (pad buttons and sticks, the movement and aim modes, the aim weights, the characters in view, the records of the radar), from the same random numbers on both machines.  This is what verified `playerTick` (6000 runs).
+- `TS_VERIFY_PERTURB=bullets` fills the bullet table: with `TS_VERIFY_LONE=1` one bullet of a random kind (`TS_VERIFY_KINDS=low-high` limits the kinds), half of them shot at a character from close by, some stuck to it or with the prop of an earlier line test set.  This found the call of `updateProximityProps` that every way out of a mine's work makes.
+- `TS_VERIFY_COVERAGE=1` prints which instructions of the original function the interpreter never ran, so the branches that were not tested are known.
+
+Other switches for finding a failure: `TS_VERIFY_FAULTS=1` prints the faults of runs that are not compared, `TS_VERIFY_HISTORY=1` prints every store to the first differing byte on both sides (with the program counter of the original), `TS_VERIFY_SHOWBULLET=1` prints the perturbed bullet, and `TS_VERIFY_IGNORE=low-high` (hex) leaves a range out of the comparison.  The range is for words that the original takes from stack garbage: `bulletInitialiseStraightLineTest` puts the last hit back from words that `obGetLastHitInst` leaves unwritten when nothing was hit, and the original gets whatever an earlier call left in that stack slot, which a hand-written callee that keeps its scratch in locals cannot reproduce.  That is the only known difference of this kind (the last hit globals at 0x3aeaa0 to 0x3aeab0).
+
+Not run with snapshots: functions that recurse without end on a perturbed model (`obSetTexList` and the others listed above), which overflow the host stack.
 
 The verifier now runs `vsprintf` (so the text-formatting functions such as `gameFormatTime`, `challengeFormatScore` and the `hud*Gfx` ones are checked), compares NaN results by value and not by sign, seeds the allocator and screen globals before each run, and treats `exit` as a trap.  Functions that are still reviewed by hand only, each for a stated reason: `OpenXPM` (uses `sscanf`, which the interpreter does not run), `zbtestCopyZB` (calls the platform image store, which hangs), `profileTimeStart` and `profileTimeEnd` (read the hardware timer through `profileTimeGet`, so the two runs cannot agree), and the ones that fault or exit on every random run (`mapmakermain_pageTick`, `GetHeader`, `frontfxWaveyTexture`); `statsCombine`, `transformPart` and `main_pageDraw` pass only in the small-number pass because the full pass times out on large random counts.
 The two functions that the generator could only write as a loop over the address of the block (`emGetNextPos`, `enemyReselectTarget`) have been rewritten by hand from their blocks; note that random data seldom reaches the deep branches of `enemyReselectTarget` (the game mode there is usually out of range), so its verification is weak there.

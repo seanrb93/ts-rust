@@ -58,6 +58,94 @@ fn run_native(addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> Outcome {
     }
 }
 
+/// Fill the bullet table with random bullets (see `TS_VERIFY_PERTURB=bullets`): any kind, near the first player, with plausible owners, ages and speeds.
+fn perturb_bullets(rng: &mut Rng) {
+    use ts_game::g;
+    let p = lw(g::players);
+    let table = lw(0x3b0138);
+    let spread = |rng: &mut Rng, low: f32, high: f32| low + (high - low) * (rng.below(10001) as f32 / 10000.0);
+    let lone = rng.below(50) as i32;
+    for i in 0..50 {
+        let b = table + i * 276;
+        if std::env::var_os("TS_VERIFY_LONE").is_some() && i != lone || rng.below(3) == 0 {
+            sw(b, 0);
+            continue;
+        }
+        for word in 0..69 {
+            sw(b + word * 4, 0);
+        }
+        let (kind_low, kind_high) = std::env::var("TS_VERIFY_KINDS").ok().and_then(|v| { let (a, b) = v.split_once('-')?; Some((a.parse::<u64>().ok()?, b.parse::<u64>().ok()?)) }).unwrap_or((2, 19));
+        sw(b, (kind_low + rng.below(kind_high - kind_low + 1)) as i32);
+        let show = std::env::var_os("TS_VERIFY_LONE").is_some() && i == lone && std::env::var_os("TS_VERIFY_SHOWBULLET").is_some();
+        for axis in 0..3 {
+            swc1(b + 24 + axis * 4, lwc1(p + 48 + axis * 4) + spread(rng, -6.0, 6.0));
+            swc1(b + 48 + axis * 4, spread(rng, -8.0, 8.0));
+            swc1(b + 128 + axis * 4, spread(rng, -1.0, 1.0));
+        }
+        // Half of the bullets are shot at a character (or the player), from near it, so that the hits on characters and props are tested.
+        if rng.below(2) == 0 {
+            let count = lw(g::numactivechars).clamp(0, 32);
+            let target = if count > 0 && rng.below(3) != 0 {
+                lw(lw(g::chrinfo) + rng.below(count as u64) as i32 * 0x1210 + 3020)
+            } else {
+                lw(p + 384)
+            };
+            if target != 0 && lw(target + 12) >= 0 && lw(target + 12) < 4096 {
+                sw(b + 100, lw(target + 12));
+                for axis in 0..3 {
+                    let at = lwc1(target + 48 + axis * 4) + spread(rng, -1.0, 2.0);
+                    let from = at + spread(rng, -3.0, 3.0);
+                    swc1(b + 24 + axis * 4, from);
+                    swc1(b + 48 + axis * 4, (at - from) * spread(rng, 0.2, 1.2));
+                }
+                // a mine that is stuck to the character (it does not move)
+                if rng.below(3) == 0 {
+                    sw(b + 224, target);
+                    sw(b + 228, rng.below(20) as i32 - 1);
+                    for axis in 0..3 {
+                        swc1(b + 232 + axis * 4, spread(rng, -1.0, 1.0));
+                        swc1(b + 244 + axis * 4, spread(rng, -1.0, 1.0));
+                        if rng.below(4) != 0 {
+                            sw(b + 48 + axis * 4, 0);
+                        }
+                    }
+                }
+                // the prop that an earlier line test of the bullet found (the bullet is accepted as hitting it when it is heading into it)
+                if rng.below(2) == 0 {
+                    sw(b + 184, target);
+                    sw(b + 188, lw(target + 32));
+                    sw(b + 220, lw(p + 384));
+                    for axis in 0..3 {
+                        swc1(b + 160 + axis * 4, lwc1(target + 48 + axis * 4) + spread(rng, -0.5, 0.5));
+                        swc1(b + 172 + axis * 4, spread(rng, -1.0, 1.0));
+                    }
+                    sw(b + 192, rng.below(8) as i32);
+                    sw(b + 196, rng.below(4) as i32);
+                    sw(b + 200, rng.below(4) as i32);
+                }
+            }
+        }
+        swc1(b + 72, spread(rng, 0.0, 4.0));
+        if rng.below(2) == 0 {
+            sw(b + 96, lw(p + 384));
+        }
+        sw(b + 104, [0, 1, 2, 4, 3][rng.below(5) as usize]);
+        sw(b + 108, if rng.below(8) == 0 { -1 } else { 0 });
+        for off in if std::env::var_os("TS_VERIFY_NOFIELDS").is_some() { vec![] } else { vec![76, 80, 84, 88, 92, 100, 112, 116, 120, 124, 140, 144, 148, 152, 156, 160, 164, 168, 172, 176, 180, 184, 188, 192, 196, 200, 204, 208, 212, 216, 220, 224, 228] } {
+            match rng.below(4) {
+                0 => sw(b + off, 0),
+                1 => sw(b + off, rng.below(6) as i32),
+                2 => swc1(b + off, spread(rng, -3.0, 3.0)),
+                _ => {}
+            }
+        }
+        if show {
+            let words: Vec<String> = (0..69).map(|w| format!("{:x}", lw(b + w * 4))).collect();
+            println!("bullet {i}: {}", words.join(" "));
+        }
+    }
+}
+
 /// Change the state of the first player and of its pad at random (see `TS_VERIFY_PERTURB`).
 fn perturb_player(rng: &mut Rng) {
     use ts_game::g;
@@ -388,8 +476,12 @@ fn main() {
                 host_slice(0, image.len()).copy_from_slice(image);
                 sw(ts_game::g::currentplayer, lw(ts_game::g::players));
                 // `TS_VERIFY_PERTURB=1`: change the player's modes, flags, buttons and sticks too (from the same random numbers each time), so that the branches of the player's tick that the snapshots do not reach are tested
-                if std::env::var_os("TS_VERIFY_PERTURB").is_some() {
-                    perturb_player(&mut rng);
+                if let Some(mode) = std::env::var_os("TS_VERIFY_PERTURB") {
+                    if mode == "bullets" {
+                        perturb_bullets(&mut rng);
+                    } else {
+                        perturb_player(&mut rng);
+                    }
                 }
             }
             let (ints, floats) = gen_inputs(&mut rng, ni, nf);
@@ -408,9 +500,20 @@ fn main() {
                 skipped = Some(s.clone());
                 break;
             }
+            if std::env::var_os("TS_VERIFY_FAULTS").is_some() {
+                if let Outcome::Panic(m) = &a { println!("run {t}: interpreter fault: {m}"); }
+                if let Outcome::Panic(m) = &b { println!("run {t}: native fault: {m}"); }
+            }
             match (&a, &b) {
                 (Outcome::Ok { ret: r1, fret: f1, writes: w1, stores: s1 }, Outcome::Ok { ret: r2, fret: f2, writes: w2, stores: s2 }) => {
                     real += 1;
+                    // `TS_VERIFY_IGNORE=low-high` (hex): leave a range of addresses out of the comparison (words that the original gets from stack garbage, such as the last hit that `bulletInitialiseStraightLineTest` puts back when nothing was hit)
+                    let ignore: Option<(u32, u32)> = std::env::var("TS_VERIFY_IGNORE").ok().and_then(|v| {
+                        let (lo, hi) = v.split_once('-')?;
+                        Some((u32::from_str_radix(lo.trim_start_matches("0x"), 16).ok()?, u32::from_str_radix(hi.trim_start_matches("0x"), 16).ok()?))
+                    });
+                    let keep = |w: &Vec<(u32, u8)>| -> Vec<(u32, u8)> { w.iter().cloned().filter(|(a, _)| ignore.map_or(true, |(lo, hi)| *a < lo || *a >= hi)).collect() };
+                    let (w1, w2) = (&keep(w1), &keep(w2));
                     if _rk == 1 && (*r1 as i32) != (*r2 as i32) && (*r1 != *r2) {
                         bad = Some(format!("test {t}: int return differs: interp {r1:#x} native {r2:#x} (ints {ints:x?})"));
                     } else if !same_f(*f1, *f2) && _rk == 2 {
@@ -440,6 +543,15 @@ fn main() {
                                 None => "[no store]".to_string(),
                             };
                             first = format!(" | byte {k:#x}: last interp store {} / last native store {}", f(cover(s1, k)), f(cover(s2, k)));
+                        }
+                        if let Some(&k) = dk.iter().find(|k| m1.get(k) != m2.get(k)) {
+                            if std::env::var_os("TS_VERIFY_HISTORY").is_some() {
+                                for (label, ss) in [("interp", s1), ("native", s2)] {
+                                    for x in ss.iter().filter(|x| k >= x.addr && k < x.addr + x.size as u32) {
+                                        println!("  {label} store {:#x} +{} = {:02x?} pc {:#x}", x.addr, x.size, &x.new[..x.size as usize], x.tag);
+                                    }
+                                }
+                            }
                         }
                         bad = Some(format!("test {t}: memory writes differ ({} vs {} bytes){d}{first} (ints {ints:x?} floats {floats:?})", w1.len(), w2.len()));
                     }
