@@ -105,6 +105,7 @@ fn hook(addr: u32, name: &'static str, ints: [i64; 8], floats: [f32; 8]) -> Opti
     trace::start();
     Some(Box::new(move || {
         let log = trace::stop();
+        let full = log.clone();
         let w2 = changed(&log);
         let log: Vec<trace::Store> = log.into_iter().filter(|s| !s.bulk && s.addr < STACK_TOP - 0x10_0000).collect();
         ACTIVE.with(|a| a.set(false));
@@ -113,6 +114,13 @@ fn hook(addr: u32, name: &'static str, ints: [i64; 8], floats: [f32; 8]) -> Opti
             return;
         }
         bump(name, 1);
+        // `TS_SHADOW_DUMP=name,name` (or `*`): write the memory from before this call, with its arguments (what the port did is undone), and end the run: replay it with `TS_VERIFY_CAPTURE`
+        if std::env::var("TS_SHADOW_DUMP").map_or(false, |v| v.split(',').any(|n| n == name || n == "*")) {
+            trace::rollback(&full);
+            let dir = std::env::var("TS_CAPTURE_DIR").or_else(|_| std::env::var("TEMP")).unwrap_or_else(|_| ".".into());
+            ts_rt::capture::write(name, sp, &ints, &floats, &format!("{dir}/{name}-mismatch.cap"));
+            std::process::exit(0);
+        }
         let m1: HashMap<_, _> = w1.iter().cloned().collect();
         let m2: HashMap<_, _> = w2.iter().cloned().collect();
         let mut keys: Vec<_> = m1.keys().chain(m2.keys()).cloned().collect();

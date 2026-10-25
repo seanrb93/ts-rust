@@ -6,7 +6,7 @@ use crate::*;
 /// Reload the gun combo `a1` of the player `a0` into the gun state `a2` (@ 0x28db90). When the clip is empty and cannot be filled, the combo is changed to one that has ammo
 /// unless `a3` is set; `a4` chooses which of the two hands' ammo counts is checked.
 pub fn gunReload(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) {
-    let gun = lw(g::guns) + lw(a1) * 400;
+    let gun = g::guns + lw(a1) * 400;
     let slot = lw(gun + 16);
     let limit = lw(a2 + 152);
     if limit != -1 {

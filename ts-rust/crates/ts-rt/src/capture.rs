@@ -63,9 +63,16 @@ pub fn hook(name: &'static str, ints: &[i64], floats: &[f32]) {
         return;
     }
     let dir = std::env::var("TS_CAPTURE_DIR").or_else(|_| std::env::var("TEMP")).unwrap_or_else(|_| ".".into());
+    let path = format!("{dir}/{name}-{number}.cap");
+    write(name, crate::frame::current_sp(), ints, floats, &path);
+}
+
+/// Write the whole memory and the arguments of a call to `path` (see the file format above).
+pub fn write(name: &str, sp: u32, ints: &[i64], floats: &[f32], path: &str) {
     let ints: Vec<String> = ints.iter().map(|v| format!("{:x}", *v as i32)).collect();
     let floats: Vec<String> = floats.iter().map(|v| format!("{:x}", v.to_bits())).collect();
-    let mut out = format!("{name} {:x} {} {}\n", crate::frame::current_sp(), ints.join(","), floats.join(",")).into_bytes();
+    let mut out = format!("{name} {:x} {} {}
+", sp, ints.join(","), floats.join(",")).into_bytes();
     let memory = crate::mem::host_slice(0, crate::mem::RAM_SIZE as usize);
     for (page, bytes) in memory.chunks(4096).enumerate() {
         if bytes.iter().any(|&b| b != 0) {
@@ -73,9 +80,8 @@ pub fn hook(name: &'static str, ints: &[i64], floats: &[f32]) {
             out.extend_from_slice(bytes);
         }
     }
-    let path = format!("{dir}/{name}-{number}.cap");
-    let _ = std::fs::write(&path, out);
-    eprintln!("[capture] {name} call {number} written to {path}");
+    let _ = std::fs::write(path, out);
+    eprintln!("[capture] {name} written to {path}");
 }
 
 /// Read a capture: the name of the function, the stack pointer, the arguments, and load the memory.
