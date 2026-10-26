@@ -587,6 +587,7 @@ pub fn specialPropTick(a0: i32) {
             3 => boatsignPropTick(a0),
             4 => gongPropTick(a0),
             5 => fanPropTick(a0),
+            6 => fanshadowPropTick(a0),
             7 => fanscifiPropTick(a0),
             8 => bannerPropTick(a0),
             9 => streamersPropTick(a0),
