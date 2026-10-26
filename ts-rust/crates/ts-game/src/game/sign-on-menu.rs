@@ -126,5 +126,6 @@ pub fn makesignonmenu() {
             }
         }
     }
+    signon_links(made, count);
     sh(g::signonplr_list, count + 2);
 }

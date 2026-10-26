@@ -123,9 +123,20 @@ so the port keeps its own copy of the page's item table (in RAM above the consol
 
 The port is built to match the original's logic exactly.  What it adds to the game's state is behind the `extensions` feature (`ts-port`, passed on to `ts-game`), which is off: widescreen (the picture is the game's own 4:3, pillarboxed in a wider window, and the HUD and menus keep their original layout; the camera constants rewrite `apply_view` and the renderer's wide layout are on with the feature), mouse look, the debug menu reset at level load, the new names of the two TimeSplitter characters, the PC wording of the memory card texts, the demo random-state resync and the unlock-all option (the game's own cheat flag).  The picture size and filtering are on it too: without it the port draws the console's own 640x448 picture, with the filtering the game asks for, no anti-aliasing and no mip maps, and scales it to the window (bilinear, 4:3).  With it off, the `unlock_all`, `aspect`, `hud`, `fov`, `render_scale`, `internal_resolution`, `upscale_sharp`, `msaa`, `texture_filter` and `anisotropy` settings have no effect.  The larger tables (`extended-tables`) and frame rates above 60 Hz (`high-framerate`) are separate features, also off.  The sign-on cursor fix stays on because the emulated memory card needs it for the menus to work.
 
+## Where the extensions are in the game's code
+
+The game's functions in `ts-game/src/game` are the original's logic.  Where an extension changes what one of them does, the function calls a small hook from
+`ts-game/src/manual/extension-hooks.rs` in place of the original's own expression (`weaponset_read()` for `lw(g::gv_weaponset)`, `frames_gate()` for
+`lw(g::updateframesi)` tested against 0, and so on).  A hook is what the original does when its feature is off and what the extension says when it is on, so a default
+build is still the original's logic and `ts-verify` passes on it as before.  The features are `extensions` (the Game Options page and the pause menu, the arcade
+and MapMaker options, weapon sets, bot sets, the random buttons, the left fist, bots that punch, texts, mouse and keyboard input, the developer menu, mod textures,
+the sign-on repair, widescreen), `extended-tables` (the weapon table with the dual weapons, levels of mods, the room and prop tables, the big memory pool) and
+`high-framerate` (the frame time hooks below); `--features all-extensions` of `ts-port` turns them all on.  A new extension goes behind a feature the same way:
+a hook in the game's code that is the original's expression when the feature is off.
+
 ## Frame rates above 60 Hz
 
-This section describes the extension that is switched off in a normal build (`high-framerate` feature of `ts-port`).  The game code in `ts-game/src/game` is the original's logic and does not contain the patches described here (the `running_i()` and `gameframe_f()` tests, the continuous animation phases); they have to be put back before the feature is used.
+This section describes the extension that is switched off in a normal build (`high-framerate` feature of `ts-port`).  The game code in `ts-game/src/game` has the hooks described here (`running_x()`, `frames_gate()`, `gameframe_x()` and the others in `extension-hooks.rs`), which are the original's expressions unless the feature is on.
 
 The game measures how long a frame takes in 60 Hz *ticks* (`updateframesf`, a float that scales movement, animation and
 timers; `updateframesi`, the whole ticks, for counters and timeouts) and was written to cope with frames of 1-5 ticks.  With

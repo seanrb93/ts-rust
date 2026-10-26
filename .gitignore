@@ -1,6 +1,7 @@
 # build output (target/release also holds the game's files: PAK/, MUSIC/, SLUS_200.90)
 target/
 target_dev/
+target_ext/
 
 # the game's own files, wherever they are
 Game Files/

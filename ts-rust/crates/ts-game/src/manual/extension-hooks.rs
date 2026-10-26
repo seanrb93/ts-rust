@@ -1141,3 +1141,30 @@ pub fn menu_effects_x() {
     #[cfg(feature = "high-framerate")]
     menu_effects();
 }
+
+/// The sign-on list wraps round: New Player (the top) goes up to the last sign-on and the last sign-on goes down to New Player.  The links are made
+/// from the count of the sign-ons, but a sign-on that does not get an item leaves a link on an item that is not there: the arrow vanishes and
+/// stays gone.  The links are made again from the items that were made (`made`) when they differ from the count.
+#[inline]
+pub fn signon_links(made: i32, count: i32) {
+    #[cfg(feature = "extensions")]
+    if made != count {
+        let somi = g::somi;
+        sh(somi + 16, if made > 0 { made } else { lhu(g::mi_signonload + 8) as i32 });
+        sh(somi + 50, if made > 0 { 1 } else { lhu(g::mi_signonnew + 8) as i32 });
+        if made > 0 {
+            sh(somi + 64 + (made - 1) * 32 + 18, lhu(g::mi_signonnew + 8) as i32);
+        }
+    }
+    #[cfg(not(feature = "extensions"))]
+    let _ = (made, count);
+}
+
+/// Test aid (`TS_FILELOG`): the files the game loads are listed.
+#[inline]
+pub fn file_log_hook(name: i32) {
+    #[cfg(feature = "extensions")]
+    file_log(name);
+    #[cfg(not(feature = "extensions"))]
+    let _ = name;
+}
