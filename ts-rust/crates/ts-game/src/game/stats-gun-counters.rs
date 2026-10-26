@@ -22,21 +22,21 @@ fn gun_counter(gun: i32, player: i32, combo: i32) -> Option<i32> {
 
 /// Set the counter of gun `gun` for the player `player` and the combination `combo` to `value` (@ 0x224110).
 pub fn StatsSetGun(gun: i32, player: i32, combo: i32, value: f32) {
-    if let Some(at) = gun_counter(gun, player, combo) {
+    if let Some(at) = gun_counter(gun, player, stats_combo(combo)) {
         swc1(at, value);
     }
 }
 
 /// Add `value` to the counter (@ 0x2241a8).
 pub fn StatsAddGun(gun: i32, player: i32, combo: i32, value: f32) {
-    if let Some(at) = gun_counter(gun, player, combo) {
+    if let Some(at) = gun_counter(gun, player, stats_combo(combo)) {
         swc1(at, ps2float::add(lwc1(at), value));
     }
 }
 
 /// The counter, or 0 for one that is not valid (@ 0x223f78).
 pub fn StatsGetGun(gun: i32, player: i32, combo: i32) -> f32 {
-    match gun_counter(gun, player, combo) {
+    match gun_counter(gun, player, stats_combo(combo)) {
         Some(at) => lwc1(at),
         None => 0.0_f32,
     }

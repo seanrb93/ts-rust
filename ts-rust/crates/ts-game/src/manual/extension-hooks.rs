@@ -57,3 +57,60 @@ pub fn bots_legend_or(text: i32, preset: i32) -> i32 {
         text
     }
 }
+
+/// A coordinate of the weapon page (its boxes are wider and the box of the chosen weapons is moved to the right by 24 so that the names of the
+/// dual weapons fit).
+#[inline]
+pub fn wp_wide(x: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        x + 24
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        x
+    }
+}
+
+/// The text of the weapon `combo` on the weapon page: the game's own (`text`), or the name of an added pair.
+#[inline]
+pub fn combo_name_or(combo: i32, text: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        let _ = text;
+        combo_name(combo)
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = combo;
+        text
+    }
+}
+
+/// The combination a weapon set has at a place (`frontmpgGetGunComboNum`): an added pair is the single weapon when the pairs are switched off.
+#[inline]
+pub fn dual_combo_or(place: i32, combo: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        dual_combo(place, combo)
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = place;
+        combo
+    }
+}
+
+/// A game starts: nobody owns an added pair and the left fists start again.
+#[inline]
+pub fn dual_reset_hook() {
+    #[cfg(feature = "extended-tables")]
+    dual_reset();
+}
+
+/// The weapon page has made its list of the weapons that can be chosen: the added pairs follow the singles they are made from.
+#[inline]
+pub fn weapons_list_extend_hook() {
+    #[cfg(feature = "extended-tables")]
+    weapons_list_extend();
+}

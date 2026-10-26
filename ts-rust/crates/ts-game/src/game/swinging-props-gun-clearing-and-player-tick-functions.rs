@@ -63,6 +63,7 @@ pub fn chrClearGuns(a0: i32) {
             propDrop(right_gun, a0, a0 + 268);
             sw(a0 + 332, 0);
         }
+        own_clear(a0);
         sw(a0 + 260, 0);
         sw(a0 + 268, -1);
         sw(a0 + 376, -1);
@@ -492,7 +493,7 @@ pub fn zoomtileReset() {
         }
     }
     let mut icon = g::iconobs;
-    let mut entry = g::proptable + 6556;
+    let mut entry = PROPTABLE + 6556;
     let mut left = 11;
     loop {
         let object = lw(entry);
@@ -519,7 +520,7 @@ pub fn zoomtileReset() {
 pub fn gunChrUpdate(a0: i32, a1: i32) {
     let record = lw(a0 + 352);
     let slot = if a1 != 0 { record + 268 } else { record + 376 };
-    let combo = (lw(record + 260) << 3) + g::guncombos;
+    let combo = (lw(record + 260) << 3) + GUNCOMBOS;
     let mut gun = if a1 == 0 { lh(combo + 4) } else { lh(combo + 2) };
     if a1 == 0 {
         if gunRightHandAble(record) == 0 {

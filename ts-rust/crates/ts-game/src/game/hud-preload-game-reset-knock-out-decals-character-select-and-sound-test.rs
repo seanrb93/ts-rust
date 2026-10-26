@@ -39,7 +39,7 @@ pub fn hudPreload() {
         }
         let offset = id << 3;
         if id > 0 {
-            let gun = lw(lh(offset + (g::guncombos + 4)) * 400 + (g::guns + 16));
+            let gun = lw(lh(offset + (GUNCOMBOS + 4)) * 400 + (g::guns + 16));
             let texture = lw((gun << 3) + (g::ammoinfo + 4));
             if texture != 0 {
                 sw((gun << 2) + 0x1feaf80, texture);
@@ -131,6 +131,7 @@ pub fn hudPreload() {
 /// Set up the game from the game parameters (@ 0x21ea90): the parameters are copied from the pending ones or, when a demo is playing, from the demo's header; the story
 /// levels and the arcade modes get their fixed settings, the number of players and the level are published and the game restarts.
 pub fn gameReset() {
+    dual_reset_hook();
     let mut src = 0x1fbc0e8;
     let params;
     if (lw(src + 80) & 0x2000) == 0 {

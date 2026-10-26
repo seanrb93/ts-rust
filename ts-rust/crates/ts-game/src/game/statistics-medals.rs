@@ -81,7 +81,7 @@ pub fn StatsCalcMedals() {
         let mut gun = 0;
         loop {
             let used = StatsGetGun(3, p, gun);
-            let combo = lh(g::guncombos + gun * 8);
+            let combo = lh(GUNCOMBOS + gun * 8);
             swc1(at, ps2float::add(lwc1(at), ps2float::mul((used).pdiv(seconds), ps2float::sub(1.0_f32, (combo as f32).pdiv(1e+02_f32)))));
             gun += 1;
             if gun >= 33 {

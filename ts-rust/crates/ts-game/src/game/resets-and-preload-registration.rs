@@ -68,7 +68,7 @@ pub fn frontmpgGetGunComboNum(place: i32) -> i32 {
     let set = weaponset_read();
     let list = if set == 0 { g::gunzpack } else { set * 20 + (g::gunpresets + 160) };
     let combo = lw((place << 2) + list);
-    if !(0 | combo) == 0 { 0 } else { combo }
+    dual_combo_or(place, if !(0 | combo) == 0 { 0 } else { combo })
 }
 
 /// Add the file `name` (with the size or place `info`) to the preload list when it is not in it (@ 0x21c2d8).

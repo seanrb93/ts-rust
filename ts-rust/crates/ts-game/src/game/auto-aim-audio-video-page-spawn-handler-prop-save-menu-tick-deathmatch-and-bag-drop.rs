@@ -336,7 +336,7 @@ pub fn propEditSave() {
         loop {
             let prop = lw(g::levelprops) + offset;
             if lw(prop) != -1 {
-                let kind = lw(prop + 4) * 28 + (g::proptable + 8);
+                let kind = lw(prop + 4) * 28 + (PROPTABLE + 8);
                 let x = fptodp(lwc1(prop + 48));
                 let y = fptodp(lwc1(prop + 52));
                 let z = fptodp(lwc1(prop + 56));

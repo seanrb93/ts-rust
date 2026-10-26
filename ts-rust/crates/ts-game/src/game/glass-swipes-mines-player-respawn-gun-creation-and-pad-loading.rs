@@ -229,7 +229,7 @@ pub fn gunCreatePlayerGun(a0: i32, a1: i32, a2: i32) {
         sw(a1 + 64, 0);
     }
     if a2 != 0 {
-        if lw(record + 376) != lh((lw(record + 260) << 3) + (g::guncombos + 4)) {
+        if lw(record + 376) != lh((lw(record + 260) << 3) + (GUNCOMBOS + 4)) {
             return;
         }
         if gunLeftHandAble(record) == 0 {

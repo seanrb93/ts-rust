@@ -350,7 +350,7 @@ fn hold_gun(a0: i32, a1: i32, s3_1: i32, s4_1: i32, s7_1: i32) -> Option<i32> {
         }
         let mut s7_3 = 0;
         let ammo_kind = lw(wanted + (g::guns + 16));
-        if lh((lw(s4_1 + 264) << 3) + (g::guncombos + 2)) != -1 {
+        if lh((lw(s4_1 + 264) << 3) + (GUNCOMBOS + 2)) != -1 {
             s7_3 = ((lw(s4_1 + 484) as u32) < (1 as u32)) as i32;
         }
         let left_ammo = lw(player + 748);
@@ -433,7 +433,7 @@ pub fn gunUpdate(a0: i32, a1: i32) {
     let sp = frame.sp();
     let s4_1 = lw(lw(lw(g::currentplayer) + 384) + 352);
     let s3_1 = if a1 != 0 { s4_1 + 268 } else { s4_1 + 376 };
-    let combo = (lw(s4_1 + 260) << 3) + g::guncombos;
+    let combo = (lw(s4_1 + 260) << 3) + GUNCOMBOS;
     let mut s7_1 = if a1 == 0 { lh(combo + 4) } else { lh(combo + 2) };
     let able = if a1 == 0 { gunRightHandAble(s4_1) } else { gunLeftHandAble(s4_1) };
     if able == 0 {
@@ -685,7 +685,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
                 let mut left_able = 0;
                 let slot = lw(lw(s3_1) * 400 + (g::guns + 16)) << 2;
                 let ammo = lw(s4_1 + slot + 620) + lw(s3_1 + slot + 4);
-                if lh((lw(s4_1 + 260) << 3) + (g::guncombos + 2)) != -1 {
+                if lh((lw(s4_1 + 260) << 3) + (GUNCOMBOS + 2)) != -1 {
                     left_able = (gunLeftHandAble(s4_1) != 0) as i32;
                 }
                 let mut left_empty = 0;

@@ -334,7 +334,7 @@ pub fn pickupPropTick(a0: i32) {
                 }
                 // weapon
                 let combo = lw(data + 12);
-                if ((combo - 1) as u32) >= (32 as u32) {
+                if ((combo - 1) as u32) >= ((combo_count() - 1) as u32) {
                     break 'b12;
                 }
                 if lvIsValidGunCombo(combo) == 0 {
@@ -343,14 +343,14 @@ pub fn pickupPropTick(a0: i32) {
                 let remains;
                 'b44: {
                     let combo = lw(data + 12);
-                    if ((combo - 1) as u32) >= (32 as u32) {
+                    if ((combo - 1) as u32) >= ((combo_count() - 1) as u32) {
                         remains = lw(data + 92);
                     } else {
                         if lvIsValidGunCombo(combo) != 0 {
                             gunAddAmmo(chr, lw(data + 44), lw(data + 48));
                             let player_kind = lw(chr + 8);
                             let proceed = if player_kind == 1 {
-                                (lw(lw(data + 12) * 400 + (g::guns + 28)) & 2) != 0
+                                (if lw(data + 12) < 33 { lw(lw(data + 12) * 400 + (g::guns + 28)) } else { 0 } & 2) != 0
                             } else {
                                 player_kind == 0
                             };
@@ -358,9 +358,8 @@ pub fn pickupPropTick(a0: i32) {
                                 remains = lw(data + 92);
                                 break 'b44;
                             }
-                            let at = chr + 488 + (lw(data + 12) << 2);
-                            let had = lw(at);
-                            sw(at, 1);
+                            let had = own_get(chr, lw(data + 12));
+                            own_set(chr, lw(data + 12));
                             let switch = gunShouldSwitchToOnPickup(chr, lw(data + 12));
                             let human = lw(prop + 356);
                             if switch != 0 {
@@ -377,8 +376,8 @@ pub fn pickupPropTick(a0: i32) {
                                     current = lw(chr + 260);
                                 } else {
                                     let strings = lw((lw(g::cur_language) << 2) + g::languages);
-                                    let name_at = (lh((lw(data + 12) << 3) + (g::guncombos + 6)) << 2) + strings;
-                                    let text = vafmt(&[0x3af920, lw(strings + 0x11e0) as i64, lw(name_at) as i64, name_at as i64]);
+                                    let name_at = (lh((lw(data + 12) << 3) + (GUNCOMBOS + 6)) << 2) + strings;
+                                    let text = vafmt(&[0x3af920, lw(strings + 0x11e0) as i64, pickup_name(lw(data + 12), lw(name_at)) as i64, name_at as i64]);
                                     playerMessage(lw(prop + 356), text);
                                     current = lw(chr + 260);
                                 }

@@ -1174,14 +1174,14 @@ pub fn weapons_pageDraw(a0: i32) {
     sd(sp + 8, second);
     sw(sp + 16, third);
     let picked = if weaponset == 0 { g::gunzpack } else { weaponset * 20 + (g::gunpresets + 160) };
-    zoomboxDraw(312, 52, 575, 119, 0x2040, 0x6e6e6e80);
+    zoomboxDraw(wp_wide(312), 52, wp_wide(575), 119, 0x2040, 0x6e6e6e80);
     let language = lw(g::cur_language);
     let title = if weaponset_read() == 0 { lw(lw((language << 2) + g::languages) + 1652) } else { lw(lw((language << 2) + g::languages) + 1648) };
     let mut entry = picked;
     let width = textWidth(title);
     let mut i = 0;
     let gap = 264 - width;
-    let x = ((gap + ((gap as u32) >> 31) as i32) >> 1) + 312;
+    let x = ((gap + ((gap as u32) >> 31) as i32) >> 1) + wp_wide(312);
     let mut bottom = 75;
     textOutline(x, 52, title, 0x6e6e6e80, 0x2040);
     let mut top = 65;
@@ -1191,14 +1191,14 @@ pub fn weapons_pageDraw(a0: i32) {
         let combo = lw(entry);
         sb(sp + 32, i + 49);
         sb(sp + 33, 0);
-        guiHGradient(312, top, 575, bottom, lw(colour), 128, 0);
+        guiHGradient(wp_wide(312), top, wp_wide(575), bottom, lw(colour), 128, 0);
         let width = textWidth(sp + 32);
-        textOutline(302 - width, text_y, sp + 32, 0x6e6e6e80, 0x2040);
+        textOutline(wp_wide(302) - width, text_y, sp + 32, 0x6e6e6e80, 0x2040);
         let language = lw(g::cur_language);
         if combo >= 0 {
-            textOutline(314, text_y, lw((lh((combo << 3) + (g::guncombos + 6)) << 2) + lw((language << 2) + g::languages)), 0x6e6e6e80, 80);
+            textOutline(wp_wide(314), text_y, combo_name_or(combo, lw((lh((combo << 3) + (GUNCOMBOS + 6)) << 2) + lw((language << 2) + g::languages))), 0x6e6e6e80, 80);
         }
-        dlDrawLine(312, text_y, 575, text_y, 0x6e6e6e80);
+        dlDrawLine(wp_wide(312), text_y, wp_wide(575), text_y, 0x6e6e6e80);
         i += 1;
         colour += 4;
         entry += 4;
@@ -1217,9 +1217,9 @@ pub fn weapons_pageDraw(a0: i32) {
         let mut current = page_item;
         if item == 1 {
             let row = lw(g::gunzlistrow) - lw(g::gunzlistrowtop);
-            dlFillRectangle(64, 52, 263, 173, 0x2040);
+            dlFillRectangle(64, 52, wp_wide(263), 173, 0x2040);
             let flash = lbu(g::flashalpha) | 0x8000;
-            dlFillRectangle(64, row * 11 + 64, 263, row * 11 + 74, flash);
+            dlFillRectangle(64, row * 11 + 64, wp_wide(263), row * 11 + 74, flash);
             current = lhu(a0 + 4);
             if current == item {
                 line_colour = 0x6e6e6e80;
@@ -1231,24 +1231,24 @@ pub fn weapons_pageDraw(a0: i32) {
     }
     let current = lhu(a0 + 4);
     let box_colour = if (current ^ 1) == 0 { 0x2040 } else { 128 };
-    zoomboxDraw(64, 52, 263, 173, box_colour, line_colour);
+    zoomboxDraw(64, 52, wp_wide(263), 173, box_colour, line_colour);
     let mut i = 0;
     let languages = g::languages;
     let mut y = 64;
     let heading = lw(lw((lw(g::cur_language) << 2) + languages) + 1644);
     let width = textWidth(heading);
-    let gap = 200 - width;
+    let gap = wp_wide(200) - width;
     let x = ((gap + ((gap as u32) >> 31) as i32) >> 1) + 64;
     textOutline(x, 52, heading, line_colour, box_colour);
     loop {
-        dlDrawLine(64, y, 263, y, line_colour);
+        dlDrawLine(64, y, wp_wide(263), y, line_colour);
         let row = lw(g::gunzlistrowtop) + i;
         if row < lw(0x3aff4c) {
             sw(sp + 48, 66);
             let language = lw(g::cur_language);
             let combo = lw((row << 2) + 0x1fc2a00);
             sw(sp + 52, y);
-            let name = lw((lh((combo << 3) + (g::guncombos + 6)) << 2) + lw((language << 2) + languages));
+            let name = combo_name_or(combo, lw((lh((combo << 3) + (GUNCOMBOS + 6)) << 2) + lw((language << 2) + languages)));
             textPrint(sp + 48, sp + 52, name, line_colour);
         }
         i += 1;
@@ -1261,7 +1261,7 @@ pub fn weapons_pageDraw(a0: i32) {
         let alpha = lbu(g::flashalpha);
         let row = lw(g::gunzlistrow) - lw(g::gunzlistrowtop);
         let colour = ((((alpha as u32) >> 1) as i32) << 24) | 128 | (alpha << 8 | alpha << 16);
-        zoomboxDraw(65, row * 11 + 65, 264, row * 11 + 74, 0, colour);
+        zoomboxDraw(65, row * 11 + 65, wp_wide(264), row * 11 + 74, 0, colour);
     }
     let alpha = lbu(g::flashalpha);
     if weaponset_read() == 0 {
@@ -1307,10 +1307,10 @@ pub fn propDrop(a0: i32, a1: i32, a2: i32) {
         let mut made = 0;
         'weapon: {
             let combo = lw(a1 + 260);
-            if ((combo - 1) as u32) < (32 as u32) {
+            if ((combo - 1) as u32) < ((combo_count() - 1) as u32) {
                 lvIsValidGunCombo(combo);
                 let combo = lw(a1 + 260);
-                if ((combo - 1) as u32) < (32 as u32) {
+                if ((combo - 1) as u32) < ((combo_count() - 1) as u32) {
                     if lvIsValidGunCombo(combo) != 0 {
                         let kind = lw(a2);
                         if kind != 18 {

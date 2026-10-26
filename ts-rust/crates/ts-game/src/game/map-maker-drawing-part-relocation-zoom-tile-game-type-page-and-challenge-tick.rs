@@ -17,7 +17,7 @@ pub fn mapmakerGfx() {
                 let mut text = 0;
                 if lw(object) == 1 {
                     if lw(g::editmode) == 2 {
-                        let walls = g::PropWallsFloors + 5160;
+                        let walls = PWFTAB + 5160;
                         let mut index = 0;
                         let language = lw(g::cur_language);
                         if lbu(g::lighttypes + 2) != lbu(object + 28) {

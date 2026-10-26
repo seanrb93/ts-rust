@@ -13,9 +13,9 @@ fn fixed_multiply(a: i32, b: i32) -> i32 {
 pub fn propGfxRoom(a0: i32, a1: i32) {
     let count_at = a0 << 2;
     let mut i = 0;
-    if lw(count_at + 0x1fe9598) > 0 {
+    if lw(count_at + ROOM_PROP_COUNTS) > 0 {
         loop {
-            let prop = lw((i << 2) + a0 * 400 + 0x1fd48c8);
+            let prop = lw((i << 2) + a0 * 400 + ROOM_PROP_LISTS);
             if (ld(prop + 16) & 0x80000001_i64) == 1_i64 {
                 if lw(prop + 4) == 310 {
                     let window = g::window;
@@ -24,7 +24,7 @@ pub fn propGfxRoom(a0: i32, a1: i32) {
                 obInstGfx(lw(prop + 32), a1);
             }
             i += 1;
-            if i >= lw(count_at + 0x1fe9598) {
+            if i >= lw(count_at + ROOM_PROP_COUNTS) {
                 break;
             }
         }
@@ -166,7 +166,7 @@ pub fn WritePropKeyFile() {
     let buffer = malloc(0xf4240);
     let mut at = buffer;
     let mut i = 0;
-    let mut entry = g::proptable + 8;
+    let mut entry = PROPTABLE + 8;
     let mut key = lw(entry);
     loop {
         sprintf(&[at as i64, 0x3af910_i64, key as i64, i as i64]);
@@ -431,7 +431,7 @@ pub fn headPropNew(a0: i32, a1: i32) -> i32 {
             let head = lw(prop + 32);
             let bones = lw(head);
             let hidden = 0x1fd0d50;
-            let entry = lw(prop + 4) * 28 + g::proptable;
+            let entry = lw(prop + 4) * 28 + PROPTABLE;
             let bone_table = bones - lw(bones) * 80;
             if lb(lh(lw(a0 + 352) + 4) + hidden) == 0 {
                 transformHead(head, bone_table, lw(lw(lw(a0 + 32) + 92) + 36));

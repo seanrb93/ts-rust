@@ -61,10 +61,10 @@ pub fn playerSetStartGun(player: i32) {
         combo = lw(setup + 56);
         index = combo - 1;
     }
-    if (index as u32) >= 32 {
+    if (index as u32) >= ((combo_count() - 1) as u32) {
         return;
     }
-    sw(record + (combo << 2) + 488, 1);
+    own_set(record, combo);
     sw(record + 260, combo);
     gunSetAmmoToMax(record, combo);
 }
@@ -165,7 +165,7 @@ pub fn getnextcombo(player: i32) -> i32 {
     let mut index;
     let mut entry;
     loop {
-        index = if next >= 33 { first } else { next };
+        index = if next >= combo_count() { first } else { next };
         entry = (index << 2) + GUNSINV;
         if gunShouldSwitchTo(player, lw(entry)) != 0 {
             break;
@@ -187,7 +187,7 @@ pub fn getprevcombo(player: i32) -> i32 {
     let first = first_in_table(player);
     let found = current_in_table(player);
     let previous = found - 1;
-    let mut index = if previous < first { 32 } else { previous };
+    let mut index = if previous < first { combo_count() - 1 } else { previous };
     let mut entry;
     loop {
         entry = (index << 2) + GUNSINV;
@@ -198,7 +198,7 @@ pub fn getprevcombo(player: i32) -> i32 {
             break;
         }
         let before = index - 1;
-        index = if before < first { 32 } else { before };
+        index = if before < first { combo_count() - 1 } else { before };
     }
     if found == index {
         lw(player + 260)

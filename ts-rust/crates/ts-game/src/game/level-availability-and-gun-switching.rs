@@ -67,7 +67,7 @@ pub fn gunShouldSwitchTo(player: i32, combo: i32) -> i32 {
     if combo == 0 {
         return 1;
     }
-    if lw(player + (combo << 2) + 488) == 0 {
+    if own_get(player, combo) == 0 {
         return 0;
     }
     let current = lw(player + 264);

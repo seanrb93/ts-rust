@@ -326,7 +326,7 @@ pub fn getmostpowerfulcombo(player: i32) -> i32 {
         }
         i += 1;
         entry += 8;
-        if i >= 33 {
+        if i >= combo_count() {
             break;
         }
     }

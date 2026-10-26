@@ -463,7 +463,7 @@ pub fn lvLevelSetupPreload() {
                             if kind >= -20 || kind < -25 {
                                 skip = true;
                             } else {
-                                preload = lw(lh((lw(combos - ((kind + 20) << 2) - 4) << 3) + (g::guncombos + 4)) * 400 + (g::guns + 12));
+                                preload = lw(lh((lw(combos - ((kind + 20) << 2) - 4) << 3) + (GUNCOMBOS + 4)) * 400 + (g::guns + 12));
                             }
                         }
                         if !skip {
@@ -730,7 +730,7 @@ pub fn gunPreload() {
         let setup = challengeGetSetup();
         let combo = lw(setup + 56);
         if ((combo - 1) as u32) < (32 as u32) {
-            let entry = (combo << 3) + g::guncombos;
+            let entry = (combo << 3) + GUNCOMBOS;
             let right = lh(entry + 2);
             if right >= 0 {
                 preload_gun(right);
@@ -744,7 +744,7 @@ pub fn gunPreload() {
     let mut left = 4;
     let mut combo = lw(combos);
     loop {
-        let entry = (combo << 3) + g::guncombos;
+        let entry = (combo << 3) + GUNCOMBOS;
         let right = lh(entry + 2);
         if right >= 0 {
             preload_gun(right);
@@ -807,6 +807,7 @@ pub fn weapons_pageTick(a0: i32) {
             break;
         }
     }
+    weapons_list_extend_hook();
     let mut language;
     'text: {
         'plain: {

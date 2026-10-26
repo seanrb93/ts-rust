@@ -48,7 +48,7 @@ pub fn propNew(a0: i32, f12: f32, f13: f32, f14: f32, f15: f32) -> i32 {
             slot = props + count * 592;
         }
     }
-    let def = a0 * 28 + g::proptable;
+    let def = a0 * 28 + PROPTABLE;
     if lw(def + 4) == 0 {
         if lw(def) == 16 {
             obLoadSetClip(0);
