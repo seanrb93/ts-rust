@@ -1,6 +1,6 @@
 //! A deliberately small R5900 interpreter used ONLY to check the decompiler's output.
-//! It implements the integer / FPU / load-store subset that appears in the game's code, using plain IEEE-754 floats
-//! (exactly like the decompiled Rust), so any difference between the two executions is a decompiler bug.
+//! It implements the integer / FPU / load-store subset that appears in the game's code, with the arithmetic of the console's FPU (`ts_rt::ps2float`: no
+//! infinity and no NaN, denormals are zero) and rounding to the nearest like the decompiled Rust, so any difference between the two executions is a decompiler bug.
 
 use ts_rt::*;
 
@@ -63,6 +63,10 @@ impl Cpu {
         while self.pc != SENTINEL {
             self.steps += 1;
             if self.steps > step_limit() {
+                // `TS_VERIFY_TIMEOUT_PC=1`: say where a run that does not finish was when it was given up (the loop it is in)
+                if std::env::var_os("TS_VERIFY_TIMEOUT_PC").is_some() {
+                    eprintln!("[verify] gave up at pc {:#x}; a0..a3 {:#x} {:#x} {:#x} {:#x} v0 {:#x} v1 {:#x} ra {:#x} s0..s3 {:#x} {:#x} {:#x} {:#x}", self.pc, self.r[4], self.r[5], self.r[6], self.r[7], self.r[2], self.r[3], self.r[31], self.r[16], self.r[17], self.r[18], self.r[19]);
+                }
                 return Err(Stop::Timeout);
             }
             if hook(self.pc, self) {
@@ -459,22 +463,22 @@ impl Cpu {
             16 => {
                 let (x, y) = (self.fr(fs), self.fr(ft));
                 match w & 63 {
-                    0 => self.setf(fd, x + y),
-                    1 => self.setf(fd, x - y),
-                    2 => self.setf(fd, x * y),
-                    3 => self.setf(fd, x / y),
-                    4 => self.setf(fd, y.abs().sqrt()),
+                    0 => self.setf(fd, ps2float::add(x, y)),
+                    1 => self.setf(fd, ps2float::sub(x, y)),
+                    2 => self.setf(fd, ps2float::mul(x, y)),
+                    3 => self.setf(fd, ps2float::div(x, y)),
+                    4 => self.setf(fd, ps2float::sqrt(y)),
                     5 => self.setf(fd, x.abs()),
                     6 => self.setf(fd, x),
                     7 => self.setf(fd, -x),
-                    22 => self.setf(fd, x / y.abs().sqrt()),
-                    24 => self.acc = x + y,
-                    25 => self.acc = x - y,
-                    26 => self.acc = x * y,
-                    28 => self.setf(fd, self.acc + x * y),
-                    29 => self.setf(fd, self.acc - x * y),
-                    30 => self.acc += x * y,
-                    31 => self.acc -= x * y,
+                    22 => self.setf(fd, ps2float::rsqrt(x, y)),
+                    24 => self.acc = ps2float::add(x, y),
+                    25 => self.acc = ps2float::sub(x, y),
+                    26 => self.acc = ps2float::mul(x, y),
+                    28 => self.setf(fd, ps2float::add(self.acc, ps2float::mul(x, y))),
+                    29 => self.setf(fd, ps2float::sub(self.acc, ps2float::mul(x, y))),
+                    30 => self.acc = ps2float::add(self.acc, ps2float::mul(x, y)),
+                    31 => self.acc = ps2float::sub(self.acc, ps2float::mul(x, y)),
                     36 => self.f[fd] = (x as i32) as u32,
                     40 => self.setf(fd, x.max(y)),
                     41 => self.setf(fd, x.min(y)),

@@ -180,6 +180,12 @@ fn hook(addr: u32, name: &'static str, ints: [i64; 8], floats: [f32; 8]) -> Opti
             }
             bump(name, 2);
             ACTIVE.with(|a| a.set(false));
+            // `TS_SHADOW_DUMP=name`: a call the original does not finish (it loops) is written out the same way, to find out why
+            if why == "timeout" && std::env::var("TS_SHADOW_DUMP").map_or(false, |v| v.split(',').any(|n| n == name || n == "*")) {
+                let dir = std::env::var("TS_CAPTURE_DIR").or_else(|_| std::env::var("TEMP")).unwrap_or_else(|_| ".".into());
+                ts_rt::capture::write(name, sp, &ints, &floats, &format!("{dir}/{name}-timeout.cap"));
+                std::process::exit(0);
+            }
             return None;
         }
         other => {

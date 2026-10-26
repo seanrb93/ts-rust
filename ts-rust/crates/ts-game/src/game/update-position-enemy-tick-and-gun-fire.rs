@@ -53,7 +53,7 @@ pub fn updatePos(a0: i32) {
                             let vx = lwc1(sp + 64);
                             let vy = lwc1(sp + 68);
                             let vz = lwc1(sp + 72);
-                            let mut scale = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt() * (vx * vx + vy * vy + vz * vz).abs().sqrt();
+                            let mut scale = ps2float::mul(ps2float::div(1.0_f32, ps2float::sqrt(dx * dx + dy * dy + dz * dz)), ps2float::sqrt(vx * vx + vy * vy + vz * vz));
                             let step_x = lwc1(sp + 96);
                             if scale < lwc1(0x3ad814) {
                                 scale = 0.0_f32;

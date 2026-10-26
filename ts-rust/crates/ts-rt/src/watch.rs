@@ -20,7 +20,7 @@ pub fn check(a: i32, size: usize, v: u64) {
 fn report(a: u32, size: usize, v: u64) {
     eprintln!("[watch] store {size} bytes at {a:#x} = {v:#x}");
     let bt = std::backtrace::Backtrace::force_capture().to_string();
-    for l in bt.lines().filter(|l| l.contains("ts_game::dec") || l.contains("ts_game::manual") || l.contains("ts_sdk")) {
+    for l in bt.lines().filter(|l| l.contains("ts_game::dec") || l.contains("ts_game::game") || l.contains("ts_game::manual") || l.contains("ts_sdk")) {
         eprintln!("   {}", l.trim());
     }
 }

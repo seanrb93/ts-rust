@@ -43,7 +43,7 @@ fn fix_signon_cursor() {
 }
 
 /// Debugging aid (`TS_WATCH=<address>`, `TS_WATCHFROM=<tick>`; needs the `calltrace` build): report the functions that
-/// store to a game address once the level clock passes `TS_WATCHFROM`.
+/// store to a game address once the level clock passes `TS_WATCHFROM` (or, with `TS_WATCHFRAME=f`, during the frames from `f`, `TS_WATCHLEN` of them, 12 by default).
 fn fake_goodies() {
     // Debugging aid (`TS_FAKEGOODIES=<frame>`): open the "new playable character" page, to check its layout.
     static AT: std::sync::OnceLock<Option<i32>> = std::sync::OnceLock::new();
@@ -91,7 +91,7 @@ fn watch_tick() {
         if let Some(a) = a {
             let from: f32 = std::env::var("TS_WATCHFROM").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
             let on = if let Some(f) = std::env::var("TS_WATCHFRAME").ok().and_then(|v| v.parse::<u64>().ok()) {
-                ts_sdk::frame_count() >= f && ts_sdk::frame_count() < f + 12
+                ts_sdk::frame_count() >= f && ts_sdk::frame_count() < f + std::env::var("TS_WATCHLEN").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(12)
             } else {
                 level_tick().is_some_and(|t| t >= from && t < from + 3.0)
             };

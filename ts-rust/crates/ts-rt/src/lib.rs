@@ -11,6 +11,7 @@ pub mod mem;
 pub mod frame;
 pub mod capture;
 pub mod int;
+pub mod ps2float;
 pub mod loader;
 pub mod texnames;
 #[cfg(feature = "trace")]
@@ -24,6 +25,7 @@ pub mod shadow;
 
 pub use frame::Frame;
 pub use int::*;
+pub use ps2float::Ps2F;
 pub use mem::*;
 
 /// Hit when the original code executed a `break` instruction (divide-by-zero checks, assertions).
