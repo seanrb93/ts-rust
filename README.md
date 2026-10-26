@@ -74,7 +74,7 @@ Changes apply at once and are saved to `ts-port.ini` next to the executable (cre
 ```
 tools/ (Python)                ts-rust/ (Rust workspace)
  ps2elf, r5900, disasm   --->   ts-rt     flat 32-bit address arena at the original addresses, loads ELF data
- decomp/ (IR, liveness,         ts-game   GENERATED dec/*.rs (1978 functions) + hand-written manual/
+ decomp/ (IR, liveness,         ts-game   hand-written game/*.rs (the game's functions) + manual/ (platform glue); dec/ has only
   webs, structuring, emit)      ts-sdk    native replacements for Sony SDK, libc/libm, soft-float, VU0 helpers,
  gen_rust.py  (~9 s)                      virtual disc, pad, memory card, SIF/IOP RPC
  vu1dec.py -> ts-gfx/vu1_gen.rs ts-gfx    VIF/GIF display-list reader + decompiled VU1 microcode -> draw lists
@@ -83,6 +83,8 @@ tools/ (Python)                ts-rust/ (Rust workspace)
                                 ts-port   launcher: window (winit), input, audio device (cpal), debug tools
                                 ts-verify DEV ONLY: tiny R5900 interpreter for differential testing
 ```
+
+The game's functions are now hand-written in `ts-game/src/game/*.rs` and checked against the original machine code by `ts-verify` (see `docs/decompilation.md`); `dec/` holds only the addresses of the game's data (`g.rs`), the function table and the pointer table.  The pipeline below produced the first version of that code and is kept as history and for the VU1 microcode.
 
 Pipeline (`python tools/gen_rust.py`): decode R5900 -> register IR -> interprocedural signatures (EABI) -> def-use
 webs (variables) -> inlining / dead-code / type inference -> structured control flow -> Rust. Regenerate after any
