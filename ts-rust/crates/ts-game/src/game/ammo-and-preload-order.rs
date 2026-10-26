@@ -99,7 +99,7 @@ pub fn findTwinPlugPad(pos: i32, flags: i32, hall: i32) -> i32 {
         let dx = lwc1(pad + 12) - lwc1(pos);
         let dy = lwc1(pad + 16) - lwc1(pos + 4);
         let dz = lwc1(pad + 20) - lwc1(pos + 8);
-        let dist = (dx * dx + dy * dy + dz * dz).abs().sqrt();
+        let dist = (dx * dx + dy * dy + dz * dz).abs().psqrt();
         if dist < best_dist && dist < 3.5 {
             best_dist = dist;
             best = i;

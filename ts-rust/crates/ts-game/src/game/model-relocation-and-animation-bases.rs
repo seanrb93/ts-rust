@@ -85,17 +85,17 @@ pub fn mmSetLightFromRGB(rgb: i32) {
     let mut saturation = 0.0_f32;
     swc1(g::lightvolume, maximum);
     if !(maximum == saturation) {
-        saturation = (maximum - minimum) / maximum;
+        saturation = ((maximum - minimum)).pdiv(maximum);
     }
     swc1(g::lightsaturation, saturation);
     if !(lwc1(g::lightsaturation) == 0.0) {
         let spread = maximum - minimum;
         if maximum == r {
-            swc1(g::lighthue, (g_ - b) / spread);
+            swc1(g::lighthue, ((g_ - b)).pdiv(spread));
         } else if maximum == g_ {
-            swc1(g::lighthue, (b - r) / spread + 2.0);
+            swc1(g::lighthue, ((b - r)).pdiv(spread) + 2.0);
         } else if maximum == b {
-            swc1(g::lighthue, (r - g_) / spread + 4.0);
+            swc1(g::lighthue, ((r - g_)).pdiv(spread) + 4.0);
         }
         let hue = lwc1(g::lighthue) * 60.0;
         swc1(g::lighthue, hue);

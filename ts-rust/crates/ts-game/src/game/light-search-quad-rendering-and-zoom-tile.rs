@@ -256,7 +256,7 @@ pub fn zoomtileTick() {
     swc1(prop + 76, turn);
     swc1(prop + 56, z + zero);
     if (flags & 3) != 0 {
-        matrixRotY(sp + 32, turn * lwc1(0x3aca5c) / 1.8e+02_f32);
+        matrixRotY(sp + 32, (turn * lwc1(0x3aca5c)).pdiv(1.8e+02_f32));
         let mut i = 0;
         let tile_x = lwc1(sp);
         let tile = lw((lw(g::zoomtilenum) << 2) + g::tiles);
@@ -355,7 +355,7 @@ pub fn zoomtileTick() {
     sw(g::flexcam + 12, 0);
     sw(camera + 8, 0);
     sw(camera + 4, 0);
-    let angle = (tilt / 1.8e+02_f32 * scale + 0.5_f32) as i32;
+    let angle = ((tilt).pdiv(1.8e+02_f32) * scale + 0.5_f32) as i32;
     let up = lwc1(((angle + 512 & 2047) << 2) + g::g_SinTable) * distance;
     swc1(g::flexcam + 4, lwc1(((angle & 2047) << 2) + g::g_SinTable) * distance);
     swc1(g::flexcam + 8, up);

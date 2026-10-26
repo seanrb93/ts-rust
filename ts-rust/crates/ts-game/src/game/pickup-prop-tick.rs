@@ -46,7 +46,7 @@ pub fn pickupPropTick(a0: i32) {
         sw(a0 + 492, left);
         'b2: {
             if left_f <= 9e+01_f32 {
-                obInstSetOverrideStates(lw(a0 + 32), 3, -1, -1, (left_f * 127.0_f32 / 9e+01_f32) as i32 & 255);
+                obInstSetOverrideStates(lw(a0 + 32), 3, -1, -1, ((left_f * 127.0_f32).pdiv(9e+01_f32)) as i32 & 255);
                 if lw(data) != 2 {
                     break 'b2;
                 }
@@ -180,7 +180,7 @@ pub fn pickupPropTick(a0: i32) {
                                             index += 1;
                                         } else if !(ground <= top + reach) {
                                             index += 1;
-                                        } else if !((dx * dx + dz * dz).abs().sqrt() < 1.0_f32) {
+                                        } else if !((dx * dx + dz * dz).abs().psqrt() < 1.0_f32) {
                                             index += 1;
                                         } else {
                                             let mut allowed = 1;

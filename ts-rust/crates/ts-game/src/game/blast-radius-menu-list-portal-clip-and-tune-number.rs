@@ -11,7 +11,7 @@ pub fn specialfxBlastRadius(at: i32, time: f32, start: f32, duration: f32, raise
         return;
     }
     let top = 127.0_f32;
-    let gone = (time - start) / duration;
+    let gone = ((time - start)).pdiv(duration);
     let z = lwc1(at + 8);
     let y = lwc1(at + 4) + raise;
     let x = lwc1(at);
@@ -109,7 +109,7 @@ pub fn bgPortalPlaneClip(from: i32, to: i32, axis: i32, mask: i32, a: f32, b: f3
                 let made = pool + used * 20;
                 sw(to + (out_count << 2), made);
                 sw(to + 80, out_count + 1);
-                let t = d_current / (d_current - d_next);
+                let t = (d_current).pdiv((d_current - d_next));
                 let x = lwc1(current);
                 swc1(made, x + t * (lwc1(next) - x));
                 let y = lwc1(current + 4);

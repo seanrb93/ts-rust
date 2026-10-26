@@ -18,14 +18,14 @@ pub fn ipFishEye(strength: f32, ratio: f32) {
     if y < lw(g::window + 24) + 1 {
         let window = g::window;
         loop {
-            let angle = y as f32 * 1.8e+02_f32 / lw(window + 32) as f32 * lwc1(0x3ad480) / 1.8e+02_f32;
+            let angle = ((y as f32 * 1.8e+02_f32).pdiv(lw(window + 32) as f32) * lwc1(0x3ad480)).pdiv(1.8e+02_f32);
             let wave = sinf(angle);
             let right = lw(window + 4);
             let bottom = lw(window + 24);
             let next = y + 1;
             let left = lw(g::window);
             let right_edge = right + 1;
-            let shift = (wave.abs().sqrt() * pull) as i32;
+            let shift = (wave.abs().psqrt() * pull) as i32;
             sw(sp, 0x7f7f7f7f);
             dlTextureRectangle(left, bottom, right_edge, bottom + 1, left << 4, y << 4, right_edge << 4, next << 4);
             let bottom = lw(window + 24);
@@ -80,7 +80,7 @@ pub fn particleStreamGfx(group: i32, matrix: i32) {
     let frame = Frame::new(96);
     let sp = frame.sp();
     let mut i = 0;
-    let rate = 6e+01_f32 / lwc1(lw(g::currentplayer) + 260);
+    let rate = (6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260));
     let info = lw(group + 4) * 104 + g::particleinfos;
     dlSelectTextureKick(lw((lw(info) << 4) + (g::particletextures + 12)));
     dlSetDitherMatrix(2);
@@ -95,18 +95,18 @@ pub fn particleStreamGfx(group: i32, matrix: i32) {
                 let life = lwc1(info + 12);
                 let spin_at = group + at4;
                 if age < life {
-                    let fraction = age / life;
+                    let fraction = (age).pdiv(life);
                     let fade_in = lwc1(info + 24);
                     let mut alpha = 1.0_f32;
-                    let spin = lwc1(spin_at + 3732) * age * lwc1(0x3ad574) / 1.8e+02_f32;
+                    let spin = (lwc1(spin_at + 3732) * age * lwc1(0x3ad574)).pdiv(1.8e+02_f32);
                     let colour = lw(info + 32);
                     if !(age < fade_in) {
                         let fade_out = lwc1(info + 28);
                         if (life - fade_out) < age {
-                            alpha = (life - age) / fade_out;
+                            alpha = ((life - age)).pdiv(fade_out);
                         }
                     } else {
-                        alpha = age / fade_in;
+                        alpha = (age).pdiv(fade_in);
                     }
                     let place = group + i * 12;
                     let x = lwc1(place + 932) + lwc1(info + 56) * age;
@@ -151,7 +151,7 @@ pub fn particleStreamGfx(group: i32, matrix: i32) {
                             let sz = lwc1(sp + 24);
                             let screen = g::matchstats + 6488 - 0x6610;
                             let one = 1.0_f32;
-                            let inverse = one / w;
+                            let inverse = (one).pdiv(w);
                             let half = 0.5_f32;
                             let depth = sz * inverse;
                             let table = g::g_SinTable;
@@ -159,7 +159,7 @@ pub fn particleStreamGfx(group: i32, matrix: i32) {
                             let angle = (spin * lwc1(0x3ad578) + half) as i32;
                             let ndc_x = sx * inverse;
                             let ndc_y = sy * inverse;
-                            let size = lwc1(info + 40) / depth * rate;
+                            let size = (lwc1(info + 40)).pdiv(depth) * rate;
                             let sine = lwc1(((angle & 2047) << 2) + table);
                             let cosine = lwc1(((angle + 512 & 2047) << 2) + table);
                             let px = lw(screen + 16) as f32 * ndc_x;

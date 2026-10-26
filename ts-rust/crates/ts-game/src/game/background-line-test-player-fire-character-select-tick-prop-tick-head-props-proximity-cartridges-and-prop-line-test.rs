@@ -103,7 +103,7 @@ pub fn bgLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
             let ny = lwc1(sp + 20);
             let nz = lwc1(sp + 24);
             let normal = lw(sp + 84);
-            let inverse = 1.0_f32 / (nx * nx + ny * ny + nz * nz).abs().sqrt();
+            let inverse = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
             swc1(normal + 8, nz * inverse);
             swc1(normal, nx * inverse);
             swc1(normal + 4, ny * inverse);
@@ -360,7 +360,7 @@ pub fn fxSelectCharTick(a0: i32) {
                                 } else {
                                     sw(flag_at, 0);
                                     let own = lw(front) << 2;
-                                    swc1(own + 0x1fc12e8, 1.0_f32 / lwc1(own + 0x1fc1248));
+                                    swc1(own + 0x1fc12e8, (1.0_f32).pdiv(lwc1(own + 0x1fc1248)));
                                     slot = lw(base);
                                 }
                                 let at2 = slot << 2;
@@ -605,7 +605,7 @@ pub fn propTickBefore() {
                     }
                 }
             }
-            let angle = heading * lwc1(0x3acccc) / 1.8e+02_f32;
+            let angle = (heading * lwc1(0x3acccc)).pdiv(1.8e+02_f32);
             i += 1;
             matrixRotY(sp, angle);
             let table = 0x1fd0df0;
@@ -634,7 +634,7 @@ pub fn headPropTick(a0: i32) {
     let frame = Frame::new(272);
     let sp = frame.sp();
     let state = lw(a0 + 352);
-    let timer = lwc1(state + 68) - lwc1(g::updateframesf) / 6e+01_f32;
+    let timer = lwc1(state + 68) - (lwc1(g::updateframesf)).pdiv(6e+01_f32);
     sw(a0 + 16, lw(a0 + 16) | 0x40000000);
     swc1(state + 68, timer);
     if timer < 1.0_f32 {
@@ -680,7 +680,7 @@ pub fn headPropTick(a0: i32) {
                 if step == 0.0_f32 {
                     swc1(a0 + 64, lwc1(state + 104) + 0.5_f32);
                 } else {
-                    swc1(a0 + 64, lwc1(state + 104) + 0.5_f32 / step);
+                    swc1(a0 + 64, lwc1(state + 104) + (0.5_f32).pdiv(step));
                 }
                 let vx = lwc1(a0 + 60);
                 let vy = lwc1(a0 + 64);
@@ -690,7 +690,7 @@ pub fn headPropTick(a0: i32) {
                 sw(state + 64, 3);
                 sw(a0 + 140, 2);
                 sw(g::headtick, 0);
-                let scale = 1.0_f32 / (vx * vx + vy * vy + vz * vz).abs().sqrt() * 12.0_f32 / 6e+01_f32;
+                let scale = ((1.0_f32).pdiv((vx * vx + vy * vy + vz * vz).abs().psqrt()) * 12.0_f32).pdiv(6e+01_f32);
                 swc1(a0 + 68, z * scale);
                 swc1(a0 + 60, vx * scale);
                 swc1(a0 + 64, vy * scale);
@@ -779,8 +779,8 @@ pub fn headPropTick(a0: i32) {
                         let nx = lwc1(sp + 112);
                         let ny = lwc1(sp + 116);
                         let nz = lwc1(sp + 120);
-                        let mut length = (vx * vx).abs().sqrt() + vy * vy + vz * vz;
-                        let inverse = 1.0_f32 / length;
+                        let mut length = (vx * vx).abs().psqrt() + vy * vy + vz * vz;
+                        let inverse = (1.0_f32).pdiv(length);
                         let slow = length < lwc1(0x3acc14);
                         let ux = vx * inverse;
                         let uy = vy * inverse;
@@ -810,9 +810,9 @@ pub fn headPropTick(a0: i32) {
                             swc1(a0 + 68, rz);
                         } else {
                             let factor = lwc1(0x3acc18);
-                            let ry = lwc1(sp + 148) * length * factor / step;
-                            let rz = lwc1(sp + 152) * length * factor / step;
-                            swc1(a0 + 60, rx * length * factor / step);
+                            let ry = (lwc1(sp + 148) * length * factor).pdiv(step);
+                            let rz = (lwc1(sp + 152) * length * factor).pdiv(step);
+                            swc1(a0 + 60, (rx * length * factor).pdiv(step));
                             swc1(a0 + 64, ry);
                             swc1(a0 + 68, rz);
                         }
@@ -827,9 +827,9 @@ pub fn headPropTick(a0: i32) {
                 let keep_z = lwc1(matrix + 56);
                 swc1(lw(lw(a0 + 32) + 4) + 52, -lwc1(a0 + 512));
                 swc1(lw(lw(a0 + 32) + 4) + 56, -lwc1(a0 + 516));
-                let rz = lwc1(state + 92) * radians / 1.8e+02_f32;
-                let rx = lwc1(state + 84) * radians / 1.8e+02_f32;
-                let ry = lwc1(state + 88) * radians / 1.8e+02_f32;
+                let rz = (lwc1(state + 92) * radians).pdiv(1.8e+02_f32);
+                let rx = (lwc1(state + 84) * radians).pdiv(1.8e+02_f32);
+                let ry = (lwc1(state + 88) * radians).pdiv(1.8e+02_f32);
                 matrixRotZXY(sp + 16, rx, ry, rz);
                 let matrix = lw(lw(a0 + 32) + 4);
                 sceVu0MulMatrix(matrix, matrix, sp + 16);
@@ -854,10 +854,10 @@ pub fn updateProximityProps(a0: i32, a1: i32) {
     let owner = lw(a0 + 96);
     let model = lw(lw(owner + 32));
     let z = lwc1(owner + 56);
-    let rx = lwc1(owner + 72) * scale / 1.8e+02_f32;
-    let ry = lwc1(owner + 76) * scale / 1.8e+02_f32;
+    let rx = (lwc1(owner + 72) * scale).pdiv(1.8e+02_f32);
+    let ry = (lwc1(owner + 76) * scale).pdiv(1.8e+02_f32);
     let x = lwc1(owner + 48);
-    let rz = lwc1(owner + 88) * scale / 1.8e+02_f32;
+    let rz = (lwc1(owner + 88) * scale).pdiv(1.8e+02_f32);
     let y = lwc1(owner + 52);
     let bones = model - lw(model) * 80;
     matrixTransRotZXY(sp + 16, x, y, z, rx, ry, rz);
@@ -1110,7 +1110,7 @@ pub fn addCartridge(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
         sw(prop + 16, 0);
         sw(cartridge + 64, prop);
         sw(prop + 12, lw(body + 12));
-        matrixRotZXY(sp + 112, rx / degrees, ry * scale / degrees, rz / degrees);
+        matrixRotZXY(sp + 112, (rx).pdiv(degrees), (ry * scale).pdiv(degrees), (rz).pdiv(degrees));
         sceVu0MulMatrix(cartridge, lw(lw(g::currentplayer) + 1772), sp + 112);
         swc1(cartridge + 56, 0.0_f32);
         swc1(cartridge + 48, 0.0_f32);
@@ -1144,7 +1144,7 @@ pub fn addCartridge(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
         let body = lw(player + 384);
         sw(prop + 16, 0);
         sw(prop + 12, lw(body + 12));
-        matrixRotZXY(sp + 48, rx / degrees, ry / degrees, rz / degrees);
+        matrixRotZXY(sp + 48, (rx).pdiv(degrees), (ry).pdiv(degrees), (rz).pdiv(degrees));
         sceVu0MulMatrix(cartridge, lw(lw(g::currentplayer) + 1772), sp + 48);
         swc1(cartridge + 56, 0.0_f32);
         swc1(cartridge + 48, 0.0_f32);
@@ -1180,10 +1180,10 @@ pub fn addCartridge(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
     let holder = lw(a6 + 3020);
     let thousand = 1e+03_f32;
     swc1(prop + 68, lwc1(sp + 8) + (random + random) * lwc1(sp + 24));
-    let vx = (lwc1(holder + 48) - lwc1(holder + 112)) / step;
+    let vx = ((lwc1(holder + 48) - lwc1(holder + 112))).pdiv(step);
     swc1(sp + 32, vx);
-    swc1(sp + 36, (lwc1(holder + 52) - lwc1(holder + 116)) / step);
-    swc1(sp + 40, (lwc1(holder + 56) - lwc1(holder + 120)) / step);
+    swc1(sp + 36, ((lwc1(holder + 52) - lwc1(holder + 116))).pdiv(step));
+    swc1(sp + 40, ((lwc1(holder + 56) - lwc1(holder + 120))).pdiv(step));
     let vy = lwc1(prop + 64);
     let new_vx = lwc1(prop + 60) + vx;
     let vz = lwc1(prop + 68);
@@ -1278,7 +1278,7 @@ pub fn propLineTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     swc1(sp + 52, end_y);
     swc1(sp + 56, start_z + dz);
     swc1(sp + 40, dz);
-    let inverse = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
     let nz = lwc1(sp + 40) * inverse;
     let ny = lwc1(sp + 36) * inverse;
     swc1(sp + 32, lwc1(sp + 32) * inverse);

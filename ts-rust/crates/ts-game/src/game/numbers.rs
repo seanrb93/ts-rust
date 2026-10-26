@@ -84,14 +84,14 @@ pub fn getNote(period: i32) -> i32 {
 /// is stretched so that it starts at 0 and still reaches 1.
 pub fn joyFixVal(raw: i32, dead: f32) -> f32 {
     let off = raw - 128;
-    let v = if raw >= 128 { off as f32 / 127.0 } else { off as f32 * 0.0078125 };
+    let v = if raw >= 128 { (off as f32).pdiv(127.0) } else { off as f32 * 0.0078125 };
     if !(0.0 < dead) {
         return v;
     }
     if v < -dead {
-        (v + dead) / (1.0 - dead)
+        ((v + dead)).pdiv((1.0 - dead))
     } else if dead < v {
-        (v - dead) / (1.0 - dead)
+        ((v - dead)).pdiv((1.0 - dead))
     } else {
         0.0
     }

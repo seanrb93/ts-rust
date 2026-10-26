@@ -249,7 +249,7 @@ pub fn npcThrowGrenade(a0: i32, a1: i32, a2: i32) {
     sw(sp, 13);
     if (flags & 128) == 0 {
         if (flags & 0xf000000) != 0 {
-            let angle = lwc1(a0 + 76) * lwc1(0x3ad328) / 1.8e+02_f32;
+            let angle = (lwc1(a0 + 76) * lwc1(0x3ad328)).pdiv(1.8e+02_f32);
             matrixTransRotY(sp + 176, lwc1(a0 + 48), lwc1(a0 + 52), lwc1(a0 + 56), angle);
             let model = lw(a0 + 32);
             sceVu0MulMatrix(sp + 112, sp + 176, lw(model + 4) + (lw(lw(model + 92) + 24) << 6));
@@ -263,7 +263,7 @@ pub fn npcThrowGrenade(a0: i32, a1: i32, a2: i32) {
             let dz = z - hand_z;
             swc1(sp + 76, hand_y);
             swc1(sp + 80, hand_z);
-            let factor = ((dx * dx + dy * dy + dz * dz).abs().sqrt() - 6.5_f32) / 62.0_f32 + lwc1(0x3ad32c);
+            let factor = (((dx * dx + dy * dy + dz * dz).abs().psqrt() - 6.5_f32)).pdiv(62.0_f32) + lwc1(0x3ad32c);
             let vx = lwc1(a1) * factor;
             let vy = lwc1(a1 + 4) * factor;
             swc1(a1 + 8, lwc1(a1 + 8) * factor);
@@ -448,9 +448,9 @@ pub fn headPropNew(a0: i32, a1: i32) -> i32 {
             sw(a0 + 16, flags);
             sw(record + 64, 0);
             let prop_flags = lw(prop + 16) & -2;
-            swc1(record + 100, vx / frames);
+            swc1(record + 100, (vx).pdiv(frames));
             sw(prop + 16, prop_flags | 0x40000000);
-            swc1(record + 104, lwc1(a1 + 4) / frames);
+            swc1(record + 104, (lwc1(a1 + 4)).pdiv(frames));
             let vz = lwc1(a1 + 8);
             swc1(record + 80, 0.0_f32);
             swc1(record + 84, 0.0_f32);
@@ -458,7 +458,7 @@ pub fn headPropNew(a0: i32, a1: i32) -> i32 {
             swc1(record + 92, 0.0_f32);
             swc1(record + 72, 0.0_f32);
             swc1(record + 76, 0.0_f32);
-            swc1(record + 108, vz / frames);
+            swc1(record + 108, (vz).pdiv(frames));
             soundDelayStartEx(211, 0, 15, 0);
             sw(prop + 12, lw(lw(record + 96) + 12));
             return prop;

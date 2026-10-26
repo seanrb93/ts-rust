@@ -210,7 +210,7 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
     let factor = lwc1(0x3ad774);
     let half_turn = 1.8e+02_f32;
     let limit = ld(0x3a98a8);
-    let mut angle = (step_f + one) / twelve * full * factor / half_turn;
+    let mut angle = (((step_f + one)).pdiv(twelve) * full * factor).pdiv(half_turn);
     if dpcmp(fptodp(angle), limit) >= 0 {
         angle = dptofp(dpsub(fptodp(angle), limit));
     }
@@ -256,7 +256,7 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
     sw(sp + 260, sp + 60);
     sw(sp + 276, sp + 68);
     sw(sp + 264, sp + 64);
-    let index_a = (step_f / twelve * full * factor / half_turn * scale + half) as i32;
+    let index_a = (((step_f).pdiv(twelve) * full * factor).pdiv(half_turn) * scale + half) as i32;
     sw(sp + 292, record + 0x120c);
     let table = g::g_SinTable;
     let x_a = lwc1(sp);

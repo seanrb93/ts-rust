@@ -143,9 +143,9 @@ pub fn viewTick() {
     let angle_y = angle_y + stick_y * -4.0_f32;
     sw(direction + 4, 0);
     swc1(g::view_angy, angle_y);
-    matrixRotX(sp + 32, angle_y * to_radians / half_turn);
+    matrixRotX(sp + 32, (angle_y * to_radians).pdiv(half_turn));
     matrixVecMulAligned(&[(sp + 32) as i64, direction as i64]);
-    matrixRotY(sp + 32, lwc1(g::view_angx) * to_radians / half_turn);
+    matrixRotY(sp + 32, (lwc1(g::view_angx) * to_radians).pdiv(half_turn));
     matrixVecMulAligned(&[(sp + 32) as i64, direction as i64]);
     let forward = joyGetAxis(0, 1);
     swc1(g::view_campos, lwc1(g::view_campos) + lwc1(g::view_camdir) * forward);

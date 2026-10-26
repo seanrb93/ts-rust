@@ -349,7 +349,7 @@ pub fn selectTarget(a0: i32) {
                                                         let mut slot = sp;
                                                         loop {
                                                             let mate = lw(slot);
-                                                            let closeness = 1.0_f32 / distance_squared(a0, mate).abs().sqrt();
+                                                            let closeness = (1.0_f32).pdiv(distance_squared(a0, mate).abs().psqrt());
                                                             left -= 1;
                                                             if best < closeness {
                                                                 best = closeness;
@@ -449,7 +449,7 @@ pub fn selectTarget(a0: i32) {
                                             let enemy = lw(slot);
                                             let d = distance_squared(a0, enemy);
                                             let kills = chrCountKills(lw(enemy + 352));
-                                            let ratio = (if kills != 0 { kills } else { 1 }) as f32 / d.abs().sqrt();
+                                            let ratio = ((if kills != 0 { kills } else { 1 }) as f32).pdiv(d.abs().psqrt());
                                             left -= 1;
                                             if ratio < best {
                                                 best = ratio;

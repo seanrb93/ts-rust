@@ -13,7 +13,7 @@ pub fn particleManualGfx(particle: i32, matrix: i32) {
     let mut batched = 0;
     let mut i = 0;
     let mut header = 0;
-    let zoom = 6e+01_f32 / lwc1(lw(g::currentplayer) + 260);
+    let zoom = (6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260));
     let info = lw(particle + 4) * 104 + g::particleinfos;
     let textures = (lw(info) << 4) + g::particletextures;
     let tex_b = lw(textures + 4);
@@ -41,14 +41,14 @@ pub fn particleManualGfx(particle: i32, matrix: i32) {
                     let colour_word = fptoui(lwc1(at + 2192));
                     let turn = lwc1(at + 2592) * age;
                     let fade_in = lwc1(info + 24);
-                    let turn = turn * lwc1(0x3ad580) / 1.8e+02_f32;
+                    let turn = (turn * lwc1(0x3ad580)).pdiv(1.8e+02_f32);
                     if !(age < fade_in) {
                         let fade_out = lwc1(info + 28);
                         if (life - fade_out) < age {
-                            fade = (life - age) / fade_out;
+                            fade = ((life - age)).pdiv(fade_out);
                         }
                     } else {
-                        fade = age / fade_in;
+                        fade = (age).pdiv(fade_in);
                     }
                     let place = particle + i * 12;
                     let z = lwc1(place + 1000);
@@ -77,11 +77,11 @@ pub fn particleManualGfx(particle: i32, matrix: i32) {
                                     z = lwc1(sp + 88);
                                 }
                                 let size_raw = lwc1(info + 40);
-                                let inverse = one / w;
+                                let inverse = (one).pdiv(w);
                                 let across = lw(window + 16) as f32;
                                 let scale = lwc1(0x3ad588);
                                 let down = 0 - lw(window + 36);
-                                let size = size_raw / z * zoom;
+                                let size = (size_raw).pdiv(z) * zoom;
                                 let depth = z * inverse;
                                 let width = size * (age * lwc1(info + 48) + one);
                                 batched += 1;

@@ -404,7 +404,7 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
                 swc1(sp + 132, f1_30);
                 swc1(sp + 136, f2_4);
                 swc1(sp + 240, f6_2 * f3_2);
-                let f0_7 = 1.0_f32 / (f0_6 * f0_6 + f1_30 * f1_30 + f2_4 * f2_4).abs().sqrt();
+                let f0_7 = (1.0_f32).pdiv((f0_6 * f0_6 + f1_30 * f1_30 + f2_4 * f2_4).abs().psqrt());
                 let f23_1 = lwc1(sp + 16);
                 let f24_1 = lwc1(sp + 20);
                 let f9_1 = f23_1 - f15_1;
@@ -443,7 +443,7 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
                 let f13_1 = lwc1(sp + 224);
                 let f12_1 = lwc1(sp + 228);
                 let f17_2 = lwc1(sp + 208);
-                let ratio = ((f9_2 * f9_2 + f11_2 * f11_2 + f10_2 * f10_2) / (f1_32 * f1_32 + f2_6 * f2_6 + f3_4 * f3_4)).abs().sqrt();
+                let ratio = (((f9_2 * f9_2 + f11_2 * f11_2 + f10_2 * f10_2)).pdiv((f1_32 * f1_32 + f2_6 * f2_6 + f3_4 * f3_4))).abs().psqrt();
                 let f3_6 = f3_5 + ratio * (f17_1 - f3_5);
                 let f16_2 = lwc1(sp + 212);
                 let f4_3 = f4_2 + ratio * (f16_1 - f4_2);
@@ -478,7 +478,7 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
                 let f4_5 = lwc1(sp + 176);
                 let f6_5 = lwc1(sp + 184);
                 let a2_10 = lw(sp + 292);
-                let ratio2 = ((f1_34 * f1_34 + f2_8 * f2_8 + f0_9 * f0_9) / (f3_7 * f3_7 + f4_4 * f4_4 + f5_5 * f5_5)).abs().sqrt();
+                let ratio2 = (((f1_34 * f1_34 + f2_8 * f2_8 + f0_9 * f0_9)).pdiv((f3_7 * f3_7 + f4_4 * f4_4 + f5_5 * f5_5))).abs().psqrt();
                 let f5_7 = f5_6 + ratio2 * (lwc1(sp + 192) - f5_6);
                 let f1_35 = ratio2 * (lwc1(sp + 196) - f6_5);
                 let f4_6 = f4_5 + ratio2 * (lwc1(sp + 188) - f4_5);

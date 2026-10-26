@@ -95,23 +95,23 @@ pub fn particleGetClosestExplosion(point: i32, position: i32, distance: i32, col
     let mut falloff_b = limit;
     // `a` is the nearest, `b` the second
     if nearest_d2 < limit {
-        let d = nearest_d2.abs().sqrt();
+        let d = nearest_d2.abs().psqrt();
         glow_a = explosion_glow(nearest) * lwc1(0x3ad59c);
         dist_a = d;
         let half = d * 0.5_f32;
         falloff_a = 1.0_f32;
         if !(half <= 2.0_f32) {
-            falloff_a = falloff_a / (half - falloff_a);
+            falloff_a = (falloff_a).pdiv((half - falloff_a));
         }
     }
     if second_d2 < lwc1(g::pgroups + 4) {
-        let d = second_d2.abs().sqrt();
+        let d = second_d2.abs().psqrt();
         glow_b = explosion_glow(second) * lwc1(0x3ad5a0);
         dist_b = d;
         let half = d * 0.5_f32;
         falloff_b = 1.0_f32;
         if !(half <= 2.0_f32) {
-            falloff_b = falloff_b / (half - falloff_b);
+            falloff_b = (falloff_b).pdiv((half - falloff_b));
         }
     }
     let limit = lwc1(g::pgroups + 4);

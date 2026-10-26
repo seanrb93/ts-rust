@@ -137,7 +137,7 @@ pub fn pubsignPropTick(a0: i32) {
             }
         }
     }
-    let angle = lwc1(lw(a0 + 352) + 8) * lwc1(0x3acebc) / 1.8e+02_f32;
+    let angle = (lwc1(lw(a0 + 352) + 8) * lwc1(0x3acebc)).pdiv(1.8e+02_f32);
     matrixRotX(lw(lw(a0 + 32) + 4) + 64, angle);
 }
 
@@ -151,7 +151,7 @@ pub fn loadAnimation(a0: i32, a1: i32) {
     let table = lw(header + 4);
     sw(slot + g::animRightTag, lw(header + 12));
     let channels = lw(header + 28);
-    let length = (lw(header) as f32 - 1.0_f32) / 6e+01_f32;
+    let length = ((lw(header) as f32 - 1.0_f32)).pdiv(6e+01_f32);
     let channel_table = (table << 2) + memory + 63 & mask;
     let mut data = ((lw(header + 4) << 2) + 15 & mask) + (memory + (channels << 5)) + 51 & mask;
     sw(header + 20, memory + 51 & mask);
@@ -391,7 +391,7 @@ pub fn bannerPropTick(a0: i32) {
             }
         }
     }
-    let angle = lwc1(lw(a0 + 352) + 8) * lwc1(0x3acedc) / 1.8e+02_f32;
+    let angle = (lwc1(lw(a0 + 352) + 8) * lwc1(0x3acedc)).pdiv(1.8e+02_f32);
     matrixRotX(lw(lw(a0 + 32) + 4), angle);
 }
 

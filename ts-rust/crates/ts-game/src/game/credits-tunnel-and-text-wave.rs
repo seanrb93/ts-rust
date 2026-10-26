@@ -11,7 +11,7 @@ pub fn getCreditTunnelSection(out: i32, time: i32) {
     let sp = frame.sp();
     let two_pi = ld(0x3a98a0);
     let step = time.wrapping_rem(540);
-    let fraction = step as f32 / 1e+01_f32 - step.wrapping_div(10) as f32;
+    let fraction = (step as f32).pdiv(1e+01_f32) - step.wrapping_div(10) as f32;
     let angle = dptofp(dpadd(dpmul(fptodp(fraction), two_pi), two_pi));
     let cosine = cosf(angle);
     let tunnel = g::tunnel;
@@ -72,7 +72,7 @@ pub fn creditsCalcTextWave(place: i32) -> i32 {
     let four = 4.0_f32;
     let page = lwc1(g::creditspagetime);
     let come_in_end = wait + four;
-    let ratio = place as f32 / lw(g::window + 32) as f32;
+    let ratio = (place as f32).pdiv(lw(g::window + 32) as f32);
     let go_out_start = come_in_end + lwc1(g::creditstexttime);
     if page < wait {
         return 0;
@@ -104,7 +104,7 @@ pub fn creditsCalcTextWave(place: i32) -> i32 {
         let low = lwc1((index << 2) + table);
         let at = index << 2;
         index += 1;
-        let u = (t - low) / (lwc1((index << 2) + table) - low);
+        let u = ((t - low)).pdiv((lwc1((index << 2) + table) - low));
         if 0.0_f32 <= u && u < 1.0_f32 {
             let angle = dptofp(dpmul(fptodp(u), ld(0x3a98b0)));
             return (sinf(angle) * lwc1(at + g::sinwaveintensity)) as i32;

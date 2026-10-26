@@ -71,8 +71,8 @@ pub fn glassSetQuad(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
     let v1 = lwc1(uv_1 + 4);
     let u2 = lwc1(uv_2);
     let v2 = lwc1(uv_2 + 4);
-    let centre_u = (u0 + u1 + u2) / 3.0_f32;
-    let centre_v = (v0 + v1 + v2) / 3.0_f32;
+    let centre_u = ((u0 + u1 + u2)).pdiv(3.0_f32);
+    let centre_v = ((v0 + v1 + v2)).pdiv(3.0_f32);
     let scale = lwc1(0x3ad4c0);
     let offset_u = lwc1(texture_offset) * scale;
     let offset_v = lwc1(texture_offset + 4) * scale;
@@ -105,7 +105,7 @@ pub fn glassSetQuad(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
     // The speed and the spin: they are bigger the nearer the shard is to the point of impact.
     let from_impact_u = centre_u - lwc1(impact);
     let from_impact_v = centre_v - lwc1(impact + 4);
-    let distance = (from_impact_u * from_impact_u + from_impact_v * from_impact_v).abs().sqrt() / 2.0_f32.abs().sqrt();
+    let distance = ((from_impact_u * from_impact_u + from_impact_v * from_impact_v).abs().psqrt()).pdiv(2.0_f32.abs().psqrt());
     let near = 1.0_f32 - distance;
     let power = near * near * near;
     let push = power * 14.0_f32 * f12;

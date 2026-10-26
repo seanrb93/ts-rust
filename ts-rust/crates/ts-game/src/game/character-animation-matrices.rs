@@ -11,7 +11,7 @@ fn turn_with_root(a0: i32, anim: i32, last: i32, half: f32, add: bool) {
         return;
     }
     let from = lwc1(a0 + last);
-    let to = time / half * 9e+01_f32;
+    let to = (time).pdiv(half) * 9e+01_f32;
     let difference = anglediff(from, to);
     let owner = lw(a0 + 244);
     if add {
@@ -34,8 +34,8 @@ fn turn_with_root(a0: i32, anim: i32, last: i32, half: f32, add: bool) {
 /// to the second.
 fn key_frame_fraction(anim: i32, time: f32, from: i32, to: i32) -> f32 {
     let times = lw(anim + 20);
-    let a = lw((from << 2) + times) as f32 / 6e+01_f32;
-    (time - a) / (lw((to << 2) + times) as f32 / 6e+01_f32 - a)
+    let a = (lw((from << 2) + times) as f32).pdiv(6e+01_f32);
+    ((time - a)).pdiv(((lw((to << 2) + times) as f32).pdiv(6e+01_f32) - a))
 }
 
 /// Calculate the matrices of the bones of the animated character `a0` (@ 0x212e08): move the time of its two animations (the second one blends in while it changes from
@@ -52,8 +52,8 @@ pub fn calMatrices(a0: i32) {
     let blend_length = lwc1(a0 + 224);
     let s2_1 = a0 + 160;
     if 0.0_f32 < blend_length {
-        let blend_time = lwc1(a0 + 232) + lwc1(g::updateframesf) / 6e+01_f32;
-        let blend = blend_time / blend_length;
+        let blend_time = lwc1(a0 + 232) + (lwc1(g::updateframesf)).pdiv(6e+01_f32);
+        let blend = (blend_time).pdiv(blend_length);
         swc1(a0 + 232, blend_time);
         swc1(a0 + 228, blend);
         if 1.0_f32 <= blend {
@@ -108,7 +108,7 @@ pub fn calMatrices(a0: i32) {
                 let f3_2 = lwc1(s0_1 + 4);
                 sw(s0_1 + 56, 0);
                 let v0_1 = lw(s7_1 + 12) & 1;
-                let f3_3 = f3_2 + f0_4 / 6e+01_f32;
+                let f3_3 = f3_2 + (f0_4).pdiv(6e+01_f32);
                 swc1(s0_1 + 4, f3_3);
                 if v0_1 == 0 {
                     if !(f21_1 < f3_3) {
@@ -182,7 +182,7 @@ pub fn calMatrices(a0: i32) {
                 let f0_10 = f0_9 * lwc1(s2_1 + 44);
                 sw(s2_1 + 56, 0);
                 let v0_4 = lw(lw(sp + 528) + 12) & 1;
-                let f3_4 = lwc1(s2_1 + 4) + f0_10 / 6e+01_f32;
+                let f3_4 = lwc1(s2_1 + 4) + (f0_10).pdiv(6e+01_f32);
                 swc1(s2_1 + 4, f3_4);
                 if v0_4 == 0 {
                     if f20_1 < f3_4 {
@@ -544,12 +544,12 @@ pub fn calMatrices(a0: i32) {
                     let s5_1 = lw(v1_10);
                     let f13_6 = lwc1(a2_24 + 80);
                     let f12_20 = lwc1(a2_24 + 76);
-                    let f21_5 = -(f21_4 * f23_1 / f22_2);
+                    let f21_5 = -((f21_4 * f23_1).pdiv(f22_2));
                     let f0_26 = anglediff(f12_20, f13_6);
                     let f13_7 = lwc1(lw(a0 + 244) + 80);
                     let f0_27 = anglediff(f26_1, f13_7);
                     let a0_29 = lw(sp + 556);
-                    let f13_8 = f0_26 * f23_1 / f22_2 - f0_27 * f23_1 / f22_2;
+                    let f13_8 = (f0_26 * f23_1).pdiv(f22_2) - (f0_27 * f23_1).pdiv(f22_2);
                     matrixRotZXY(a0_29, f21_5, f13_8, 0.0_f32);
                     if s5_1 <= 0 {
                         break 'b49;
@@ -608,7 +608,7 @@ pub fn calMatrices(a0: i32) {
             let f23_2 = lwc1(0x3ac830);
             let f24_1 = 1.8e+02_f32;
             swc1(sp + 496, lwc1(v1_12 + 48));
-            let f22_3 = f21_4 * f23_2 / f24_1;
+            let f22_3 = (f21_4 * f23_2).pdiv(f24_1);
             swc1(sp + 500, lwc1(v1_12 + 52));
             swc1(sp + 504, lwc1(v1_12 + 56));
             swc1(v1_12 + 48, 0.0_f32);
@@ -622,7 +622,7 @@ pub fn calMatrices(a0: i32) {
             let f0_29 = anglediff(f26_1, f13_10);
             let a0_34 = lw(sp + 556);
             let f12_25 = f22_3 * -0.5_f32;
-            let f13_11 = (f0_28 * f23_2 / f24_1 - f0_29 * f23_2 / f24_1) * 0.5_f32;
+            let f13_11 = ((f0_28 * f23_2).pdiv(f24_1) - (f0_29 * f23_2).pdiv(f24_1)) * 0.5_f32;
             matrixRotZXY(a0_34, f12_25, f13_11, 0.0_f32);
             let a1_26 = lw(sp + 556);
             let a2_28 = lw(a0 + 4) + s2_2;
@@ -642,7 +642,7 @@ pub fn calMatrices(a0: i32) {
             let f0_32 = anglediff(f26_1, f13_13);
             let a0_37 = lw(sp + 556);
             let f12_28 = -f22_3;
-            let f13_14 = f0_31 * f23_2 / f24_1 - f0_32 * f23_2 / f24_1;
+            let f13_14 = (f0_31 * f23_2).pdiv(f24_1) - (f0_32 * f23_2).pdiv(f24_1);
             matrixRotZXY(a0_37, f12_28, f13_14, 0.0_f32);
             let v1_13 = lw(a0 + 92);
             let mut s3_4 = lw(v1_13 + 16);

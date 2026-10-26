@@ -262,7 +262,7 @@ pub fn swingProp(prop: i32, axis: i32, speed: f32, rate: f32, limit: f32) {
     }
     let angle_at = angles + at;
     let full = 3.6e+02_f32;
-    let turned = lwc1(angle_at) + pull / 9e+01_f32 * speed;
+    let turned = lwc1(angle_at) + (pull).pdiv(9e+01_f32) * speed;
     swc1(angle_at, turned);
     if full <= turned {
         before -= full;

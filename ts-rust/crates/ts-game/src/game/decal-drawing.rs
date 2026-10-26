@@ -19,16 +19,16 @@ pub fn decalDraw(decal: i32, alpha: f32) {
     let count;
     if object != 0 && lw(decal + 212) >= 0 {
         if lw(object + 140) != 2 {
-            let turn = lwc1(object + 76) * lwc1(0x3ad604) / 1.8e+02_f32;
+            let turn = (lwc1(object + 76) * lwc1(0x3ad604)).pdiv(1.8e+02_f32);
             matrixTransRotY(sp + 224, lwc1(object + 48), lwc1(object + 52), lwc1(object + 56), turn);
         } else {
             let radians = lwc1(0x3ad600);
             let half_turn = 1.8e+02_f32;
             let z = lwc1(object + 56);
-            let a = lwc1(object + 72) * radians / half_turn;
+            let a = (lwc1(object + 72) * radians).pdiv(half_turn);
             let x = lwc1(object + 48);
-            let b = lwc1(object + 76) * radians / half_turn;
-            let c = lwc1(object + 88) * radians / half_turn;
+            let b = (lwc1(object + 76) * radians).pdiv(half_turn);
+            let c = (lwc1(object + 88) * radians).pdiv(half_turn);
             let y = lwc1(object + 52);
             matrixTransRotZXY(sp + 224, x, y, z, a, b, c);
         }
@@ -105,7 +105,7 @@ pub fn decalDraw(decal: i32, alpha: f32) {
             let q_at = sp + 352 + (i << 2);
             let window = g::window;
             let a2 = sp + offset;
-            let inverse = one / lwc1(sp + 12 + offset);
+            let inverse = (one).pdiv(lwc1(sp + 12 + offset));
             let across = lw(window + 16) as f32;
             let centre_x = lw(window + 8) as f32;
             let y_at = sp + 4 + offset;

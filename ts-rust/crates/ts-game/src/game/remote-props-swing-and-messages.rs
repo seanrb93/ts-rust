@@ -73,7 +73,7 @@ pub fn remoteGetPivotePos(prop: i32, out: i32) {
     let frame = Frame::new(144);
     let sp = frame.sp();
     let offset = remoteGetPivoteOffset(prop);
-    let angle = lwc1(prop + 76) * lwc1(0x3acbd0) / 180.0_f32;
+    let angle = (lwc1(prop + 76) * lwc1(0x3acbd0)).pdiv(180.0_f32);
     swc1(sp, lwc1(offset));
     swc1(sp + 4, lwc1(offset + 4));
     swc1(sp + 8, lwc1(offset + 8));
@@ -97,7 +97,7 @@ pub fn remoteGetStandAngle(prop: i32, from: i32) -> f32 {
     swc1(sp, lwc1(offset));
     swc1(sp + 4, lwc1(offset + 4));
     swc1(sp + 8, lwc1(offset + 8));
-    matrixRotY(sp + 16, angle / to_degrees);
+    matrixRotY(sp + 16, (angle).pdiv(to_degrees));
     matrixVecRotAligned(&[(sp + 16) as i64, sp as i64]);
     let x = lwc1(sp) + lwc1(prop + 48);
     let z = lwc1(sp + 8) + lwc1(prop + 56);
@@ -109,7 +109,7 @@ pub fn remoteGetStandAngle(prop: i32, from: i32) -> f32 {
     swc1(sp + 8, z);
     let dx = x - from_x;
     swc1(sp + 4, y);
-    let mut degrees = atan2f(dx, dz) * to_degrees / scale;
+    let mut degrees = (atan2f(dx, dz) * to_degrees).pdiv(scale);
     if !(degrees < 0.0_f32) {
         let full = 360.0_f32;
         if full <= degrees {
@@ -132,10 +132,10 @@ pub fn remoteGetStandPos(prop: i32, out: i32, angle: f32) {
     swc1(sp + 16, lwc1(offset));
     swc1(sp + 20, lwc1(offset + 4));
     swc1(sp + 24, lwc1(offset + 8));
-    matrixRotY(sp + 32, turn / to_degrees);
+    matrixRotY(sp + 32, (turn).pdiv(to_degrees));
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
     let z = lwc1(prop + 56);
-    let stand_turn = angle * scale / to_degrees;
+    let stand_turn = (angle * scale).pdiv(to_degrees);
     let pz = lwc1(sp + 24);
     let px = lwc1(sp + 16) + lwc1(prop + 48);
     let py = lwc1(sp + 20) + lwc1(prop + 52);
@@ -165,37 +165,37 @@ pub fn getSwingDirectionMultiplier(swing: i32, way: i32, angles: i32) -> f32 {
     let x = lwc1(swing);
     let y = lwc1(swing + 4);
     let z = lwc1(swing + 8);
-    let length = (x * x + y * y + z * z).abs().sqrt();
+    let length = (x * x + y * y + z * z).abs().psqrt();
     let angle_y = lwc1(angles + 4);
     let scale = lwc1(0x3aceb4);
     let c = lwc1(angles + 8) * scale;
     let a = lwc1(angles) * scale;
-    swc1(sp + 72, z / length);
-    swc1(sp + 64, x / length);
-    let c = c / 180.0_f32;
-    let a = a / 180.0_f32;
-    let b = angle_y * scale / 180.0_f32;
-    swc1(sp + 68, y / length);
+    swc1(sp + 72, (z).pdiv(length));
+    swc1(sp + 64, (x).pdiv(length));
+    let c = (c).pdiv(180.0_f32);
+    let a = (a).pdiv(180.0_f32);
+    let b = (angle_y * scale).pdiv(180.0_f32);
+    swc1(sp + 68, (y).pdiv(length));
     matrixRotZXY(sp, a, b, c);
     matrixVecRot(sp, sp + 64);
     let dot = lwc1(way) * lwc1(sp + 64) + lwc1(way + 4) * lwc1(sp + 68) + lwc1(way + 8) * lwc1(sp + 72);
-    let mut degrees = acosf(dot) * 180.0_f32 / scale;
+    let mut degrees = (acosf(dot) * 180.0_f32).pdiv(scale);
     if degrees < result {
         degrees += 360.0_f32;
     }
     if degrees < 90.0_f32 {
-        result = -((90.0_f32 - degrees) / 90.0_f32);
+        result = -(((90.0_f32 - degrees)).pdiv(90.0_f32));
     }
     if 90.0_f32 <= degrees && degrees < 180.0_f32 {
-        result = (degrees - 90.0_f32) / 90.0_f32;
+        result = ((degrees - 90.0_f32)).pdiv(90.0_f32);
     }
     if 180.0_f32 <= degrees && degrees < 270.0_f32 {
-        result = (90.0_f32 - (degrees - 180.0_f32)) / 90.0_f32;
+        result = ((90.0_f32 - (degrees - 180.0_f32))).pdiv(90.0_f32);
     }
     if !(270.0_f32 <= degrees) {
         result
     } else {
-        -((degrees - 270.0_f32) / 90.0_f32)
+        -(((degrees - 270.0_f32)).pdiv(90.0_f32))
     }
 }
 

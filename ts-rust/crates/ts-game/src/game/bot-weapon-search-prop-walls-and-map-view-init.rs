@@ -121,7 +121,7 @@ pub fn propCalculateWalls(prop: i32, by_bones: i32) {
     }
     propGetOriginalWalls(lw(prop + 4), sp + 96, sp + 100);
     let mut index = 0;
-    matrixTransRotY(sp, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), lwc1(prop + 76) * lwc1(0x3acbc4) / 1.8e+02_f32);
+    matrixTransRotY(sp, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), (lwc1(prop + 76) * lwc1(0x3acbc4)).pdiv(1.8e+02_f32));
     let mut originals = lw(sp + 96);
     let mut original = lw(originals);
     let mut offset = 0;

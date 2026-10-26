@@ -13,7 +13,7 @@ pub fn hudRadarGfx() -> i32 {
     let mut count = 0;
     let mut players = lw(g::lvnumplayers);
     let mut characters = lw(g::numactivechars);
-    let facing = lwc1(player + 276) * lwc1(0x3ad79c) / 1.8e+02_f32;
+    let facing = (lwc1(player + 276) * lwc1(0x3ad79c)).pdiv(1.8e+02_f32);
     let mut strip = sp + 16;
     if players + characters > 0 {
         loop {
@@ -27,7 +27,7 @@ pub fn hudRadarGfx() -> i32 {
                 let dx = lwc1(thing + 48) - lwc1(player + 140);
                 let dz = -(lwc1(thing + 56) - back);
                 let entry = count * 12 + 0x1fea944;
-                swc1(entry, (dx * dx + dz * dz).abs().sqrt() / 5e+01_f32);
+                swc1(entry, ((dx * dx + dz * dz).abs().psqrt()).pdiv(5e+01_f32));
                 let angle = atan2f(dz, dx);
                 let team_game = lw(g::curgameparms + 80) & 1;
                 swc1(slot + 0x1fea940, angle - facing);
@@ -67,7 +67,7 @@ pub fn hudRadarGfx() -> i32 {
                     let dz = -(lwc1(bag + 56) - lwc1(player + 148));
                     let entry = count * 12 + 0x1fea944;
                     count += 1;
-                    swc1(entry, (dx * dx + dz * dz).abs().sqrt() / 5e+01_f32);
+                    swc1(entry, ((dx * dx + dz * dz).abs().psqrt()).pdiv(5e+01_f32));
                     let angle = atan2f(dz, dx);
                     sw(slot + 0x1fea948, if (lw(g::tickframenum) & 16) == 0 { 0 } else { 0x7f7f7f80 });
                     swc1(slot + 0x1fea940, angle - facing);
@@ -90,7 +90,7 @@ pub fn hudRadarGfx() -> i32 {
             let dz = -(lwc1(escort + 56) - lwc1(player + 148));
             let entry = count * 12 + 0x1fea944;
             count += 1;
-            swc1(entry, (dx * dx + dz * dz).abs().sqrt() / 5e+01_f32);
+            swc1(entry, ((dx * dx + dz * dz).abs().psqrt()).pdiv(5e+01_f32));
             let angle = atan2f(dz, dx);
             let colour = if (lw(g::tickframenum) & 16) == 0 { 0 } else { 0x7f7f7f80 };
             swc1(slot + 0x1fea940, angle - facing);
@@ -110,7 +110,7 @@ pub fn hudRadarGfx() -> i32 {
     let factor = lwc1(0x3ad7a4);
     let mut point = 0;
     loop {
-        let index = (turn * degrees / 1.8e+02_f32 * factor + 0.5_f32) as i32;
+        let index = ((turn * degrees).pdiv(1.8e+02_f32) * factor + 0.5_f32) as i32;
         let sine = lwc1(((index & 2047) << 2) + g::g_SinTable);
         let cosine = lwc1((((index + 512) & 2047) << 2) + g::g_SinTable);
         if point != 16 {

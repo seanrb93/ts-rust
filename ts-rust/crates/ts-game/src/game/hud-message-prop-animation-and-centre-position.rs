@@ -51,7 +51,7 @@ pub fn hudMessageDraw(player: i32) {
         let mut slide = 0;
         if (past as u32) < 30 {
             let half = 0x3fe0000000000000_i64;
-            let fraction = past as f32 / 3e+01_f32;
+            let fraction = (past as f32).pdiv(3e+01_f32);
             let turned = dpmul(dpmul(fptodp(fraction), ld(0x3a9a28)), half);
             let index = dptoli(dpadd(dpmul(turned, ld(0x3a9a30)), half));
             slide = (-((1.0_f32 - lwc1((((index + 512) & 2047) << 2) + g::g_SinTable)) * lw(g::window + 12) as f32)) as i32;
@@ -59,7 +59,7 @@ pub fn hudMessageDraw(player: i32) {
         offset = slide;
     } else {
         let half = 0x3fe0000000000000_i64;
-        let fraction = time as f32 / 3e+01_f32;
+        let fraction = (time as f32).pdiv(3e+01_f32);
         let turned = dpmul(dpmul(fptodp(fraction), ld(0x3a9a18)), half);
         let index = dptoli(dpadd(dpmul(turned, ld(0x3a9a20)), half));
         offset = ((1.0_f32 - lwc1(((index & 2047) << 2) + g::g_SinTable)) * lw(g::window + 12) as f32) as i32;
@@ -137,7 +137,7 @@ pub fn calPropMatrices(prop: i32, scale: f32) {
         let time = lwc1(state + 4);
         sw(state + 56, 0);
         let looping = lw(anim + 12) & 1;
-        let moved = time + step / 6e+01_f32;
+        let moved = time + (step).pdiv(6e+01_f32);
         swc1(state + 4, moved);
         if looping == 0 {
             if length < moved {
@@ -197,8 +197,8 @@ pub fn calPropMatrices(prop: i32, scale: f32) {
         count = lw(anim + 8);
     } else {
         let times = lw(anim + 20);
-        let from = lw((before << 2) + times) as f32 / 6e+01_f32;
-        blend = (lwc1(state + 4) - from) / (lw((after << 2) + times) as f32 / 6e+01_f32 - from);
+        let from = (lw((before << 2) + times) as f32).pdiv(6e+01_f32);
+        blend = ((lwc1(state + 4) - from)).pdiv(((lw((after << 2) + times) as f32).pdiv(6e+01_f32) - from));
         count = lw(anim + 8);
     }
     let mut i = 0;
@@ -374,7 +374,7 @@ pub fn propCalculateCentrePos(prop: i32) {
     let angle = lwc1(prop + 76);
     swc1(sp + 68, centre_y);
     swc1(sp + 72, centre_z);
-    matrixRotY(sp, angle * degrees / 1.8e+02_f32);
+    matrixRotY(sp, (angle * degrees).pdiv(1.8e+02_f32));
     matrixVecMulAligned(&[sp as i64, (sp + 64) as i64]);
     let depth = lwc1(sp + 104) - lwc1(sp + 88);
     let turned_y = lwc1(sp + 68);

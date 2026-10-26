@@ -360,7 +360,7 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
     let dy = end_y - start_y;
     let end_z = lwc1(a2 + 8);
     let start_z = lwc1(a1 + 8);
-    let angle = lwc1(a0 + 76) * lwc1(0x3ad1ac) / 1.8e+02_f32;
+    let angle = (lwc1(a0 + 76) * lwc1(0x3ad1ac)).pdiv(1.8e+02_f32);
     let chr_y = lwc1(a0 + 52);
     let chr_z = lwc1(a0 + 56);
     let dz = end_z - start_z;
@@ -410,9 +410,9 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
     swc1(sp + 196, normal_y);
     swc1(sp + 192, normal_x);
     let normal_z = f2 * f6 - f5 * f7;
-    let size = (normal_x * normal_x + normal_y * normal_y + normal_z * normal_z).abs().sqrt();
+    let size = (normal_x * normal_x + normal_y * normal_y + normal_z * normal_z).abs().psqrt();
     swc1(sp + 200, normal_z);
-    let scale = 1.0_f32 / size;
+    let scale = (1.0_f32).pdiv(size);
     let count = lw(lw(sp + 392));
     let nx = lwc1(sp + 192) * scale;
     let ny = lwc1(sp + 196) * scale;
@@ -563,7 +563,7 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
             swc1(place, hit_x);
             let x = lwc1(a0 + 48);
             let y = lwc1(a0 + 52);
-            let turn = lwc1(a0 + 76) * lwc1(0x3ad1b0) / 1.8e+02_f32;
+            let turn = (lwc1(a0 + 76) * lwc1(0x3ad1b0)).pdiv(1.8e+02_f32);
             let z = lwc1(a0 + 56);
             matrixTransRotY(sp + 32, x, y, z, turn);
             matrixVecMul(sp + 32, lw(sp + 384));
@@ -573,12 +573,12 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
             let dir_y = lwc1(sp + 20);
             let dir_z = lwc1(sp + 24);
             let direction = lw(sp + 388);
-            let scale = 1.0_f32 / (dir_x * dir_x + dir_y * dir_y + dir_z * dir_z).abs().sqrt();
+            let scale = (1.0_f32).pdiv((dir_x * dir_x + dir_y * dir_y + dir_z * dir_z).abs().psqrt());
             let factor = lwc1(0x3ad1b4);
             swc1(direction + 8, dir_z * scale);
             swc1(direction, dir_x * scale);
             swc1(direction + 4, dir_y * scale);
-            let turn = lwc1(a0 + 76) * factor / 1.8e+02_f32;
+            let turn = (lwc1(a0 + 76) * factor).pdiv(1.8e+02_f32);
             matrixRotY(sp + 32, turn);
             matrixVecMul(sp + 32, lw(sp + 388));
         }
@@ -1081,8 +1081,8 @@ pub fn robotAI(a0: i32) {
         sw(sp + 16, 0);
     }
     sw(sp + 20, 0);
-    let angle = lwc1(a0 + 76) * lwc1(0x3ad99c) / 1.8e+02_f32;
-    swc1(sp + 24, lwc1(mind + 2876) / 6e+01_f32);
+    let angle = (lwc1(a0 + 76) * lwc1(0x3ad99c)).pdiv(1.8e+02_f32);
+    swc1(sp + 24, (lwc1(mind + 2876)).pdiv(6e+01_f32));
     matrixRotY(sp + 32, angle);
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
     swc1(sp + 16, lwc1(a0 + 48) + lwc1(sp + 16));

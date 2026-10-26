@@ -198,18 +198,18 @@ pub fn chrPropTick(a0: i32) {
     let glow_time = lwc1(mind + 2900);
     let frame_time = lwc1(g::updateframesf);
     if 0.0_f32 < glow_time {
-        swc1(mind + 2900, glow_time - frame_time / 6e+01_f32);
+        swc1(mind + 2900, glow_time - (frame_time).pdiv(6e+01_f32));
     }
     if lw(mind + 0x11a8) == 0 {
-        let mut amount = lwc1(mind + 2900) / 2.5_f32;
+        let mut amount = (lwc1(mind + 2900)).pdiv(2.5_f32);
         if 1.0_f32 < amount {
             amount = 1.0_f32;
         }
         if !(0.0_f32 < amount) {
             obInstSetOverrideCol(lw(a0 + 32), 0, 0, 0, 0.0_f32);
         } else {
-            let strength = amount.abs().sqrt();
-            let wave = (lwc1((((lw(g::gameframe) as f32 * 6.0_f32 / 6e+01_f32 * lwc1(0x3acc74) + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) + 1.0_f32) * 0.5_f32 * 0.5_f32 + 0.5_f32;
+            let strength = amount.abs().psqrt();
+            let wave = (lwc1(((((lw(g::gameframe) as f32 * 6.0_f32).pdiv(6e+01_f32) * lwc1(0x3acc74) + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) + 1.0_f32) * 0.5_f32 * 0.5_f32 + 0.5_f32;
             let hold = lw(mind + 0x11a4);
             let glow = wave * strength;
             if hold == 0 {
@@ -424,7 +424,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
     }
     let sin_table = g::g_SinTable;
     let phase_scale = lwc1(0x3ad388);
-    let phase = lw(g::gameframe) as f32 / 2e+01_f32;
+    let phase = (lw(g::gameframe) as f32).pdiv(2e+01_f32);
     let half = 0.5_f32;
     let step = lwc1(g::updateframesf);
     let owner_y = lwc1(owner + 52);
@@ -617,7 +617,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
             let pivot = lw(skeleton + 72);
             let at = pivot + 12;
             matrixTrans(first, lwc1(pivot + 12), lwc1(at + 4), lwc1(at + 8) + shift);
-            matrixRotZXY(sp, 0.0_f32, shift * 9e+01_f32 * minus_twelve * scale / full, 0.0_f32);
+            matrixRotZXY(sp, 0.0_f32, (shift * 9e+01_f32 * minus_twelve * scale).pdiv(full), 0.0_f32);
             sceVu0MulMatrix(first, first, sp);
             matrixTrans(sp, -lwc1(pivot + 12), -lwc1(at + 4), -lwc1(at + 8));
             sceVu0MulMatrix(first, first, sp);
@@ -625,7 +625,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
             let at = pivot + 24;
             let second = lw(lw(lw(a0 + 12) + 32) + 4) + 256;
             matrixTrans(second, lwc1(pivot + 24), lwc1(at + 4), lwc1(at + 8) + lwc1(a0 + 80));
-            matrixRotZXY(sp, 0.0_f32, shift * -9e+01_f32 * minus_twelve * scale / full, 0.0_f32);
+            matrixRotZXY(sp, 0.0_f32, (shift * -9e+01_f32 * minus_twelve * scale).pdiv(full), 0.0_f32);
             sceVu0MulMatrix(second, second, sp);
             matrixTrans(sp, -lwc1(pivot + 24), -lwc1(at + 4), -lwc1(at + 8));
             sceVu0MulMatrix(second, second, sp);
@@ -641,7 +641,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
             let matrix = lw(model + 4) + (lw(gun + 372) << 6);
             let pivot = lw(header - lw(header) * 80 + 72) + offset;
             matrixTrans(matrix, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-            matrixRotZXY(sp, 0.0_f32, 0.0_f32, lwc1(a0 + 84) * lwc1(0x3ad39c) / 1.8e+02_f32);
+            matrixRotZXY(sp, 0.0_f32, 0.0_f32, (lwc1(a0 + 84) * lwc1(0x3ad39c)).pdiv(1.8e+02_f32));
             sceVu0MulMatrix(matrix, matrix, sp);
             matrixTrans(sp, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
             sceVu0MulMatrix(matrix, matrix, sp);
@@ -670,7 +670,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
         let matrix = lw(model + 4) + (lw(gun + 376) << 6);
         let pivot = lw(header - lw(header) * 80 + 72) + second_bone * 12;
         matrixTrans(matrix, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-        matrixRotZXY(sp + 64, lwc1(a0 + 128) * lwc1(0x3ad3a0) / 1.8e+02_f32, 0.0_f32, 0.0_f32);
+        matrixRotZXY(sp + 64, (lwc1(a0 + 128) * lwc1(0x3ad3a0)).pdiv(1.8e+02_f32), 0.0_f32, 0.0_f32);
         sceVu0MulMatrix(matrix, matrix, sp + 64);
         matrixTrans(sp + 64, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
         sceVu0MulMatrix(matrix, matrix, sp + 64);
@@ -682,7 +682,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
         let matrix = lw(model + 4) + (lw(gun + 380) << 6);
         let pivot = lw(header - lw(header) * 80 + 72) + third_bone * 12;
         matrixTrans(matrix, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-        matrixRotZXY(sp + 128, lwc1(a0 + 132) * lwc1(0x3ad3a4) / 1.8e+02_f32, 0.0_f32, 0.0_f32);
+        matrixRotZXY(sp + 128, (lwc1(a0 + 132) * lwc1(0x3ad3a4)).pdiv(1.8e+02_f32), 0.0_f32, 0.0_f32);
         sceVu0MulMatrix(matrix, matrix, sp + 128);
         matrixTrans(sp + 128, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
         sceVu0MulMatrix(matrix, matrix, sp + 128);
@@ -980,12 +980,12 @@ pub fn spawn(a0: i32) {
         let number = lw(mind);
         let level = (4 - lbu(parms + number + 49)) as f32;
         let parms2 = g::curgameparms;
-        let skill = lw(parms2 + 108) as f32 / 4e+01_f32;
+        let skill = (lw(parms2 + 108) as f32).pdiv(4e+01_f32);
         let index = number - lw(g::lvnumplayers);
         let c1 = lwc1(0x3ad95c);
         let c2 = skill * lwc1(0x3ad94c) + lwc1(0x3ad954);
         swc1(mind + 2832, (level + random + lwc1(0x3ad950)) * lwc1(0x3ad958));
-        swc1(mind + 2836, index as f32 / lw(parms2 + 8) as f32 * c2 + ((1.0_f32 - skill) * c1 + lwc1(0x3ad960)));
+        swc1(mind + 2836, (index as f32).pdiv(lw(parms2 + 8) as f32) * c2 + ((1.0_f32 - skill) * c1 + lwc1(0x3ad960)));
     } else {
         if lw(parms + 76) == 0 {
             let random = random_unit();
@@ -1276,7 +1276,7 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
                     swc1(sp + 256, 0.0_f32);
                     swc1(sp + 260, 0.0_f32);
                 } else {
-                    let scale = (1.0_f32 - nearest_wall) * dot / size;
+                    let scale = ((1.0_f32 - nearest_wall) * dot).pdiv(size);
                     swc1(sp + 260, ez * scale);
                     swc1(sp + 256, ex * scale);
                 }
@@ -1318,7 +1318,7 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
                     let wall_x = lwc1(sp + 176);
                     let wall_z = lwc1(sp + 180);
                     let towards = (lwc1(sp + 16) * wall_x + lwc1(sp + 20) * wall_z) < 0.0_f32;
-                    let push = (f13 - nearest_prop) / f13 * 4.0_f32 * frames / 6e+01_f32 + lwc1(0x3acfa8);
+                    let push = (((f13 - nearest_prop)).pdiv(f13) * 4.0_f32 * frames).pdiv(6e+01_f32) + lwc1(0x3acfa8);
                     swc1(sp + 276, push * wall_z);
                     swc1(sp + 272, push * wall_x);
                     if towards {

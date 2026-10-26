@@ -386,7 +386,7 @@ pub fn InitialiseChrBoundingBoxData(a0: i32) {
                                                                 if f2_4 == f4_1 {
                                                                     v0_17 += 4;
                                                                 } else {
-                                                                    let f1_4 = (lwc1(a1_12) - lwc1(v0_17)) / f2_4;
+                                                                    let f1_4 = ((lwc1(a1_12) - lwc1(v0_17))).pdiv(f2_4);
                                                                     let mut f2_5 = f1_4;
                                                                     if !(f4_1 <= f1_4) {
                                                                         f2_5 = -f1_4;

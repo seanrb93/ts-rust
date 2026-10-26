@@ -24,7 +24,7 @@ pub fn greenthingPropTick(prop: i32) {
             loop {
                 let x = lwc1(source);
                 let z = lwc1(source + 8);
-                let radius = (x * x + z * z).abs().sqrt();
+                let radius = (x * x + z * z).abs().psqrt();
                 let k = lwc1(0x3acf6c);
                 let time = lw(g::gameframe) as f32 * lwc1(0x3acf68);
                 swc1(at, x);
@@ -221,7 +221,7 @@ pub fn laserPropTick(prop: i32) {
     let rate = lwc1(0x3acf94);
     let half = 0.5_f32;
     let matrix = lw(model + 4);
-    swc1(prop + 72, lwc1((((time * k / 180.0_f32 * rate + half) as i32 & 2047) << 2) + table) * 70.0_f32);
-    let squash = lwc1(((((time + time + 135.0_f32) * k / 180.0_f32 * rate + half) as i32 & 2047) << 2) + table) * 0.25_f32 + 0.75_f32;
+    swc1(prop + 72, lwc1(((((time * k).pdiv(180.0_f32) * rate + half) as i32 & 2047) << 2) + table) * 70.0_f32);
+    let squash = lwc1((((((time + time + 135.0_f32) * k).pdiv(180.0_f32) * rate + half) as i32 & 2047) << 2) + table) * 0.25_f32 + 0.75_f32;
     matrixScaleSet(matrix, 1.0_f32, squash, 1.0_f32);
 }

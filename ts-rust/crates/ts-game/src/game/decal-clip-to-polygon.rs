@@ -100,7 +100,7 @@ pub fn decalClipToPoly(
             swc1(sp + 256, cx);
             let cz = ex * ny - ey * nx;
             swc1(sp + 264, cz);
-            let unit = 1.0_f32 / (cx * cx + cy * cy + cz * cz).abs().sqrt();
+            let unit = (1.0_f32).pdiv((cx * cx + cy * cy + cz * cz).abs().psqrt());
             let mut produced: i32 = 0;
             let last = (count - 1) * 12 + in_buffer;
             let plane_x = lwc1(sp + 256) * unit;
@@ -158,8 +158,7 @@ pub fn decalClipToPoly(
                                 let dz = lwc1(current + 8) - lwc1(previous + 8);
                                 swc1(sp + 312, dz);
                                 let prev_x = lwc1(previous);
-                                let t = (mx * px + my * py + mz * pz - (mx * prev_x + my * lwc1(previous + 4) + mz * lwc1(previous + 8)))
-                                    / (mx * dx + my * dy + mz * dz);
+                                let t = (mx * px + my * py + mz * pz - (mx * prev_x + my * lwc1(previous + 4) + mz * lwc1(previous + 8))).pdiv(mx * dx + my * dy + mz * dz);
                                 let slot = produced * 12 + out_buffer;
                                 swc1(slot, prev_x + t * dx);
                                 swc1(slot + 4, lwc1(previous + 4) + t * lwc1(sp + 308));
@@ -189,8 +188,7 @@ pub fn decalClipToPoly(
                             let dz = lwc1(current + 8) - lwc1(previous + 8);
                             swc1(sp + 312, dz);
                             let prev_x = lwc1(previous);
-                            let t = (mx * px + my * py + mz * pz - (mx * prev_x + my * lwc1(previous + 4) + mz * lwc1(previous + 8)))
-                                / (mx * dx + my * dy + mz * dz);
+                            let t = (mx * px + my * py + mz * pz - (mx * prev_x + my * lwc1(previous + 4) + mz * lwc1(previous + 8))).pdiv(mx * dx + my * dy + mz * dz);
                             swc1(slot, prev_x + t * dx);
                             swc1(slot + 4, lwc1(previous + 4) + t * lwc1(sp + 308));
                             swc1(slot + 8, lwc1(previous + 8) + t * lwc1(sp + 312));
@@ -297,14 +295,14 @@ pub fn decalClipToPoly(
             let along_a = HitTestDistancePointToLineSegmentSquared(vertex, lw(sp + 364), lw(sp + 368), 0);
             let saved_count = lq(sp + 416);
             let saved_recorded = lq(sp + 432);
-            swc1(u_at, (along_a / length_a).abs().sqrt());
+            swc1(u_at, ((along_a).pdiv(length_a)).abs().psqrt());
             sq(sp + 416, saved_count);
             sq(sp + 432, saved_recorded);
             let v_at = decal + 132 + at8;
             let along_b = HitTestDistancePointToLineSegmentSquared(vertex, sp + 224, sp + 236, 0);
             count_reg = lq(sp + 416);
             recorded_reg = lq(sp + 432);
-            swc1(v_at, (along_b / (across_x * across_x + across_y * across_y + across_z * across_z)).abs().sqrt());
+            swc1(v_at, ((along_b).pdiv((across_x * across_x + across_y * across_y + across_z * across_z))).abs().psqrt());
             let mut u = lwc1(u_at);
             if u < 0.0_f32 {
                 swc1(u_at, 0.0_f32);

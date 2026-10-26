@@ -39,7 +39,7 @@ pub fn particleNewExplosion(owner: i32, kind: i32, at: i32, tag: i32, first: i32
         sw(group + 964, owner_prop);
     }
     let total = lw(group + 24);
-    let size = lwc1((kind << 3) + (g::explosiondefs + 4)) / 500.0_f32;
+    let size = (lwc1((kind << 3) + (g::explosiondefs + 4))).pdiv(500.0_f32);
     let mut i = 0;
     let mut more = i < total;
     if total.wrapping_div(3) > 0 {

@@ -154,7 +154,7 @@ pub fn mapmakercolour_pageTick(page: i32) {
                 sw(sp + 8, 0x10a0000);
                 sw(sp + 12, 0x1280000);
                 mmClampMouse(sp);
-                let volume = 1.0_f32 - (lh(lw(g::front) + 38) - 56) as f32 / 96.0_f32;
+                let volume = 1.0_f32 - ((lh(lw(g::front) + 38) - 56) as f32).pdiv(96.0_f32);
                 swc1(g::lightvolume, volume);
                 if volume < 0.0_f32 {
                     swc1(g::lightvolume, 0.0_f32);
@@ -167,13 +167,13 @@ pub fn mapmakercolour_pageTick(page: i32) {
             let y = lw(front + 36) as f32 * 1.5258789e-05_f32 - 103.0_f32;
             let x = lw(front + 32) as f32 * 1.5258789e-05_f32 - 1.6e+02_f32;
             let y2 = y + y;
-            let mut saturation = (x * x + y2 * y2).abs().sqrt() / 92.0_f32;
+            let mut saturation = ((x * x + y2 * y2).abs().psqrt()).pdiv(92.0_f32);
             let hue = lwc1(g::lighthue);
             if 1.0_f32 < saturation {
                 saturation = 1.0_f32;
                 let scale = lwc1(0x3aca94);
                 let front = lw(g::front);
-                let angle = (hue * lwc1(0x3aca8c) / 1.8e+02_f32 * lwc1(0x3aca90) + 0.5_f32) as i32;
+                let angle = ((hue * lwc1(0x3aca8c)).pdiv(1.8e+02_f32) * lwc1(0x3aca90) + 0.5_f32) as i32;
                 let new_x = ((lwc1(((angle + 512 & 2047) << 2) + g::g_SinTable) * scale * 92.0_f32 + 1.6e+02_f32) as i32) << 16;
                 sw(front + 36, ((103.0_f32 - lwc1(((angle & 2047) << 2) + g::g_SinTable) * scale * 46.0_f32) as i32) << 16);
                 sw(front + 32, new_x);
@@ -181,7 +181,7 @@ pub fn mapmakercolour_pageTick(page: i32) {
             let turn = atan2f(y2, -x);
             let half = lwc1(0x3aca98);
             swc1(g::lightsaturation, saturation);
-            swc1(g::lighthue, (turn + half) * 1.8e+02_f32 / half);
+            swc1(g::lighthue, ((turn + half) * 1.8e+02_f32).pdiv(half));
         }
     }
     let dialog = makecolourdialog(lw(page + 8));
@@ -283,7 +283,7 @@ pub fn enemyChooseDefendPad(enemy: i32) -> i32 {
     let mut i = 0;
     let pad = lw(lw(lw((drop << 3) + (g::dropspawn + 4)) + 352) + 36);
     let count = findpadslinked2pad(pad, sp, 20);
-    let angle = lwc1(pad * 28 + lw(g::levelpads) + 24) * lwc1(0x3ad8b4) / 1.8e+02_f32;
+    let angle = (lwc1(pad * 28 + lw(g::levelpads) + 24) * lwc1(0x3ad8b4)).pdiv(1.8e+02_f32);
     matrixRotY(sp + 112, angle);
     matrixVecRotAligned(&[(sp + 112) as i64, (sp + 96) as i64]);
     if count > 0 {
@@ -297,7 +297,7 @@ pub fn enemyChooseDefendPad(enemy: i32) -> i32 {
             let dy = lwc1(to + 16) - lwc1(from + 16);
             swc1(sp + 84, dy);
             let dz = lwc1(to + 20) - lwc1(from + 20);
-            let inverse = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+            let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
             let nx = lwc1(sp + 80) * inverse;
             let ny = lwc1(sp + 84) * inverse;
             swc1(sp + 88, lwc1(sp + 88) * inverse);

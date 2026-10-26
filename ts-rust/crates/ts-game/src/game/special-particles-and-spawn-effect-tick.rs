@@ -10,7 +10,7 @@ pub fn specialParticlesGfx(points: i32, colours: i32, count: i32, shift_a: i32, 
     let sp = frame.sp();
     let player = lw(g::currentplayer);
     let mut i = 0;
-    let zoom = 6e+01_f32 / lwc1(player + 260);
+    let zoom = (6e+01_f32).pdiv(lwc1(player + 260));
     sceVu0MulMatrix(sp, lw(player + 1760), lw(player + 1764));
     if count <= 0 {
         return;
@@ -25,14 +25,14 @@ pub fn specialParticlesGfx(points: i32, colours: i32, count: i32, shift_a: i32, 
         let outside = x < low || w < x || y < low || w < y || z < low || w < z;
         let window = g::window;
         let across = lw(window + 16) as f32;
-        let inverse = 1.0_f32 / w;
+        let inverse = (1.0_f32).pdiv(w);
         let scale = lwc1(0x3ad644);
         let centre_x = lw(window + 8) as f32;
         let centre_y = lw(window + 28) as f32;
         let down = (0 - lw(window + 36)) as f32;
         let screen_x = x * inverse;
         let screen_y = y * inverse;
-        let size = (zoom * 5e+02_f32 / z) as i32;
+        let size = ((zoom * 5e+02_f32).pdiv(z)) as i32;
         let depth = z * inverse;
         swc1(sp + 80, screen_x);
         swc1(sp + 84, screen_y);
@@ -137,7 +137,7 @@ pub fn specialParticlesGfx(points: i32, colours: i32, count: i32, shift_a: i32, 
 /// the opacity falling), then while it is under the fade-in time it fades in; once the locked time of the kind (halved in modes 6 and 7) is past, the character's override states
 /// are cleared and the group's effect ended (a kind 5 character deleted, a kind 6 after 4) (@ 0x2abea0).
 pub fn spawnfxTick() {
-    let step = lwc1(g::updateframesf) / 6e+01_f32;
+    let step = (lwc1(g::updateframesf)).pdiv(6e+01_f32);
     let mut i = 0;
     let mut offset = i << 5;
     loop {
@@ -181,7 +181,7 @@ pub fn spawnfxTick() {
                     if model == 0 {
                         break 'body;
                     }
-                    let ratio = now / fade_out;
+                    let ratio = (now).pdiv(fade_out);
                     let mut mode = -1;
                     if ratio <= 1.0_f32 {
                         let opacity = (127.0_f32 - ratio * 127.0_f32) as i32 & 255;
@@ -206,7 +206,7 @@ pub fn spawnfxTick() {
                     break 'body;
                 }
                 let kind = lw(record);
-                let ratio = now / fade_in;
+                let ratio = (now).pdiv(fade_in);
                 let mut mode = -1;
                 let value = if (kind as u32) >= 5 {
                     ratio * ratio * ratio * 127.0_f32

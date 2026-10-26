@@ -310,9 +310,9 @@ pub fn bgTileLoadLevel() {
                                             let v0_9 = a6_2 << 16;
                                             let f0_7 = (v0_9 >> 16) as f32;
                                             let mut a1_19 = 0;
-                                            let f3_2 = lwc1(sp) / f0_7;
-                                            let f2_2 = lwc1(sp + 4) / f0_7;
-                                            let f1_3 = lwc1(sp + 8) / f0_7;
+                                            let f3_2 = (lwc1(sp)).pdiv(f0_7);
+                                            let f2_2 = (lwc1(sp + 4)).pdiv(f0_7);
+                                            let f1_3 = (lwc1(sp + 8)).pdiv(f0_7);
                                             swc1(sp, f3_2);
                                             swc1(sp + 4, f2_2);
                                             swc1(sp + 8, f1_3);
@@ -377,10 +377,10 @@ pub fn bgTileLoadLevel() {
                                             swc1(sp + 132, f10_2);
                                             let f9_2 = f9_1 - f16_1;
                                             swc1(sp + 128, f6_2);
-                                            let f2_3 = f11_1 / f3_3;
-                                            let f4_2 = f4_1 / f3_3;
+                                            let f2_3 = (f11_1).pdiv(f3_3);
+                                            let f4_2 = (f4_1).pdiv(f3_3);
                                             swc1(sp + 144, f5_2);
-                                            let f3_4 = f12_1 / f3_3;
+                                            let f3_4 = (f12_1).pdiv(f3_3);
                                             swc1(sp + 148, f9_2);
                                             let f7_2 = f7_1 - f15_1;
                                             let f8_2 = f8_1 - f18_1;
@@ -659,7 +659,7 @@ pub fn bgTileLoadLevel() {
                                                         f1_6 = 1.0_f32;
                                                         sw(a1_31, 2);
                                                         swc1(a1_31 + 4, f1_6);
-                                                        swc1(a1_31 + 8, lw(a0_44 + s6_1 + 48) as f32 / f2_5);
+                                                        swc1(a1_31 + 8, (lw(a0_44 + s6_1 + 48) as f32).pdiv(f2_5));
                                                         break 'b73;
                                                     }
                                                     9 => {
@@ -668,7 +668,7 @@ pub fn bgTileLoadLevel() {
                                                         f1_6 = 3.0_f32;
                                                         sw(a1_31, 2);
                                                         swc1(a1_31 + 4, f1_6);
-                                                        swc1(a1_31 + 8, lw(a0_44 + s6_1 + 48) as f32 / f2_5);
+                                                        swc1(a1_31 + 8, (lw(a0_44 + s6_1 + 48) as f32).pdiv(f2_5));
                                                         break 'b73;
                                                     }
                                                     11 => {
@@ -680,7 +680,7 @@ pub fn bgTileLoadLevel() {
                                                         f1_6 = 1.0_f32;
                                                         sw(a1_31, 1);
                                                         swc1(a1_31 + 4, f1_6);
-                                                        swc1(a1_31 + 8, lw(a0_44 + s6_1 + 48) as f32 / f2_5);
+                                                        swc1(a1_31 + 8, (lw(a0_44 + s6_1 + 48) as f32).pdiv(f2_5));
                                                         break 'b73;
                                                     }
                                                     _ => {
@@ -689,7 +689,7 @@ pub fn bgTileLoadLevel() {
                                                         f1_6 = 3.0_f32;
                                                         sw(a1_31, 1);
                                                         swc1(a1_31 + 4, f1_6);
-                                                        swc1(a1_31 + 8, lw(a0_44 + s6_1 + 48) as f32 / f2_5);
+                                                        swc1(a1_31 + 8, (lw(a0_44 + s6_1 + 48) as f32).pdiv(f2_5));
                                                         break 'b73;
                                                     }
                                                 }
@@ -698,7 +698,7 @@ pub fn bgTileLoadLevel() {
                                                 f2_5 = 12.0_f32;
                                                 f1_6 = lwc1(0x3acac0);
                                                 swc1(a1_31 + 4, f1_6);
-                                                swc1(a1_31 + 8, lw(a0_44 + s6_1 + 48) as f32 / f2_5);
+                                                swc1(a1_31 + 8, (lw(a0_44 + s6_1 + 48) as f32).pdiv(f2_5));
                                                 break 'b73;
                                             }
                                         }

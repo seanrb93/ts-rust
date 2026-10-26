@@ -190,7 +190,7 @@ pub fn boatsignPropTick(prop: i32) {
         }
     }
     let state = lw(prop + 352);
-    matrixRotX(lw(lw(prop + 32) + 4) + 64, lwc1(state + 8) * lwc1(0x3acec4) / 1.8e+02_f32);
+    matrixRotX(lw(lw(prop + 32) + 4) + 64, (lwc1(state + 8) * lwc1(0x3acec4)).pdiv(1.8e+02_f32));
 }
 
 /// The tick of the gong: like the boat's sign, with speed 3.5 and a limit of 20 degrees (@ 0x279da0).
@@ -207,7 +207,7 @@ pub fn gongPropTick(prop: i32) {
         }
     }
     let state = lw(prop + 352);
-    matrixRotX(lw(lw(prop + 32) + 4) + 64, lwc1(state + 8) * lwc1(0x3acecc) / 1.8e+02_f32);
+    matrixRotX(lw(lw(prop + 32) + 4) + 64, (lwc1(state + 8) * lwc1(0x3acecc)).pdiv(1.8e+02_f32));
 }
 
 /// Draw the credits: the clip is the window, then the background, the text and the motion blur (`blur_123`); in the first part of the time (before the constant at 0x3ad754) a

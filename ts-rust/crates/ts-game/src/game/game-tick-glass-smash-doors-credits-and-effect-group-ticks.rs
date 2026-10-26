@@ -230,8 +230,8 @@ pub fn bgSmashGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32) {
     swc1(sp + 64, f11);
     swc1(sp + 68, f13);
     swc1(sp + 72, f10);
-    swc1(sp + 80, (f6 * f11 + f7 * f13 + f1 * f10) / (f6 * f6 + f7 * f7 + f1 * f1));
-    swc1(sp + 84, (f8 * f11 + f9 * f13 + f3 * f10) / (f8 * f8 + f9 * f9 + f3 * f3));
+    swc1(sp + 80, ((f6 * f11 + f7 * f13 + f1 * f10)).pdiv((f6 * f6 + f7 * f7 + f1 * f1)));
+    swc1(sp + 84, ((f8 * f11 + f9 * f13 + f3 * f10)).pdiv((f8 * f8 + f9 * f9 + f3 * f3)));
     particleNewGlass(0, a1_1, a2_1, a3_1, a0 + 56, position, a0 + 96, a0 + 136, f12);
     swc1(a0, -6e+01_f32);
     if sound == 1_i64 {
@@ -558,7 +558,7 @@ pub fn droppingPickupPropTick(a0: i32) {
 /// The tick of the groups of special effects: the time (+48) of each of the 56 used groups moves on by the frame time over 60, and the group's own tick runs by its kind
 /// (0 to 11) (@ 0x2ad9f0).
 pub fn specialfxGroupsTick() {
-    let step = lwc1(g::updateframesf) / 6e+01_f32;
+    let step = (lwc1(g::updateframesf)).pdiv(6e+01_f32);
     let mut i = 0;
     loop {
         let groups = g::fxgroups;

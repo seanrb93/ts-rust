@@ -43,13 +43,13 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
                 return (1.0_f32, 0.0_f32, quad(a00, b0, c));
             }
             if dpcmp(dp(b0), 0_i64) <= 0 {
-                let s = negative_b0 / a00;
+                let s = (negative_b0).pdiv(a00);
                 return (s, 0.0_f32, b0 * s + c);
             }
             if d1d2 <= b0 {
                 return (0.0_f32, 1.0_f32, quad(a11, b1, c));
             }
-            let t = negative_b0 / a01;
+            let t = (negative_b0).pdiv(a01);
             return (0.0_f32, t, along(dp(c), t, twice(b1), dp(a11 * t)));
         }
         if dpcmp(dp(b0), 0_i64) >= 0 {
@@ -57,14 +57,14 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
         }
         let negative_b0 = -b0;
         if negative_b0 <= a00 {
-            let s = negative_b0 / a00;
+            let s = (negative_b0).pdiv(a00);
             return (s, 0.0_f32, b0 * s + c);
         }
         let beyond = -(a00 + b0);
         if a01 <= beyond {
             return (1.0_f32, 1.0_f32, tail(a00 + a11 + c, a01 + b0 + b1));
         }
-        let t = beyond / a01;
+        let t = (beyond).pdiv(a01);
         let start = dpadd(dpadd(dp(a00), twice(b0)), dp(c));
         return (1.0_f32, t, along(start, t, dp(a11 * t), twice(a01 + b1)));
     }
@@ -75,7 +75,7 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
     let at_s_zero = || -> (f32, f32, f32) {
         if dpcmp(dp(b1), 0_i64) < 0 {
             if !(a11 <= b1_positive) {
-                let t = b1_positive / a11;
+                let t = (b1_positive).pdiv(a11);
                 (0.0_f32, t, b1 * t + c)
             } else {
                 (0.0_f32, 1.0_f32, quad(a11, b1, c))
@@ -89,7 +89,7 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
         if dpcmp(dp(sum), 0_i64) < 0 {
             let negative = -sum;
             if !(a11 <= negative) {
-                let t = negative / a11;
+                let t = (negative).pdiv(a11);
                 (1.0_f32, t, quad(sum * t + a00, b0, c))
             } else {
                 (1.0_f32, 1.0_f32, tail(a00 + a11 + c, b0 + sum))
@@ -103,7 +103,7 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
         if dpcmp(dp(sum), 0_i64) < 0 {
             let negative = -sum;
             if !(a00 <= negative) {
-                let s = negative / a00;
+                let s = (negative).pdiv(a00);
                 (s, 1.0_f32, quad(sum * s + a11, b1, c))
             } else {
                 (1.0_f32, 1.0_f32, tail(a00 + a11 + c, b1 + sum))
@@ -117,7 +117,7 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
             if dpcmp(dp(b0), 0_i64) < 0 {
                 let negative_b0 = -b0;
                 if !(a00 <= negative_b0) {
-                    let s = negative_b0 / a00;
+                    let s = (negative_b0).pdiv(a00);
                     return (s, 0.0_f32, b0 * s + c);
                 }
                 return (1.0_f32, 0.0_f32, quad(a00, b0, c));
@@ -129,7 +129,7 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
             if dpcmp(dp(sum), 0_i64) < 0 {
                 let negative = -sum;
                 if !(a00 <= negative) {
-                    let s = negative / a00;
+                    let s = (negative).pdiv(a00);
                     return (s, 1.0_f32, quad(sum * s + a11, b1, c));
                 }
                 return (1.0_f32, 1.0_f32, tail(a00 + a11 + c, b1 + sum));
@@ -146,7 +146,7 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
                     return at_s_one(a01 + b1);
                 }
                 if dpcmp(dp(sum), 0_i64) < 0 {
-                    let s = negative / a00;
+                    let s = (negative).pdiv(a00);
                     return (s, 1.0_f32, quad(sum * s + a11, b1, c));
                 }
                 return (0.0_f32, 1.0_f32, quad(a11, b1, c));
@@ -158,7 +158,7 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
             return at_s_one(a01 + b1);
         }
         if dpcmp(dp(b0), 0_i64) < 0 {
-            let s = negative_b0 / a00;
+            let s = (negative_b0).pdiv(a00);
             return (s, 0.0_f32, b0 * s + c);
         }
         return (0.0_f32, 0.0_f32, c);
@@ -177,7 +177,7 @@ fn closest(sp: i32, a00: f32, a01: f32, a11: f32, b0: f32, c: f32, det: f32, d1d
     if dpcmp(dp(b0), 0_i64) < 0 {
         let negative_b0 = -b0;
         if !(a00 <= negative_b0) {
-            let s = negative_b0 / a00;
+            let s = (negative_b0).pdiv(a00);
             return (s, 0.0_f32, b0 * s + c);
         }
         return (1.0_f32, 0.0_f32, quad(a00, b0, c));

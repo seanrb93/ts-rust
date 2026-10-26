@@ -21,7 +21,7 @@ pub fn specialfxTimeSplitterRadiusGfx(group: i32) {
         let scale = lwc1(0x3ad698);
         let factor = lwc1(0x3ad69c);
         let spread = lwc1(0x3ad6a0);
-        let root = half_time.abs().sqrt();
+        let root = half_time.abs().psqrt();
         let alpha = ((1.0_f32 - half_time * half_time) * 127.0_f32) as i32;
         swc1(sp + 88, half_time * 3.6e+02_f32 * 0.5_f32);
         let bright = alpha << 24 | 0x4f6a7f;
@@ -36,9 +36,9 @@ pub fn specialfxTimeSplitterRadiusGfx(group: i32) {
             let z = lwc1(group * 92 + (groups + 20));
             let wide = swing * -1e+01_f32 + 25.0_f32;
             let y = lwc1(group * 92 + (groups + 16));
-            let first = ((angle - 25.0_f32) * scale / 1.8e+02_f32 * factor + 0.5_f32) as i32;
+            let first = (((angle - 25.0_f32) * scale).pdiv(1.8e+02_f32) * factor + 0.5_f32) as i32;
             sw(sp, dark);
-            let second = ((angle + 25.0_f32) * scale / 1.8e+02_f32 * factor + 0.5_f32) as i32;
+            let second = (((angle + 25.0_f32) * scale).pdiv(1.8e+02_f32) * factor + 0.5_f32) as i32;
             let matrix = lw(lw(g::currentplayer) + 1764);
             swc1(sp + 52, y);
             let top = y + swing * 2.5_f32;
@@ -49,9 +49,9 @@ pub fn specialfxTimeSplitterRadiusGfx(group: i32) {
             let second_cos = lwc1((((second + 512) & 2047) << 2) + table);
             swc1(sp + 68, top);
             swc1(sp + 36, top);
-            let third = ((angle + wide) * scale / 1.8e+02_f32 * factor + 0.5_f32) as i32;
+            let third = (((angle + wide) * scale).pdiv(1.8e+02_f32) * factor + 0.5_f32) as i32;
             swc1(sp + 20, y);
-            let fourth = ((angle - wide) * scale / 1.8e+02_f32 * factor + 0.5_f32) as i32;
+            let fourth = (((angle - wide) * scale).pdiv(1.8e+02_f32) * factor + 0.5_f32) as i32;
             let texture = lw(0x3b0188);
             let fade = lwc1(sp + 80);
             let fourth_sin = lwc1(((fourth & 2047) << 2) + table) * outer;

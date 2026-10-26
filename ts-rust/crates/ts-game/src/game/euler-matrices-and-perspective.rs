@@ -82,7 +82,7 @@ pub fn matrix2Euler(m: i32, angles: i32) {
 
 /// Make the matrix `m` that turns by `degrees` about the axis `axis` (a unit vector of three floats) (@ 0x2b5c28).
 pub fn matrixroll(m: i32, axis: i32, degrees: f32) {
-    let angle = degrees * lwc1(0x3ad7bc) / 180.0_f32;
+    let angle = (degrees * lwc1(0x3ad7bc)).pdiv(180.0_f32);
     let s = sinf(angle);
     let one = 1.0_f32;
     let c = cosf(angle);
@@ -123,7 +123,7 @@ pub fn matrixPerspective(m: i32, aspect: f32, fov: f32, near: f32, far: f32) {
     let c = cosf(half);
     let s = sinf(half);
     let near_far = near * far;
-    let scale = c / s;
+    let scale = (c).pdiv(s);
     sw(m + 60, 0);
     swc1(m + 44, -1.0_f32);
     sw(m + 4, 0);
@@ -136,9 +136,9 @@ pub fn matrixPerspective(m: i32, aspect: f32, fov: f32, near: f32, far: f32) {
     sw(m + 32, 0);
     sw(m + 36, 0);
     sw(m + 48, 0);
-    swc1(m, scale / aspect);
-    swc1(m + 40, -(near + far) / depth);
-    swc1(m + 56, -(near_far + near_far) / depth);
+    swc1(m, (scale).pdiv(aspect));
+    swc1(m + 40, (-(near + far)).pdiv(depth));
+    swc1(m + 56, (-(near_far + near_far)).pdiv(depth));
     sw(m + 52, 0);
 }
 

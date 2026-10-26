@@ -17,7 +17,7 @@ pub fn particleBurstGfx(group: i32, matrix: i32) {
     let frame = Frame::new(96);
     let sp = frame.sp();
     let mut i = 0;
-    let rate = 6e+01_f32 / lwc1(lw(g::currentplayer) + 260);
+    let rate = (6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260));
     let info = lw(group + 4) * 104 + g::particleinfos;
     dlSelectTextureKick(lw((lw(info) << 4) + (g::particletextures + 12)));
     dlSetDitherMatrix(2);
@@ -37,19 +37,19 @@ pub fn particleBurstGfx(group: i32, matrix: i32) {
                 let life = lwc1(info + 12);
                 if age < life {
                     let fade_in = lwc1(info + 24);
-                    let fraction = age / life;
+                    let fraction = (age).pdiv(life);
                     let mut alpha = 1.0_f32;
-                    let spin = lwc1(group + (i << 2) + 3728) * age * lwc1(0x3ad568) / 1.8e+02_f32;
+                    let spin = (lwc1(group + (i << 2) + 3728) * age * lwc1(0x3ad568)).pdiv(1.8e+02_f32);
                     let colour = lw(info + 32);
                     let flags;
                     if !(age < fade_in) {
                         let fade_out = lwc1(info + 28);
                         flags = lw(group + 8);
                         if (life - fade_out) < age {
-                            alpha = (life - age) / fade_out;
+                            alpha = ((life - age)).pdiv(fade_out);
                         }
                     } else {
-                        alpha = age / fade_in;
+                        alpha = (age).pdiv(fade_in);
                         flags = lw(group + 8);
                     }
                     let w;
@@ -95,7 +95,7 @@ pub fn particleBurstGfx(group: i32, matrix: i32) {
                     if go {
                         let sy = lwc1(sp + 20);
                         let sz = lwc1(sp + 24);
-                        let inverse = one / w;
+                        let inverse = (one).pdiv(w);
                         let particle_texture = lw(info) << 4;
                         let depth = sz * inverse;
                         let depth_scale = lwc1(0x3ad570);
@@ -104,7 +104,7 @@ pub fn particleBurstGfx(group: i32, matrix: i32) {
                         let angle = (spin * lwc1(0x3ad56c) + half) as i32;
                         let screen_h = (0 - lw(window + 36)) as f32;
                         let name = lw(particle_texture + (g::particletextures + 4));
-                        let size = lwc1(info + 40) / depth * rate;
+                        let size = (lwc1(info + 40)).pdiv(depth) * rate;
                         let sine = lwc1(((angle & 2047) << 2) + table);
                         let name2 = lw(particle_texture + (g::particletextures + 8));
                         let cosine = lwc1(((angle + 512 & 2047) << 2) + table);
@@ -255,7 +255,7 @@ pub fn cartridgesTick() {
                     }
                     let roll = lwc1(prop + 72);
                     sw(record + 80, age + ticks);
-                    matrixRotZXY(sp, roll * to_radians / half_turn, 0.0_f32, spin_z * to_radians / half_turn);
+                    matrixRotZXY(sp, (roll * to_radians).pdiv(half_turn), 0.0_f32, (spin_z * to_radians).pdiv(half_turn));
                     sceVu0MulMatrix(lw(lw(lw(record + 64) + 32) + 4), sp, record);
                     let player = lw(g::currentplayer);
                     swc1(lw(lw(lw(record + 64) + 32) + 4) + 48, 0.0_f32);
@@ -308,7 +308,7 @@ pub fn creditsBgGfx() {
     swc1(sp + 132, up_y);
     swc1(sp + 136, up_z);
     let matrix = memdbAlloc(64);
-    let roll = lwc1(g::creditscamrotz) * lwc1(0x3ad77c) / 1.8e+02_f32;
+    let roll = (lwc1(g::creditscamrotz) * lwc1(0x3ad77c)).pdiv(1.8e+02_f32);
     sw(g::creditsmatrix, matrix);
     matrixRotZ(sp + 64, roll);
     matrixVecMul(sp + 64, sp + 128);

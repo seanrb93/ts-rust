@@ -27,7 +27,7 @@ pub fn particleTrailTick(group: i32) {
     }
     if count != 0 {
         if count < 100 {
-            todo = ((lwc1(group + 12) - lwc1(group + 3728)) / (1.0_f32 / rate as f32)) as i32;
+            todo = (((lwc1(group + 12) - lwc1(group + 3728))).pdiv(((1.0_f32).pdiv(rate as f32)))) as i32;
         }
     } else {
         todo = 1;
@@ -79,7 +79,7 @@ pub fn particleStreamTick(group: i32) {
     let mut index = lwc1(group + 928) as i32;
     let before = index - 1;
     let info = lw(group + 4) * 104 + g::particleinfos;
-    let step = lw(g::updateframesi) as f32 / 60.0_f32;
+    let step = (lw(g::updateframesi) as f32).pdiv(60.0_f32);
     let last = if -1 >= before { index + 99 } else { before };
     if rate == 0 {
         let count = lw(group + 24);
@@ -89,7 +89,7 @@ pub fn particleStreamTick(group: i32) {
         }
     }
     let count = lw(group + 24);
-    let moved = head + rate as f32 * (lw(g::updateframesi) as f32 / 60.0_f32);
+    let moved = head + rate as f32 * ((lw(g::updateframesi) as f32).pdiv(60.0_f32));
     let whole = moved as i32;
     swc1(group + 928, moved);
     if count < whole {

@@ -339,7 +339,7 @@ pub fn roomlightTick() {
                 'b4: {
                     if kind == 1 {
                         let one = 1.0_f32;
-                        let phase = lwc1(light + 8) + lwc1(g::updateframesf) * lwc1(light + 4) / sixty;
+                        let phase = lwc1(light + 8) + (lwc1(g::updateframesf) * lwc1(light + 4)).pdiv(sixty);
                         swc1(light + 8, phase);
                         if one <= phase {
                             swc1(light + 8, phase - one);
@@ -353,7 +353,7 @@ pub fn roomlightTick() {
                                 let past;
                                 if kind == 2 {
                                     let one = 1.0_f32;
-                                    let phase = lwc1(light + 8) + lwc1(g::updateframesf) * lwc1(light + 4) / sixty;
+                                    let phase = lwc1(light + 8) + (lwc1(g::updateframesf) * lwc1(light + 4)).pdiv(sixty);
                                     swc1(light + 8, phase);
                                     if one <= phase {
                                         swc1(light + 8, phase - one);

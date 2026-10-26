@@ -108,15 +108,15 @@ pub fn chrAddFloorMoveToPos(index: i32, pos: i32, angle: i32) {
         swc1(sp + 20, f1);
         swc1(sp + 48, lwc1(old));
         swc1(sp + 52, lwc1(old + 8));
-        let length = (line_x * line_x + line_z * line_z).abs().sqrt();
+        let length = (line_x * line_x + line_z * line_z).abs().psqrt();
         swc1(sp + 64, lwc1(old + 12));
         let old_z = lwc1(old + 20);
         swc1(sp + 32, line_x);
         swc1(sp + 68, old_z);
         swc1(sp + 36, line_z);
-        let unit_x = lwc1(sp + 32) / length;
+        let unit_x = (lwc1(sp + 32)).pdiv(length);
         let x = lwc1(pos);
-        let unit_z = lwc1(sp + 36) / length;
+        let unit_z = (lwc1(sp + 36)).pdiv(length);
         let z = lwc1(pos + 8);
         let start_x = lwc1(sp + 16);
         let start_z = lwc1(sp + 20);
@@ -128,13 +128,13 @@ pub fn chrAddFloorMoveToPos(index: i32, pos: i32, angle: i32) {
         swc1(sp + 36, unit_z);
         let old_end_z = lwc1(sp + 68);
         let along = rel_x * unit_x + rel_z * unit_z;
-        let old_unit_z = (lwc1(sp + 52) - old_end_z) / length;
+        let old_unit_z = ((lwc1(sp + 52) - old_end_z)).pdiv(length);
         let across_x = rel_x - along * unit_x;
         let across_z = rel_z - along * unit_z;
-        swc1(sp + 80, (old_start_x - old_start_z) / length);
+        swc1(sp + 80, ((old_start_x - old_start_z)).pdiv(length));
         swc1(sp + 96, across_x);
         swc1(sp + 100, across_z);
-        let mut across = (across_x * across_x + across_z * across_z).abs().sqrt();
+        let mut across = (across_x * across_x + across_z * across_z).abs().psqrt();
         swc1(sp + 84, old_unit_z);
         if (lwc1(sp + 36) * (x - start_x) - lwc1(sp + 32) * (z - start_z)) < 0.0_f32 {
             across = -across;
@@ -145,7 +145,7 @@ pub fn chrAddFloorMoveToPos(index: i32, pos: i32, angle: i32) {
         swc1(pos, old_start_z + along * new_unit_x + across * new_unit_z);
         let new_angle = atan2f(new_unit_x, new_unit_z);
         let line_angle = atan2f(lwc1(sp + 32), lwc1(sp + 36));
-        swc1(angle, lwc1(angle) + (new_angle - line_angle) * 1.8e+02_f32 / lwc1(0x3ad198));
+        swc1(angle, lwc1(angle) + ((new_angle - line_angle) * 1.8e+02_f32).pdiv(lwc1(0x3ad198)));
         return;
     }
     let z = lwc1(pos + 8);

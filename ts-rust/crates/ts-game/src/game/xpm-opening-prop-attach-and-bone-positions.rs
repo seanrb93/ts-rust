@@ -255,7 +255,7 @@ pub fn propAttachUpdate(prop: i32) {
                     matrixTrans(sp + 128, lwc1(place), lwc1(place + 4), lwc1(place + 8));
                     sceVu0MulMatrix(matrix, matrix, sp + 128);
                     let r = random_as_float();
-                    let angle = r * 2.3283064e-10_f32 * 3.6e+02_f32 * lwc1(0x3acd0c) / 1.8e+02_f32;
+                    let angle = (r * 2.3283064e-10_f32 * 3.6e+02_f32 * lwc1(0x3acd0c)).pdiv(1.8e+02_f32);
                     matrixRotZXY(sp + 128, 0.0_f32, 0.0_f32, angle);
                     sceVu0MulMatrix(matrix, matrix, sp + 128);
                     matrixTrans(sp + 128, -lwc1(place), -lwc1(place + 4), -lwc1(place + 8));

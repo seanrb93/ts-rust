@@ -16,7 +16,7 @@ pub fn specialfxTimeSplitterHandsGfx(group: i32) {
     let time = lwc1(record + 48);
     if 1.5_f32 <= time && time < lwc1(0x3ad6b4) {
         let rise = lwc1(0x3ad6b8);
-        let past = (time - 1.5_f32) / lwc1(0x3ad6bc);
+        let past = ((time - 1.5_f32)).pdiv(lwc1(0x3ad6bc));
         let y0 = lwc1(record + 28);
         let y1 = lwc1(record + 40);
         let x0 = lwc1(record + 24);
@@ -49,7 +49,7 @@ pub fn specialfxTimeSplitterHandsGfx(group: i32) {
         if time < lwc1(0x3ad6c4) {
             let projection = lw(player + 1764);
             let view = lw(player + 1760);
-            let age = (time - start) / lwc1(0x3ad6c8);
+            let age = ((time - start)).pdiv(lwc1(0x3ad6c8));
             let mut left = 1;
             sceVu0MulMatrix(sp + 80, view, projection);
             let record = group * 92 + g::fxgroups;
@@ -79,13 +79,13 @@ pub fn specialfxTimeSplitterHandsGfx(group: i32) {
                         if y <= w && low <= z {
                             let player = lw(g::currentplayer);
                             if z <= w {
-                                let zoom = 6e+01_f32 / lwc1(player + 260);
+                                let zoom = (6e+01_f32).pdiv(lwc1(player + 260));
                                 let across = lw(g::window + 16) as f32;
-                                let inverse = 1.0_f32 / w;
+                                let inverse = (1.0_f32).pdiv(w);
                                 let centre_x = lw(g::window + 8) as f32;
                                 let down = (0 - lw(g::window + 36)) as f32;
                                 let centre_y = lw(g::window + 28) as f32;
-                                let size = age.abs().sqrt() * 6e+02_f32 * zoom / z;
+                                let size = (age.abs().psqrt() * 6e+02_f32 * zoom).pdiv(z);
                                 let depth = z * inverse;
                                 let screen_x = x * inverse;
                                 let screen_y = y * inverse;

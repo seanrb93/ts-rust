@@ -96,7 +96,7 @@ pub fn relocateParts(a0: i32, a1: i32, a2: i32) {
                 extractAnimData(a0, anim, i, 0, sp, scale);
             } else {
                 let scale = chrGetScale(lw(g::chrnew_lastchrnum));
-                extractAnimData(a0, anim, i, 0, sp, scale / lwc1(0x3acb90));
+                extractAnimData(a0, anim, i, 0, sp, (scale).pdiv(lwc1(0x3acb90)));
             }
             let bone = i * 28;
             let matrix = (i << 6) + 0x70000000;
@@ -662,14 +662,14 @@ pub fn updateData(a0: i32) {
                     if turn <= value {
                         value = value - turn;
                     }
-                    angle = value * lwc1(0x3ace04) / half;
+                    angle = (value * lwc1(0x3ace04)).pdiv(half);
                 } else {
                     let turn = 3.6e+02_f32;
                     let mut value = turn - lwc1(step + 24) + lwc1(state + 72);
                     if turn <= value {
                         value = value - turn;
                     }
-                    angle = value * lwc1(0x3ace08) / 1.8e+02_f32;
+                    angle = (value * lwc1(0x3ace08)).pdiv(1.8e+02_f32);
                 }
                 let sine = sinf(angle);
                 let current = lw(state + 12);

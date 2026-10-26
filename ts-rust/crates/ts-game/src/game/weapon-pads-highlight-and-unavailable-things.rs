@@ -110,9 +110,9 @@ pub fn findHighlightPad() {
             matrixVec3Mul4Aligned(&[projection as i64, sp as i64, (sp + 16) as i64]);
             let w = lwc1(sp + 28);
             let window = g::window;
-            let depth = (lwc1(sp + 24) / w) as i32;
-            let x_screen = (lw(window + 8) as f32 + lw(window + 16) as f32 * (lwc1(sp + 16) / w)) as i32;
-            let y_screen = (lw(window + 28) as f32 - lw(window + 36) as f32 * (lwc1(sp + 20) / w)) as i32;
+            let depth = ((lwc1(sp + 24)).pdiv(w)) as i32;
+            let x_screen = (lw(window + 8) as f32 + lw(window + 16) as f32 * ((lwc1(sp + 16)).pdiv(w))) as i32;
+            let y_screen = (lw(window + 28) as f32 - lw(window + 36) as f32 * ((lwc1(sp + 20)).pdiv(w))) as i32;
             count = lw(0x3b0078);
             if lw(g::window) < x_screen && x_screen < lw(window + 4) && lw(window + 20) < y_screen && y_screen < lw(window + 24) {
                 count = lw(0x3b0078);

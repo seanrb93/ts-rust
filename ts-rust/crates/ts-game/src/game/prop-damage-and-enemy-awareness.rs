@@ -83,9 +83,9 @@ fn vehicle_hit(prop: i32, hit_direction: i32, force: f32, to_radians_at: i32, sc
     let mut result = 0.0_f32;
     matrixRotZXY(
         sp,
-        lwc1(state + 52) * k / degrees,
-        lwc1(state + 56) * k / degrees,
-        lwc1(state + 60) * k / degrees,
+        (lwc1(state + 52) * k).pdiv(degrees),
+        (lwc1(state + 56) * k).pdiv(degrees),
+        (lwc1(state + 60) * k).pdiv(degrees),
     );
     matrixVecMulAligned(&[sp as i64, (sp + 80) as i64]);
     let x = lwc1(hit_direction);
@@ -98,9 +98,9 @@ fn vehicle_hit(prop: i32, hit_direction: i32, force: f32, to_radians_at: i32, sc
     let wide = fptodp(x * x + y * y + z * z);
     let root = sqrt(wide);
     let length = dptofp(root);
-    let nx = lwc1(hit_direction) / length;
-    let ny = lwc1(hit_direction + 4) / length;
-    let nz = lwc1(hit_direction + 8) / length;
+    let nx = (lwc1(hit_direction)).pdiv(length);
+    let ny = (lwc1(hit_direction + 4)).pdiv(length);
+    let nz = (lwc1(hit_direction + 8)).pdiv(length);
     let sz = lwc1(sp + 88);
     let sy = lwc1(sp + 84);
     let first = lwc1(sp + 80) * nx;
@@ -108,25 +108,25 @@ fn vehicle_hit(prop: i32, hit_direction: i32, force: f32, to_radians_at: i32, sc
     swc1(sp + 68, ny);
     swc1(sp + 72, nz);
     let dot = first + sy * ny + sz * nz;
-    let mut angle = acosf(dot) * degrees / k;
+    let mut angle = (acosf(dot) * degrees).pdiv(k);
     if angle < result {
         angle += 360.0_f32;
     }
     let ninety = 90.0_f32;
     if angle < ninety {
-        result = -((ninety - angle) / ninety);
+        result = -(((ninety - angle)).pdiv(ninety));
     }
     if ninety <= angle && angle < degrees {
-        result = (angle - ninety) / ninety;
+        result = ((angle - ninety)).pdiv(ninety);
     }
     let change;
     if degrees <= angle && angle < 270.0_f32 {
-        result = (ninety - (angle - degrees)) / ninety;
+        result = ((ninety - (angle - degrees))).pdiv(ninety);
     }
     if !(270.0_f32 <= angle) {
         change = force * result;
     } else {
-        change = force * -((angle - 270.0_f32) / 90.0_f32);
+        change = force * -(((angle - 270.0_f32)).pdiv(90.0_f32));
     }
     swc1(state + 96, lwc1(state + 96) + change * scale);
 }

@@ -8,13 +8,13 @@ use crate::*;
 pub fn hittestMoveCircleToLine(out: i32, x: f32, z: f32, radius: f32, dx: f32, dz: f32, x1: f32, z1: f32, x2: f32) -> f32 {
     let frame = Frame::new(160);
     let z2 = lwc1(frame.sp() + 160);
-    let speed = (dx * dx + dz * dz).abs().sqrt();
+    let speed = (dx * dx + dz * dz).abs().psqrt();
     if speed == 0.0_f32 {
         return 2.0_f32;
     }
     let line_x = x2 - x1;
     let line_z = z2 - z1;
-    let inv_speed = 1.0_f32 / speed;
+    let inv_speed = (1.0_f32).pdiv(speed);
     let line_len2 = line_x * line_x + line_z * line_z;
     let reach;
     if !(0.0_f32 < line_len2) {
@@ -33,7 +33,7 @@ pub fn hittestMoveCircleToLine(out: i32, x: f32, z: f32, radius: f32, dx: f32, d
         let point_z;
         if !(along < 0.0_f32) {
             if !(line_len2 < along) {
-                let inv = 1.0_f32 / line_len2.abs().sqrt();
+                let inv = (1.0_f32).pdiv(line_len2.abs().psqrt());
                 let nx = line_z * inv;
                 let nz = -line_x * inv;
                 if out != 0 {

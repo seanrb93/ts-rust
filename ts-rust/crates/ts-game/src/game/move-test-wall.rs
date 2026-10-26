@@ -118,7 +118,7 @@ pub fn MoveTestWall(walls: i32, mask: i32, swept: i32, pos: i32, motion: i32, ou
         swc1(out_normal + 4, second);
     }
     if out_distance != 0 {
-        swc1(out_distance, nearest2.abs().sqrt());
+        swc1(out_distance, nearest2.abs().psqrt());
     }
     let wall_first = lwc1(sp + 32);
     if out_wall_normal != 0 {

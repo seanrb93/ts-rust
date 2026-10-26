@@ -198,7 +198,7 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                             n += 1;
                             break 'next;
                         }
-                        let inverse = 1.0_f32 / w;
+                        let inverse = (1.0_f32).pdiv(w);
                         let kind_now = lw(glow);
                         let screen_y = lw(g::window + 28) as f32 - lw(g::window + 36) as f32 * (y * inverse);
                         let depth = 32768.0_f32 - z * inverse * lwc1(0x3acb80);
@@ -206,7 +206,7 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                         swc1(sp + 548 + n * 12, screen_y);
                         swc1(sp + 552 + n * 12, depth);
                         if kind_now == 0 {
-                            let size = depth * lwc1(0x3acb84) * (6e+01_f32 / lwc1(lw(g::currentplayer) + 260));
+                            let size = depth * lwc1(0x3acb84) * ((6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260)));
                             let small = if ilinkGetNumLocalPlayers() < 2 { (size as i32) < 8 } else { ((size * 0.5_f32) as i32) < 8 };
                             if small {
                                 started = false;
@@ -253,14 +253,14 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                         let dz = lwc1(viewer + 892) - lwc1(glow + 76);
                         swc1(sp + 664, dz);
                         let facing = lwc1(glow + 128) * dx + lwc1(glow + 132) * dy + lwc1(glow + 136) * dz;
-                        let cosine = facing / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+                        let cosine = (facing).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
                         let strength;
                         if lh(glow + 6) == 0 {
                             strength = (cosine + 1.0_f32) * 0.25_f32 + 0.5_f32;
                         } else if !(-0.5_f32 < cosine) {
                             strength = 0.0_f32;
                         } else {
-                            strength = (cosine + 0.5_f32) / 1.5_f32;
+                            strength = ((cosine + 0.5_f32)).pdiv(1.5_f32);
                         }
                         let bias = zbtestGetVisibleBias(lw(viewer), glow, chr);
                         let amount = fptoui(strength * (bias as f32 * lwc1(0x3acb88)) * 127.0_f32);
@@ -291,7 +291,7 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                                 n += 1;
                                 break 'next;
                             }
-                            let size = lwc1(sp + 552) * lwc1(0x3acb8c) * (6e+01_f32 / lwc1(viewer_now + 260));
+                            let size = lwc1(sp + 552) * lwc1(0x3acb8c) * ((6e+01_f32).pdiv(lwc1(viewer_now + 260)));
                             let amount_size = if ilinkGetNumLocalPlayers() < 2 { (size as i32) * alpha } else { ((size * 0.5_f32) as i32) * alpha };
                             zbtestDrawGlow(
                                 lw(lw(g::currentplayer)),
@@ -502,7 +502,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                             }
                             1 | 2 => {
                                 if mode == 1 {
-                                    matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), lwc1(owner + 76) * lwc1(0x3acb60) / 1.8e+02_f32);
+                                    matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb60)).pdiv(1.8e+02_f32));
                                 } else {
                                     let pi = lwc1(0x3acb64);
                                     matrixTransRotZXY(
@@ -510,9 +510,9 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                                         lwc1(owner + 48),
                                         lwc1(owner + 52),
                                         lwc1(owner + 56),
-                                        lwc1(owner + 72) * pi / 1.8e+02_f32,
-                                        lwc1(owner + 76) * pi / 1.8e+02_f32,
-                                        lwc1(owner + 88) * pi / 1.8e+02_f32,
+                                        (lwc1(owner + 72) * pi).pdiv(1.8e+02_f32),
+                                        (lwc1(owner + 76) * pi).pdiv(1.8e+02_f32),
+                                        (lwc1(owner + 88) * pi).pdiv(1.8e+02_f32),
                                     );
                                 }
                                 let stage = lw(owner + 136);
@@ -524,7 +524,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                                 break 'b38;
                             }
                             3 => {
-                                matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), lwc1(owner + 76) * lwc1(0x3acb68) / 1.8e+02_f32);
+                                matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb68)).pdiv(1.8e+02_f32));
                                 let stage = lw(owner + 136);
                                 if stage == 1 {
                                     sceVu0MulMatrix(sp + 64, view, sp);
@@ -540,7 +540,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                                 break 'b38;
                             }
                             4 => {
-                                matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), lwc1(owner + 76) * lwc1(0x3acb6c) / 1.8e+02_f32);
+                                matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb6c)).pdiv(1.8e+02_f32));
                                 matrixroll(lw(lw(owner + 32) + 4), owner + 100, lwc1(owner + 92));
                                 sceVu0MulMatrix(sp, sp, lw(lw(owner + 32) + 4));
                                 let stage = lw(owner + 136);
@@ -604,7 +604,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                     }
                     1 | 2 => {
                         if mode == 1 {
-                            matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), lwc1(owner + 76) * lwc1(0x3acb70) / 1.8e+02_f32);
+                            matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb70)).pdiv(1.8e+02_f32));
                         } else {
                             let pi = lwc1(0x3acb74);
                             matrixTransRotZXY(
@@ -612,9 +612,9 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                                 lwc1(owner + 48),
                                 lwc1(owner + 52),
                                 lwc1(owner + 56),
-                                lwc1(owner + 72) * pi / 1.8e+02_f32,
-                                lwc1(owner + 76) * pi / 1.8e+02_f32,
-                                lwc1(owner + 88) * pi / 1.8e+02_f32,
+                                (lwc1(owner + 72) * pi).pdiv(1.8e+02_f32),
+                                (lwc1(owner + 76) * pi).pdiv(1.8e+02_f32),
+                                (lwc1(owner + 88) * pi).pdiv(1.8e+02_f32),
                             );
                         }
                         let stage = lw(owner + 136);
@@ -625,7 +625,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                         }
                     }
                     3 => {
-                        matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), lwc1(owner + 76) * lwc1(0x3acb78) / 1.8e+02_f32);
+                        matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb78)).pdiv(1.8e+02_f32));
                         let stage = lw(owner + 136);
                         if stage == 1 {
                             sceVu0MulMatrix(sp + 64, lw(lw(g::currentplayer) + 1764), sp);
@@ -635,7 +635,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                         }
                     }
                     4 => {
-                        matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), lwc1(owner + 76) * lwc1(0x3acb7c) / 1.8e+02_f32);
+                        matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb7c)).pdiv(1.8e+02_f32));
                         matrixroll(lw(lw(owner + 32) + 4), owner + 100, lwc1(owner + 92));
                         sceVu0MulMatrix(sp, sp, lw(lw(owner + 32) + 4));
                         let stage = lw(owner + 136);

@@ -8,7 +8,7 @@ pub fn checkSide(chr: i32, pos: i32, threshold: f32) -> i32 {
     let frame = Frame::new(160);
     let sp = frame.sp();
     let z = lwc1(pos + 8);
-    let angle = lwc1(chr + 80) * lwc1(0x3ad98c) / 180.0_f32;
+    let angle = (lwc1(chr + 80) * lwc1(0x3ad98c)).pdiv(180.0_f32);
     let dx = lwc1(pos) - lwc1(chr + 48);
     let chr_z = lwc1(chr + 56);
     let dy = lwc1(pos + 4) - lwc1(chr + 52);
@@ -42,8 +42,8 @@ pub fn checkInFront(chr: i32, pos: i32, threshold: f32) -> i32 {
     swc1(sp, dx);
     swc1(sp + 4, dy);
     swc1(sp + 8, dz);
-    let inv = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
-    let angle = lwc1(chr + 80) * lwc1(0x3ad980) / 180.0_f32;
+    let inv = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+    let angle = (lwc1(chr + 80) * lwc1(0x3ad980)).pdiv(180.0_f32);
     let nx = lwc1(sp) * inv;
     let ny = lwc1(sp + 4) * inv;
     swc1(sp + 8, lwc1(sp + 8) * inv);
@@ -73,7 +73,7 @@ pub fn checkAimingFront(chr: i32, other: i32, threshold: f32) -> i32 {
     swc1(sp, dx);
     swc1(sp + 4, dy);
     swc1(sp + 8, dz);
-    let inv = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+    let inv = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
     let state = lw(other + 352);
     let scale = lwc1(0x3ad988);
     let nx = lwc1(sp) * inv;
@@ -81,7 +81,7 @@ pub fn checkAimingFront(chr: i32, other: i32, threshold: f32) -> i32 {
     swc1(sp + 8, lwc1(sp + 8) * inv);
     swc1(sp, nx);
     swc1(sp + 4, ny);
-    let angle = lwc1(state + 2972) * scale / 180.0_f32;
+    let angle = (lwc1(state + 2972) * scale).pdiv(180.0_f32);
     matrixRotY(sp + 32, angle);
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
     if threshold < lwc1(sp) * lwc1(sp + 16) + lwc1(sp + 4) * lwc1(sp + 20) + lwc1(sp + 8) * lwc1(sp + 24) {
@@ -108,14 +108,14 @@ pub fn checkInFrontOfPad(pad: i32, pos: i32, threshold: f32) -> i32 {
     swc1(sp + 4, dy);
     let dz = z - lwc1(record + 20);
     swc1(sp + 8, dz);
-    let inv = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+    let inv = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
     let scale = lwc1(0x3ad984);
     let nx = lwc1(sp) * inv;
     let ny = lwc1(sp + 4) * inv;
     swc1(sp + 8, lwc1(sp + 8) * inv);
     swc1(sp, nx);
     swc1(sp + 4, ny);
-    let angle = lwc1(pad * 28 + pads + 24) * scale / 180.0_f32;
+    let angle = (lwc1(pad * 28 + pads + 24) * scale).pdiv(180.0_f32);
     matrixRotY(sp + 32, angle);
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
     if threshold < lwc1(sp) * lwc1(sp + 16) + lwc1(sp + 4) * lwc1(sp + 20) + lwc1(sp + 8) * lwc1(sp + 24) {

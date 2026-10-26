@@ -397,7 +397,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
                 return go_to(mind, 3);
             }
             let weapon_now = lw(mind + 376);
-            let inverse = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+            let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
             let range = weapon_now * 12 + g::firerange;
             let player = lw(g::currentplayer);
             let reach = lwc1(0x3ad904);
@@ -410,7 +410,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
             if lwc1(0x3ad908) < travel {
                 sw(mind + 2728, 13);
                 sw(mind + 2892, 0);
-                swc1(mind + 2732, travel.abs().sqrt());
+                swc1(mind + 2732, travel.abs().psqrt());
                 return stay(mind);
             }
             go_to(mind, 3)
@@ -447,7 +447,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
             } else {
                 extractAnimRootData(a0, 608, sp + 416, sp + 420, sp + 424, 0);
             }
-            let heading = lwc1(a0 + 80) * lwc1(0x3ad910) / 1.8e+02_f32;
+            let heading = (lwc1(a0 + 80) * lwc1(0x3ad910)).pdiv(1.8e+02_f32);
             sw(sp + 4, 0);
             sw(sp + 8, 0);
             swc1(sp, lwc1(sp + 420) - lwc1(sp + 416));
@@ -489,7 +489,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
         }
         16 => {
             extractAnimRootData(a0, 447, sp + 428, sp + 432, sp + 436, 0);
-            let heading = lwc1(a0 + 80) * lwc1(0x3ad918) / 1.8e+02_f32;
+            let heading = (lwc1(a0 + 80) * lwc1(0x3ad918)).pdiv(1.8e+02_f32);
             sw(sp + 4, 0);
             sw(sp + 8, 0);
             swc1(sp, lwc1(sp + 432) - lwc1(sp + 428));
@@ -552,7 +552,7 @@ fn melee_attack(a0: i32, mind: i32, sp: i32, dist: f32) -> Flow {
     if armed == 0 {
         if (curAnim(a0, 526) != 0 || curAnim(a0, 527) != 0 || curAnim(a0, 528) != 0 || curAnim(a0, 529) != 0) && (lw(a0 + 16) & 128) == 0 {
             let mut hit = 0;
-            matrixTransRotY(sp + 224, lwc1(a0 + 48), lwc1(a0 + 52), lwc1(a0 + 56), lwc1(a0 + 76) * lwc1(0x3ad920) / 1.8e+02_f32);
+            matrixTransRotY(sp + 224, lwc1(a0 + 48), lwc1(a0 + 52), lwc1(a0 + 56), (lwc1(a0 + 76) * lwc1(0x3ad920)).pdiv(1.8e+02_f32));
             let state_data = lw(a0 + 32);
             sceVu0MulMatrix(sp + 288, sp + 224, lw(state_data + 4) + (lw(lw(state_data + 92) + 20) << 6));
             let f1_2 = lwc1(sp + 340);
@@ -589,7 +589,7 @@ fn melee_attack(a0: i32, mind: i32, sp: i32, dist: f32) -> Flow {
                 let dz = dz - base_z;
                 swc1(sp + 404, dy);
                 swc1(sp + 408, dz);
-                let inverse = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+                let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
                 let nx = lwc1(sp + 400) * inverse;
                 let ny = lwc1(sp + 404) * inverse;
                 swc1(sp + 408, lwc1(sp + 408) * inverse);
@@ -718,7 +718,7 @@ pub fn attack(a0: i32) {
     let dx = lwc1(a0 + 48) - lwc1(target + 48);
     let dy = lwc1(a0 + 52) - lwc1(target + 52);
     let dz = lwc1(a0 + 56) - lwc1(target + 56);
-    let dist = (dx * dx + dy * dy + dz * dz).abs().sqrt();
+    let dist = (dx * dx + dy * dy + dz * dz).abs().psqrt();
     if lw(mind + 2772) != 0 {
         let kind = lw(mind + 8);
         if kind == 0 || kind == 1 {

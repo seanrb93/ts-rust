@@ -51,7 +51,7 @@ pub fn animMtxTick() {
                                         1 => {
                                             let x = lwc1(prop + 48);
                                             let y = lwc1(prop + 52);
-                                            let angle = lwc1(prop + 76) * lwc1(0x3acd90) / 1.8e+02_f32;
+                                            let angle = (lwc1(prop + 76) * lwc1(0x3acd90)).pdiv(1.8e+02_f32);
                                             let z = lwc1(prop + 56);
                                             matrixTransRotY(sp, x, y, z, angle);
                                             flags = lw(prop + 16);
@@ -60,10 +60,10 @@ pub fn animMtxTick() {
                                             let radians = lwc1(0x3acd94);
                                             let half_turn = 1.8e+02_f32;
                                             let x = lwc1(prop + 48);
-                                            let a = lwc1(prop + 72) * radians / half_turn;
+                                            let a = (lwc1(prop + 72) * radians).pdiv(half_turn);
                                             let y = lwc1(prop + 52);
-                                            let b = lwc1(prop + 76) * radians / half_turn;
-                                            let c = lwc1(prop + 88) * radians / half_turn;
+                                            let b = (lwc1(prop + 76) * radians).pdiv(half_turn);
+                                            let c = (lwc1(prop + 88) * radians).pdiv(half_turn);
                                             let z = lwc1(prop + 56);
                                             matrixTransRotZXY(sp, x, y, z, a, b, c);
                                             flags = lw(prop + 16);
@@ -71,7 +71,7 @@ pub fn animMtxTick() {
                                         3 => {
                                             let x = lwc1(prop + 48);
                                             let y = lwc1(prop + 52);
-                                            let angle = lwc1(prop + 76) * lwc1(0x3acd98) / 1.8e+02_f32;
+                                            let angle = (lwc1(prop + 76) * lwc1(0x3acd98)).pdiv(1.8e+02_f32);
                                             let z = lwc1(prop + 56);
                                             matrixTransRotY(sp, x, y, z, angle);
                                             flags = lw(prop + 16);
@@ -79,7 +79,7 @@ pub fn animMtxTick() {
                                         _ => {
                                             let x = lwc1(prop + 48);
                                             let y = lwc1(prop + 52);
-                                            let angle = lwc1(prop + 76) * lwc1(0x3acd9c) / 1.8e+02_f32;
+                                            let angle = (lwc1(prop + 76) * lwc1(0x3acd9c)).pdiv(1.8e+02_f32);
                                             let z = lwc1(prop + 56);
                                             matrixTransRotY(sp, x, y, z, angle);
                                             matrixroll(lw(lw(prop + 32) + 4), prop + 100, lwc1(prop + 92));
@@ -204,7 +204,7 @@ pub fn animMtxTick() {
                         'special: {
                             let x = lwc1(prop + 48);
                             let y = lwc1(prop + 52);
-                            let angle = lwc1(prop + 76) * lwc1(0x3acd8c) / 1.8e+02_f32;
+                            let angle = (lwc1(prop + 76) * lwc1(0x3acd8c)).pdiv(1.8e+02_f32);
                             let z = lwc1(prop + 56);
                             matrixTransRotY(sp, x, y, z, angle);
                             flags = lw(prop + 16);

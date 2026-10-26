@@ -80,12 +80,12 @@ pub fn matrixOrtho(m: i32, left: f32, bottom: f32, right: f32, top: f32, near: f
         m.set(r, c, 0.0);
     }
     let depth = near - far;
-    m.set(0, 0, 2.0 / (right - left));
-    m.set(1, 1, 2.0 / (top - bottom));
-    m.set(3, 2, (far + near) / depth);
-    m.set(3, 0, (right + left) / (left - right));
-    m.set(3, 1, (top + bottom) / (bottom - top));
-    m.set(2, 2, 2.0 / depth);
+    m.set(0, 0, (2.0_f32).pdiv((right - left)));
+    m.set(1, 1, (2.0_f32).pdiv((top - bottom)));
+    m.set(3, 2, ((far + near)).pdiv(depth));
+    m.set(3, 0, ((right + left)).pdiv((left - right)));
+    m.set(3, 1, ((top + bottom)).pdiv((bottom - top)));
+    m.set(2, 2, (2.0_f32).pdiv(depth));
 }
 
 /// Scale the x axis of a matrix: the first column (@ 0x2b4ee8).
@@ -108,7 +108,7 @@ pub fn quaternionLerp(a: i32, b: i32, out: i32, t: f32) {
 /// Scale a quaternion to length 1 (@ 0x2b47b0).
 pub fn quaternionNormalise(q: i32) {
     let (x, y, z, w) = (lwc1(q), lwc1(q + 4), lwc1(q + 8), lwc1(q + 12));
-    let inv = 1.0_f32 / (x * x + y * y + z * z + w * w).abs().sqrt();
+    let inv = (1.0_f32).pdiv((x * x + y * y + z * z + w * w).abs().psqrt());
     swc1(q + 12, w * inv);
     swc1(q, x * inv);
     swc1(q + 4, y * inv);
@@ -144,8 +144,8 @@ pub fn matrixToQuaternion(q: i32, m: i32) {
         }
         let j = next[i as usize];
         let k = next[j as usize];
-        let s = (at(i, i) - (at(j, j) + at(k, k)) + 1.0).abs().sqrt();
-        let scale = 0.5_f32 / s;
+        let s = (at(i, i) - (at(j, j) + at(k, k)) + 1.0).abs().psqrt();
+        let scale = (0.5_f32).pdiv(s);
         let mut out = [0.0_f32; 3];
         out[i as usize] = s * 0.5;
         out[j as usize] = (at(i, j) + at(j, i)) * scale;
@@ -155,9 +155,9 @@ pub fn matrixToQuaternion(q: i32, m: i32) {
         swc1(q + 8, out[2]);
         swc1(q + 12, (at(j, k) - at(k, j)) * scale);
     } else {
-        let root = (trace + 1.0).abs().sqrt();
-        let scale = 0.5_f32 / root;
-        swc1(q + 12, (trace + 1.0).abs().sqrt() * 0.5);
+        let root = (trace + 1.0).abs().psqrt();
+        let scale = (0.5_f32).pdiv(root);
+        swc1(q + 12, (trace + 1.0).abs().psqrt() * 0.5);
         swc1(q, (at(1, 2) - at(2, 1)) * scale);
         swc1(q + 4, (at(2, 0) - at(0, 2)) * scale);
         swc1(q + 8, (at(0, 1) - at(1, 0)) * scale);

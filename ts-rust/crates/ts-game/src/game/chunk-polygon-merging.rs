@@ -50,7 +50,7 @@ pub fn obMergeChunkPolys(model: i32, source: i32, chunk: i32, dest: i32) {
                         let e2z = lwc1(third + 8) - lwc1(vertex + 8);
                         let ny = e1z * e2x - e1x * e2z;
                         let nx = e1y * e2z - e1z * e2y;
-                        let inv = 1.0_f32 / (nx * nx + ny * ny + nz * nz).abs().sqrt();
+                        let inv = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
                         let polygons = lw(result_record + 32);
                         let record = lw(model + 24) * 12 + polygons;
                         let nz = nz * inv;

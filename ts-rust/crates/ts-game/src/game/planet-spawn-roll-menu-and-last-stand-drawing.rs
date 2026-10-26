@@ -15,7 +15,7 @@ pub fn specialfxPlanetSpawnTick(group: i32) {
         let limit = lwc1(0x3ad6e0);
         let time_at = group * 92 + (groups + 48);
         let table = g::g_SinTable;
-        let fraction = lwc1(time_at) / limit;
+        let fraction = (lwc1(time_at)).pdiv(limit);
         let scale = ld(0x3a9748);
         let scale_two = ld(0x3a9750);
         let half = 0x3fe0000000000000_i64;
@@ -23,7 +23,7 @@ pub fn specialfxPlanetSpawnTick(group: i32) {
         let state = lw(prop + 352);
         let first = dptoli(dpadd(dpmul(dpadd(dpmul(fptodp(fraction), scale), scale), scale_two), half));
         swc1(state + 44, lwc1(((first & 2047) << 2) + table) * lwc1(0x3ad6e8) + lwc1(0x3ad6ec));
-        let fraction = lwc1(time_at) / limit;
+        let fraction = (lwc1(time_at)).pdiv(limit);
         let second = dptoli(dpadd(dpmul(dpmul(fptodp(fraction), scale), scale_two), half));
         let shift = lwc1(0x3ad6f0);
         swc1(state + 52, lwc1(((second & 2047) << 2) + table) * amplitude);
@@ -43,7 +43,7 @@ pub fn specialfxPlanetSpawnTick(group: i32) {
     let groups = g::fxgroups;
     let particles = group * 92 + (groups + 72);
     if lw(particles) != 0 {
-        matrixRotY(sp, step * 3.6e+02_f32 * lwc1(0x3ad6f4) / 1.8e+02_f32 * lw(groups + group * 92 + 4) as f32);
+        matrixRotY(sp, (step * 3.6e+02_f32 * lwc1(0x3ad6f4)).pdiv(1.8e+02_f32) * lw(groups + group * 92 + 4) as f32);
         let one = 1.0_f32;
         let shrink = one - step * lwc1(0x3ad6f8);
         let shrink_y = one - step * lwc1(0x3ad6fc);

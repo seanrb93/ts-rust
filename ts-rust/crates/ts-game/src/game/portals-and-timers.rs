@@ -124,12 +124,12 @@ pub fn windowRestart() {
     sw(w + 4, x1);
     sw(w + 8, cx);
     sw(w + 16, cy);
-    swc1(w + 80, fw / fw);
+    swc1(w + 80, (fw).pdiv(fw));
     sw(w + 20, y0);
     sw(w + 24, y1);
     sw(w + 28, mid_y);
     sw(w + 36, half_h);
-    swc1(w + 84, fh / fh);
+    swc1(w + 84, (fh).pdiv(fh));
     sw(w + 92, 0);
     sw(w + 12, screen_w);
     sw(w + 88, 0);

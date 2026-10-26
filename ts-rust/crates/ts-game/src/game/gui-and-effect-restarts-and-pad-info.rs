@@ -262,7 +262,7 @@ pub fn specialfxRotateSpawnTick(group: i32) {
         let time = lwc1(record + 48);
         let state = lw(prop + 352);
         if !(time < 0.0_f32) {
-            let wide = fptodp(time / 1.5_f32);
+            let wide = fptodp((time).pdiv(1.5_f32));
             let turned = dpadd(dpmul(dpmul(wide, ld(0x3a9758)), ld(0x3a9760)), 0x3fe0000000000000_i64);
             let index = dptoli(turned);
             swc1(state + 44, lwc1(((index & 2047) << 2) + g::g_SinTable));

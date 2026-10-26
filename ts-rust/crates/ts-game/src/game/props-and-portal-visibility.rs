@@ -203,7 +203,7 @@ pub fn quaternionToMatrix(m: i32, q: i32) {
     for at in [48, 44, 28, 12, 56, 52] {
         swc1(m + at, 0.0);
     }
-    let s = 2.0_f32 / (x * x + y * y + z * z + w * w);
+    let s = (2.0_f32).pdiv((x * x + y * y + z * z + w * w));
     let zs = z * s;
     let ys = y * s;
     let xs = x * s;

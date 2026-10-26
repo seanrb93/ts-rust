@@ -272,16 +272,16 @@ pub fn rotateChr(a0: i32) {
             y = lwc1(sp + 4);
         }
         let z = lwc1(sp + 8);
-        let length = (x * x + y * y + z * z).abs().sqrt();
-        let inverse = 1.0_f32 / length;
+        let length = (x * x + y * y + z * z).abs().psqrt();
+        let inverse = (1.0_f32).pdiv(length);
         let z_unit = z * inverse;
         let x_unit = x * inverse;
         swc1(sp + 8, z_unit);
         swc1(sp, x_unit);
         swc1(sp + 4, y * inverse);
         let rise = lwc1(sp + 4);
-        let run = (x_unit * x_unit + z_unit * z_unit).abs().sqrt();
-        pitch_wanted = atan2f(rise, run) * 1.8e+02_f32 / lwc1(0x3ad824);
+        let run = (x_unit * x_unit + z_unit * z_unit).abs().psqrt();
+        pitch_wanted = (atan2f(rise, run) * 1.8e+02_f32).pdiv(lwc1(0x3ad824));
     } else {
         pitch_wanted = 0.0_f32;
     }

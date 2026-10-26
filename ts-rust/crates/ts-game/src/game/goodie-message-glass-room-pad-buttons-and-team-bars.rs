@@ -34,14 +34,14 @@ pub fn goodieMessageGfx(time: i32, colour: i32) {
             offset = 0;
         } else {
             let half = 0x3fe0000000000000_i64;
-            let fraction = past as f32 / 6e+01_f32;
+            let fraction = (past as f32).pdiv(6e+01_f32);
             let turned = dpmul(dpmul(fptodp(fraction), ld(0x3a1e60)), half);
             let index = dptoli(dpadd(dpmul(turned, ld(0x3a1e68)), half));
             offset = (-((1.0_f32 - lwc1((((index + 512) & 2047) << 2) + g::g_SinTable)) * lw(g::window + 12) as f32)) as i32;
         }
     } else {
         let half = 0x3fe0000000000000_i64;
-        let fraction = time as f32 / 6e+01_f32;
+        let fraction = (time as f32).pdiv(6e+01_f32);
         let turned = dpmul(dpmul(fptodp(fraction), ld(0x3a1e50)), half);
         let index = dptoli(dpadd(dpmul(turned, ld(0x3a1e58)), half));
         offset = ((1.0_f32 - lwc1(((index & 2047) << 2) + g::g_SinTable)) * lw(g::window + 12) as f32) as i32;

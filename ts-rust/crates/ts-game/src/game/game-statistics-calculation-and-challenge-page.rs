@@ -31,11 +31,11 @@ pub fn StatsCalc() {
         } else {
             let hits = StatsGet(9, slot);
             let total = StatsGet(8, slot);
-            StatsSet(10, slot, hits / total);
+            StatsSet(10, slot, (hits).pdiv(total));
             let total = StatsGet(8, slot);
             let hits = StatsGet(9, slot);
             let again = StatsGet(8, slot);
-            StatsSet(11, slot, (total - hits) / again);
+            StatsSet(11, slot, ((total - hits)).pdiv(again));
         }
         let hits = StatsGet(9, slot);
         if hits == 0.0_f32 {
@@ -46,7 +46,7 @@ pub fn StatsCalc() {
             for (stat, part) in [(18, 13), (19, 15), (20, 16), (21, 17), (22, 12)] {
                 let top = StatsGet(part, slot);
                 let all = StatsGet(9, slot);
-                StatsSet(stat, slot, top / all);
+                StatsSet(stat, slot, (top).pdiv(all));
             }
         }
         slot += 1;
@@ -89,9 +89,9 @@ pub fn StatsCalc() {
             StatsSet(45, slot, 0.0_f32);
         } else {
             let shots = StatsGet(8, slot);
-            StatsSet(45, slot, kills / shots);
+            StatsSet(45, slot, (kills).pdiv(shots));
         }
-        StatsSet(59, slot, total / seconds);
+        StatsSet(59, slot, (total).pdiv(seconds));
         slot += 1;
     }
 }

@@ -673,7 +673,7 @@ pub fn enemyCheckValidPad(a0: i32) {
                     let old_dy = py - lwc1(old + 16);
                     let old_dx = px - lwc1(old + 12);
                     let old_dz = pz - lwc1(old + 20);
-                    let gain = (dx * dx + dy * dy + dz * dz).abs().sqrt() - (old_dx * old_dx + old_dy * old_dy + old_dz * old_dz).abs().sqrt();
+                    let gain = (dx * dx + dy * dy + dz * dz).abs().psqrt() - (old_dx * old_dx + old_dy * old_dy + old_dz * old_dz).abs().psqrt();
                     let mut gain = fptodp(gain);
                     if dpcmp(gain, 0_i64) < 0 {
                         gain = dpsub(0_i64, gain);

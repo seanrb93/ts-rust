@@ -50,7 +50,7 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     swc1(sp + 148, y);
     let z = lwc1(holder + 56) + f2;
     swc1(sp + 152, z);
-    let heading = lwc1(holder + 76) * to_radians / degrees;
+    let heading = (lwc1(holder + 76) * to_radians).pdiv(degrees);
     matrixTransRotY(sp, x, y, z, heading);
     sceVu0MulMatrix(sp + 64, sp, lw(lw(holder + 32) + 4));
     matrixTrans(sp, lwc1(sp + 160), lwc1(point + 4), lwc1(point + 8));
@@ -62,7 +62,7 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     swc1(a1 + 92, dz);
     let x = lwc1(sp + 144);
     let y = lwc1(sp + 148);
-    let heading = lwc1(holder + 76) * to_radians / degrees;
+    let heading = (lwc1(holder + 76) * to_radians).pdiv(degrees);
     let z = lwc1(sp + 152);
     matrixTransRotY(sp, x, y, z, heading);
     sceVu0MulMatrix(sp + 64, sp, lw(lw(holder + 32) + 4));
@@ -87,9 +87,9 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     let pz = lwc1(sp + 152);
     swc1(sp + 132, lwc1(point + 4));
     swc1(sp + 136, lwc1(point + 8));
-    let rx = lwc1(prop + 72) * to_radians / degrees;
-    let ry = lwc1(prop + 76) * to_radians / degrees;
-    let rz = lwc1(prop + 88) * to_radians / degrees;
+    let rx = (lwc1(prop + 72) * to_radians).pdiv(degrees);
+    let ry = (lwc1(prop + 76) * to_radians).pdiv(degrees);
+    let rz = (lwc1(prop + 88) * to_radians).pdiv(degrees);
     matrixTransRotZXY(sp, px, py, pz, rx, ry, rz);
     matrixVecRotAligned(&[sp as i64, (sp + 128) as i64]);
     let vy = lwc1(sp + 132);
@@ -110,9 +110,9 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     let px = lwc1(sp + 144);
     let py = lwc1(sp + 148);
     swc1(sp + 136, lwc1(point + 8));
-    let rz = lwc1(prop + 88) * to_radians / degrees;
-    let rx = lwc1(prop + 72) * to_radians / degrees;
-    let ry = lwc1(prop + 76) * to_radians / degrees;
+    let rz = (lwc1(prop + 88) * to_radians).pdiv(degrees);
+    let rx = (lwc1(prop + 72) * to_radians).pdiv(degrees);
+    let ry = (lwc1(prop + 76) * to_radians).pdiv(degrees);
     let pz = lwc1(sp + 152);
     matrixTransRotZXY(sp, px, py, pz, rx, ry, rz);
     matrixVecRotAligned(&[sp as i64, (sp + 128) as i64]);
@@ -151,7 +151,7 @@ pub fn chrPropTickAfter(a0: i32) {
                 y = lwc1(a0 + 52);
             } else {
                 if (ld(a0 + 16) & 0x80000180_i64) == 0_i64 {
-                    let angle = lwc1(a0 + 80) * lwc1(0x3acca0) / 1.8e+02_f32;
+                    let angle = (lwc1(a0 + 80) * lwc1(0x3acca0)).pdiv(1.8e+02_f32);
                     matrixRotY(sp + 16, angle);
                     matrixVecMul(sp + 16, sp);
                     let marker = lw(a0 + 536);
@@ -207,7 +207,7 @@ pub fn chrPropTickAfter(a0: i32) {
                         }
                         let x = lwc1(a0 + 48);
                         let y = lwc1(a0 + 52);
-                        let angle = lwc1(a0 + 76) * lwc1(0x3acca8) / 1.8e+02_f32;
+                        let angle = (lwc1(a0 + 76) * lwc1(0x3acca8)).pdiv(1.8e+02_f32);
                         let z = lwc1(a0 + 56);
                         matrixTransRotY(sp + 208, x, y, z, angle);
                         let model = lw(a0 + 32);
@@ -224,7 +224,7 @@ pub fn chrPropTickAfter(a0: i32) {
                                 let kind = lw(existing);
                                 if start <= power {
                                     let half = 0x3fe0000000000000_i64;
-                                    let phase = (power - start) / lwc1(0x3accb0);
+                                    let phase = ((power - start)).pdiv(lwc1(0x3accb0));
                                     let d = dpmul(fptodp(phase), ld(0x3a7fb8));
                                     let d = dpmul(d, half);
                                     let d = dpmul(d, ld(0x3a7fc0));
@@ -1075,11 +1075,11 @@ pub fn MoveTestPropWalls(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a
                     let dx = lwc1(wall + 28) - lwc1(wall + 12);
                     swc1(sp + 32, dx);
                     let dz = lwc1(wall + 4) - lwc1(wall + 20);
-                    let length = (dx * dx + dz * dz).abs().sqrt();
+                    let length = (dx * dx + dz * dz).abs().psqrt();
                     swc1(sp + 36, dz);
-                    let nx = lwc1(sp + 32) / length;
+                    let nx = (lwc1(sp + 32)).pdiv(length);
                     let px = lwc1(a3);
-                    let nz = lwc1(sp + 36) / length;
+                    let nz = (lwc1(sp + 36)).pdiv(length);
                     let pz = lwc1(a3 + 8);
                     swc1(sp + 32, nx);
                     swc1(sp + 36, nz);
@@ -1131,11 +1131,11 @@ pub fn MoveTestPropWalls(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a
             swc1(a5, ox);
             let oz = lwc1(a3 + 8) - lwc1(a1 + 56);
             swc1(a5 + 4, oz);
-            let length = (ox * ox + oz * oz).abs().sqrt();
+            let length = (ox * ox + oz * oz).abs().psqrt();
             let first = lwc1(a5);
-            let second = lwc1(a5 + 4) / length;
+            let second = (lwc1(a5 + 4)).pdiv(length);
             let slowed = f12 * lwc1(0x3acd18);
-            swc1(a5, first / length);
+            swc1(a5, (first).pdiv(length));
             swc1(a5 + 4, second);
             swc1(a6, slowed);
             return 0.0_f32;

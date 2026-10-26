@@ -235,7 +235,7 @@ pub fn mmfileGetItemCount(file: i32, kind: i32) -> i32 {
 /// Glass heals and decals on it fade: each pane of glass (a float at +0 that is negative while broken, counting up to 0) of every room gets the frame time (in seconds)
 /// added, except in mode 7 or with flag 64 while it is not nearly healed; its decals (four numbers at +176) fade, and are removed when the time is 0.5 past (@ 0x25a3b8).
 pub fn bgTick() {
-    let dt = lwc1(g::updateframesf) / 60.0_f32;
+    let dt = (lwc1(g::updateframesf)).pdiv(60.0_f32);
     let mut room = 0;
     while room < lw(g::bgNumRooms) {
         let list = lw(room * 44 + lw(g::levelrooms) + 60);

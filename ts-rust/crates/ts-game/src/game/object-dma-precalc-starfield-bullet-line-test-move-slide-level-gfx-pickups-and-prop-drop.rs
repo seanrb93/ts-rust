@@ -656,8 +656,8 @@ pub fn moveTestDoSlide(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32, f1
                     swc1(sp + 96, delta_x);
                     swc1(sp + 100, delta_z);
                     if 0.0_f32 < along + nz * delta_z {
-                        let length = (delta_x * delta_x + delta_z * delta_z).abs().sqrt();
-                        let inverse = 1.0_f32 / length;
+                        let length = (delta_x * delta_x + delta_z * delta_z).abs().psqrt();
+                        let inverse = (1.0_f32).pdiv(length);
                         let ux = lwc1(sp + 96);
                         let rx = lwc1(sp + 64) - x;
                         let uz = lwc1(sp + 100);
@@ -1484,10 +1484,10 @@ pub fn propDrop(a0: i32, a1: i32, a2: i32) {
         sw(data + 76, frames);
         let count = lw(data + 76) as f32;
         let scale = 5e+01_f32;
-        let step_x = lwc1(sp) / count;
+        let step_x = (lwc1(sp)).pdiv(count);
         swc1(prop + 60, step_x);
-        swc1(prop + 68, lwc1(sp + 8) / count);
-        swc1(prop + 64, lwc1(sp + 4) / count);
+        swc1(prop + 68, (lwc1(sp + 8)).pdiv(count));
+        swc1(prop + 64, (lwc1(sp + 4)).pdiv(count));
         swc1(data + 80, step_x * scale);
         swc1(data + 84, lwc1(prop + 64) * scale);
         swc1(data + 88, lwc1(prop + 68) * scale);

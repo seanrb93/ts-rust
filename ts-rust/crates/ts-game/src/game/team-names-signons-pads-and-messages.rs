@@ -71,7 +71,7 @@ pub fn generatepad(pad: i32) {
     } else if !(up == -1.0_f32) {
         let z = lwc1(player + 852);
         let x = lwc1(player + 844);
-        swc1(pad + 24, atan2f(x, z) * 180.0_f32 / lwc1(0x3acba0));
+        swc1(pad + 24, (atan2f(x, z) * 180.0_f32).pdiv(lwc1(0x3acba0)));
     } else {
         sw(pad + 24, 0);
     }

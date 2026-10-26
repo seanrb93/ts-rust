@@ -514,7 +514,7 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     swc1(sp + 36, cy);
     let cz = nx * uy - ny * ux;
     swc1(sp + 40, cz);
-    let inverse = 1.0_f32 / (cx * cx + cy * cy + cz * cz).abs().sqrt();
+    let inverse = (1.0_f32).pdiv((cx * cx + cy * cy + cz * cz).abs().psqrt());
     let rz = lwc1(sp + 40) * inverse;
     let rx = lwc1(sp + 32) * inverse;
     let ry = lwc1(sp + 36) * inverse;
@@ -527,7 +527,7 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     swc1(sp + 64, fy);
     let fz = nx * ry - ny * rx;
     swc1(sp + 72, fz);
-    let inverse = 1.0_f32 / (fy * fy + fx * fx + fz * fz).abs().sqrt();
+    let inverse = (1.0_f32).pdiv((fy * fy + fx * fx + fz * fz).abs().psqrt());
     let rx = lwc1(sp + 32);
     let ry = lwc1(sp + 36);
     let rz = lwc1(sp + 40);
@@ -543,7 +543,7 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     swc1(sp + 16, sum_x);
     swc1(sp + 20, sum_y);
     swc1(sp + 24, sum_z);
-    let inverse = 1.0_f32 / (sum_x * sum_x + sum_y * sum_y + sum_z * sum_z).abs().sqrt();
+    let inverse = (1.0_f32).pdiv((sum_x * sum_x + sum_y * sum_y + sum_z * sum_z).abs().psqrt());
     let dx = rx - lwc1(sp + 64);
     let dy = ry - lwc1(sp + 68);
     let px = lwc1(sp + 16);
@@ -556,7 +556,7 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     swc1(sp + 24, pz * inverse);
     swc1(sp + 16, px * inverse);
     swc1(sp + 20, py * inverse);
-    let inverse = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
     let by = lwc1(sp + 52);
     let qy = lwc1(sp + 20);
     let qz = lwc1(sp + 24);

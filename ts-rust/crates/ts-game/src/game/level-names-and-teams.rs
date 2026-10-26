@@ -87,7 +87,7 @@ pub fn StatsGetAverage(stat: i32, n: i32) -> f32 {
     for slot in 0..n.max(0) {
         sum += StatsGet(stat, slot);
     }
-    sum / n as f32
+    (sum).pdiv(n as f32)
 }
 
 /// The text of the level list entry (24 bytes; text number at +0, level number at +4) of level `level` in the current language, or 0 (@ 0x2258b8).

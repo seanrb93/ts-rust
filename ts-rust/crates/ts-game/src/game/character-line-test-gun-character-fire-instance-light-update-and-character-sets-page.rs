@@ -114,7 +114,7 @@ pub fn chrLineTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: 
         sw(sp + 436, sp + 32);
         sw(sp + 428, 0);
         let chr = lw(sp + 400);
-        let turn = turn / 1.8e+02_f32;
+        let turn = (turn).pdiv(1.8e+02_f32);
         let dy = lwc1(a1 + 4) - lwc1(chr + 52);
         let end_z = lwc1(a2 + 8);
         let dz = lwc1(a1 + 8) - lwc1(chr + 56);
@@ -382,7 +382,7 @@ pub fn chrLineTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: 
                 let ny = lwc1(sp + 20);
                 let nz = lwc1(sp + 24);
                 let normal = lw(sp + 408);
-                let scale = 1.0_f32 / (nx * nx + ny * ny + nz * nz).abs().sqrt();
+                let scale = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
                 swc1(normal + 8, nz * scale);
                 swc1(normal, nx * scale);
                 swc1(normal + 4, ny * scale);
@@ -480,7 +480,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
                                     }
                                 }
                                 let random = random_unit();
-                                let amount = lw(g::curgameparms + 108) as f32 / 4e+01_f32 * 8.0_f32;
+                                let amount = (lw(g::curgameparms + 108) as f32).pdiv(4e+01_f32) * 8.0_f32;
                                 sw(a1 + 68, (amount * random) as i32);
                                 return;
                             }
@@ -510,7 +510,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
                         let _ = ();
                         break 'b13;
                     }
-                    matrixTransRotY(sp + 112, lwc1(target + 48), lwc1(target + 52), lwc1(target + 56), angle * lwc1(0x3ad2e8) / 1.8e+02_f32);
+                    matrixTransRotY(sp + 112, lwc1(target + 48), lwc1(target + 52), lwc1(target + 56), (angle * lwc1(0x3ad2e8)).pdiv(1.8e+02_f32));
                     let data = lw(lw(mind + 2788) + 32);
                     let matrix = lw(data + 4) + (lw(lw(data + 92) + 20) << 6);
                     sceVu0MulMatrix(sp + 48, sp + 112, matrix);
@@ -554,7 +554,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
             if (lw(a0 + 16) & 128) != 0 {
                 return;
             }
-            matrixTransRotY(sp + 112, lwc1(a0 + 48), lwc1(a0 + 52), lwc1(a0 + 56), lwc1(a0 + 76) * lwc1(0x3ad2f0) / 1.8e+02_f32);
+            matrixTransRotY(sp + 112, lwc1(a0 + 48), lwc1(a0 + 52), lwc1(a0 + 56), (lwc1(a0 + 76) * lwc1(0x3ad2f0)).pdiv(1.8e+02_f32));
             let data = lw(a0 + 32);
             let matrix = lw(data + 4) + (lw(lw(data + 92) + 28) << 6);
             sceVu0MulMatrix(sp + 48, sp + 112, matrix);
@@ -606,7 +606,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
         let mut player = lw(g::currentplayer);
         if (lw(a0 + 16) & 0xf000000) != 0 {
             if lw(lw(gun_holder + 32) + 4) != 0 {
-                matrixTransRotY(sp + 112, lwc1(gun_holder + 48), lwc1(gun_holder + 52), lwc1(gun_holder + 56), lwc1(gun_holder + 76) * lwc1(0x3ad30c) / 1.8e+02_f32);
+                matrixTransRotY(sp + 112, lwc1(gun_holder + 48), lwc1(gun_holder + 52), lwc1(gun_holder + 56), (lwc1(gun_holder + 76) * lwc1(0x3ad30c)).pdiv(1.8e+02_f32));
                 sceVu0MulMatrix(sp + 176, sp + 112, lw(lw(gun_holder + 32) + 4));
                 matrixTrans(sp + 112, lwc1(muzzle), lwc1(muzzle + 4), lwc1(muzzle + 8));
                 sceVu0MulMatrix(sp + 176, sp + 176, sp + 112);
@@ -667,7 +667,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
                         if lwc1(0x3ad318) < forward * nx + lwc1(sp + 4) * lwc1(sp + 20) + lwc1(sp + 8) * lwc1(sp + 24) {
                             swc1(mind + 2976, nx);
                         } else {
-                            if !((squared + squared + squared).abs().sqrt() < 2.5_f32) {
+                            if !((squared + squared + squared).abs().psqrt() < 2.5_f32) {
                                 return;
                             }
                             swc1(mind + 2976, nx);
@@ -715,7 +715,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
                 x = lwc1(sp);
                 y = lwc1(sp + 4);
                 z = lwc1(sp + 8);
-                inverse = 1.0_f32 / (x * x + y * y + z * z).abs().sqrt();
+                inverse = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
             } else {
                 inverse = 1.0_f32;
                 x = lwc1(sp);
@@ -747,23 +747,23 @@ fn light_matrices(a0: i32, sp: i32, prop: i32, player_record: i32) {
     let x2 = lwc1(sp + 64);
     let y2 = lwc1(sp + 68);
     let z2 = lwc1(sp + 72);
-    let scale = 1.0_f32 / (x * x + y * y + z * z).abs().sqrt();
+    let scale = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
     swc1(sp + 56, z * scale);
     swc1(sp + 48, x * scale);
     swc1(sp + 52, y * scale);
     let x3 = lwc1(sp + 80);
-    let scale = 1.0_f32 / (x2 * x2 + y2 * y2 + z2 * z2).abs().sqrt();
+    let scale = (1.0_f32).pdiv((x2 * x2 + y2 * y2 + z2 * z2).abs().psqrt());
     let y3 = lwc1(sp + 84);
     let z3 = lwc1(sp + 88);
     swc1(sp + 72, z2 * scale);
     swc1(sp + 64, x2 * scale);
     swc1(sp + 68, y2 * scale);
-    let scale = 1.0_f32 / (x3 * x3 + y3 * y3 + z3 * z3).abs().sqrt();
+    let scale = (1.0_f32).pdiv((x3 * x3 + y3 * y3 + z3 * z3).abs().psqrt());
     let to_radians = lwc1(0x3acb44);
     swc1(sp + 88, z3 * scale);
     swc1(sp + 80, x3 * scale);
     swc1(sp + 84, y3 * scale);
-    matrixTransRotY(sp + 160, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), lwc1(prop + 76) * to_radians / 1.8e+02_f32);
+    matrixTransRotY(sp + 160, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), (lwc1(prop + 76) * to_radians).pdiv(1.8e+02_f32));
     let model_matrices = lw(lw(a0) + 4);
     let matrices = if 0 >= model_matrices { 1 } else { model_matrices };
     let mut left = matrices;
@@ -835,7 +835,7 @@ fn light_matrices(a0: i32, sp: i32, prop: i32, player_record: i32) {
 /// scaled colour (sp+96 or sp+112); `scale_at` is the address of the blending factor.
 fn light_blend(a0: i32, sp: i32, light: i32, store: i32, id_at: i32, slot: i32, colour: i32, blend: i32, position: i32) {
     let f12 = lwc1(light + 16);
-    let attenuation = if !(f12 <= 9.0_f32) { (2e+01_f32 - f12.abs().sqrt()) / 17.0_f32 } else { 1.0_f32 };
+    let attenuation = if !(f12 <= 9.0_f32) { ((2e+01_f32 - f12.abs().psqrt())).pdiv(17.0_f32) } else { 1.0_f32 };
     let light_data = lw(light);
     let color_r = lbu(light_data + 143);
     let scale = attenuation * 0.00390625_f32 * (lbu(light_data + 148) as f32 * 0.00390625_f32);
@@ -1009,30 +1009,30 @@ pub fn obInstLightUpdate(a0: i32) {
         let to_radians = lwc1(0x3acb38);
         let theta = light_set * 12 + g::theta;
         let phi = light_set * 12 + g::phi;
-        let a = cosf(lwc1(theta) * to_radians / 1.8e+02_f32);
+        let a = cosf((lwc1(theta) * to_radians).pdiv(1.8e+02_f32));
         swc1(sp, a * 1e+01_f32);
-        let b = sinf(lwc1(phi) * to_radians / 1.8e+02_f32);
+        let b = sinf((lwc1(phi) * to_radians).pdiv(1.8e+02_f32));
         swc1(sp + 4, b * 1e+01_f32);
-        let c = sinf(lwc1(theta) * to_radians / 1.8e+02_f32);
-        let d = cosf(lwc1(phi) * to_radians / 1.8e+02_f32);
+        let c = sinf((lwc1(theta) * to_radians).pdiv(1.8e+02_f32));
+        let d = cosf((lwc1(phi) * to_radians).pdiv(1.8e+02_f32));
         let theta1 = light_set * 12 + (g::theta + 4);
         let phi1 = light_set * 12 + (g::phi + 4);
         swc1(sp + 8, c * 1e+01_f32 * d);
-        let e = cosf(lwc1(theta1) * to_radians / 1.8e+02_f32);
+        let e = cosf((lwc1(theta1) * to_radians).pdiv(1.8e+02_f32));
         swc1(sp + 16, e * 1e+01_f32);
-        let f = sinf(lwc1(phi1) * to_radians / 1.8e+02_f32);
+        let f = sinf((lwc1(phi1) * to_radians).pdiv(1.8e+02_f32));
         swc1(sp + 20, f * 1e+01_f32);
-        let h = sinf(lwc1(theta1) * to_radians / 1.8e+02_f32);
-        let i = cosf(lwc1(phi1) * to_radians / 1.8e+02_f32);
+        let h = sinf((lwc1(theta1) * to_radians).pdiv(1.8e+02_f32));
+        let i = cosf((lwc1(phi1) * to_radians).pdiv(1.8e+02_f32));
         let theta2 = light_set * 12 + (g::theta + 8);
         let phi2 = light_set * 12 + (g::phi + 8);
         swc1(sp + 24, h * 1e+01_f32 * i);
-        let j = cosf(lwc1(theta2) * to_radians / 1.8e+02_f32);
+        let j = cosf((lwc1(theta2) * to_radians).pdiv(1.8e+02_f32));
         swc1(sp + 32, j * 1e+01_f32);
-        let k = sinf(lwc1(phi2) * to_radians / 1.8e+02_f32);
+        let k = sinf((lwc1(phi2) * to_radians).pdiv(1.8e+02_f32));
         swc1(sp + 36, k * 1e+01_f32);
-        let l = sinf(lwc1(theta2) * to_radians / 1.8e+02_f32);
-        let m = cosf(lwc1(phi2) * to_radians / 1.8e+02_f32);
+        let l = sinf((lwc1(theta2) * to_radians).pdiv(1.8e+02_f32));
+        let m = cosf((lwc1(phi2) * to_radians).pdiv(1.8e+02_f32));
         let x1 = lwc1(sp);
         let y1 = lwc1(sp + 4);
         let z1 = lwc1(sp + 8);
@@ -1040,19 +1040,19 @@ pub fn obInstLightUpdate(a0: i32) {
         let x2 = lwc1(sp + 16);
         let y2 = lwc1(sp + 20);
         let z2 = lwc1(sp + 24);
-        let scale = 1.0_f32 / (x1 * x1 + y1 * y1 + z1 * z1).abs().sqrt();
+        let scale = (1.0_f32).pdiv((x1 * x1 + y1 * y1 + z1 * z1).abs().psqrt());
         swc1(sp + 56, -z1 * scale);
         swc1(sp + 48, -x1 * scale);
         swc1(sp + 52, -y1 * scale);
         let x3 = lwc1(sp + 32);
-        let scale = 1.0_f32 / (x2 * x2 + y2 * y2 + z2 * z2).abs().sqrt();
+        let scale = (1.0_f32).pdiv((x2 * x2 + y2 * y2 + z2 * z2).abs().psqrt());
         let y3 = lwc1(sp + 36);
         let z3 = lwc1(sp + 40);
         swc1(sp + 64, -x2 * scale);
         swc1(sp + 68, -y2 * scale);
         swc1(sp + 72, -z2 * scale);
-        let scale = 1.0_f32 / (x3 * x3 + y3 * y3 + z3 * z3).abs().sqrt();
-        let glow = sinf(lwc1(phi) * 0.5_f32 * to_radians / 1.8e+02_f32);
+        let scale = (1.0_f32).pdiv((x3 * x3 + y3 * y3 + z3 * z3).abs().psqrt());
+        let glow = sinf((lwc1(phi) * 0.5_f32 * to_radians).pdiv(1.8e+02_f32));
         swc1(sp + 88, -z3 * scale);
         swc1(sp + 80, -x3 * scale);
         swc1(sp + 84, -y3 * scale);
@@ -1072,7 +1072,7 @@ pub fn obInstLightUpdate(a0: i32) {
         sw(sp + 136, 0);
         swc1(sp + 144, ambient);
         swc1(sp + 148, ambient);
-        let scale = 1.0_f32 / (x4 * x4 + y4 * y4 + z4 * z4).abs().sqrt();
+        let scale = (1.0_f32).pdiv((x4 * x4 + y4 * y4 + z4 * z4).abs().psqrt());
         swc1(sp + 88, z4 * scale);
         swc1(sp + 80, x4 * scale);
         swc1(sp + 84, y4 * scale);

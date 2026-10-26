@@ -231,7 +231,7 @@ pub fn draw_slider(x: i32, y: i32, value: i32, range: i32, hide_rest: i32) {
     let right = x + (width * scale_x) as i32;
     let inner_bottom = bottom - 1;
     let inner_right = right - 1;
-    let split = x + (value as f32 * scale_x / range as f32 * width) as i32;
+    let split = x + ((value as f32 * scale_x).pdiv(range as f32) * width) as i32;
     dlFillRectangle(x - 2, y - 1, right + 1, bottom, 64);
     dlFillRectangle(x, y, split - 1, inner_bottom, 0x287f147f);
     dlFillRectangle(split, y, inner_right, inner_bottom, 0x2840147f);

@@ -9,7 +9,7 @@ pub fn hittestMoveCircleToPoint(out: i32, x: f32, z: f32, radius: f32, dx: f32, 
     let oz = pz - z;
     let side = oz * dx - ox * dz;
     if !(radius < side) && !(radius < -side) {
-        let half = ((radius + side) * (radius - side)).abs().sqrt();
+        let half = ((radius + side) * (radius - side)).abs().psqrt();
         let mut reach = ox * dx + oz * dz - half;
         if lwc1(0x3ac808) < reach && reach < 0.0 {
             reach = 0.0;
@@ -22,7 +22,7 @@ pub fn hittestMoveCircleToPoint(out: i32, x: f32, z: f32, radius: f32, dx: f32, 
             let xx = -(half * dx) + side * dz;
             swc1(out + 4, y);
             swc1(out, xx);
-            let inv = 1.0_f32 / (xx * xx + y * y).abs().sqrt();
+            let inv = (1.0_f32).pdiv((xx * xx + y * y).abs().psqrt());
             let ny = lwc1(out + 4) * inv;
             swc1(out, lwc1(out) * inv);
             swc1(out + 4, ny);
@@ -44,7 +44,7 @@ pub fn hittestMoveCircleToPoint(out: i32, x: f32, z: f32, radius: f32, dx: f32, 
 /// direction, from 0 to 1 (@ 0x2094a0).
 pub fn hittestMoveCircleToCircle(out: i32, x: f32, z: f32, radius: f32, dx: f32, dz: f32, px: f32, pz: f32, radius2: f32) -> f32 {
     let combined = radius + radius2;
-    let inv = 1.0_f32 / (dx * dx + dz * dz).abs().sqrt();
+    let inv = (1.0_f32).pdiv((dx * dx + dz * dz).abs().psqrt());
     let reach = hittestMoveCircleToPoint(out, x, z, combined, dx * inv, dz * inv, px, pz);
     if !(1.0 <= reach) {
         if !(reach <= 0.0) { reach * inv } else { 0.0 }
@@ -69,7 +69,7 @@ pub fn HitTestLineSphere(origin: i32, dir: i32, center: i32, hit: i32, normal: i
     if hit == 0 && normal == 0 {
         return 1;
     }
-    let t = -along - discriminant.abs().sqrt();
+    let t = -along - discriminant.abs().psqrt();
     let hz = oz + t * dz;
     let hx = ox + t * dx;
     let hy = oy + t * dy;
@@ -103,7 +103,7 @@ pub fn HitTestDistancePointToLineSegmentSquared(p: i32, a: i32, b: i32, nearest:
     if !(along <= 0.0) {
         let length2 = dx * dx + dy * dy + dz * dz;
         if !(length2 <= along) {
-            t = along / length2;
+            t = (along).pdiv(length2);
             rx = vx - t * dx;
             ry = vy - t * dy;
             rz = vz - t * dz;

@@ -417,14 +417,14 @@ pub fn decalNewDecalMain(a0: i32, a1: i32, a2: i32, a3: i32) {
     if object_kind != 2 {
         let x;
         if lw(a1 + 140) != 2 {
-            let angle = lwc1(a1 + 76) * lwc1(0x3ad5cc) / 1.8e+02_f32;
+            let angle = (lwc1(a1 + 76) * lwc1(0x3ad5cc)).pdiv(1.8e+02_f32);
             matrixRotY(sp + 48, angle);
             x = lwc1(a1 + 48);
         } else {
             let scale = lwc1(0x3ad5c8);
-            let rx = lwc1(a1 + 72) * scale / 1.8e+02_f32;
-            let ry = lwc1(a1 + 76) * scale / 1.8e+02_f32;
-            let rz = lwc1(a1 + 88) * scale / 1.8e+02_f32;
+            let rx = (lwc1(a1 + 72) * scale).pdiv(1.8e+02_f32);
+            let ry = (lwc1(a1 + 76) * scale).pdiv(1.8e+02_f32);
+            let rz = (lwc1(a1 + 88) * scale).pdiv(1.8e+02_f32);
             matrixRotZXY(sp + 48, rx, ry, rz);
             x = lwc1(a1 + 48);
         }
@@ -463,8 +463,8 @@ pub fn decalNewDecalMain(a0: i32, a1: i32, a2: i32, a3: i32) {
         }
         let ny = lwc1(decal + 36);
         let nz = lwc1(decal + 40);
-        let length = (nx * nx + ny * ny + nz * nz).abs().sqrt();
-        let inverse = 1.0_f32 / length;
+        let length = (nx * nx + ny * ny + nz * nz).abs().psqrt();
+        let inverse = (1.0_f32).pdiv(length);
         swc1(decal + 40, nz * inverse);
         swc1(decal + 32, nx * inverse);
         swc1(decal + 36, ny * inverse);

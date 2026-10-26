@@ -103,7 +103,7 @@ pub fn enemyTimeSplitterAttack(chr: i32) {
         }
         _ => unreachable!(),
     }
-    if !((dx * dx + dy * dy + dz * dz).abs().sqrt() < 9.0_f32) {
+    if !((dx * dx + dy * dy + dz * dz).abs().psqrt() < 9.0_f32) {
         return;
     }
     sw(state + 2728, 1);

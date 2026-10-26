@@ -20,7 +20,7 @@ pub fn creditsTextTick() {
         }
     }
     let record = text + page_end * 28;
-    page_time += frame / 60.0_f32;
+    page_time += (frame).pdiv(60.0_f32);
     let finished = (lwc1(record + 20) + lwc1(record + 24) + 4.0 + 4.0) < page_time;
     swc1(g::creditspagetime, page_time);
     let mut index = start;

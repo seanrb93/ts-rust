@@ -10,7 +10,7 @@ fn random_unit() -> f32 {
 
 /// Turn an angle in degrees into radians with the value of pi at `pi_at`.
 fn radians(degrees: f32, pi: f32) -> f32 {
-    degrees * pi / 1.8e+02_f32
+    (degrees * pi).pdiv(1.8e+02_f32)
 }
 
 /// Move the angle at `at` towards `target` by `step`, but not past it.
@@ -113,11 +113,11 @@ fn state_sweep(a0: i32, mind: i32, sp: i32, pivot: i32) {
     rotated_pivot(a0, sp, pivot, sp + 96, pi);
     let f22_1 = lwc1(a0 + 52) + lwc1(sp + 96) - lwc1(mind + 72);
     let tangent = tanf(radians(lwc1(mind + 12), pi));
-    let distance = f22_1 / tangent;
+    let distance = (f22_1).pdiv(tangent);
     sw(sp + 80, 0);
     swc1(sp + 88, 1.0_f32);
     sw(sp + 84, 0);
-    matrixRotY(sp + 16, (lwc1(mind + 20) + lwc1(a0 + 76)) * pi / 1.8e+02_f32);
+    matrixRotY(sp + 16, ((lwc1(mind + 20) + lwc1(a0 + 76)) * pi).pdiv(1.8e+02_f32));
     matrixVecRotAligned(&[(sp + 16) as i64, (sp + 80) as i64]);
     let x = lwc1(sp + 80) * distance;
     let base_x = lwc1(a0 + 48);
@@ -186,8 +186,8 @@ fn state_track(a0: i32, mind: i32, sp: i32, pivot: i32, model: i32) -> bool {
     swc1(sp + 84, dy);
     let dz = lwc1(target + 56) - (base_z + rotated_z);
     swc1(sp + 88, dz);
-    let inverse = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
-    let heading = lwc1(a0 + 76) * pi / 1.8e+02_f32;
+    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+    let heading = (lwc1(a0 + 76) * pi).pdiv(1.8e+02_f32);
     let nx = lwc1(sp + 80) * inverse;
     let ny = lwc1(sp + 84) * inverse;
     swc1(sp + 88, lwc1(sp + 88) * inverse);
@@ -201,8 +201,8 @@ fn state_track(a0: i32, mind: i32, sp: i32, pivot: i32, model: i32) -> bool {
     if lb(model + 7) != 1 {
         let forward = lwc1(sp + 88);
         let up = lwc1(sp + 84);
-        let flat = (side * side + forward * forward).abs().sqrt();
-        pitch = -(atan2f(up, flat) * 1.8e+02_f32 / pi);
+        let flat = (side * side + forward * forward).abs().psqrt();
+        pitch = -((atan2f(up, flat) * 1.8e+02_f32).pdiv(pi));
         exact = true;
         if pitch < 0.0_f32 {
             pitch = pitch + 3.6e+02_f32;
@@ -211,7 +211,7 @@ fn state_track(a0: i32, mind: i32, sp: i32, pivot: i32, model: i32) -> bool {
         pitch = lwc1(mind + 12);
         exact = false;
     }
-    let mut yaw = atan2f(lwc1(sp + 80), lwc1(sp + 88)) * 1.8e+02_f32 / lwc1(0x3acc44);
+    let mut yaw = (atan2f(lwc1(sp + 80), lwc1(sp + 88)) * 1.8e+02_f32).pdiv(lwc1(0x3acc44));
     if yaw < -9e+01_f32 {
         yaw = yaw + 3.6e+02_f32;
     }
@@ -329,7 +329,7 @@ fn state_wait(a0: i32, mind: i32, sp: i32) {
                 sw(data + 296, 6);
                 let facing = atan2f(x, relative_z);
                 sw(info + 0x11b4, a0);
-                let yaw = facing * 1.8e+02_f32 / lwc1(0x3acc4c);
+                let yaw = (facing * 1.8e+02_f32).pdiv(lwc1(0x3acc4c));
                 swc1(mind + 108, yaw);
                 if yaw < 0.0_f32 {
                     swc1(mind + 108, yaw + 3.6e+02_f32);
@@ -490,7 +490,7 @@ pub fn remotePropTick(a0: i32) {
             let bone = lw(lw(a0 + 32) + 4) + 128;
             pivot_rotate(&[bone], scratch, pivot, lwc1(0x3acc54), mind);
             let vector = lw(model + 72);
-            let spin = random_unit() * 3.6e+02_f32 * lwc1(0x3acc70) / 1.8e+02_f32;
+            let spin = (random_unit() * 3.6e+02_f32 * lwc1(0x3acc70)).pdiv(1.8e+02_f32);
             flash_spin(bone, scratch, vector, spin);
         }
     } else {

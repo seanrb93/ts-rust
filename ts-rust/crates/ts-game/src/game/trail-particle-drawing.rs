@@ -29,20 +29,20 @@ pub fn particleTrailGfx(particle: i32, matrix: i32) {
     let half = 0.5_f32;
     let window = g::window;
     loop {
-        let age = lwc1(particle + 12) - i as f32 * fade_in / count as f32;
+        let age = lwc1(particle + 12) - (i as f32 * fade_in).pdiv(count as f32);
         if 0.0_f32 <= age {
             if age < life {
-                let ratio = age / lwc1(info + 12);
+                let ratio = (age).pdiv(lwc1(info + 12));
                 let spin = lwc1(particle + (i << 2) + 2128) * age;
                 let mut opacity = 1.0_f32;
-                let turn = spin * lwc1(0x3ad55c) / 1.8e+02_f32;
+                let turn = (spin * lwc1(0x3ad55c)).pdiv(1.8e+02_f32);
                 let mut spin_abs = spin;
                 if !(age < fade_in) {
                     if (life - fade_out) < age {
-                        opacity = (life - age) / fade_out;
+                        opacity = ((life - age)).pdiv(fade_out);
                     }
                 } else {
-                    opacity = age / fade_in;
+                    opacity = (age).pdiv(fade_in);
                 }
                 if spin < 0.0_f32 {
                     spin_abs = -spin;
@@ -62,7 +62,7 @@ pub fn particleTrailGfx(particle: i32, matrix: i32) {
                     if x <= w && low <= y {
                         let z = lwc1(sp + 24);
                         if y <= w && low <= z && z <= w {
-                            let inverse = one / w;
+                            let inverse = (one).pdiv(w);
                             let across = lw(window + 16) as f32;
                             let centre_x = lw(window + 8) as f32;
                             let grow_x = ratio * lwc1(info + 48);
@@ -73,12 +73,12 @@ pub fn particleTrailGfx(particle: i32, matrix: i32) {
                             let angle = turn * lwc1(0x3ad560) + half;
                             let screen_x = x * inverse;
                             let table = g::g_SinTable;
-                            let base_size = lwc1(info + 40) / depth;
+                            let base_size = (lwc1(info + 40)).pdiv(depth);
                             swc1(sp + 24, depth);
                             let screen_y = y * inverse;
                             let index = angle as i32;
                             let tex_a = lw(texture + (g::particletextures + 8));
-                            let scaled = base_size * (60.0_f32 / zoom_raw);
+                            let scaled = base_size * ((60.0_f32).pdiv(zoom_raw));
                             let sine = lwc1(((index & 2047) << 2) + table);
                             let cosine = lwc1((((index + 512) & 2047) << 2) + table);
                             let tex_b = lw(texture + (g::particletextures + 4));

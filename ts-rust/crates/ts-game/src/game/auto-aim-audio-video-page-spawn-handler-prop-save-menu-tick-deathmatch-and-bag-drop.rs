@@ -71,7 +71,7 @@ pub fn playerAutoAimTick() {
                             }
                             let z = lwc1(prop + 56);
                             let x = lwc1(prop + 48);
-                            let angle = heading * lwc1(0x3acfe4) / 1.8e+02_f32;
+                            let angle = (heading * lwc1(0x3acfe4)).pdiv(1.8e+02_f32);
                             let y = lwc1(prop + 52);
                             matrixTransRotY(sp + 16, x, y, z, angle);
                             let model = lw(lw(chr + 3020) + 32);
@@ -255,7 +255,7 @@ pub fn enemyAIDefaultSpawnHandler1() {
                         let mut ready = 0;
                         'timer: {
                             if spawned != 0 {
-                                let remaining = lwc1(spawn + 48) - lwc1(g::updateframesf) / 6e+01_f32;
+                                let remaining = lwc1(spawn + 48) - (lwc1(g::updateframesf)).pdiv(6e+01_f32);
                                 swc1(spawn + 48, remaining);
                                 if !(remaining <= 0.0_f32) {
                                     break 'timer;

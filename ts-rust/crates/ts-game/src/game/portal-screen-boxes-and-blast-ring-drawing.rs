@@ -38,14 +38,14 @@ pub fn bgPortalCalcPos(room: i32, matrix: i32) {
     let top = lw(second + lw((lw(player) << 2) + room_data) + 8) - 1;
     sw(sp + 4, top);
     let now = lw(player);
-    swc1(0x3b0088, (left as f32 - centre_x) / scale_x);
+    swc1(0x3b0088, ((left as f32 - centre_x)).pdiv(scale_x));
     let right = lw(second + lw((now << 2) + room_data) + 12) + 1;
     sw(sp + 16, right);
-    swc1(0x3b0090, (top as f32 - centre_y) / scale_y);
+    swc1(0x3b0090, ((top as f32 - centre_y)).pdiv(scale_y));
     let bottom = lw(second + lw((lw(player) << 2) + room_data) + 16) + 1;
-    swc1(0x3b008c, (right as f32 - centre_x) / scale_x);
+    swc1(0x3b008c, ((right as f32 - centre_x)).pdiv(scale_x));
     sw(sp + 20, bottom);
-    swc1(0x3b0094, (bottom as f32 - centre_y) / scale_y);
+    swc1(0x3b0094, ((bottom as f32 - centre_y)).pdiv(scale_y));
     if count <= 0 {
         return;
     }
@@ -124,8 +124,8 @@ pub fn bgPortalCalcPos(room: i32, matrix: i32) {
                     let w = lwc1(vertex + 12);
                     let x_at = sp + 224 + at;
                     let y_at = sp + 228 + at;
-                    let y = lw(window + 28) as f32 - lw(window + 36) as f32 * (lwc1(vertex + 4) / w);
-                    swc1(x_at, f32::from_bits((lw(window + 8) as f32 + lw(window + 16) as f32 * (lwc1(vertex) / w)) as i32 as u32));
+                    let y = lw(window + 28) as f32 - lw(window + 36) as f32 * ((lwc1(vertex + 4)).pdiv(w));
+                    swc1(x_at, f32::from_bits((lw(window + 8) as f32 + lw(window + 16) as f32 * ((lwc1(vertex)).pdiv(w))) as i32 as u32));
                     swc1(y_at, f32::from_bits(y as i32 as u32));
                     let value = lw(x_at);
                     if value < lw(data + 24) {
@@ -244,7 +244,7 @@ pub fn blastringGfx() {
         let one = 1.0_f32;
         let rings_at = g::br;
         let time_at = ring * 36 + (rings_at + 12);
-        let time = lwc1(time_at) + frames / 6e+01_f32;
+        let time = lwc1(time_at) + (frames).pdiv(6e+01_f32);
         swc1(time_at, time);
         if one < time {
             sw(g::numrings, 0);
@@ -263,7 +263,7 @@ pub fn blastringGfx() {
         loop {
             let radians = turn * lwc1(0x3ad620);
             turn += 22.5_f32;
-            let radians = radians / 1.8e+02_f32;
+            let radians = (radians).pdiv(1.8e+02_f32);
             let cosine = cosf(radians);
             let sine = sinf(radians);
             let outer_radius = lwc1(outer_at);

@@ -29,8 +29,8 @@ pub fn hudPainGfx(colour: i32) {
         sw(a5, colour & -256);
         sw(a4 + 16, colour);
         angle += step;
-        let a1 = (outer_step / degrees * table_scale + half) as i32;
-        let v1 = (inner_angle * to_table / degrees * table_scale + half) as i32;
+        let a1 = ((outer_step).pdiv(degrees) * table_scale + half) as i32;
+        let v1 = ((inner_angle * to_table).pdiv(degrees) * table_scale + half) as i32;
         let cos_inner = lwc1((((v1 + 512) & 2047) << 2) + sin_table);
         let sin_inner = lwc1(((v1 & 2047) << 2) + sin_table);
         let f5 = lwc1(((a1 & 2047) << 2) + sin_table) * sixty_four + cos_inner * sixteen;
@@ -75,8 +75,8 @@ pub fn creditsSetST(base: i32, first: i32, second: i32) {
     let camera_y = lwc1(g::creditscampos + 8);
     let positions = [base + 2304, base + 2308, base + 2320, base + 2324, base + 2336, base + 2340, base + 2352, base + 2356];
     let colours = [base + 0x1200, base + 0x1204, base + 0x1208, base + 0x120c];
-    let near_a = 1.0_f32 - (first as f32 * 5.0_f32 - camera_y) / 200.0_f32;
-    let near_b = 1.0_f32 - (second as f32 * 5.0_f32 - camera_y) / 200.0_f32;
+    let near_a = 1.0_f32 - ((first as f32 * 5.0_f32 - camera_y)).pdiv(200.0_f32);
+    let near_b = 1.0_f32 - ((second as f32 * 5.0_f32 - camera_y)).pdiv(200.0_f32);
     let mut layer = 0;
     loop {
         let rotation = (layer << 2) + g::layerrot;
@@ -90,16 +90,16 @@ pub fn creditsSetST(base: i32, first: i32, second: i32) {
             let low = quad as f32;
             let colour_at = (quad << 4) + layer_colours;
             let position_at = (quad << 6) + layer_positions;
-            let low_s = low / 6.0_f32;
+            let low_s = (low).pdiv(6.0_f32);
             let c0 = colours[0] + colour_at;
             let c1 = colours[1] + colour_at;
             let c2 = colours[2] + colour_at;
             let c3 = colours[3] + colour_at;
             let next = quad + 1;
-            let high_s = next as f32 / 6.0_f32;
-            let t_first = first.wrapping_rem(6) as f32 / 6.0_f32;
+            let high_s = (next as f32).pdiv(6.0_f32);
+            let t_first = (first.wrapping_rem(6) as f32).pdiv(6.0_f32);
             quad = next;
-            let mut t_second = second.wrapping_rem(6) as f32 / 6.0_f32;
+            let mut t_second = (second.wrapping_rem(6) as f32).pdiv(6.0_f32);
             let more = quad < 12;
             if t_second < t_first {
                 t_second += 1.0_f32;

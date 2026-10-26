@@ -391,7 +391,7 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
                 if v1_9 == 2 {
                     f8_1 = lwc1(0x3acd38);
                 }
-                f7_1 = f1_2 / 5.0_f32;
+                f7_1 = (f1_2).pdiv(5.0_f32);
                 let v0_15 = g::curgameparms;
                 if v1_9 == 0 {
                     let f0_3 = lwc1(0x3acd3c);
@@ -427,7 +427,7 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
                         swc1(sp + 8, f0_7);
                         if f3_1 < f6_1 {
                             let f0_8 = f6_1 - f3_1;
-                            f9_1 = f9_1 + (f0_8 + f0_8) / (f8_1 * f6_1);
+                            f9_1 = f9_1 + ((f0_8 + f0_8)).pdiv((f8_1 * f6_1));
                         }
                     }
                 }
@@ -1247,7 +1247,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                         let mut s0_2 = 0;
                                         if lw(lw(g::fxgroups + a7 * 92 + 72) + 24) > 0 {
                                             loop {
-                                                let f20_1 = s0_2 as f32 / lw(lw(a1_4 - 0x3d98 + a7 * 92 + 72) + 24) as f32;
+                                                let f20_1 = (s0_2 as f32).pdiv(lw(lw(a1_4 - 0x3d98 + a7 * 92 + 72) + 24) as f32);
                                                 let f12_1 = lwc1(sp + 48) - random_as_float() * scale * 1e+01_f32;
                                                 let v0_5 = fptoui(f12_1);
                                                 let f12_2 = lwc1(sp + 52) - random_as_float() * scale * 1e+01_f32;
@@ -1259,7 +1259,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                                 let a4_1 = g::g_SinTable;
                                                 let f5_1 = lwc1(0x3ad688);
                                                 let a5_1 = s0_2 << 2;
-                                                let a0_8 = (f20_1 * f20_1 * f20_1 * 3.6e+02_f32 * lwc1(0x3ad680) / 1.8e+02_f32 * lwc1(0x3ad684) + 0.5_f32) as i32;
+                                                let a0_8 = ((f20_1 * f20_1 * f20_1 * 3.6e+02_f32 * lwc1(0x3ad680)).pdiv(1.8e+02_f32) * lwc1(0x3ad684) + 0.5_f32) as i32;
                                                 swc1(lw(a1_5) + s0_2 * 12 + 992, lwc1(((a0_8 + 512 & 2047) << 2) + a4_1) * f5_1);
                                                 sw(lw(a1_5) + s0_2 * 12 + 996, 0);
                                                 swc1(lw(a1_5) + s0_2 * 12 + 1000, lwc1(((a0_8 & 2047) << 2) + a4_1) * f5_1);

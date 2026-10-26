@@ -879,14 +879,14 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                         if !(distance < reach * reach) {
                             radius_x = lwc1(a4);
                         } else {
-                            let length = distance.abs().sqrt();
+                            let length = distance.abs().psqrt();
                             fraction_limit = length - margin;
                             if !(0.0_f32 < length) {
                                 swc1(sp + 16, 0.0_f32);
                                 swc1(sp + 20, 0.0_f32);
                             } else {
-                                swc1(sp + 20, dz / length);
-                                swc1(sp + 16, dx / length);
+                                swc1(sp + 20, (dz).pdiv(length));
+                                swc1(sp + 16, (dx).pdiv(length));
                             }
                             radius_x = lwc1(a4);
                         }
@@ -934,14 +934,14 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                     let reach = fraction_limit + f12;
                     let dx = lwc1(a3) - centre_x;
                     let dz = lwc1(a3 + 8) - lwc1(prop + 56);
-                    let distance = (dx * dx + dz * dz) / (scale * scale);
+                    let distance = ((dx * dx + dz * dz)).pdiv((scale * scale));
                     let radius_x;
                     if !(distance < reach * reach) {
                         radius_x = lwc1(a4);
                     } else {
                         'direction: {
                             'random: {
-                                let length = distance.abs().sqrt();
+                                let length = distance.abs().psqrt();
                                 fraction_limit = length - f12;
                                 if 0.0_f32 < length {
                                     if dx == 0.0_f32 {
@@ -949,8 +949,8 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                                             break 'random;
                                         }
                                     }
-                                    swc1(sp + 20, dz / length);
-                                    swc1(sp + 16, dx / length);
+                                    swc1(sp + 20, (dz).pdiv(length));
+                                    swc1(sp + 16, (dx).pdiv(length));
                                     break 'direction;
                                 }
                             }
@@ -960,7 +960,7 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                             let rx = lwc1(sp + 16);
                             let second = second * 2.3283064e-10_f32;
                             let ry = second + second - 1.0_f32;
-                            let inverse = 1.0_f32 / (rx * rx + ry * ry);
+                            let inverse = (1.0_f32).pdiv((rx * rx + ry * ry));
                             swc1(sp + 20, ry * inverse);
                             swc1(sp + 16, rx * inverse);
                         }

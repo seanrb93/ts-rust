@@ -57,7 +57,7 @@ fn reflect_velocity(sp: i32, b: i32) -> f32 {
     let ny = lwc1(sp + 68);
     let nz = lwc1(sp + 72);
     let speed_squared = vx * vx + vy * vy + vz * vz;
-    let inverse = 1.0_f32 / speed_squared;
+    let inverse = (1.0_f32).pdiv(speed_squared);
     let dx = vx * inverse;
     swc1(sp + 16, dx);
     let dy = lwc1(b + 52) * inverse;
@@ -281,7 +281,7 @@ fn point_prop_along(prop: i32, x: f32, y: f32, z: f32, scale_at: i32, divisor_at
         None => round,
     };
     swc1(prop + 72, dptofp(round));
-    let across = (y * y + z * z).abs().sqrt();
+    let across = (y * y + z * z).abs().psqrt();
     let up = dpdiv(dpmul(atan2(fptodp(x), fptodp(across)), scale), divisor);
     swc1(prop + 88, dptofp(dpsub(0, up)));
     sw(prop + 76, 0);
@@ -510,13 +510,13 @@ fn mine_follows(sp: i32, b: i32, stuck: i32) {
         matrixVecMulAligned(&[(sp + 80) as i64, (sp + 160) as i64]);
     }
     if lw(stuck + 140) != 2 {
-        let angle = lwc1(stuck + 76) * lwc1(0x3ad290) / 1.8e+02_f32;
+        let angle = (lwc1(stuck + 76) * lwc1(0x3ad290)).pdiv(1.8e+02_f32);
         matrixTransRotY(sp + 80, lwc1(stuck + 48), lwc1(stuck + 52), lwc1(stuck + 56), angle);
     } else {
         let scale = lwc1(0x3ad28c);
-        let a = lwc1(stuck + 72) * scale / 1.8e+02_f32;
-        let b2 = lwc1(stuck + 76) * scale / 1.8e+02_f32;
-        let c = lwc1(stuck + 88) * scale / 1.8e+02_f32;
+        let a = (lwc1(stuck + 72) * scale).pdiv(1.8e+02_f32);
+        let b2 = (lwc1(stuck + 76) * scale).pdiv(1.8e+02_f32);
+        let c = (lwc1(stuck + 88) * scale).pdiv(1.8e+02_f32);
         matrixTransRotZXY(sp + 80, lwc1(stuck + 48), lwc1(stuck + 52), lwc1(stuck + 56), a, b2, c);
     }
     matrixVecMulAligned(&[(sp + 80) as i64, (sp + 144) as i64]);
@@ -562,7 +562,7 @@ fn mine_sticks(sp: i32, b: i32, hit: i32) {
             let vx = lwc1(sp);
             let vy = lwc1(sp + 4);
             let vz = lwc1(sp + 8);
-            let length = 1.0_f32 / (vx * vx + vy * vy + vz * vz).abs().sqrt();
+            let length = (1.0_f32).pdiv((vx * vx + vy * vy + vz * vz).abs().psqrt());
             swc1(sp + 8, vz * length);
             swc1(sp, vx * length);
             swc1(sp + 4, vy * length);
@@ -609,10 +609,10 @@ fn mine_sticks(sp: i32, b: i32, hit: i32) {
     if lw(b + 224) != 0 {
         // The place is made one on the character it is stuck to.
         if lw(hit + 140) != 2 {
-            matrixRotY(sp + 80, lwc1(hit + 76) * lwc1(0x3ad27c) / 1.8e+02_f32);
+            matrixRotY(sp + 80, (lwc1(hit + 76) * lwc1(0x3ad27c)).pdiv(1.8e+02_f32));
         } else {
             let scale = lwc1(0x3ad278);
-            matrixRotZXY(sp + 80, lwc1(hit + 72) * scale / 1.8e+02_f32, lwc1(hit + 76) * scale / 1.8e+02_f32, lwc1(hit + 88) * scale / 1.8e+02_f32);
+            matrixRotZXY(sp + 80, (lwc1(hit + 72) * scale).pdiv(1.8e+02_f32), (lwc1(hit + 76) * scale).pdiv(1.8e+02_f32), (lwc1(hit + 88) * scale).pdiv(1.8e+02_f32));
         }
         let x0 = lwc1(hit + 48);
         let y1 = lwc1(sp + 52);
@@ -642,7 +642,7 @@ fn mine_sticks(sp: i32, b: i32, hit: i32) {
         let ny = lwc1(sp + 68);
         let nz = lwc1(sp + 72);
         let x = lwc1(sp + 48);
-        let length = 1.0_f32 / (nx * nx + ny * ny + nz * nz).abs().sqrt();
+        let length = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
         swc1(sp + 72, nz * length);
         swc1(sp + 64, nx * length);
         swc1(sp + 68, ny * length);
@@ -757,7 +757,7 @@ fn mine_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
         } else {
             sceVu0UnitMatrix(lw(lw(prop + 32) + 4));
             sceVu0UnitMatrix(lw(lw(lw(b + 96) + 32) + 4) + 128);
-            let rotation = lwc1(b + 124) * lwc1(0x3ad298) / 1.8e+02_f32;
+            let rotation = (lwc1(b + 124) * lwc1(0x3ad298)).pdiv(1.8e+02_f32);
             matrixRotY(lw(lw(lw(b + 96) + 32) + 4) + 64, rotation);
             age = lwc1(b + 72);
         }
@@ -1079,7 +1079,7 @@ pub fn bulletTick() {
             swc1(sp, lwc1(b + 48) * dt);
             swc1(sp + 4, lwc1(b + 52) * dt);
             swc1(sp + 8, lwc1(b + 56) * dt);
-            swc1(b + 72, lwc1(b + 72) + dt / 60.0_f32);
+            swc1(b + 72, lwc1(b + 72) + (dt).pdiv(60.0_f32));
             let exit = match kind {
                 2..=4 => tracer_bullet(sp, b, owner_prop),
                 5..=7 => spark_bullet(sp, b, owner_prop),

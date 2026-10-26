@@ -35,8 +35,8 @@ pub fn chandelierPropTick(a0: i32) {
     let record = lw(a0 + 352);
     let factor = lwc1(0x3acef4);
     let half = 1.8e+02_f32;
-    let roll = lwc1(record + 16) * factor / half;
-    let pitch = lwc1(record + 8) * factor / half;
+    let roll = (lwc1(record + 16) * factor).pdiv(half);
+    let pitch = (lwc1(record + 8) * factor).pdiv(half);
     matrixRotZXY(lw(lw(a0 + 32) + 4), pitch, 0.0_f32, roll);
 }
 
@@ -126,8 +126,8 @@ pub fn lanternPropTick(a0: i32) {
     let record = lw(a0 + 352);
     let factor = lwc1(0x3acee4);
     let half = 1.8e+02_f32;
-    let roll = lwc1(record + 16) * factor / half;
-    let pitch = lwc1(record + 8) * factor / half;
+    let roll = (lwc1(record + 16) * factor).pdiv(half);
+    let pitch = (lwc1(record + 8) * factor).pdiv(half);
     matrixRotZXY(lw(lw(a0 + 32) + 4), pitch, 0.0_f32, roll);
 }
 
@@ -216,7 +216,7 @@ pub fn propEditMove(a0: i32) {
     swc1(a0 + 52, lwc1(player + 836));
     swc1(a0 + 56, lwc1(player + 840));
     let angle = atan2f(lwc1(player + 844), lwc1(player + 852));
-    let degrees = angle * 1.8e+02_f32 / lwc1(0x3acfa4);
+    let degrees = (angle * 1.8e+02_f32).pdiv(lwc1(0x3acfa4));
     sw(a0 + 16, lw(a0 + 16) | 32);
     swc1(a0 + 76, degrees);
 }

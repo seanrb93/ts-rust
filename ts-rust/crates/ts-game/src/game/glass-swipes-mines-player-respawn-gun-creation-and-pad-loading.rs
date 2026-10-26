@@ -728,7 +728,7 @@ pub fn gmLastStandTick() {
             let distance_squared = dx * dx + dz * dz;
             let record = lw(chr + 352);
             if lw(player + 296) == 4 {
-            } else if !(lwc1(info + 12) < distance_squared.abs().sqrt()) {
+            } else if !(lwc1(info + 12) < distance_squared.abs().psqrt()) {
                 if lw(record + 252) != 0 {
                     sw(record + 252, 0);
                     hudMessage(i, 0);

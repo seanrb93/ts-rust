@@ -56,21 +56,21 @@ pub fn StatsCalcMedals() {
         let mut q = 0;
         while q < count_limit() {
             let value = StatsGetChar(4, p, q);
-            StatsSetChar(5, p, q, value / seconds);
+            StatsSetChar(5, p, q, (value).pdiv(seconds));
             q += 1;
         }
         if StatsGet(47, p) == 0.0_f32 {
             StatsSet(49, p, 0.0_f32);
             StatsSet(51, p, 0.0_f32);
         } else {
-            let a = StatsGet(48, p) / StatsGet(47, p);
+            let a = (StatsGet(48, p)).pdiv(StatsGet(47, p));
             StatsSet(49, p, a);
-            let b = StatsGet(50, p) / StatsGet(47, p);
+            let b = (StatsGet(50, p)).pdiv(StatsGet(47, p));
             StatsSet(51, p, b);
         }
-        StatsSet(53, p, StatsGet(52, p) / seconds);
-        StatsSet(55, p, StatsGet(54, p) / seconds);
-        StatsSet(57, p, StatsGet(56, p) / seconds);
+        StatsSet(53, p, (StatsGet(52, p)).pdiv(seconds));
+        StatsSet(55, p, (StatsGet(54, p)).pdiv(seconds));
+        StatsSet(57, p, (StatsGet(56, p)).pdiv(seconds));
         p += 1;
     }
     // how well each player used the guns, as part of all
@@ -82,7 +82,7 @@ pub fn StatsCalcMedals() {
         loop {
             let used = StatsGetGun(3, p, gun);
             let combo = lh(g::guncombos + gun * 8);
-            swc1(at, lwc1(at) + used / seconds * (1.0_f32 - combo as f32 / 1e+02_f32));
+            swc1(at, lwc1(at) + (used).pdiv(seconds) * (1.0_f32 - (combo as f32).pdiv(1e+02_f32)));
             gun += 1;
             if gun >= 33 {
                 break;
@@ -101,9 +101,9 @@ pub fn StatsCalcMedals() {
             } else if (lw(g::curgameparms + 80) & 32) != 0 {
                 total_use * 0.25_f32
             } else {
-                total_use / (lw(g::lvnumplayers) + lw(g::numactivechars)) as f32
+                (total_use).pdiv((lw(g::lvnumplayers) + lw(g::numactivechars)) as f32)
             };
-            rate = own / share;
+            rate = (own).pdiv(share);
         }
         StatsSet(42, p, rate);
         p += 1;
@@ -210,7 +210,7 @@ pub fn StatsCalcMedals() {
     while p < count_limit() {
         if 0.0_f32 < average {
             if 2e+01_f32 <= StatsGet(32, p) {
-                if ratio <= StatsGet(32, p) / StatsGet(8, p) {
+                if ratio <= (StatsGet(32, p)).pdiv(StatsGet(8, p)) {
                     swc1(flag(sp, p, 15), 1.0_f32);
                 }
             }
@@ -249,10 +249,10 @@ pub fn StatsCalcMedals() {
         let value = matchstat(p, 184);
         let mut part = 0.0_f32;
         if part < average {
-            part = value / average;
+            part = (value).pdiv(average);
         }
         if 0.0_f32 < part {
-            swc1(flag(sp, p, 21), 1.0_f32 / part * 0.5_f32);
+            swc1(flag(sp, p, 21), (1.0_f32).pdiv(part) * 0.5_f32);
         }
         p += 1;
     }
@@ -264,12 +264,12 @@ pub fn StatsCalcMedals() {
             let mut part = 0.0_f32;
             let value = lwc1(p * 1368 + (g::matchstats + 184));
             if part < average {
-                part = value / average;
+                part = (value).pdiv(average);
             }
             if 0.0_f32 < part {
                 let bonus = StatsGet(59, p);
                 count = lw(g::lvnumplayers);
-                swc1(flag(sp, p, 20), 1.0_f32 / part * 65.0_f32 * bonus);
+                swc1(flag(sp, p, 20), (1.0_f32).pdiv(part) * 65.0_f32 * bonus);
             }
             p += 1;
             if p >= count {
@@ -285,7 +285,7 @@ pub fn StatsCalcMedals() {
         p += 1;
     }
     let mean = if ((lw(g::curgameparms + 72) - 6) as u32) >= (2 as u32) && (lw(g::curgameparms + 80) & 32) == 0 {
-        sum / (count + lw(g::numactivechars)) as f32
+        (sum).pdiv((count + lw(g::numactivechars)) as f32)
     } else {
         sum * 0.25_f32
     };
@@ -295,7 +295,7 @@ pub fn StatsCalcMedals() {
         let mut part = 0.0_f32;
         let value = matchstat(p, 184);
         if part < mean {
-            part = value / mean;
+            part = (value).pdiv(mean);
         }
         let result = part * scale;
         swc1(flag(sp, p, 42), result);
@@ -373,7 +373,7 @@ pub fn StatsCalcMedals() {
     let mut p = 0;
     while p < count_limit() {
         let rank = matchstat(p, 168);
-        let result = 1.0_f32 / rank - 1.0_f32 + scale;
+        let result = (1.0_f32).pdiv(rank) - 1.0_f32 + scale;
         swc1(flag(sp, p, 37), result);
         swc1(flag(sp, p, 29), result);
         p += 1;
@@ -505,7 +505,7 @@ pub fn StatsCalcMedals() {
             if 0.0_f32 < mean {
                 let mut q = 0;
                 while q < count_limit() {
-                    if 3.0_f32 < StatsGetChar(0, p, q) / mean {
+                    if 3.0_f32 < (StatsGetChar(0, p, q)).pdiv(mean) {
                         swc1(flag(sp, p, 39), 1.0_f32);
                         let hits = StatsGet(1, q);
                         let np = lw(g::lvnumplayers);
@@ -557,7 +557,7 @@ pub fn StatsCalcMedals() {
     let best = StatsGetMax(68, players);
     if best >= 0 {
         if 4.0_f32 < StatsGet(68, best) {
-            if lwc1(0x3ac8bc) < StatsGet(68, best) / StatsGet(0, best) {
+            if lwc1(0x3ac8bc) < (StatsGet(68, best)).pdiv(StatsGet(0, best)) {
                 swc1(flag(sp, best, 47), 1.0_f32);
             }
         }

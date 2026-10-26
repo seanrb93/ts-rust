@@ -55,7 +55,7 @@ pub fn frontfxWaveyTexture(
         let next = row + 1;
         let mut col = 0;
         let mut point = (row << 4) * 20 + sp;
-        let y = row as f32 * ((size_y * four + 224.0_f32) / 7.0_f32) - (size_y + size_y);
+        let y = row as f32 * (((size_y * four + 224.0_f32)).pdiv(7.0_f32)) - (size_y + size_y);
         let wave_x = sine_at(table, y * y_freq_x + time * y_time_x, scale, half);
         let wave_y = sine_at(table, y * y_freq_y + time * y_time_y, scale, half);
         loop {
@@ -63,7 +63,7 @@ pub fn frontfxWaveyTexture(
             swc1(point + 8, y);
             sw(point, colour);
             col += 1;
-            let x = column * ((size_x * four + 6.4e+02_f32) / 15.0_f32) - (size_x + size_x);
+            let x = column * (((size_x * four + 6.4e+02_f32)).pdiv(15.0_f32)) - (size_x + size_x);
             swc1(point + 4, x);
             let across = (sine_at(table, x * x_freq_x + time * x_time_x, scale, half) + wave_x) * size_x;
             swc1(point + 16, (sine_at(table, x * x_freq_y + time * x_time_y, scale, half) + wave_y) * size_y);
@@ -108,10 +108,10 @@ pub fn frontfxWaveyTexture(
             sw(sp + 2560, lw(top_left));
             let bl_y2 = lwc1(bottom_left + 16);
             let bl_x1 = lwc1(bottom_left + 4);
-            let u0 = ((across_f / cols_f + shift_x) * width) as i32;
+            let u0 = (((across_f).pdiv(cols_f) + shift_x) * width) as i32;
             let bl_x2 = lwc1(bottom_left + 12);
             let bl_y1 = lwc1(bottom_left + 8);
-            let v0 = ((down_f / rows as f32 + shift_y) * height) as i32;
+            let v0 = (((down_f).pdiv(rows as f32) + shift_y) * height) as i32;
             sw(sp + 2572, u0);
             swc1(sp + 2564, f32::from_bits((sum_x * sixteen) as i32 as u32));
             swc1(sp + 2568, f32::from_bits((sum_y * sixteen) as i32 as u32));
@@ -119,7 +119,7 @@ pub fn frontfxWaveyTexture(
             let colour_bl = lw(bottom_left);
             sw(sp + 2592, u0);
             sw(sp + 2580, colour_bl);
-            let v1 = (((down_f + one) / rows as f32 + shift_y) * height - one) as i32;
+            let v1 = ((((down_f + one)).pdiv(rows as f32) + shift_y) * height - one) as i32;
             swc1(sp + 2584, f32::from_bits(((bl_x1 + bl_x2) * sixteen) as i32 as u32));
             let top_right = right * 20 + sp;
             swc1(sp + 2588, f32::from_bits(((bl_y1 + bl_y2) * sixteen) as i32 as u32));
@@ -129,7 +129,7 @@ pub fn frontfxWaveyTexture(
             let bottom_right = (cell + below) * 20 + sp;
             sw(sp + 2600, lw(top_right));
             sw(sp + 2616, v0);
-            let u1 = (((across_f + one) / cols_f + shift_x) * width - one) as i32;
+            let u1 = ((((across_f + one)).pdiv(cols_f) + shift_x) * width - one) as i32;
             let br_x1 = lwc1(bottom_right + 4);
             let br_x2 = lwc1(bottom_right + 12);
             swc1(sp + 2604, f32::from_bits((tr_x * sixteen) as i32 as u32));

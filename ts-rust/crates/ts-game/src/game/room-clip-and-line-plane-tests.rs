@@ -148,7 +148,7 @@ pub fn HitTestDistanceLineSegmentToPlane(from: i32, to: i32, plane_point: i32, n
                     b = -b;
                 }
                 let total = if !(0.0_f32 <= d_to) { a - d_to } else { a + d_to };
-                let t = b / total;
+                let t = (b).pdiv(total);
                 let x = from_x + t * (to_x - from_x);
                 let y = from_y + t * (to_y - from_y);
                 let z = from_z + t * (to_z - from_z);
@@ -209,7 +209,7 @@ pub fn hittestLinePoly(start: i32, direction: i32, vertices: i32, order: i32, co
         let sy = lwc1(start + 4);
         let sz = lwc1(start + 8);
         let corner = vertices + lbu(order) * 12;
-        let t = (nx * lwc1(corner) + ny * lwc1(corner + 4) + nz * lwc1(corner + 8) - (nx * sx + ny * sy + nz * sz)) / facing;
+        let t = ((nx * lwc1(corner) + ny * lwc1(corner + 4) + nz * lwc1(corner + 8) - (nx * sx + ny * sy + nz * sz))).pdiv(facing);
         if !(t < 0.0_f32) {
             let first_corner = vertices + first;
             let mut k = 1;

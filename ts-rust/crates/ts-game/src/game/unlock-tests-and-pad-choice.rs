@@ -156,14 +156,14 @@ fn try_pad(flags: i32, own_pad: i32, step: i32, player: i32, facing: f32, min2: 
         }
         if ok {
             if flags & 0x1c000000 != 0 {
-                let inv = 1.0_f32 / d2.abs().sqrt();
+                let inv = (1.0_f32).pdiv(d2.abs().psqrt());
                 let (nx, nz, ny) = (x * inv, z * inv, y * inv);
                 if (nx * lwc1(player + 188) + ny * lwc1(player + 192) + nz * lwc1(player + 196)) < facing {
                     ok = false;
                 }
             }
             if ok && flags & 0x2000000 != 0 {
-                let inv = 1.0_f32 / (x * x + y * y + z * z).abs().sqrt();
+                let inv = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
                 let (nz, nx, ny) = (z * inv, x * inv, y * inv);
                 if facing < nx * lwc1(player + 188) + ny * lwc1(player + 192) + nz * lwc1(player + 196) {
                     ok = false;

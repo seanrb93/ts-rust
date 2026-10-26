@@ -212,17 +212,17 @@ pub fn gunTick() {
     }
     let frames = lwc1(g::updateframesf);
     if speed > 0 {
-        swc1(player + 392, lwc1(player + 392) + lwc1(player + 380) * lwc1(0x3ad450) / speed as f32 * frames);
+        swc1(player + 392, lwc1(player + 392) + (lwc1(player + 380) * lwc1(0x3ad450)).pdiv(speed as f32) * frames);
     }
     let scale = lwc1(0x3ad454);
     let phase = lwc1(player + 392) * 3.6e+02_f32;
     let half = 1.8e+02_f32;
-    let angle = phase * scale / half;
-    let amplitude = lwc1(player + 380) * lwc1(0x3ad458) / lw(player + 340) as f32;
+    let angle = (phase * scale).pdiv(half);
+    let amplitude = (lwc1(player + 380) * lwc1(0x3ad458)).pdiv(lw(player + 340) as f32);
     let first = sinf(angle);
     let now = lw(g::currentplayer);
     swc1(player + 396, amplitude * first);
-    let second_angle = (phase + phase + 45.0_f32) * scale / half;
+    let second_angle = ((phase + phase + 45.0_f32) * scale).pdiv(half);
     let second = sinf(second_angle);
     let now_again = lw(g::currentplayer);
     let right_gun = lw(record + 376);
@@ -248,7 +248,7 @@ pub fn gunTick() {
         gunCreatePlayerGun(player_now + 408, record + 268, 1);
         frames = lwc1(g::updateframesf);
     }
-    let timer = lwc1(record + 2912) + frames / 6e+01_f32;
+    let timer = lwc1(record + 2912) + (frames).pdiv(6e+01_f32);
     let over = lwc1(0x3ad45c) < timer;
     swc1(record + 2912, timer);
     if over {
@@ -610,7 +610,7 @@ pub fn bgGlassMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, f12: f32, f13: f3
                             let mx = lwc1(sp);
                             let my = lwc1(sp + 4);
                             let mz = lwc1(sp + 8);
-                            let speed = (mx * mx + my * my + mz * mz).abs().sqrt() / lwc1(g::updateframesf);
+                            let speed = ((mx * mx + my * my + mz * mz).abs().psqrt()).pdiv(lwc1(g::updateframesf));
                             let parts = lw(lw(lw(lw(a0 * 0x1210 + lw(g::chrinfo) + 3020) + 32)));
                             StatsAdd(32, a0, 1.0_f32);
                             bgSmashGlass(glass, sp + 32, sp + 48, sp, sp + 64, speed * 1e+01_f32);

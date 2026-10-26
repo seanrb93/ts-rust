@@ -41,7 +41,7 @@ pub fn HitTestLineBox(start: i32, direction: i32, min: i32, max: i32, out: i32, 
             if d == 0.0_f32 {
                 swc1(sp + 16 + 4 * k, -1.0_f32);
             } else {
-                swc1(sp + 16 + 4 * k, (lwc1(sp + 32 + 4 * k) - lwc1(start + 4 * k)) / d);
+                swc1(sp + 16 + 4 * k, ((lwc1(sp + 32 + 4 * k) - lwc1(start + 4 * k))).pdiv(d));
             }
         }
     }
@@ -116,7 +116,7 @@ pub fn hittestLineTri(start: i32, direction: i32, a: i32, b: i32, c: i32, hit: i
     let sx = lwc1(start);
     let sy = lwc1(start + 4);
     let sz = lwc1(start + 8);
-    let t = (nx * ax + ny * ay + nz * az - (nx * sx + ny * sy + nz * sz)) / facing;
+    let t = ((nx * ax + ny * ay + nz * az - (nx * sx + ny * sy + nz * sz))).pdiv(facing);
     if t < 0.0_f32 {
         return 0;
     }

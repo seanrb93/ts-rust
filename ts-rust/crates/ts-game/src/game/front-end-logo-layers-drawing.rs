@@ -30,7 +30,7 @@ pub fn frontfxLogoGfx(mode: i32) {
                 span = end_time - start_time;
             }
         }
-        let progress = (time - start_time) / span;
+        let progress = ((time - start_time)).pdiv(span);
         if 0.0_f32 <= progress {
             let base = g::logolayers;
             if progress < 1.0_f32 {

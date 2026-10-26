@@ -14,7 +14,7 @@ pub fn specialfxRingSpawnTick(group: i32) {
     if prop != 0 {
         let limit = 1.5_f32;
         let time_at = group * 92 + (groups + 48);
-        let fraction = lwc1(time_at) / limit;
+        let fraction = (lwc1(time_at)).pdiv(limit);
         let state = lw(prop + 352);
         let turned = dpadd(dpmul(dpmul(fptodp(fraction), ld(0x3a9778)), ld(0x3a9780)), 0x3fe0000000000000_i64);
         let index = dptoli(turned);
@@ -27,7 +27,7 @@ pub fn specialfxRingSpawnTick(group: i32) {
     let groups = g::fxgroups;
     let first = group * 92 + (groups + 72);
     if lw(first) != 0 {
-        matrixRotY(sp, step * 3e+02_f32 * lwc1(0x3ad70c) / 1.8e+02_f32 * lw(groups + group * 92 + 4) as f32);
+        matrixRotY(sp, (step * 3e+02_f32 * lwc1(0x3ad70c)).pdiv(1.8e+02_f32) * lw(groups + group * 92 + 4) as f32);
         matrixScaleSet(sp + 64, 1.0_f32, 1.0_f32, 1.0_f32);
         let matrix = lw(first) + 928;
         sceVu0MulMatrix(matrix, matrix, sp + 64);
@@ -36,7 +36,7 @@ pub fn specialfxRingSpawnTick(group: i32) {
     }
     let second = group * 92 + (groups + 76);
     if lw(second) != 0 {
-        matrixRotY(sp, step * -3e+02_f32 * lwc1(0x3ad710) / 1.8e+02_f32 * lw(groups + group * 92 + 4) as f32);
+        matrixRotY(sp, (step * -3e+02_f32 * lwc1(0x3ad710)).pdiv(1.8e+02_f32) * lw(groups + group * 92 + 4) as f32);
         matrixScaleSet(sp + 64, 1.0_f32, 1.0_f32, 1.0_f32);
         let matrix = lw(second) + 928;
         sceVu0MulMatrix(matrix, matrix, sp + 64);
@@ -90,7 +90,7 @@ pub fn specialfxSphereSpawnTick(group: i32) {
     let groups = g::fxgroups;
     let particles = group * 92 + (groups + 72);
     if lw(particles) != 0 {
-        matrixRotY(sp, step * 3e+02_f32 * lwc1(0x3ad71c) / 1.8e+02_f32 * lw(groups + group * 92 + 4) as f32);
+        matrixRotY(sp, (step * 3e+02_f32 * lwc1(0x3ad71c)).pdiv(1.8e+02_f32) * lw(groups + group * 92 + 4) as f32);
         let grow = step * lwc1(0x3ad720) + 1.0_f32;
         let tall = dptofp(dpadd(dpmul(fptodp(step), ld(0x3a97a0)), 0x3ff0000000000000_i64));
         matrixScaleSet(sp + 64, grow, tall, grow);

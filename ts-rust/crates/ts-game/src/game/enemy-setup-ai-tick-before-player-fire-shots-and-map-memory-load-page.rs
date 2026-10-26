@@ -804,7 +804,7 @@ pub fn playerFireShots(a0: i32) {
             let matrix = lw(data + 4) + (lw(gun_data + 384) << 6);
             let pivot = lw(header - lw(header) * 80 + 72) + lw(gun_data + 364) * 12;
             matrixTrans(matrix, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-            matrixRotZXY(sp + 272, 0.0_f32, 0.0_f32, angle * lwc1(0x3ad2b0) / 1.8e+02_f32);
+            matrixRotZXY(sp + 272, 0.0_f32, 0.0_f32, (angle * lwc1(0x3ad2b0)).pdiv(1.8e+02_f32));
             sceVu0MulMatrix(matrix, matrix, sp + 272);
             matrixTrans(sp + 272, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
             sceVu0MulMatrix(matrix, matrix, sp + 272);
@@ -853,9 +853,9 @@ pub fn playerFireShots(a0: i32) {
     }
     let to_radians = lwc1(0x3ad2bc);
     swc1(a0 + 188, lwc1(shot + 128));
-    let ax = lwc1(prop + 72) * to_radians / 1.8e+02_f32;
-    let ay = lwc1(prop + 76) * to_radians / 1.8e+02_f32;
-    let az = lwc1(prop + 88) * to_radians / 1.8e+02_f32;
+    let ax = (lwc1(prop + 72) * to_radians).pdiv(1.8e+02_f32);
+    let ay = (lwc1(prop + 76) * to_radians).pdiv(1.8e+02_f32);
+    let az = (lwc1(prop + 88) * to_radians).pdiv(1.8e+02_f32);
     let mut pivot = lw(sp + 376);
     matrixRotZXY(sp + 48, ax, ay, az);
     let vy = lwc1(a0 + 72);
@@ -876,7 +876,7 @@ pub fn playerFireShots(a0: i32) {
     swc1(sp + 32, lwc1(pivot));
     swc1(sp + 36, lwc1(pivot + 4));
     swc1(sp + 40, lwc1(pivot + 8));
-    let turn = lwc1(prop + 76) * to_radians / 1.8e+02_f32;
+    let turn = (lwc1(prop + 76) * to_radians).pdiv(1.8e+02_f32);
     matrixTransRotY(sp + 112, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), turn);
     sceVu0MulMatrix(sp + 176, sp + 112, lw(lw(prop + 32) + 4));
     matrixTrans(sp + 112, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
@@ -901,9 +901,9 @@ pub fn playerFireShots(a0: i32) {
         lwc1(owner + 48),
         lwc1(owner + 52),
         lwc1(owner + 56),
-        lwc1(owner + 72) * to_radians2 / 1.8e+02_f32,
-        lwc1(owner + 76) * to_radians2 / 1.8e+02_f32,
-        lwc1(owner + 88) * to_radians2 / 1.8e+02_f32,
+        (lwc1(owner + 72) * to_radians2).pdiv(1.8e+02_f32),
+        (lwc1(owner + 76) * to_radians2).pdiv(1.8e+02_f32),
+        (lwc1(owner + 88) * to_radians2).pdiv(1.8e+02_f32),
     );
     matrixVecMul(sp + 112, sp + 32);
     let muzzle_y = lwc1(sp + 36);
@@ -930,9 +930,9 @@ pub fn playerFireShots(a0: i32) {
         swc1(sp + 32, lwc1(pivot));
         swc1(sp + 36, lwc1(pivot + 4));
         swc1(sp + 40, lwc1(pivot + 8));
-        let az = lwc1(owner + 88) * to_radians2 / 1.8e+02_f32;
-        let ax = lwc1(owner + 72) * to_radians2 / 1.8e+02_f32;
-        let ay = lwc1(owner + 76) * to_radians2 / 1.8e+02_f32;
+        let az = (lwc1(owner + 88) * to_radians2).pdiv(1.8e+02_f32);
+        let ax = (lwc1(owner + 72) * to_radians2).pdiv(1.8e+02_f32);
+        let ay = (lwc1(owner + 76) * to_radians2).pdiv(1.8e+02_f32);
         matrixTransRotZXY(sp + 112, x, y, z, ax, ay, az);
         matrixVecRotAligned(&[(sp + 112) as i64, (sp + 32) as i64]);
         let sy = lwc1(sp + 36);
@@ -984,7 +984,7 @@ pub fn playerFireShots(a0: i32) {
                 swc1(sp + 4, dy);
                 let dz = lwc1(player + 840) - z0;
                 swc1(sp + 8, dz);
-                let inverse = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+                let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
                 let ny = lwc1(sp + 4) * inverse;
                 let nz = lwc1(sp + 8) * inverse;
                 swc1(sp, (lwc1(sp) * inverse + side * lwc1(player + 240) + up * lwc1(player + 228)) * lwc1(shot + 28));

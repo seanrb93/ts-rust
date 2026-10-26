@@ -120,7 +120,7 @@ pub fn hologramPropTick(prop: i32) {
                 let other = lw(record + 3020);
                 let dx = lwc1(other + 48) - lwc1(prop + 48);
                 let dz = lwc1(other + 56) - lwc1(prop + 56);
-                if (dx * dx + dz * dz).abs().sqrt() < 8.0_f32 {
+                if (dx * dx + dz * dz).abs().psqrt() < 8.0_f32 {
                     near = true;
                 }
             }
@@ -163,7 +163,7 @@ pub fn liftPropTick(prop: i32) {
     let frame = Frame::new(144);
     let sp = frame.sp();
     let state = lw(prop + 352);
-    let seconds = lwc1(g::updateframesf) / 60.0_f32;
+    let seconds = (lwc1(g::updateframesf)).pdiv(60.0_f32);
     if lw(state + 72) == 0 {
         let players = lw(g::lvnumplayers);
         let mut i = 0;
@@ -177,7 +177,7 @@ pub fn liftPropTick(prop: i32) {
                     let other = lw(record + 3020);
                     let dx = lwc1(other + 48) - lwc1(prop + 48);
                     let dz = lwc1(other + 56) - lwc1(prop + 56);
-                    if (dx * dx + dz * dz).abs().sqrt() < 1.0_f32 {
+                    if (dx * dx + dz * dz).abs().psqrt() < 1.0_f32 {
                         sw(state + 72, 1);
                     }
                     count = lw(g::lvnumplayers);

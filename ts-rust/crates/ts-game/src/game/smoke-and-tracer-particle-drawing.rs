@@ -12,7 +12,7 @@ pub fn particleSmokeGfx(particle: i32, colour: i32, matrix: i32) {
     let player = lw(g::currentplayer);
     sw(sp + 96, colour);
     let mut count = lw(particle + 24);
-    let zoom = 6e+01_f32 / lwc1(player + 260);
+    let zoom = (6e+01_f32).pdiv(lwc1(player + 260));
     let mut i = 0;
     if count <= 0 {
         return;
@@ -22,7 +22,7 @@ pub fn particleSmokeGfx(particle: i32, colour: i32, matrix: i32) {
     let table = g::g_SinTable;
     let mut offset = 0;
     loop {
-        let age = lwc1(particle + 12) - i as f32 * half / 5.0_f32;
+        let age = lwc1(particle + 12) - (i as f32 * half).pdiv(5.0_f32);
         if 0.0_f32 <= age {
             let angles = particle + 948;
             if age < 1.5_f32 {
@@ -59,15 +59,15 @@ pub fn particleSmokeGfx(particle: i32, colour: i32, matrix: i32) {
                             let one = 1.0_f32;
                             let centre_y = lw(window + 28) as f32;
                             let scale = lwc1(0x3ad538);
-                            let inverse = one / w;
+                            let inverse = (one).pdiv(w);
                             let down = (0 - lw(window + 36)) as f32;
                             let screen_x = x * inverse;
-                            let turn = lwc1(angles + offset) * age * lwc1(0x3ad530) / 1.8e+02_f32 * lwc1(0x3ad534) + half;
+                            let turn = (lwc1(angles + offset) * age * lwc1(0x3ad530)).pdiv(1.8e+02_f32) * lwc1(0x3ad534) + half;
                             let depth = z * inverse;
                             let screen_y = y * inverse;
                             swc1(sp + 16, screen_x);
                             let index = turn as i32;
-                            let size = (zoom * 1.5e+02_f32 / z * (age + one)) as i32 as f32;
+                            let size = ((zoom * 1.5e+02_f32).pdiv(z) * (age + one)) as i32 as f32;
                             swc1(sp + 24, depth);
                             swc1(sp + 20, screen_y);
                             let px = centre_x + across * screen_x;
@@ -209,8 +209,8 @@ pub fn particleTracerGfx(particle: i32, colour: i32, matrix: i32) {
         return;
     }
     let scale = lwc1(0x3ad540);
-    let inverse_a = 1.0_f32 / w1;
-    let inverse_b = 1.0_f32 / w2;
+    let inverse_a = (1.0_f32).pdiv(w1);
+    let inverse_b = (1.0_f32).pdiv(w2);
     let across = lw(g::window + 16) as f32;
     let centre_x = lw(g::window + 8) as f32;
     let centre_y = lw(g::window + 28) as f32;
@@ -237,12 +237,12 @@ pub fn particleTracerGfx(particle: i32, colour: i32, matrix: i32) {
     let b_sz = b_z * inverse_b;
     swc1(sp + 40, a_sz);
     swc1(sp + 56, b_sz);
-    let width = 6e+01_f32 / zoom * 3e+01_f32;
+    let width = (6e+01_f32).pdiv(zoom) * 3e+01_f32;
     swc1(sp + 88, b_sz * scale + 32768.0_f32);
-    let width_b = width / (b_z + 5.0_f32);
-    let width_a = width / (a_z + 5.0_f32);
+    let width_b = (width).pdiv((b_z + 5.0_f32));
+    let width_a = (width).pdiv((a_z + 5.0_f32));
     swc1(sp + 72, a_sz * scale + 32768.0_f32);
-    let unit = 1.0_f32 / (dx * dx + dy * dy).abs().sqrt();
+    let unit = (1.0_f32).pdiv((dx * dx + dy * dy).abs().psqrt());
     let p_x = lwc1(sp + 64);
     let p_y = lwc1(sp + 68);
     let q_x = lwc1(sp + 80);

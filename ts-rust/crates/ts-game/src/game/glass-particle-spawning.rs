@@ -218,7 +218,7 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     swc1(sp + 116, f3_1);
     swc1(sp + 120, f1_1 - f8);
     swc1(sp + 104, f5_1);
-    let f0_3 = 1.0_f32 / (f11 * f11 + f10 * f10 + f9 * f9).abs().sqrt();
+    let f0_3 = (1.0_f32).pdiv((f11 * f11 + f10 * f10 + f9 * f9).abs().psqrt());
     let a2_1 = lw(sp + 480) & 256;
     sw(sp + 516, a2_1);
     let f9_2 = f9 * f0_3;
@@ -351,10 +351,10 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         swc1(sp + 400, f3_4);
         let f1_18 = lwc1(s2_2);
         let f1_19 = f1_18 + (lwc1(s1_2) - f1_18) * 0.5_f32;
-        let f2_2 = (f3_4 * f3_4 + f1_19 * f1_19).abs().sqrt();
+        let f2_2 = (f3_4 * f3_4 + f1_19 * f1_19).abs().psqrt();
         swc1(sp + 404, f1_19);
-        let f1_20 = lwc1(sp + 404) / f2_2;
-        swc1(sp + 400, lwc1(sp + 400) / f2_2);
+        let f1_20 = (lwc1(sp + 404)).pdiv(f2_2);
+        swc1(sp + 400, (lwc1(sp + 400)).pdiv(f2_2));
         swc1(sp + 404, f1_20);
         if f20 < 0.0_f32 {
             f20 = -f20;

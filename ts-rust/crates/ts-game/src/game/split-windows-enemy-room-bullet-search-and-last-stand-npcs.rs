@@ -231,7 +231,7 @@ pub fn enemySetRoom(enemy: i32, find: i32) {
     'body: {
         if (flags & 128) == 0 && (flags & 0xf000000) != 0 {
             let turn = lwc1(enemy + 76);
-            matrixTransRotY(sp + 32, lwc1(enemy + 48), lwc1(enemy + 52), lwc1(enemy + 56), turn * lwc1(0x3ad9d0) / 1.8e+02_f32);
+            matrixTransRotY(sp + 32, lwc1(enemy + 48), lwc1(enemy + 52), lwc1(enemy + 56), (turn * lwc1(0x3ad9d0)).pdiv(1.8e+02_f32));
             let model = lw(enemy + 32);
             let bone = lw(model + 4) + (lw(lw(model + 92) + 20) << 6);
             sceVu0MulMatrix(sp + 96, sp + 32, bone);
@@ -320,7 +320,7 @@ pub fn bgBulletGetClosest(instance: i32, at: i32, strength: i32) -> i32 {
         if distance <= 3.0_f32 {
             swc1(strength, 1.0_f32);
         } else {
-            swc1(strength, 1.0_f32 / (distance - 2.0_f32));
+            swc1(strength, (1.0_f32).pdiv((distance - 2.0_f32)));
         }
     }
     if (number & 3) != frame_number & 3 {
@@ -335,14 +335,14 @@ pub fn bgBulletGetClosest(instance: i32, at: i32, strength: i32) -> i32 {
             let squared = dy * dy;
             swc1(sp + 24, (((packed as u32) >> 8) & 255) as f32 * lwc1(0x3acb34));
             swc1(sp, lwc1(record + 552));
-            let radius = (dx * dx + squared + dz * dz).abs().sqrt();
+            let radius = (dx * dx + squared + dz * dz).abs().psqrt();
             swc1(sp + 4, lwc1(record + 556));
             swc1(sp + 8, lwc1(record + 560));
             let half = radius * 0.5_f32;
             explosion_strength = 1.0_f32;
             swc1(sp + 52, half);
             if !(half <= 2.0_f32) {
-                explosion_strength = explosion_strength / (half - explosion_strength);
+                explosion_strength = (explosion_strength).pdiv((half - explosion_strength));
             }
         }
     }
@@ -364,7 +364,7 @@ pub fn bgBulletGetClosest(instance: i32, at: i32, strength: i32) -> i32 {
             let half = lwc1(sp + 52) * 0.5_f32;
             swc1(sp + 52, half);
             if !(half <= 2.0_f32) {
-                explosion_strength = explosion_strength / (half - explosion_strength);
+                explosion_strength = (explosion_strength).pdiv((half - explosion_strength));
             }
         }
     }

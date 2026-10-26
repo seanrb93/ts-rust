@@ -94,7 +94,7 @@ fn ambush_wall(a0: i32, idle: i32, rise: i32, constants: [i32; 3], leaves: bool)
                     let pad = pad_offset + pads;
                     let z = lwc1(pad + 20) - lwc1(target + 56);
                     let x = lwc1(pad + 12) - lwc1(target + 48);
-                    let mut angle = atan2f(x, z) * 1.8e+02_f32 / lwc1(constants[0]);
+                    let mut angle = (atan2f(x, z) * 1.8e+02_f32).pdiv(lwc1(constants[0]));
                     while angle < 0.0_f32 {
                         angle = angle + 3.6e+02_f32;
                     }
@@ -130,7 +130,7 @@ fn ambush_wall(a0: i32, idle: i32, rise: i32, constants: [i32; 3], leaves: bool)
                 if checkInFrontOfPad(lw(mind + 680), target + 48, 0.0_f32) == 0 {
                     let random = random_unit();
                     if !(random < lwc1(constants[2])) {
-                        if !(6.0_f32 < (dx * dx + dy * dy + dz * dz).abs().sqrt()) {
+                        if !(6.0_f32 < (dx * dx + dy * dy + dz * dz).abs().psqrt()) {
                             ambush_half_turn(a0);
                             ambush_come_out(a0, mind);
                             return;
@@ -347,8 +347,8 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                     }
                                     let y = lwc1(sp + 4);
                                     let z = lwc1(sp + 8);
-                                    let scale = 1.0_f32 / (x * x + y * y + z * z).abs().sqrt();
-                                    let angle = lwc1(a0 + 80) * lwc1(0x3ada14) / 1.8e+02_f32;
+                                    let scale = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
+                                    let angle = (lwc1(a0 + 80) * lwc1(0x3ada14)).pdiv(1.8e+02_f32);
                                     swc1(sp + 8, z * scale);
                                     swc1(sp, x * scale);
                                     swc1(sp + 4, y * scale);
@@ -554,7 +554,7 @@ pub fn enemyAIFutureLastStandHandler() {
         swc1(0x3b01cc, range * random + lwc1(spawn + 4));
         frames = lwc1(g::updateframesf);
     }
-    let step = frames / 6e+01_f32;
+    let step = (frames).pdiv(6e+01_f32);
     let active = lw(g::numactivechars);
     swc1(0x3b01c4, lwc1(0x3b01c4) + step);
     let mut alive = 0;
@@ -690,7 +690,7 @@ pub fn enemyAIFutureLastStandHandler() {
                             let elapsed = lwc1(0x3b01c4);
                             language = lw(g::cur_language);
                             if 0.0_f32 < record && 0.0_f32 < elapsed {
-                                let seconds = (record / elapsed * 1e+03_f32) as i32;
+                                let seconds = ((record).pdiv(elapsed) * 1e+03_f32) as i32;
                                 let number = lw(0x3b01d8);
                                 bonus = if seconds <= 0 { 0 } else { seconds * number };
                             } else {

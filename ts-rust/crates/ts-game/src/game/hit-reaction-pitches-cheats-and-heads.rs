@@ -5,14 +5,14 @@ use crate::*;
 /// Let the flinch after a hit die away (the time at +200 of the animation state goes down by the frame time in seconds; at 0 the two extra animations at +336 and +340 stop) and
 /// turn the two matrices of the flinch (at +208 and +272) by angles worked out from the time left, from the game's constants (@ 0x215b50).
 pub fn animHitReactUpdate(state: i32) {
-    let left = lwc1(state + 200) - lwc1(g::updateframesf) / 60.0_f32;
+    let left = lwc1(state + 200) - (lwc1(g::updateframesf)).pdiv(60.0_f32);
     swc1(state + 200, left);
     if left < 0.0_f32 {
         swc1(state + 200, 0.0_f32);
         sw(state + 340, -1);
         sw(state + 336, -1);
     }
-    let fraction = lwc1(state + 200) / lwc1(0x3ac848);
+    let fraction = (lwc1(state + 200)).pdiv(lwc1(0x3ac848));
     let scale = lwc1(0x3ac84c);
     sw(state + 336, lw(lw(lw(state + 32) + 92) + 16));
     matrixRotZ(state + 208, fraction * scale);
@@ -20,14 +20,14 @@ pub fn animHitReactUpdate(state: i32) {
     let switch_at = lwc1(0x3ac850);
     if !(switch_at < time) {
         let model = lw(state + 32);
-        let rising = time / switch_at;
+        let rising = (time).pdiv(switch_at);
         let angle = rising * lwc1(0x3ac860);
         sw(state + 340, lw(lw(model + 92) + 20));
         matrixRotZ(state + 272, angle * rising * rising);
         return;
     }
     let half = 0.5_f32;
-    let part = (time - switch_at) / lwc1(0x3ac854);
+    let part = ((time - switch_at)).pdiv(lwc1(0x3ac854));
     sw(state + 340, lw(lw(lw(state + 32) + 92) + 20));
     if !(half < part) {
         let down = half - part;
@@ -52,7 +52,7 @@ pub fn calcPitches() {
             let mut step = value as f32;
             let mut left = 7;
             loop {
-                let exponent = step / 12.0_f32;
+                let exponent = (step).pdiv(12.0_f32);
                 left -= 1;
                 step += 0.125_f32;
                 let wide = fptodp(exponent);

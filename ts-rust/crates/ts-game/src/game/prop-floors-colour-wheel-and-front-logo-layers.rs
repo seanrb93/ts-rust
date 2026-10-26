@@ -13,7 +13,7 @@ pub fn propCalculateFloors(prop: i32, by_bones: i32) {
         return;
     }
     propGetOriginalFloors(lw(prop + 4), sp + 64, sp + 68);
-    matrixTransRotY(sp, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), lwc1(prop + 76) * lwc1(0x3acbc8) / 1.8e+02_f32);
+    matrixTransRotY(sp, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), (lwc1(prop + 76) * lwc1(0x3acbc8)).pdiv(1.8e+02_f32));
     let mut originals = lw(sp + 64);
     let mut source = lw(originals);
     let mut index = 0;
@@ -222,7 +222,7 @@ pub fn draw_colourwheel(wheel: i32) {
     let centre_y = lhu(wheel + 2) as f32 + half_height;
     let mut hue = 0.0_f32;
     loop {
-        let angle = (hue * to_radians / 1.8e+02_f32 * scale + 0.5_f32) as i32;
+        let angle = ((hue * to_radians).pdiv(1.8e+02_f32) * scale + 0.5_f32) as i32;
         let sine = lwc1(((angle & 2047) << 2) + table);
         let cosine = lwc1(((angle + 512 & 2047) << 2) + table);
         if i != 24 {
@@ -248,7 +248,7 @@ pub fn draw_colourwheel(wheel: i32) {
         }
     }
     dlDrawTriangleStrip(sp, 50, 0);
-    let angle = (lwc1(g::lighthue) * lwc1(0x3aca84) / 1.8e+02_f32 * lwc1(0x3aca88) + 0.5_f32) as i32;
+    let angle = ((lwc1(g::lighthue) * lwc1(0x3aca84)).pdiv(1.8e+02_f32) * lwc1(0x3aca88) + 0.5_f32) as i32;
     let sine = lwc1(((angle & 2047) << 2) + table);
     let x = lw(g::window) as f32 + centre_x + lwc1(((angle + 512 & 2047) << 2) + table) * lwc1(g::lightsaturation) * radius_x;
     let x = dptofp(dpsub(fptodp(x), 0x4000000000000000_i64));

@@ -747,7 +747,7 @@ pub fn autogunDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
         let angle = lwc1(a0 + 76) * lwc1(0x3acda8);
         sw(sp + 72, 0);
         let zero = lwc1(sp + 72);
-        let turn = angle / 1.8e+02_f32;
+        let turn = (angle).pdiv(1.8e+02_f32);
         swc1(sp + 64, 1.0_f32);
         swc1(sp + 68, -0.5_f32);
         matrixRotZXY(sp, zero, turn, zero);
@@ -776,7 +776,7 @@ pub fn deergunDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
         let angle = lwc1(a0 + 76) * lwc1(0x3acdac);
         sw(sp + 68, 0);
         let zero = lwc1(sp + 68);
-        let turn = angle / 1.8e+02_f32;
+        let turn = (angle).pdiv(1.8e+02_f32);
         swc1(sp + 64, lwc1(0x3acdb0));
         sw(sp + 72, 0);
         matrixRotZXY(sp, zero, turn, zero);

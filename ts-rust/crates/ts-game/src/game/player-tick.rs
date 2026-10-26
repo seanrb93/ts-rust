@@ -46,7 +46,7 @@ fn size_over(x: f32, limit: f32) -> bool {
 
 /// Make the pose of the prop `prop` at the position `(x, y, z)` (turned by the angle of the prop times `scale` / 180): the matrix of the turn is made at `sp+16` and the pose at `sp+80`, whose position is then at `sp+128`.
 fn pose_matrix(sp: i32, prop: i32, x: f32, y: f32, z: f32, scale: f32) {
-    matrixTransRotY(sp + 16, x, y, z, lwc1(prop + 76) * scale / 1.8e+02_f32);
+    matrixTransRotY(sp + 16, x, y, z, (lwc1(prop + 76) * scale).pdiv(1.8e+02_f32));
     let model = lw(prop + 32);
     sceVu0MulMatrix(sp + 80, sp + 16, lw(model + 4) + (lw(lw(model + 92) + 20) << 6));
 }
@@ -118,8 +118,8 @@ fn aim_at_target(sp: i32, p: i32, target: i32) {
     let depth = lwc1(sp + 168);
     sw(p + 828, target_prop);
     swc1(p + 840, depth);
-    swc1(p + 804, -(lwc1(sp + 192) / lwc1(sp + 200)) / width / limit);
-    swc1(p + 808, lwc1(sp + 196) / lwc1(sp + 200) / height / limit);
+    swc1(p + 804, ((-((lwc1(sp + 192)).pdiv(lwc1(sp + 200)))).pdiv(width)).pdiv(limit));
+    swc1(p + 808, (((lwc1(sp + 196)).pdiv(lwc1(sp + 200))).pdiv(height)).pdiv(limit));
 }
 
 /// Set the speeds of the looking for the sticks when the player is not aiming and there is no target: `look_input` is the stick for up and down, `scale` the speed.
@@ -237,10 +237,10 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
             let normal_x = a_y * b_z - b_y * a_z;
             let normal_y = a_z * b_x - b_z * a_x;
             let normal_z = a_x * b_y - b_x * a_y;
-            let length = (normal_x * normal_x + normal_y * normal_y + normal_z * normal_z).abs().sqrt();
+            let length = (normal_x * normal_x + normal_y * normal_y + normal_z * normal_z).abs().psqrt();
             if normal_y < length * lwc1(0x3ad08c) {
-                slide_z = normal_z / length;
-                slide_x = normal_x / length;
+                slide_z = (normal_z).pdiv(length);
+                slide_x = (normal_x).pdiv(length);
                 steep = true;
             }
         }
@@ -257,9 +257,9 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
         swc1(sp + 148, y + lwc1(p + 216) * m.side);
         swc1(sp + 152, z + lwc1(p + 220) * m.side);
     } else {
-        swc1(sp + 144, lwc1(p + 140) + dt * slide_x * 8.0_f32 / 60.0_f32);
+        swc1(sp + 144, lwc1(p + 140) + (dt * slide_x * 8.0_f32).pdiv(60.0_f32));
         swc1(sp + 148, lwc1(p + 144) - 0.5_f32);
-        swc1(sp + 152, lwc1(p + 148) + dt * slide_z * 8.0_f32 / 60.0_f32);
+        swc1(sp + 152, lwc1(p + 148) + (dt * slide_z * 8.0_f32).pdiv(60.0_f32));
     }
     swc1(sp + 148, lwc1(sp + 148) - dt * lwc1(0x3ad090));
     chrAddFloorMoveToPos(lw(p), sp + 144, p + 276);
@@ -287,14 +287,14 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
         sw(p + 296, 2);
         if !steep {
             let dt = frames();
-            let speed_z = (m.cos_yaw * m.forward + lwc1(p + 220) * m.side) / dt;
-            swc1(p + 856, (m.sin_yaw * m.forward + lwc1(p + 212) * m.side) / dt);
+            let speed_z = ((m.cos_yaw * m.forward + lwc1(p + 220) * m.side)).pdiv(dt);
+            swc1(p + 856, ((m.sin_yaw * m.forward + lwc1(p + 212) * m.side)).pdiv(dt));
             swc1(p + 864, speed_z);
             sw(chr + 2864, 0);
         } else {
-            let fall = -lwc1(p + 376) / lw(p + 340) as f32;
-            swc1(p + 864, slide_z * 8.0_f32 / 60.0_f32);
-            swc1(p + 856, slide_x * 8.0_f32 / 60.0_f32);
+            let fall = (-lwc1(p + 376)).pdiv(lw(p + 340) as f32);
+            swc1(p + 864, (slide_z * 8.0_f32).pdiv(60.0_f32));
+            swc1(p + 856, (slide_x * 8.0_f32).pdiv(60.0_f32));
             swc1(chr + 2864, fall);
         }
         drop = lwc1(chr + 2864);
@@ -346,14 +346,14 @@ fn move_pushed(sp: i32, p: i32) -> i32 {
     let push_x = lwc1(sp + 160);
     let push_y = lwc1(sp + 164);
     let push_z = lwc1(sp + 168);
-    let size = (push_x * push_x + push_y * push_y + push_z * push_z).abs().sqrt();
+    let size = (push_x * push_x + push_y * push_y + push_z * push_z).abs().psqrt();
     let dt = frames();
     let limit = dt * lwc1(0x3ad0ac);
     let mut part = size;
     if limit < size {
         part = limit;
     }
-    let fraction = part / size;
+    let fraction = (part).pdiv(size);
     let step_x = lwc1(sp + 160) * fraction;
     let step_y = lwc1(sp + 164) * fraction;
     let step_z = lwc1(sp + 168) * fraction;
@@ -371,8 +371,8 @@ fn move_pushed(sp: i32, p: i32) -> i32 {
     if fraction == 1.0_f32 {
         let speed_x = lwc1(sp + 160);
         sw(p + 296, 2);
-        swc1(p + 856, speed_x / dt);
-        swc1(p + 864, lwc1(sp + 168) / dt);
+        swc1(p + 856, (speed_x).pdiv(dt));
+        swc1(p + 864, (lwc1(sp + 168)).pdiv(dt));
     }
     swc1(p + 124, lwc1(p + 124) * lwc1(0x3ad0b0));
     moveTestDoSlide(lw(p), p + 140, sp + 144, p + 824, 1, lwc1(p + 104), lwc1(p + 132))
@@ -418,7 +418,7 @@ fn move_falling(sp: i32, p: i32, chr: i32) -> i32 {
         let fallen = started - lwc1(chr + 0x1198);
         if 2.0_f32 < fallen && fallen < 10.0_f32 {
             swc1(p + 1780, lwc1(0x3ad0c4));
-            swc1(p + 1776, (fallen - 2.0_f32) / 12.0_f32);
+            swc1(p + 1776, ((fallen - 2.0_f32)).pdiv(12.0_f32));
         } else if 10.0_f32 <= fallen {
             swc1(p + 1776, 1.0_f32);
             swc1(p + 1780, lwc1(0x3ad0c8));
@@ -463,7 +463,7 @@ fn move_dead(sp: i32, p: i32, chr: i32) {
     swc1(sp + 144, lwc1(model + 128));
     swc1(sp + 148, lwc1(model + 132));
     swc1(sp + 152, lwc1(model + 136));
-    matrixRotY(sp + 208, lwc1(body + 76) * lwc1(0x3ad0d4) / 1.8e+02_f32);
+    matrixRotY(sp + 208, (lwc1(body + 76) * lwc1(0x3ad0d4)).pdiv(1.8e+02_f32));
     matrixVecRotAligned(&[(sp + 208) as i64, (sp + 144) as i64]);
     let height = lwc1(sp + 148);
     let depth = lwc1(sp + 152);
@@ -602,8 +602,8 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     let dz = lwc1(p + 148) - lwc1(p + 352);
     let dx2 = dx * dx;
     let dz2 = dz * dz;
-    swc1(p + 376, (dx2 + dy * dy + dz2).abs().sqrt());
-    swc1(p + 380, (dx2 + dz2).abs().sqrt());
+    swc1(p + 376, (dx2 + dy * dy + dz2).abs().psqrt());
+    swc1(p + 380, (dx2 + dz2).abs().psqrt());
     let frames_before = lw(p + 292);
     for (to, from) in [(344, 140), (348, 144), (352, 148), (356, 152), (360, 156), (364, 160), (368, 276), (372, 284)] {
         swc1(p + to, lwc1(p + from));
@@ -773,7 +773,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     if lw(p + 296) != 6 {
         let dt = frames();
         let stance = lw(p + 288);
-        swc1(p + 276, lwc1(p + 276) + turn * lwc1(0x3ad054) * (lwc1(p + 260) / 60.0_f32) * dt);
+        swc1(p + 276, lwc1(p + 276) + turn * lwc1(0x3ad054) * ((lwc1(p + 260)).pdiv(60.0_f32)) * dt);
         if stance == 2 && lhu(lw(p + 24) + 2) & 8 != 0 {
             let pitch = lwc1(p + 284);
             let eased = pitch - pitch * lwc1(0x3ad058) * dt;
@@ -783,7 +783,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
                 sw(p + 288, 1);
             }
         } else {
-            swc1(p + 284, lwc1(p + 284) + look * lwc1(0x3ad05c) * (lwc1(p + 260) / 60.0_f32) * frames());
+            swc1(p + 284, lwc1(p + 284) + look * lwc1(0x3ad05c) * ((lwc1(p + 260)).pdiv(60.0_f32)) * frames());
         }
         if lwc1(p + 276) < 0.0_f32 {
             loop {
@@ -844,7 +844,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     }
     let dt = frames();
     let amount;
-    if !((dt * 4.0_f32 / 60.0_f32) < lwc1(p + 376)) {
+    if !(((dt * 4.0_f32).pdiv(60.0_f32)) < lwc1(p + 376)) {
         amount = lwc1(p + 320);
     } else {
         let size = lwc1(p + 320);
@@ -871,25 +871,25 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     if pad_linked == 0 && lw(g::propedit) == 0 {
         let scale = lwc1(0x3ad074);
         let sideways = lwc1(p + 320) * 0.5_f32;
-        swc1(p + 332, sideways * sinf(lwc1(p + 324) * scale / 1.8e+02_f32));
-        swc1(p + 336, lwc1(p + 320) * sinf(lwc1(p + 328) * scale / 1.8e+02_f32));
+        swc1(p + 332, sideways * sinf((lwc1(p + 324) * scale).pdiv(1.8e+02_f32)));
+        swc1(p + 336, lwc1(p + 320) * sinf((lwc1(p + 328) * scale).pdiv(1.8e+02_f32)));
     }
 
     // The directions the player looks along and moves by.
     let scale = lwc1(0x3ad078);
     let bob_yaw = lwc1(p + 332);
-    let cos_look_yaw = cosf((lwc1(p + 276) + bob_yaw) * scale / 1.8e+02_f32);
-    let sin_look_yaw = sinf((lwc1(p + 276) + lwc1(p + 332)) * scale / 1.8e+02_f32);
-    let cos_look_pitch = cosf((lwc1(p + 284) + lwc1(p + 336)) * scale / 1.8e+02_f32);
-    let sin_look_pitch = sinf((lwc1(p + 284) + lwc1(p + 336)) * scale / 1.8e+02_f32);
+    let cos_look_yaw = cosf(((lwc1(p + 276) + bob_yaw) * scale).pdiv(1.8e+02_f32));
+    let sin_look_yaw = sinf(((lwc1(p + 276) + lwc1(p + 332)) * scale).pdiv(1.8e+02_f32));
+    let cos_look_pitch = cosf(((lwc1(p + 284) + lwc1(p + 336)) * scale).pdiv(1.8e+02_f32));
+    let sin_look_pitch = sinf(((lwc1(p + 284) + lwc1(p + 336)) * scale).pdiv(1.8e+02_f32));
     let yaw = lwc1(p + 276);
     swc1(p + 192, sin_look_pitch);
     swc1(p + 188, cos_look_pitch * sin_look_yaw);
     swc1(p + 196, cos_look_pitch * cos_look_yaw);
-    let cos_yaw = cosf(yaw * scale / 1.8e+02_f32);
-    let sin_yaw = sinf(lwc1(p + 276) * scale / 1.8e+02_f32);
-    cosf(lwc1(p + 284) * scale / 1.8e+02_f32);
-    sinf(lwc1(p + 284) * scale / 1.8e+02_f32);
+    let cos_yaw = cosf((yaw * scale).pdiv(1.8e+02_f32));
+    let sin_yaw = sinf((lwc1(p + 276) * scale).pdiv(1.8e+02_f32));
+    cosf((lwc1(p + 284) * scale).pdiv(1.8e+02_f32));
+    sinf((lwc1(p + 284) * scale).pdiv(1.8e+02_f32));
     let sway = lwc1(0x3ad07c);
     let look_x = lwc1(p + 188);
     let previous_y = lwc1(p + 228);
@@ -1076,7 +1076,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     swc1(p + 248, up_z);
     swc1(p + 180, top + look_y);
     swc1(p + 184, behind + look_z);
-    let length = 1.0_f32 / (up_x * up_x + up_y * up_y + up_z * up_z).abs().sqrt();
+    let length = (1.0_f32).pdiv((up_x * up_x + up_y * up_y + up_z * up_z).abs().psqrt());
     let look_z = lwc1(p + 196);
     let look_x = lwc1(p + 188);
     let look_y = lwc1(p + 192);
@@ -1092,7 +1092,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     swc1(p + 228, side_y);
     let side_z = look_x * unit_y - look_y * unit_x;
     swc1(p + 236, side_z);
-    let length = 1.0_f32 / (side_y * side_y + side_x * side_x + side_z * side_z).abs().sqrt();
+    let length = (1.0_f32).pdiv((side_y * side_y + side_x * side_x + side_z * side_z).abs().psqrt());
     let mode = lw(p + 296);
     let basis_y = lwc1(p + 228) * length;
     let basis_x = lwc1(p + 232) * length;
@@ -1213,20 +1213,20 @@ pub fn playerTick() {
         swc1(sp + 292, y);
         let z = lwc1(chr + 2984);
         swc1(sp + 296, z);
-        let length = 1.0_f32 / (x * x + y * y + z * z).abs().sqrt();
+        let length = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
         let unit_x = lwc1(sp + 288) * length;
         let unit_z = lwc1(sp + 296) * length;
         let unit_y = lwc1(sp + 292) * length;
         swc1(sp + 288, unit_x);
         swc1(sp + 296, unit_z);
         swc1(sp + 292, unit_y);
-        let across = (unit_x * unit_x + unit_z * unit_z).abs().sqrt();
+        let across = (unit_x * unit_x + unit_z * unit_z).abs().psqrt();
         let pitch = atan2f(lwc1(sp + 292), across);
         let radians = lwc1(0x3ad0f8);
-        swc1(lw(body + 352) + 2968, pitch * 1.8e+02_f32 / radians);
+        swc1(lw(body + 352) + 2968, (pitch * 1.8e+02_f32).pdiv(radians));
         let round = atan2f(lwc1(sp + 288), lwc1(sp + 296));
         let character = lw(body + 352);
-        let degrees = round * 1.8e+02_f32 / radians;
+        let degrees = (round * 1.8e+02_f32).pdiv(radians);
         swc1(character + 2972, degrees);
         if degrees < 0.0_f32 {
             swc1(character + 2972, degrees + 3.6e+02_f32);

@@ -97,10 +97,10 @@ pub fn windowSet(x0: i32, y0: i32, x1: i32, y1: i32) {
     sw(w + 16, width >> 1);
     sw(w + 4, x1);
     sw(w + 12, width);
-    swc1(w + 80, width as f32 / screen_w);
+    swc1(w + 80, (width as f32).pdiv(screen_w));
     let split = (ilinkGetNumLocalPlayers() >= 2) as i32;
     let height = y1 - y0 + 1;
-    let scale_y = height as f32 / lw(w + 72) as f32;
+    let scale_y = (height as f32).pdiv(lw(w + 72) as f32);
     sw(w + 20, y0);
     sw(w + 24, y1);
     sw(w + 88, split);
@@ -192,9 +192,9 @@ pub fn mmPushCursorPos() {
 /// Work out the aim from the direction `aim` (unit vector) to a target at `to`: the distance goes to +8 of `out`, the cosine of the angle to +4 (@ 0x280780).
 pub fn playerAutoAimCalc(aim: i32, to: i32, out: i32) {
     let (x, y, z) = (lwc1(to), lwc1(to + 4), lwc1(to + 8));
-    let dist = (x * x + y * y + z * z).abs().sqrt();
+    let dist = (x * x + y * y + z * z).abs().psqrt();
     swc1(out + 8, dist);
-    let inv = 1.0_f32 / dist;
+    let inv = (1.0_f32).pdiv(dist);
     let (ay, az) = (lwc1(aim + 4), lwc1(aim + 8));
     let dx = lwc1(to) * inv;
     let dy = lwc1(to + 4) * inv;

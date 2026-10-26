@@ -12,7 +12,7 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
     let mut nearest = far;
     let loudness;
     if position == 0 {
-        loudness = lhu(sound + 20) as f32 / 1e+02_f32 * (0x1fff - base) as f32;
+        loudness = (lhu(sound + 20) as f32).pdiv(1e+02_f32) * (0x1fff - base) as f32;
     } else {
         let count = lw(g::lvnumplayers);
         let mut i = 0;
@@ -42,11 +42,11 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
         if nearest == lwc1(0x3afd00) {
             return;
         }
-        let mut distance = nearest.abs().sqrt();
+        let mut distance = nearest.abs().psqrt();
         if range < distance {
             distance = range;
         }
-        loudness = lhu(sound + 20) as f32 / 1e+02_f32 * (0x1fff - base) as f32 * ((range - distance) / range);
+        loudness = (lhu(sound + 20) as f32).pdiv(1e+02_f32) * (0x1fff - base) as f32 * (((range - distance)).pdiv(range));
     }
     let volume = base + loudness as i32;
     sw(left, volume);
@@ -58,7 +58,7 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
             matrixVecRotAligned(&[matrix as i64, sp as i64]);
             let x = lwc1(sp);
             let z = lwc1(sp + 8);
-            let side = x / (x * x + z * z).abs().sqrt();
+            let side = (x).pdiv((x * x + z * z).abs().psqrt());
             if 0.0_f32 < side {
                 sw(left, (volume as f32 * (1.0_f32 - side)) as i32);
                 shifted = true;

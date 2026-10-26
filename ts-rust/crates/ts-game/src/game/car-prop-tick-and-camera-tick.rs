@@ -54,9 +54,9 @@ pub fn carPropTick(a0: i32) {
             let angle = lwc1(data + 60);
             sw(sp + 288, a0 + 48);
             let to_radians = lwc1(0x3ace18);
-            let x = lwc1(data + 52) * to_radians / 1.8e+02_f32;
-            let z = (angle + spin) * to_radians / 1.8e+02_f32;
-            let y = lwc1(data + 56) * to_radians / 1.8e+02_f32;
+            let x = (lwc1(data + 52) * to_radians).pdiv(1.8e+02_f32);
+            let z = ((angle + spin) * to_radians).pdiv(1.8e+02_f32);
+            let y = (lwc1(data + 56) * to_radians).pdiv(1.8e+02_f32);
             matrixRotZXY(matrices(), x, y, z);
         } else if kind >= 312 {
             if kind == 312 {
@@ -98,7 +98,7 @@ pub fn carPropTick(a0: i32) {
                                 let pivot = lw(skeleton_header - lw(skeleton_header) * 80 + 72);
                                 let at = pivot + 12;
                                 matrixTrans(table + 448, lwc1(pivot + 12), lwc1(at + 4), lwc1(at + 8));
-                                matrixRotZXY(sp, lwc1(data + 104) * lwc1(0x3ace44) / 1.8e+02_f32, 0.0_f32, 0.0_f32);
+                                matrixRotZXY(sp, (lwc1(data + 104) * lwc1(0x3ace44)).pdiv(1.8e+02_f32), 0.0_f32, 0.0_f32);
                                 let part = lw(lw(a0 + 32) + 4) + 448;
                                 sceVu0MulMatrix(part, part, sp);
                                 matrixTrans(sp, -lwc1(pivot + 12), -lwc1(at + 4), -lwc1(at + 8));
@@ -109,7 +109,7 @@ pub fn carPropTick(a0: i32) {
                                 let part = lw(model + 4) + 384;
                                 let pivot = lw(skeleton_header - lw(skeleton_header) * 80 + 72);
                                 matrixTrans(part, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-                                matrixRotZXY(sp, 0.0_f32, lwc1(data + 104) * lwc1(0x3ace40) / 1.8e+02_f32, 0.0_f32);
+                                matrixRotZXY(sp, 0.0_f32, (lwc1(data + 104) * lwc1(0x3ace40)).pdiv(1.8e+02_f32), 0.0_f32);
                                 let part = lw(lw(a0 + 32) + 4) + 384;
                                 sceVu0MulMatrix(part, part, sp);
                                 matrixTrans(sp, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
@@ -120,9 +120,9 @@ pub fn carPropTick(a0: i32) {
                         }
                         let offset = if n == 6 { 384 } else if n == 7 { 448 } else { n << 6 };
                         let to_radians = lwc1(0x3ace48);
-                        let x = lwc1(data + 52) * to_radians / 1.8e+02_f32;
-                        let z = (lwc1(data + 60) + f0) * to_radians / 1.8e+02_f32;
-                        let y = lwc1(data + 56) * to_radians / 1.8e+02_f32;
+                        let x = (lwc1(data + 52) * to_radians).pdiv(1.8e+02_f32);
+                        let z = ((lwc1(data + 60) + f0) * to_radians).pdiv(1.8e+02_f32);
+                        let y = (lwc1(data + 56) * to_radians).pdiv(1.8e+02_f32);
                         n += 1;
                         matrixRotZXY(sp, x, y, z);
                         sceVu0CopyMatrix(sp + 224, lw(lw(a0 + 32) + 4) + offset);
@@ -166,9 +166,9 @@ pub fn carPropTick(a0: i32) {
                         n += 1;
                         sceVu0UnitMatrix(table + offset);
                         let to_radians = lwc1(0x3ace2c);
-                        let x = lwc1(data + 52) * to_radians / 1.8e+02_f32;
-                        let z = (lwc1(data + 60) + lwc1(data + 96)) * to_radians / 1.8e+02_f32;
-                        let y = lwc1(data + 56) * to_radians / 1.8e+02_f32;
+                        let x = (lwc1(data + 52) * to_radians).pdiv(1.8e+02_f32);
+                        let z = ((lwc1(data + 60) + lwc1(data + 96)) * to_radians).pdiv(1.8e+02_f32);
+                        let y = (lwc1(data + 56) * to_radians).pdiv(1.8e+02_f32);
                         matrixRotZXY(sp, x, y, z);
                         sceVu0CopyMatrix(sp + 160, lw(lw(a0 + 32) + 4) + offset);
                         sceVu0MulMatrix(lw(lw(a0 + 32) + 4) + offset, sp, sp + 160);
@@ -210,12 +210,12 @@ pub fn carPropTick(a0: i32) {
                 swc1(sp + 152, dz);
                 let ay = lwc1(arm + 4);
                 let az = lwc1(arm + 8);
-                let length = (dx * dx + dy * dy + dz * dz).abs().sqrt();
-                let k = (length + lwc1(pivot_a + 8)) / length;
+                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+                let k = ((length + lwc1(pivot_a + 8))).pdiv(length);
                 swc1(arm, lwc1(arm) + k * lwc1(sp + 144));
-                let k = (length + lwc1(pivot_a + 8)) / length;
+                let k = ((length + lwc1(pivot_a + 8))).pdiv(length);
                 swc1(arm + 4, ay + k * lwc1(sp + 148));
-                let k = (length + lwc1(pivot_a + 8)) / length;
+                let k = ((length + lwc1(pivot_a + 8))).pdiv(length);
                 swc1(arm + 8, az + k * lwc1(sp + 152));
                 sw(a0 + 76, 0);
                 let bearing_a = atan2f(lwc1(sp + 144), lwc1(sp + 152));
@@ -230,18 +230,18 @@ pub fn carPropTick(a0: i32) {
                 let reach = reach - lwc1(pivot_a + 8);
                 sw(sp + 288, a0 + 48);
                 let full = lwc1(0x3ace4c);
-                let length = (dx * dx + dy * dy + dz * dz).abs().sqrt();
-                swc1(arm + 12, lwc1(arm + 12) + (length + reach) / length * sx);
+                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+                swc1(arm + 12, lwc1(arm + 12) + ((length + reach)).pdiv(length) * sx);
                 let az2 = lwc1(arm2 + 8);
-                let length = (dx * dx + dy * dy + dz * dz).abs().sqrt();
-                swc1(arm2 + 4, lwc1(arm2 + 4) + (length + (lwc1(pivot_b + 8) - lwc1(pivot_a + 8))) / length * lwc1(sp + 148));
-                let length = (dx * dx + dy * dy + dz * dz).abs().sqrt();
-                swc1(arm2 + 8, az2 + (length + (lwc1(pivot_b + 8) - lwc1(pivot_a + 8))) / length * lwc1(sp + 152));
+                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+                swc1(arm2 + 4, lwc1(arm2 + 4) + ((length + (lwc1(pivot_b + 8) - lwc1(pivot_a + 8)))).pdiv(length) * lwc1(sp + 148));
+                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+                swc1(arm2 + 8, az2 + ((length + (lwc1(pivot_b + 8) - lwc1(pivot_a + 8)))).pdiv(length) * lwc1(sp + 152));
                 let bearing_b = atan2f(lwc1(sp + 144), lwc1(sp + 152));
                 matrixTrans(matrices(), 0.0_f32, 0.0_f32, 0.0_f32);
                 matrixRotY(matrices() + 64, bearing_a);
                 let speed_step = step * lwc1(0x3ace50);
-                let degrees = bearing_a * 1.8e+02_f32 / full;
+                let degrees = (bearing_a * 1.8e+02_f32).pdiv(full);
                 let heading = lwc1(data + 56);
                 let base = matrices();
                 let pivot = lw(skeleton + 232);
@@ -249,7 +249,7 @@ pub fn carPropTick(a0: i32) {
                 sceVu0CopyMatrix(base + 128, base + 64);
                 matrixTrans(sp, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
                 sceVu0MulMatrix(matrices() + 128, matrices() + 128, sp);
-                matrixRotY(sp, (heading - degrees) * full / 1.8e+02_f32);
+                matrixRotY(sp, ((heading - degrees) * full).pdiv(1.8e+02_f32));
                 sceVu0MulMatrix(matrices() + 128, matrices() + 128, sp);
                 matrixRotX(sp, lwc1(g::rot_123));
                 sceVu0MulMatrix(matrices() + 128, matrices() + 128, sp);
@@ -258,7 +258,7 @@ pub fn carPropTick(a0: i32) {
                 let base = matrices();
                 let pivot = lw(skeleton + 312);
                 let heading2 = lwc1(data + 56) - degrees;
-                car_part(sp, base + 192, base + 64, pivot, g::rot_124, speed_step, Some(heading2 * full / 1.8e+02_f32));
+                car_part(sp, base + 192, base + 64, pivot, g::rot_124, speed_step, Some((heading2 * full).pdiv(1.8e+02_f32)));
                 let base = matrices();
                 let pivot = lw(skeleton + 392);
                 car_part(sp, base + 256, base + 64, pivot, g::rot_125, speed_step, None);
@@ -321,16 +321,16 @@ pub fn camTick() {
                 let to_radians = lwc1(0x3acfcc);
                 let full = 1.8e+02_f32;
                 let near = lwc1(g::near_105);
-                let aspect = lw(window + 12) as f32 * ratio / lw(window + 32) as f32;
-                let fov = lwc1(now + 260) * to_radians / full;
+                let aspect = (lw(window + 12) as f32 * ratio).pdiv(lw(window + 32) as f32);
+                let fov = (lwc1(now + 260) * to_radians).pdiv(full);
                 let far = lwc1(g::far_106);
                 matrixPerspective(lw(now + 1760), aspect, fov, near, far);
-                let half = tanf(lwc1(lw(g::currentplayer) + 260) * 0.5_f32 * to_radians / full);
+                let half = tanf((lwc1(lw(g::currentplayer) + 260) * 0.5_f32 * to_radians).pdiv(full));
                 let height = lw(window + 32) as f32;
                 let now = lw(g::currentplayer);
                 let width = lw(window + 12) as f32;
                 swc1(now + 252, half);
-                swc1(now + 256, half * ratio * (width / height));
+                swc1(now + 256, half * ratio * ((width).pdiv(height)));
                 let mode = camGetMode();
                 if (mode as u32) < (10 as u32) {
                     let mut eye = 0;
@@ -470,10 +470,10 @@ pub fn camTick() {
                                         }
                                         let to_radians = lwc1(0x3acfd8);
                                         let full = 1.8e+02_f32;
-                                        let cos_a = cosf(angle * to_radians / full);
-                                        let sin_a = sinf(lwc1(0x3b0120) * to_radians / full);
-                                        let cos_b = cosf(lwc1(0x3b0124) * to_radians / full);
-                                        let sin_b = sinf(lwc1(0x3b0124) * to_radians / full);
+                                        let cos_a = cosf((angle * to_radians).pdiv(full));
+                                        let sin_a = sinf((lwc1(0x3b0120) * to_radians).pdiv(full));
+                                        let cos_b = cosf((lwc1(0x3b0124) * to_radians).pdiv(full));
+                                        let sin_b = sinf((lwc1(0x3b0124) * to_radians).pdiv(full));
                                         prop_now = lw(player + 896);
                                         let dx = cos_b * sin_a;
                                         swc1(sp + 52, sin_b);
@@ -516,11 +516,11 @@ pub fn camTick() {
                                 'b15: {
                                     let slow = 2e+01_f32;
                                     let zoom = joyGetAxisLOCAL(1, 3);
-                                    swc1(0x3b0128, lwc1(0x3b0128) - zoom / slow);
+                                    swc1(0x3b0128, lwc1(0x3b0128) - (zoom).pdiv(slow));
                                     eye = player + 884;
                                     if (joyButLOCAL(1) & 64) == 0 {
                                         let turn = joyGetAxisLOCAL(1, 0);
-                                        let mut yaw = lwc1(0x3b0120) + turn * 1.8e+02_f32 / 6e+01_f32;
+                                        let mut yaw = lwc1(0x3b0120) + (turn * 1.8e+02_f32).pdiv(6e+01_f32);
                                         swc1(0x3b0120, yaw);
                                         if 3.6e+02_f32 < yaw {
                                             loop {
@@ -541,7 +541,7 @@ pub fn camTick() {
                                             }
                                         }
                                         let pitch_turn = joyGetAxisLOCAL(1, 1);
-                                        let mut pitch = lwc1(0x3b0124) + pitch_turn * 1.8e+02_f32 / 6e+01_f32;
+                                        let mut pitch = lwc1(0x3b0124) + (pitch_turn * 1.8e+02_f32).pdiv(6e+01_f32);
                                         swc1(0x3b0124, pitch);
                                         angle_x = lwc1(0x3b0120);
                                         if 3.6e+02_f32 < pitch {
@@ -564,18 +564,18 @@ pub fn camTick() {
                                         }
                                     } else {
                                         let up = joyGetAxisLOCAL(1, 1);
-                                        swc1(0x3b0130, lwc1(0x3b0130) + up / slow);
+                                        swc1(0x3b0130, lwc1(0x3b0130) + (up).pdiv(slow));
                                         let side = joyGetAxisLOCAL(1, 0);
                                         angle_x = lwc1(0x3b0120);
-                                        swc1(0x3b012c, lwc1(0x3b012c) + side / slow);
+                                        swc1(0x3b012c, lwc1(0x3b012c) + (side).pdiv(slow));
                                     }
                                 }
                                 let to_radians = lwc1(0x3acfd0);
                                 let full = 1.8e+02_f32;
-                                let cos_a = cosf(angle_x * to_radians / full);
-                                let sin_a = sinf(lwc1(0x3b0120) * to_radians / full);
-                                let cos_b = cosf(lwc1(0x3b0124) * to_radians / full);
-                                let sin_b = sinf(lwc1(0x3b0124) * to_radians / full);
+                                let cos_a = cosf((angle_x * to_radians).pdiv(full));
+                                let sin_a = sinf((lwc1(0x3b0120) * to_radians).pdiv(full));
+                                let cos_b = cosf((lwc1(0x3b0124) * to_radians).pdiv(full));
+                                let sin_b = sinf((lwc1(0x3b0124) * to_radians).pdiv(full));
                                 let z_dir = cos_b * cos_a;
                                 let mode_view = lw(g::viewprop_mode);
                                 let x_dir = cos_b * sin_a;

@@ -11,7 +11,7 @@ pub fn specialfxBlastSpawnTick(group: i32) {
         let limit = 1.5_f32;
         let time_at = group * 92 + (groups + 48);
         let table = g::g_SinTable;
-        let fraction = lwc1(time_at) / limit;
+        let fraction = (lwc1(time_at)).pdiv(limit);
         let scale = ld(0x3a9768);
         let scale_two = ld(0x3a9770);
         let half = 0x3fe0000000000000_i64;
@@ -20,7 +20,7 @@ pub fn specialfxBlastSpawnTick(group: i32) {
         swc1(state + 44, lwc1(((first & 2047) << 2) + table));
         let time = lwc1(time_at);
         if !(time < 0.75_f32) {
-            let fraction = time / limit;
+            let fraction = (time).pdiv(limit);
             let second = dptoli(dpadd(dpmul(dpmul(fptodp(fraction), scale), scale_two), half));
             swc1(state + 48, lwc1(((second & 2047) << 2) + table));
         } else {

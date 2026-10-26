@@ -200,9 +200,9 @@ pub fn decalTick() {
                                         let mut f = 0;
                                         loop {
                                             let rec = f * 12 + lw(t + 32);
-                                            let nx = lh(rec + 2) as f32 / scale;
-                                            let ny = lh(rec + 4) as f32 / scale;
-                                            let nz = lh(rec + 6) as f32 / scale;
+                                            let nx = (lh(rec + 2) as f32).pdiv(scale);
+                                            let ny = (lh(rec + 4) as f32).pdiv(scale);
+                                            let nz = (lh(rec + 6) as f32).pdiv(scale);
                                             let mut across = nx * e[0] + ny * e[1] + nz * e[2];
                                             'face: {
                                                 if !(0.0_f32 <= across) {
@@ -211,7 +211,7 @@ pub fn decalTick() {
                                                 if !(across <= lwc1(0x3ad5e4)) {
                                                     break 'face;
                                                 }
-                                                let inverse = 1.0_f32 / (nx * nx + ny * ny + nz * nz).abs().sqrt();
+                                                let inverse = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
                                                 let n = [nx * inverse, ny * inverse, nz * inverse];
                                                 let facing = n[0] * normal[0] + n[1] * normal[1] + n[2] * normal[2];
                                                 if !(lwc1(0x3ad5e8) <= facing) {

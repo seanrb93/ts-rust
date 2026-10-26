@@ -20,7 +20,7 @@ pub fn DistFromWallSq(pos: i32, wall: i32, out: i32, _unused: f32, limit: f32) -
     let (mut rx, mut rz) = (vx, vz);
     if 0.0 < along {
         if !(length2 <= along) {
-            let t = along / length2;
+            let t = (along).pdiv(length2);
             rz = vz - t * dz;
             rx = vx - t * dx;
         } else {
@@ -33,9 +33,9 @@ pub fn DistFromWallSq(pos: i32, wall: i32, out: i32, _unused: f32, limit: f32) -
         if !(d2 < limit) {
             return d2;
         }
-        let length = length2.abs().sqrt();
-        swc1(out, dz / length);
-        swc1(out + 4, -dx / length);
+        let length = length2.abs().psqrt();
+        swc1(out, (dz).pdiv(length));
+        swc1(out + 4, (-dx).pdiv(length));
     }
     d2
 }

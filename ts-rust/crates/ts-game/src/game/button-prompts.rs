@@ -163,7 +163,7 @@ pub fn hr_calcestcost(from: i32, to: i32) -> f32 {
     let dx = lwc1(b + 12) - lwc1(a + 12);
     let dy = lwc1(b + 16) - lwc1(a + 16);
     let dz = lwc1(b + 20) - lwc1(a + 20);
-    (dx * dx + dy * dy + dz * dz).abs().sqrt()
+    (dx * dx + dy * dy + dz * dz).abs().psqrt()
 }
 
 /// The same estimate for the other route finder (@ 0x266768).

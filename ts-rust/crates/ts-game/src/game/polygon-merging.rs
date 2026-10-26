@@ -28,7 +28,7 @@ fn same_point(a: i32, b: i32) -> bool {
 
 /// The normal of the polygon `poly` as three floats.
 fn polygon_normal(poly: i32, scale: f32) -> [f32; 3] {
-    [lh(poly + 2) as f32 / scale, lh(poly + 4) as f32 / scale, lh(poly + 6) as f32 / scale]
+    [(lh(poly + 2) as f32).pdiv(scale), (lh(poly + 4) as f32).pdiv(scale), (lh(poly + 6) as f32).pdiv(scale)]
 }
 
 /// The unit vector of the direction from the point `from` to the point `to`.
@@ -36,7 +36,7 @@ fn direction(from: i32, to: i32) -> [f32; 3] {
     let x = lwc1(to) - lwc1(from);
     let y = lwc1(to + 4) - lwc1(from + 4);
     let z = lwc1(to + 8) - lwc1(from + 8);
-    let length = 1.0_f32 / (x * x + y * y + z * z).abs().sqrt();
+    let length = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
     [x * length, y * length, z * length]
 }
 
@@ -50,7 +50,7 @@ fn corner_is_good(corner: i32, after: i32, before: i32, normal: [f32; 3]) -> (bo
     let cross_x = toward_after[1] * toward_before[2] - toward_after[2] * toward_before[1];
     let cross_y = toward_after[2] * toward_before[0] - toward_after[0] * toward_before[2];
     let cross_z = toward_after[0] * toward_before[1] - toward_after[1] * toward_before[0];
-    let length = 1.0_f32 / (cross_x * cross_x + cross_y * cross_y + cross_z * cross_z).abs().sqrt();
+    let length = (1.0_f32).pdiv((cross_x * cross_x + cross_y * cross_y + cross_z * cross_z).abs().psqrt());
     let unit_x = cross_x * length;
     let unit_y = cross_y * length;
     let unit_z = cross_z * length;

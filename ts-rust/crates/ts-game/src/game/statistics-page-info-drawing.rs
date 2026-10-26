@@ -53,7 +53,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
         if count <= 0 {
             text = language_text(1164);
         } else {
-            let ratio = lw(a3 + 32) as f32 / count as f32;
+            let ratio = (lw(a3 + 32) as f32).pdiv(count as f32);
             let percent = (ratio * 1e+02_f32) as i32;
             if percent != 0 {
                 text = vafmt(&[0x3ae860_i64, percent as i64, ratio.to_bits() as i64]);
@@ -68,7 +68,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
         if count <= 0 {
             text = language_text(1172);
         } else {
-            let percent = (lwc1(a3 + 36) / count as f32 * 1e+02_f32) as i32;
+            let percent = ((lwc1(a3 + 36)).pdiv(count as f32) * 1e+02_f32) as i32;
             text = vafmt(&[0x3ae860_i64, percent as i64]);
         }
         print_value(sp, text, a2);
@@ -79,7 +79,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
         print_label(sp, 1208, a2);
         print_number(sp, lw(a3 + 60), a2);
         print_label(sp, 1212, a2);
-        let rate = lwc1(a3 + 344) / lwc1(0x3ac9e8);
+        let rate = (lwc1(a3 + 344)).pdiv(lwc1(0x3ac9e8));
         let text;
         if !(0.0_f32 < rate) {
             text = language_text(1432);
@@ -95,7 +95,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
         if !(0.0_f32 < hours) {
             text = language_text(1440);
         } else {
-            let per_hour = rate / (hours / 3.6e+03_f32);
+            let per_hour = (rate).pdiv(((hours).pdiv(3.6e+03_f32)));
             let value = fptodp(per_hour);
             let unit = language_text(1224);
             text = vafmt(&[0x3ae878_i64, value, unit as i64]);
@@ -185,7 +185,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
             if shots <= 0 {
                 text = language_text(1124);
             } else {
-                let percent = (lw(a3 + 340) as f32 / shots as f32 * 1e+02_f32) as i32;
+                let percent = ((lw(a3 + 340) as f32).pdiv(shots as f32) * 1e+02_f32) as i32;
                 text = vafmt(&[0x3ae860_i64, percent as i64]);
             }
         }

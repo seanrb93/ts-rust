@@ -86,17 +86,17 @@ pub fn pathPosUpdateAbs(prop: i32, distance: f32) {
             if turn < 0.0_f32 {
                 turn += 3.6e+02_f32;
             }
-            let arc = lwc1(node + 20) * full * (turn / 3.6e+02_f32);
+            let arc = lwc1(node + 20) * full * ((turn).pdiv(3.6e+02_f32));
             if arc < left {
                 passed = Some(arc);
             } else {
                 let to_radians = lwc1(if kind == 1 { 0x3acde0 } else { 0x3acde4 });
                 let start = lwc1(node + 16);
-                let sine = sinf(start * to_radians / 1.8e+02_f32);
-                let cosine = cosf(lwc1(lw(state + 12) + 16) * to_radians / 1.8e+02_f32);
+                let sine = sinf((start * to_radians).pdiv(1.8e+02_f32));
+                let cosine = cosf((lwc1(lw(state + 12) + 16) * to_radians).pdiv(1.8e+02_f32));
                 let centre = lw(state + 12);
                 let radius = lwc1(centre + 20);
-                let part = left * turn / arc;
+                let part = (left * turn).pdiv(arc);
                 let (centre_z, centre_x);
                 let angle;
                 if kind == 1 {
@@ -108,7 +108,7 @@ pub fn pathPosUpdateAbs(prop: i32, distance: f32) {
                         swc1(state + 56, moved - 3.6e+02_f32);
                     }
                     left = 0.0_f32;
-                    let back = (lwc1(state + 56) - 9e+01_f32) * to_radians / 1.8e+02_f32;
+                    let back = ((lwc1(state + 56) - 9e+01_f32) * to_radians).pdiv(1.8e+02_f32);
                     let sine_now = sinf(back);
                     swc1(prop + 48, centre_x + lwc1(centre + 20) * sine_now);
                     angle = lwc1(state + 56) - 9e+01_f32;
@@ -120,13 +120,13 @@ pub fn pathPosUpdateAbs(prop: i32, distance: f32) {
                     if moved < 0.0_f32 {
                         swc1(state + 56, moved + 3.6e+02_f32);
                     }
-                    let ahead = (lwc1(state + 56) + 9e+01_f32) * to_radians / 1.8e+02_f32;
+                    let ahead = ((lwc1(state + 56) + 9e+01_f32) * to_radians).pdiv(1.8e+02_f32);
                     left = 0.0_f32;
                     let sine_now = sinf(ahead);
                     swc1(prop + 48, centre_x + lwc1(centre + 20) * sine_now);
                     angle = lwc1(state + 56) + 9e+01_f32;
                 }
-                let cosine_now = cosf(angle * to_radians / 1.8e+02_f32);
+                let cosine_now = cosf((angle * to_radians).pdiv(1.8e+02_f32));
                 swc1(prop + 56, centre_z + lwc1(lw(state + 12) + 20) * cosine_now);
             }
         } else if kind == 0 {
@@ -138,13 +138,13 @@ pub fn pathPosUpdateAbs(prop: i32, distance: f32) {
             let dy = lwc1(node + 8) - y;
             swc1(sp + 4, dy);
             let dz = lwc1(node + 12) - z;
-            let length = (dx * dx + dy * dy + dz * dz).abs().sqrt();
+            let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
             swc1(sp + 8, dz);
             let first = lwc1(sp);
             if !(length < left) {
-                let step_x = first * left / length;
-                let step_y = lwc1(sp + 4) * left / length;
-                let step_z = lwc1(sp + 8) * left / length;
+                let step_x = (first * left).pdiv(length);
+                let step_y = (lwc1(sp + 4) * left).pdiv(length);
+                let step_z = (lwc1(sp + 8) * left).pdiv(length);
                 left = 0.0_f32;
                 let new_y = lwc1(prop + 52) + step_y;
                 let new_z = lwc1(prop + 56) + step_z;
@@ -192,7 +192,7 @@ pub fn updateShotgunReload(reload: i32) {
     let centre = lw(bones + 72);
     let centre_y = centre + 36;
     matrixTrans(matrix, lwc1(centre + 36), lwc1(centre_y + 4), lwc1(centre_y + 8));
-    matrixRotZXY(sp, lwc1(reload + 136) * to_radians / half_turn, 0.0_f32, 0.0_f32);
+    matrixRotZXY(sp, (lwc1(reload + 136) * to_radians).pdiv(half_turn), 0.0_f32, 0.0_f32);
     sceVu0MulMatrix(matrix, matrix, sp);
     matrixTrans(sp, -lwc1(centre + 36), -lwc1(centre_y + 4), -lwc1(centre_y + 8));
     sceVu0MulMatrix(matrix, matrix, sp);
@@ -206,11 +206,11 @@ pub fn updateShotgunReload(reload: i32) {
     }
     if lw(reload) != 11 {
         let owner = lw(reload + 12);
-        matrixRotZXY(sp + 64, lwc1(reload + 136) * to_radians / half_turn, 0.0_f32, 0.0_f32);
+        matrixRotZXY(sp + 64, (lwc1(reload + 136) * to_radians).pdiv(half_turn), 0.0_f32, 0.0_f32);
         let model_now = lw(reload + 12);
-        let roll = lwc1(model_now + 88) * to_radians / half_turn;
-        let yaw = lwc1(model_now + 72) * to_radians / half_turn;
-        let pitch = lwc1(model_now + 76) * to_radians / half_turn;
+        let roll = (lwc1(model_now + 88) * to_radians).pdiv(half_turn);
+        let yaw = (lwc1(model_now + 72) * to_radians).pdiv(half_turn);
+        let pitch = (lwc1(model_now + 76) * to_radians).pdiv(half_turn);
         matrixRotZXY(sp + 128, yaw, pitch, roll);
         let bone = lw(bones + 72);
         let pivot_x = lwc1(bone + 36);

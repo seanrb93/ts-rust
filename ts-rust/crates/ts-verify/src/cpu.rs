@@ -1,6 +1,6 @@
 //! A deliberately small R5900 interpreter used ONLY to check the decompiler's output.
-//! It implements the integer / FPU / load-store subset that appears in the game's code, with the arithmetic of the console's FPU (`ts_rt::ps2float`: no
-//! infinity and no NaN, denormals are zero) and rounding to the nearest like the decompiled Rust, so any difference between the two executions is a decompiler bug.
+//! It implements the integer / FPU / load-store subset that appears in the game's code, with the console's arithmetic for division and square roots (`ts_rt::ps2float`: a zero
+//! divisor gives the largest float, the root of a negative number is the root of its absolute value) and plain IEEE-754 for the rest, so any difference between the two executions is a decompiler bug.
 
 use ts_rt::*;
 
@@ -463,22 +463,22 @@ impl Cpu {
             16 => {
                 let (x, y) = (self.fr(fs), self.fr(ft));
                 match w & 63 {
-                    0 => self.setf(fd, ps2float::add(x, y)),
-                    1 => self.setf(fd, ps2float::sub(x, y)),
-                    2 => self.setf(fd, ps2float::mul(x, y)),
+                    0 => self.setf(fd, x + y),
+                    1 => self.setf(fd, x - y),
+                    2 => self.setf(fd, x * y),
                     3 => self.setf(fd, ps2float::div(x, y)),
                     4 => self.setf(fd, ps2float::sqrt(y)),
                     5 => self.setf(fd, x.abs()),
                     6 => self.setf(fd, x),
                     7 => self.setf(fd, -x),
                     22 => self.setf(fd, ps2float::rsqrt(x, y)),
-                    24 => self.acc = ps2float::add(x, y),
-                    25 => self.acc = ps2float::sub(x, y),
-                    26 => self.acc = ps2float::mul(x, y),
-                    28 => self.setf(fd, ps2float::add(self.acc, ps2float::mul(x, y))),
-                    29 => self.setf(fd, ps2float::sub(self.acc, ps2float::mul(x, y))),
-                    30 => self.acc = ps2float::add(self.acc, ps2float::mul(x, y)),
-                    31 => self.acc = ps2float::sub(self.acc, ps2float::mul(x, y)),
+                    24 => self.acc = x + y,
+                    25 => self.acc = x - y,
+                    26 => self.acc = x * y,
+                    28 => self.setf(fd, self.acc + x * y),
+                    29 => self.setf(fd, self.acc - x * y),
+                    30 => self.acc += x * y,
+                    31 => self.acc -= x * y,
                     36 => self.f[fd] = (x as i32) as u32,
                     40 => self.setf(fd, x.max(y)),
                     41 => self.setf(fd, x.min(y)),

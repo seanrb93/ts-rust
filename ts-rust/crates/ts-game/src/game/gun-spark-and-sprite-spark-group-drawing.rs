@@ -17,7 +17,7 @@ pub fn particleGunSparkGroupGfx(particle: i32, colour: i32, matrix: i32, delta: 
     let later = age + delta;
     let count = lw(particle + 24);
     let drop = age * gravity * age;
-    sw(sp + 132, ((life - age) / life * 127.0_f32) as i32 & 255);
+    sw(sp + 132, (((life - age)).pdiv(life) * 127.0_f32) as i32 & 255);
     if count <= 0 {
         return;
     }
@@ -58,8 +58,8 @@ pub fn particleGunSparkGroupGfx(particle: i32, colour: i32, matrix: i32, delta: 
                                     let one = 1.0_f32;
                                     let window = g::window;
                                     let depth_scale = lwc1(0x3ad51c);
-                                    let inverse2 = one / w2;
-                                    let inverse1 = one / w1;
+                                    let inverse2 = (one).pdiv(w2);
+                                    let inverse1 = (one).pdiv(w1);
                                     let across = lw(window + 16) as f32;
                                     let down = (0 - lw(window + 36)) as f32;
                                     let half = 0.5_f32;
@@ -177,8 +177,8 @@ pub fn particleSpriteSparkGroupGfx(particle: i32, colour: i32, matrix: i32) {
     sw(sp + 96, colour);
     sw(sp + 100, matrix);
     let fall = age * -2.5_f32 * age;
-    let zoom = 6e+01_f32 / lwc1(lw(g::currentplayer) + 260);
-    let opacity = ((life - age) / life * 32.0_f32) as i32 & 255;
+    let zoom = (6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260));
+    let opacity = (((life - age)).pdiv(life) * 32.0_f32) as i32 & 255;
     if lw(particle + 24) > 0 {
         loop {
             let at = particle + 952 + i * 12;
@@ -212,7 +212,7 @@ pub fn particleSpriteSparkGroupGfx(particle: i32, colour: i32, matrix: i32) {
                             y = lwc1(sp + 20);
                         }
                         let window = g::window;
-                        let inverse = 1.0_f32 / w;
+                        let inverse = (1.0_f32).pdiv(w);
                         let scale = lwc1(0x3ad524);
                         let across = lw(window + 16) as f32;
                         let centre_x = lw(window + 8) as f32;
@@ -221,7 +221,7 @@ pub fn particleSpriteSparkGroupGfx(particle: i32, colour: i32, matrix: i32) {
                         let down = (0 - lw(window + 36)) as f32;
                         let screen_x = x * inverse;
                         let screen_y = y * inverse;
-                        let size = (zoom * 1e+02_f32 / z) as i32;
+                        let size = ((zoom * 1e+02_f32).pdiv(z)) as i32;
                         let depth = z * inverse;
                         swc1(sp + 16, screen_x);
                         swc1(sp + 20, screen_y);

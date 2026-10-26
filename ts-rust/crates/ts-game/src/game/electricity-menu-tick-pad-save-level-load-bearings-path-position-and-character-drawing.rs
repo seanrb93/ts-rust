@@ -99,7 +99,7 @@ pub fn electricityPropTick(a0: i32) {
         if on == 1 {
             let time = offset + g::electricityTime;
             let model = lw(a0 + 32);
-            let step = lwc1(g::updateframesf) / 6e+01_f32;
+            let step = (lwc1(g::updateframesf)).pdiv(6e+01_f32);
             let old = lwc1(time);
             let mask = lhu(model + 292);
             let frames = lw(g::updateframesi);
@@ -109,7 +109,7 @@ pub fn electricityPropTick(a0: i32) {
             if frames != 0 {
                 let random = random_as_float() * 2.3283064e-10_f32;
                 let at = offset + g::electricityOn;
-                if (random / lwc1(g::updateframesf) * limit + limit) <= lwc1(time) {
+                if ((random).pdiv(lwc1(g::updateframesf)) * limit + limit) <= lwc1(time) {
                     sw(at, 0);
                 }
             }
@@ -703,7 +703,7 @@ pub fn findbearings(a0: i32) {
                     let dy = lwc1(a0 + 52) - lwc1(at + 16);
                     let dx = lwc1(a0 + 48) - lwc1(at + 12);
                     let dz = lwc1(a0 + 56) - lwc1(at + 20);
-                    let distance = (dx * dx + dy * dy + dz * dz).abs().sqrt();
+                    let distance = (dx * dx + dy * dy + dz * dz).abs().psqrt();
                     pad = closestpad(position, distance);
                     break 'nearest;
                 }
@@ -743,7 +743,7 @@ pub fn findbearings(a0: i32) {
                                 let dy = lwc1(a0 + 52) - lwc1(at + 16);
                                 let dx = lwc1(a0 + 48) - lwc1(at + 12);
                                 let dz = lwc1(a0 + 56) - lwc1(at + 20);
-                                let distance = (dx * dx + dy * dy + dz * dz).abs().sqrt();
+                                let distance = (dx * dx + dy * dy + dz * dz).abs().psqrt();
                                 pad = closestpad(position, distance);
                                 let new_offset = pad * 28;
                                 if pad != -1 {
@@ -843,18 +843,18 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                                 let dy = lwc1(step + 8) - ry;
                                 swc1(sp + 4, dy);
                                 let dz = lwc1(step + 12) - rz;
-                                let length = (dx * dx + dy * dy + dz * dz).abs().sqrt();
+                                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
                                 swc1(sp + 8, dz);
                                 let target_x = lwc1(sp + 32);
                                 if !(length < remaining) {
-                                    let ratio = remaining / length;
+                                    let ratio = (remaining).pdiv(length);
                                     let mx = lwc1(sp) * ratio;
                                     let my = lwc1(sp + 4) * ratio;
                                     let mz = lwc1(sp + 8) * ratio;
                                     swc1(sp + 48, mx);
                                     swc1(sp + 52, my);
                                     swc1(sp + 56, mz);
-                                    fraction = (mx * mx + my * my + mz * mz).abs().sqrt() / length;
+                                    fraction = ((mx * mx + my * my + mz * mz).abs().psqrt()).pdiv(length);
                                     let new_y = lwc1(a0 + 52) + lwc1(sp + 52);
                                     step = lw(state + 12);
                                     let new_z = lwc1(a0 + 56) + lwc1(sp + 56);
@@ -883,11 +883,11 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                                 if turn < 0.0_f32 {
                                     turn += 3.6e+02_f32;
                                 }
-                                let arc = radius * lwc1(0x3acdf0) * (turn / 3.6e+02_f32);
+                                let arc = radius * lwc1(0x3acdf0) * ((turn).pdiv(3.6e+02_f32));
                                 if !(arc < remaining) {
                                     let part = turn * remaining;
-                                    fraction = remaining / arc;
-                                    let new_angle = current + part / arc;
+                                    fraction = (remaining).pdiv(arc);
+                                    let new_angle = current + (part).pdiv(arc);
                                     swc1(state + 72, new_angle);
                                     if 3.6e+02_f32 < new_angle {
                                         swc1(state + 72, new_angle - 3.6e+02_f32);
@@ -900,7 +900,7 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                                     advance = 1;
                                 }
                                 scale = lwc1(0x3acdf4);
-                                let phase = (lwc1(state + 72) - 9e+01_f32) * scale / 1.8e+02_f32;
+                                let phase = ((lwc1(state + 72) - 9e+01_f32) * scale).pdiv(1.8e+02_f32);
                                 let sine = sinf(phase);
                                 swc1(a0 + 48, lwc1(state + 28) + radius * sine);
                                 angle = lwc1(state + 72) - 9e+01_f32;
@@ -913,12 +913,12 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                                 if turn < 0.0_f32 {
                                     turn += 3.6e+02_f32;
                                 }
-                                let arc = radius * lwc1(0x3acde8) * (turn / 3.6e+02_f32);
+                                let arc = radius * lwc1(0x3acde8) * ((turn).pdiv(3.6e+02_f32));
                                 if !(arc < remaining) {
                                     let part = turn * remaining;
                                     let heading = lwc1(state + 56);
-                                    fraction = remaining / arc;
-                                    swc1(state + 72, current - part / arc);
+                                    fraction = (remaining).pdiv(arc);
+                                    swc1(state + 72, current - (part).pdiv(arc));
                                     if heading < 0.0_f32 {
                                         swc1(state + 56, heading + 3.6e+02_f32);
                                     }
@@ -930,7 +930,7 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                                     advance = 1;
                                 }
                                 scale = lwc1(0x3acdec);
-                                let phase = (lwc1(state + 72) + 9e+01_f32) * scale / 1.8e+02_f32;
+                                let phase = ((lwc1(state + 72) + 9e+01_f32) * scale).pdiv(1.8e+02_f32);
                                 let sine = sinf(phase);
                                 swc1(a0 + 48, lwc1(state + 28) + radius * sine);
                                 angle = lwc1(state + 72) + 9e+01_f32;
@@ -954,7 +954,7 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                                 break 'kind;
                             }
                         }
-                        let cosine = cosf(angle * scale / 1.8e+02_f32);
+                        let cosine = cosf((angle * scale).pdiv(1.8e+02_f32));
                         step = lw(state + 12);
                         swc1(a0 + 56, lwc1(state + 36) + radius * cosine);
                         kind = lw(step);
@@ -1011,7 +1011,7 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
             if lw(a0 + 4) == 311 {
                 swc1(
                     state + 80,
-                    lwc1(((((lw(state + 84) as f32 * lwc1(0x3acdf8) * lwc1(0x3acdfc) + 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable) * (3e+01_f32 - lwc1(state + 68)) / 3e+01_f32 * lwc1(0x3ace00),
+                    (lwc1(((((lw(state + 84) as f32 * lwc1(0x3acdf8) * lwc1(0x3acdfc) + 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable) * (3e+01_f32 - lwc1(state + 68))).pdiv(3e+01_f32) * lwc1(0x3ace00),
                 );
             }
         }
@@ -1036,7 +1036,7 @@ pub fn drawChar(a0: i32) {
     let model = lw(a0 + 32);
     let degrees = lwc1(a0 + 76) * lwc1(0x3ac9c4);
     swc1(sp + 64, lwc1(model + 128));
-    let angle = degrees / 1.8e+02_f32;
+    let angle = (degrees).pdiv(1.8e+02_f32);
     swc1(sp + 68, lwc1(model + 132));
     swc1(sp + 72, lwc1(model + 136));
     matrixRotY(sp, angle);
@@ -1062,7 +1062,7 @@ pub fn drawChar(a0: i32) {
             swc1(sp + 64, lwc1(prop_model + 128));
             swc1(sp + 68, lwc1(prop_model + 132));
             swc1(sp + 72, lwc1(prop_model + 136));
-            let angle = lwc1(stage_prop + 76) * scale / half_turn;
+            let angle = (lwc1(stage_prop + 76) * scale).pdiv(half_turn);
             matrixRotY(sp, angle);
             matrixVecRotAligned(&[sp as i64, (sp + 64) as i64]);
             let front = lw(g::front);

@@ -448,15 +448,15 @@ pub fn remotePropNew(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: 
         swc1(sp, lwc1(offset));
         swc1(sp + 4, lwc1(offset + 4));
         swc1(sp + 8, lwc1(offset + 8));
-        matrixRotY(sp + 16, lwc1(prop + 76) * degrees / 1.8e+02_f32);
+        matrixRotY(sp + 16, (lwc1(prop + 76) * degrees).pdiv(1.8e+02_f32));
         matrixVecRotAligned(&[(sp + 16) as i64, sp as i64]);
         let dx = lwc1(a1) + lwc1(sp) - lwc1(record + 68);
         let dy = lwc1(a1 + 4) + lwc1(sp + 4) - lwc1(record + 72);
         let dz = lwc1(a1 + 8) + lwc1(sp + 8) - lwc1(record + 76);
-        let sine = dy / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+        let sine = (dy).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
         let angle = asinf(sine);
         swc1(record + 24, lwc1(record + 20));
-        let result = angle * 1.8e+02_f32 / degrees;
+        let result = (angle * 1.8e+02_f32).pdiv(degrees);
         swc1(record + 16, result);
         swc1(record + 12, result);
     }

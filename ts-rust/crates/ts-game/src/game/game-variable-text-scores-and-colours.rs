@@ -123,7 +123,7 @@ pub fn hsv2col(hue: f32, saturation: f32, volume: f32) -> i32 {
             }
         }
     }
-    let sector_f = hue / 60.0_f32;
+    let sector_f = (hue).pdiv(60.0_f32);
     fptodp(sector_f);
     let wide = fptodp(sector_f);
     let floored = floor(wide);

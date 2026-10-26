@@ -218,7 +218,7 @@ pub fn propEditCreate(a0: i32, a1: i32) {
         let z = lwc1(player + 852);
         let x = lwc1(player + 844);
         let angle = atan2f(x, z);
-        swc1(sp + 20, angle * 1.8e+02_f32 / lwc1(0x3acfa0));
+        swc1(sp + 20, (angle * 1.8e+02_f32).pdiv(lwc1(0x3acfa0)));
     } else {
         sw(sp + 20, 0);
     }

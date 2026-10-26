@@ -18,7 +18,7 @@ pub fn HitTestLineCylinder(from: i32, dir: i32, bottom: i32, top: i32, hit: i32,
     let dz = tz - bz;
     swc1(sp + 68, dy);
     swc1(sp + 72, dz);
-    let inverse = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
     let dir_z = lwc1(dir + 8);
     let dir_x = lwc1(dir);
     let dir_y = lwc1(dir + 4);
@@ -41,9 +41,9 @@ pub fn HitTestLineCylinder(from: i32, dir: i32, bottom: i32, top: i32, hit: i32,
     swc1(sp + 4, from_y - by);
     swc1(sp + 8, from_z - bz);
     let rel_x = lwc1(sp);
-    let length = (cross_x * cross_x + cross_y * cross_y + cross_z * cross_z).abs().sqrt();
+    let length = (cross_x * cross_x + cross_y * cross_y + cross_z * cross_z).abs().psqrt();
     if !(length == 0.0_f32) {
-        let unit = 1.0_f32 / (cross_x * cross_x + cross_y * cross_y + cross_z * cross_z).abs().sqrt();
+        let unit = (1.0_f32).pdiv((cross_x * cross_x + cross_y * cross_y + cross_z * cross_z).abs().psqrt());
         let rx = lwc1(sp);
         let ry = lwc1(sp + 4);
         let rz = lwc1(sp + 8);
@@ -77,7 +77,7 @@ pub fn HitTestLineCylinder(from: i32, dir: i32, bottom: i32, top: i32, hit: i32,
         swc1(sp + 148, -ay);
         swc1(sp + 152, -az);
         let along = -((ry * az - rz * ay) * nx + (rz * ax - rx * az) * ny + (rx * ay - ry * ax) * nz) * unit;
-        let side_unit = 1.0_f32 / (side_x * side_x + side_y * side_y + side_z * side_z).abs().sqrt();
+        let side_unit = (1.0_f32).pdiv((side_x * side_x + side_y * side_y + side_z * side_z).abs().psqrt());
         let remaining = radius_squared - distance_squared;
         let unit_x = lwc1(sp + 48) * side_unit;
         let unit_y = lwc1(sp + 52) * side_unit;

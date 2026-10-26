@@ -33,7 +33,7 @@ pub fn bgHittestDistGlass(start: i32, direction: i32, a: i32, b: i32, c: i32, d:
     let sx = lwc1(start);
     let sy = lwc1(start + 4);
     let sz = lwc1(start + 8);
-    let t = (nx * ax + ny * ay + nz * az - (nx * sx + ny * sy + nz * sz)) / facing;
+    let t = ((nx * ax + ny * ay + nz * az - (nx * sx + ny * sy + nz * sz))).pdiv(facing);
     if t < 0.0_f32 {
         return 0;
     }
@@ -101,7 +101,7 @@ pub fn bgHittestDistGlass(start: i32, direction: i32, a: i32, b: i32, c: i32, d:
             swc1(normal, nx);
             swc1(normal + 4, ny);
             swc1(normal + 8, nz);
-            let inv = 1.0_f32 / (nx * nx + ny * ny + nz * nz).abs().sqrt();
+            let inv = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
             let z = lwc1(normal + 8) * inv;
             let y = lwc1(normal + 4) * inv;
             swc1(normal, lwc1(normal) * inv);

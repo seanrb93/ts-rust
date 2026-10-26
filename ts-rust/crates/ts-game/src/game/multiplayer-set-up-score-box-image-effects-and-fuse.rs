@@ -117,8 +117,8 @@ pub fn ipGfx() {
     if lw((number << 2) + g::ipfisheye) != 0 {
         let to_radians = lwc1(0x3ad484);
         let half_turn = 1.8e+02_f32;
-        let strength = sinf(lw(g::gameframe) as f32 * to_radians / half_turn);
-        let slow = sinf(lw(g::gameframe) as f32 * 0.5_f32 * to_radians / half_turn);
+        let strength = sinf((lw(g::gameframe) as f32 * to_radians).pdiv(half_turn));
+        let slow = sinf((lw(g::gameframe) as f32 * 0.5_f32 * to_radians).pdiv(half_turn));
         let mut ratio = fptodp(slow);
         if dpcmp(ratio, 0_i64) < 0 {
             ratio = dpsub(0_i64, ratio);
@@ -142,10 +142,10 @@ pub fn updateFuse(fuse: i32, amount: f32) {
     let model = lw(fuse + 12);
     let skeleton = lw(lw(model + 32));
     let z = lwc1(model + 56);
-    let roll = lwc1(model + 72) * to_radians / 1.8e+02_f32;
-    let pitch = lwc1(model + 76) * to_radians / 1.8e+02_f32;
+    let roll = (lwc1(model + 72) * to_radians).pdiv(1.8e+02_f32);
+    let pitch = (lwc1(model + 76) * to_radians).pdiv(1.8e+02_f32);
     let y = lwc1(model + 52);
-    let yaw = lwc1(model + 88) * to_radians / 1.8e+02_f32;
+    let yaw = (lwc1(model + 88) * to_radians).pdiv(1.8e+02_f32);
     let x = lwc1(model + 48);
     let bones = skeleton - lw(skeleton) * 80;
     matrixTransRotZXY(sp, x, y, z, roll, pitch, yaw);

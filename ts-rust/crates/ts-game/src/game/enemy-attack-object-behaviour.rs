@@ -48,7 +48,7 @@ pub fn enemyAttackObject(enemy: i32) {
     let dx = lwc1(enemy + 48) - lwc1(target + 48);
     let dy = lwc1(enemy + 52) - lwc1(target + 52);
     let dz = lwc1(enemy + 56) - lwc1(target + 56);
-    let distance = (dx * dx + dy * dy + dz * dz).abs().sqrt();
+    let distance = (dx * dx + dy * dy + dz * dz).abs().psqrt();
     'first: {
         if lw(record + 2772) != 0 {
             let kind = lw(record + 8);

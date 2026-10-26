@@ -44,10 +44,10 @@ pub fn moveCylGfx(x: f32, y: f32, z: f32, height: f32, radius: f32) {
         let to = i + 1;
         at += 64;
         i = to;
-        let from_angle = from * 3.6e+02_f32 * 0.125_f32 * to_radians / half_turn;
+        let from_angle = (from * 3.6e+02_f32 * 0.125_f32 * to_radians).pdiv(half_turn);
         let sin0 = sinf(from_angle);
         let cos0 = cosf(from_angle);
-        let to_angle = to as f32 * 3.6e+02_f32 * 0.125_f32 * to_radians / half_turn;
+        let to_angle = (to as f32 * 3.6e+02_f32 * 0.125_f32 * to_radians).pdiv(half_turn);
         let sin1 = sinf(to_angle);
         let cos1 = cosf(to_angle);
         swc1(second - 4, y);

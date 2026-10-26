@@ -39,14 +39,14 @@ pub fn obInstLineTest(inst: i32, from: i32, dir: i32, segment: i32, hit: i32, no
         let turned = lw(sp + 480);
         let matrix;
         if lw(model + 140) != 2 {
-            let angle = lwc1(turned + 76) * lwc1(0x3acb98) / 1.8e+02_f32;
+            let angle = (lwc1(turned + 76) * lwc1(0x3acb98)).pdiv(1.8e+02_f32);
             matrixRotY(sp + 64, angle);
             matrix = sp + 64;
         } else {
             let radians = lwc1(0x3acb94);
-            let a = lwc1(model + 72) * radians / 1.8e+02_f32;
-            let b = lwc1(model + 76) * radians / 1.8e+02_f32;
-            let c = lwc1(model + 88) * radians / 1.8e+02_f32;
+            let a = (lwc1(model + 72) * radians).pdiv(1.8e+02_f32);
+            let b = (lwc1(model + 76) * radians).pdiv(1.8e+02_f32);
+            let c = (lwc1(model + 88) * radians).pdiv(1.8e+02_f32);
             matrixRotZXY(sp + 64, a, b, c);
             matrix = sp + 64;
         }
@@ -185,9 +185,9 @@ pub fn obInstLineTest(inst: i32, from: i32, dir: i32, segment: i32, hit: i32, no
                                                         let out_normal = lw(sp + 528);
                                                         let record = polygon * 12 + lw(boxes + 32);
                                                         let vertices = lw(record + 8);
-                                                        swc1(sp + 352, lh(record + 2) as f32 / scale);
-                                                        swc1(sp + 356, lh(record + 4) as f32 / scale);
-                                                        swc1(sp + 360, lh(record + 6) as f32 / scale);
+                                                        swc1(sp + 352, (lh(record + 2) as f32).pdiv(scale));
+                                                        swc1(sp + 356, (lh(record + 4) as f32).pdiv(scale));
+                                                        swc1(sp + 360, (lh(record + 6) as f32).pdiv(scale));
                                                         let count_here = lbu(record);
                                                         let hit_poly = hittestLinePoly(
                                                             sp + 32,
@@ -309,7 +309,7 @@ pub fn obInstLineTest(inst: i32, from: i32, dir: i32, segment: i32, hit: i32, no
     if lw(sp + 468) != 0 {
         let ny = lwc1(sp + 20);
         let nz = lwc1(sp + 24);
-        let unit = 1.0_f32 / (nx * nx + ny * ny + nz * nz).abs().sqrt();
+        let unit = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
         let out = lw(sp + 468);
         let kind = lw(lw(sp + 480) + 8);
         swc1(out + 8, nz * unit);

@@ -30,7 +30,7 @@ pub fn enemyCheckHealth(enemy: i32) -> i32 {
                 let dy = lwc1(enemy + 52) - lwc1(pickup + 52);
                 let dz = lwc1(enemy + 56) - lwc1(pickup + 56);
                 let kind = lw(lw(pickup + 352));
-                let mut nearness = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+                let mut nearness = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
                 let health = lwc1(enemy + 520);
                 let wants = if kind != 4 { lwc1(0x3ad974) <= health } else { health <= lwc1(0x3ad970) };
                 if wants {

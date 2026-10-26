@@ -43,11 +43,11 @@ pub fn frontfxGoodiesTick() {
     let mut column = 0;
     loop {
         let d = column - place;
-        let distance = ((d * d) as f32).abs().sqrt();
+        let distance = ((d * d) as f32).abs().psqrt();
         let glow = if 35.0_f32 < distance {
             0.0_f32
         } else {
-            let t = (35.0_f32 - distance) / 35.0_f32;
+            let t = ((35.0_f32 - distance)).pdiv(35.0_f32);
             t * t
         };
         sb(column + g::frontfxalpha, (glow * 8e+01_f32 + 0.0_f32) as i32);

@@ -163,7 +163,7 @@ pub fn particleGlassTick(group: i32) {
     let sp = frame.sp();
     let step = lwc1(g::updateframesf);
     sw(sp, group + 928);
-    let dt = step / 6e+01_f32;
+    let dt = (step).pdiv(6e+01_f32);
     let owner = lw(lw(lw(group + 60) + 60) + 60);
     let base = owner + 928;
     let mut count = lw(base + 0x1188);
@@ -232,7 +232,7 @@ pub fn particleGlassTick(group: i32) {
                 swc1(c, lwc1(c) + lwc1(spins_z + i * 12) * dt);
                 let mut alpha = 1.0_f32;
                 if (flags & 256) == 0 {
-                    alpha -= lwc1(times + at4) / lwc1(0x3ad50c);
+                    alpha -= (lwc1(times + at4)).pdiv(lwc1(0x3ad50c));
                 } else {
                     let start = lwc1(0x3ad508);
                     let age = lwc1(times + at4);

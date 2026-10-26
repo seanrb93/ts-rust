@@ -13,10 +13,10 @@ pub fn hittestLineCyl(out: i32, normal: i32, base_x: f32, base_y: f32, base_z: f
     let start_z = lwc1(sp + 160);
     let off_z = start_z - base_z;
     let start_y = lwc1(sp + 152);
-    let inv = 1.0_f32 / (dir_x * dir_x + dir_z * dir_z).abs().sqrt();
+    let inv = (1.0_f32).pdiv((dir_x * dir_x + dir_z * dir_z).abs().psqrt());
     let across = (off_z * dir_x - off_x * dir_z) * inv;
     if !(radius < across) && !(radius < -across) {
-        let half = ((radius + across) * (radius - across)).abs().sqrt();
+        let half = ((radius + across) * (radius - across)).abs().psqrt();
         let along = (off_x * dir_x + off_z * dir_z) * -inv;
         let near = along - half;
         let far = along + half;

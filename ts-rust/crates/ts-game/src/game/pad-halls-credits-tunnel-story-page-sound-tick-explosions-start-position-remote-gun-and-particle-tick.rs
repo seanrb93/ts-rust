@@ -228,7 +228,7 @@ pub fn creditsBgTick() {
     let length = dptofp(dpmul(length, ld(0x3a9888)));
     let step = lwc1(g::updateframesf);
     let wave_time = lwc1(g::randomsinewavetime);
-    let advance = step * lwc1(0x3ad764) / 6e+01_f32;
+    let advance = (step * lwc1(0x3ad764)).pdiv(6e+01_f32);
     let roll = lwc1(g::creditscamrotz) + step;
     swc1(direction + 8, lwc1(position + 8) + ahead);
     swc1(g::creditscamrotz, roll);
@@ -730,7 +730,7 @@ pub fn explosionDamage(_a0: i32, a1: i32, a2: i32, a3: i32, _a4: i32, a5: i32, f
                                         let nz = -lwc1(sp + 24);
                                         swc1(sp + 48, -lwc1(sp + 16));
                                         swc1(sp + 52, ny);
-                                        let power = damage * (1.0_f32 - distance.abs().sqrt() / radius);
+                                        let power = damage * (1.0_f32 - (distance.abs().psqrt()).pdiv(radius));
                                         swc1(sp + 56, nz);
                                         propDamage(prop, a5, prop + 48, a2, a3, sp + 48, 0, stage_flag, power);
                                     }
@@ -971,7 +971,7 @@ pub fn gunRemoteFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
                 sw(a1 + 68, 0);
                 let x = lwc1(a0 + 48);
                 let y = lwc1(a0 + 52);
-                let degrees = heading / 1.8e+02_f32;
+                let degrees = (heading).pdiv(1.8e+02_f32);
                 let z = lwc1(a0 + 56);
                 matrixTransRotY(sp + 16, x, y, z, degrees);
                 sceVu0MulMatrix(sp + 80, sp + 16, lw(lw(a0 + 32) + 4));
@@ -1013,7 +1013,7 @@ pub fn gunRemoteFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
                         let fx = lwc1(sp);
                         let fy = lwc1(sp + 4);
                         let fz = lwc1(sp + 8);
-                        let inverse = 1.0_f32 / (fx * fx + fy * fy + fz * fz).abs().sqrt();
+                        let inverse = (1.0_f32).pdiv((fx * fx + fy * fy + fz * fz).abs().psqrt());
                         swc1(sp, (fx * inverse + spread_a * lwc1(owner + 240) + spread_b * lwc1(owner + 228)) * lwc1(stats + 28));
                         swc1(sp + 4, (fy * inverse + spread_a * lwc1(owner + 244) + spread_b * lwc1(owner + 232)) * lwc1(stats + 28));
                         swc1(sp + 8, (fz * inverse + spread_a * lwc1(owner + 248) + spread_b * lwc1(owner + 236)) * lwc1(stats + 28));
@@ -1051,7 +1051,7 @@ pub fn particleTick() {
         let first_kind = kind;
         if kind != -1 {
             let remaining = lwc1(group + 52);
-            let age = lwc1(group + 12) + frame_time / 6e+01_f32;
+            let age = lwc1(group + 12) + (frame_time).pdiv(6e+01_f32);
             swc1(group + 12, age);
             if 0.0_f32 < remaining {
                 if !(remaining <= age) {
@@ -1096,7 +1096,7 @@ pub fn particleTick() {
                                 0 => {
                                     frame_time = lwc1(g::updateframesf);
                                     let mut tick = true;
-                                    if !((frame_time / 6e+01_f32) < lwc1(group + 12)) {
+                                    if !(((frame_time).pdiv(6e+01_f32)) < lwc1(group + 12)) {
                                         let word = lw(group + 48);
                                         groups = lw(g::pgroups);
                                         if (word & (word - 1)) != 0 {
@@ -1122,7 +1122,7 @@ pub fn particleTick() {
                                 _ => {
                                     frame_time = lwc1(g::updateframesf);
                                     let mut tick = true;
-                                    if !((frame_time / 6e+01_f32) < lwc1(group + 12)) {
+                                    if !(((frame_time).pdiv(6e+01_f32)) < lwc1(group + 12)) {
                                         let word = lw(group + 48);
                                         if (word & (word - 1)) != 0 {
                                             tick = false;

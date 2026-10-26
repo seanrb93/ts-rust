@@ -79,7 +79,7 @@ pub fn updatePos(a0: i32) {
                 }
                 let after;
                 'b9: {
-                    let turn = lwc1(a0 + 76) * lwc1(0x3ad7fc) / 1.8e+02_f32;
+                    let turn = (lwc1(a0 + 76) * lwc1(0x3ad7fc)).pdiv(1.8e+02_f32);
                     matrixRotY(sp, turn);
                     matrixVecRotAligned(&[sp as i64, (sp + 64) as i64]);
                     let data_now = lw(a0 + 32);
@@ -201,7 +201,7 @@ pub fn updatePos(a0: i32) {
                     let product = dpmul(product, frames);
                     let down = dpdiv(product, 0x404e000000000000_i64);
                     let down = dptofp(down);
-                    let turn = lwc1(a0 + 76) * lwc1(0x3ad7f4) / 1.8e+02_f32;
+                    let turn = (lwc1(a0 + 76) * lwc1(0x3ad7f4)).pdiv(1.8e+02_f32);
                     swc1(sp + 72, down);
                     matrixRotY(sp, turn);
                     matrixVecRotAligned(&[sp as i64, (sp + 64) as i64]);
@@ -369,7 +369,7 @@ pub fn enemyTick(a0: i32) {
         strncpy(mind + 2736, 0x3afd00, 30);
         return;
     }
-    let step = lwc1(g::updateframesf) / 6e+01_f32;
+    let step = (lwc1(g::updateframesf)).pdiv(6e+01_f32);
     let f4 = lwc1(mind + 2952);
     let f5 = lwc1(mind + 2948);
     let f2 = lwc1(mind + 2896) + step;
@@ -685,7 +685,7 @@ pub fn gunFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32, a7
             if lw(sp) == 0 {
                 limit = lwc1(0x3ad330);
             }
-            let charge = lwc1(bullet + 72) + ((lw(a2 + 152) as f32) / 6e+01_f32 - lwc1(0x3ad334));
+            let charge = lwc1(bullet + 72) + (((lw(a2 + 152) as f32)).pdiv(6e+01_f32) - lwc1(0x3ad334));
             swc1(bullet + 72, charge);
             if limit <= charge {
                 sw(bullet + 48, 0);

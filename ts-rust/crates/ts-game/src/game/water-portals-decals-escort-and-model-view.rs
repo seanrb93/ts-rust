@@ -137,7 +137,7 @@ pub fn specialfxPickupSpawnTick(group: i32) {
     let slot = group * 92 + (groups + 72);
     let step = lwc1(g::updateframesf) * lwc1(0x3ad724);
     if lw(slot) != 0 {
-        matrixRotY(sp, step * 6e+02_f32 * lwc1(0x3ad728) / 1.8e+02_f32);
+        matrixRotY(sp, (step * 6e+02_f32 * lwc1(0x3ad728)).pdiv(1.8e+02_f32));
         let one = 1.0_f32;
         let scale = step * lwc1(0x3ad72c) + one;
         matrixScaleSet(sp + 64, scale, one, scale);
@@ -156,7 +156,7 @@ pub fn specialfxPickupSpawnTick(group: i32) {
 pub fn getCreditTunnelPos(x: i32, y: i32, distance: f32) {
     let frame = Frame::new(16);
     let sp = frame.sp();
-    let points = distance / 5e+01_f32;
+    let points = (distance).pdiv(5e+01_f32);
     let two_pi = ld(0x3a9898);
     let whole = points as i32;
     let fraction = points - whole as f32;

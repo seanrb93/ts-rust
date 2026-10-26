@@ -161,7 +161,7 @@ pub fn closestpadinlist(pos: i32, count: i32, list: i32) -> i32 {
         let dx = lwc1(at + 12) - lwc1(pos);
         let dy = lwc1(at + 16) - lwc1(pos + 4);
         let dz = lwc1(at + 20) - lwc1(pos + 8);
-        let dist = (dx * dx + dy * dy + dz * dz).abs().sqrt();
+        let dist = (dx * dx + dy * dy + dz * dz).abs().psqrt();
         if dist < best_dist {
             best_dist = dist;
             best = pad;

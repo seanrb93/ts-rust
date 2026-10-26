@@ -181,7 +181,7 @@ pub fn enemyPreCalcEnemyRoutes() {
                         let score = if cost == 0.0_f32 {
                             lwc1(0x3ada8c)
                         } else {
-                            ((100 - lh((lw(combo_at) << 3) + GUNCOMBOS)) as f32 / 1e+02_f32 + 1.0_f32) / (cost * cost)
+                            ((((100 - lh((lw(combo_at) << 3) + GUNCOMBOS)) as f32).pdiv(1e+02_f32) + 1.0_f32)).pdiv((cost * cost))
                         };
                         if !(score < best_score) {
                             j += 1;

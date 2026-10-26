@@ -22,7 +22,7 @@ pub fn flareGfx(flare: i32) {
     matrixVec3Mul4(sp + 32, flare + 8, sp);
     let mut visible = false;
     let depth = lwc1(sp + 8);
-    let inverse = 1.0_f32 / lwc1(sp + 12);
+    let inverse = (1.0_f32).pdiv(lwc1(sp + 12));
     let screen_z = depth * inverse;
     let screen_x = lwc1(sp) * inverse;
     let screen_y = lwc1(sp + 4) * inverse;
@@ -43,7 +43,7 @@ pub fn flareGfx(flare: i32) {
     }
     let x = lwc1(sp + 16);
     let y = lwc1(sp + 20);
-    let fade = lwc1(0x3ad614) - (x * x + y * y).abs().sqrt();
+    let fade = lwc1(0x3ad614) - (x * x + y * y).abs().psqrt();
     let mut brightness = scale;
     if !(1.0_f32 < fade) {
         brightness = fade * brightness;
@@ -75,7 +75,7 @@ pub fn flareGfx(flare: i32) {
             let entry = start + (word + kind * 244);
             let along = lwc1(entry + 4);
             let centre_x = lw(g::window + 8) as f32 + lw(g::window + 16) as f32 * lwc1(sp + 16) * along;
-            let size = lwc1(entry + 44) * 256.0_f32 * (6e+01_f32 / lwc1(lw(g::currentplayer) + 260));
+            let size = lwc1(entry + 44) * 256.0_f32 * ((6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260)));
             let centre_y = lw(g::window + 28) as f32 + lw(g::window + 36) as f32 * -lwc1(sp + 20) * along;
             let players = ilinkGetNumLocalPlayers();
             let mut wide = size;

@@ -290,7 +290,7 @@ pub fn animTick(a0: i32) {
                                         if a1_3 != lw(v0_5 + 8) {
                                             break 'b20;
                                         }
-                                        if !(0.5_f32 < (f1_2 * f1_2 + f2_1 * f2_1 + f0_1 * f0_1).abs().sqrt()) {
+                                        if !(0.5_f32 < (f1_2 * f1_2 + f2_1 * f2_1 + f0_1 * f0_1).abs().psqrt()) {
                                             break 'b20;
                                         }
                                     }
@@ -635,7 +635,7 @@ pub fn animTick(a0: i32) {
                 }
                 let a4_4 = lw(chr + 32);
                 let f2_2 = lwc1(a4_4 + 100);
-                if (lw((lw(a4_4 + 96) << 2) + g::animRightTag) as f32 / 6e+01_f32) <= f2_2 {
+                if ((lw((lw(a4_4 + 96) << 2) + g::animRightTag) as f32).pdiv(6e+01_f32)) <= f2_2 {
                     if lw(idx * 20 + fal) == 649 {
                         let v1_21 = lw(g::front);
                         if lwc1(0x3aca50) <= f2_2 {

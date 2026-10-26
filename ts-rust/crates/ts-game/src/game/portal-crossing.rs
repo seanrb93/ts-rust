@@ -38,7 +38,7 @@ pub fn bgPortalCrossed(position: i32, direction: i32, room: i32, skip: i32, unbo
                     let sx = lwc1(position);
                     let sy = lwc1(position + 4);
                     let sz = lwc1(position + 8);
-                    let t = (offset - (nx * sx + ny * sy + nz * sz)) / facing;
+                    let t = ((offset - (nx * sx + ny * sy + nz * sz))).pdiv(facing);
                     let mut skip_portal = false;
                     if t <= 0.0_f32 {
                         skip_portal = true;

@@ -101,7 +101,7 @@ pub fn frontfxTick(mode: i32) {
             swc1(g::flareintensity + 8, value);
         }
     } else {
-        let progress = page_time / first_end;
+        let progress = (page_time).pdiv(first_end);
         let radians = ld(0x3a1860);
         let shift = ld(0x3a1868);
         let factor = ld(0x3a1870);

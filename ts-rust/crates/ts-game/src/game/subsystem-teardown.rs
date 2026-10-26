@@ -314,7 +314,7 @@ pub fn signonDeleteStart() {
 /// Time at a position for the weather: the position divided by the weather's scale on each axis, summed (@ 0x2a8078).
 pub fn weatherCalcPositionalTime(pos: i32) -> f32 {
     let w = g::weather;
-    lwc1(pos) / lwc1(w + 48) + lwc1(pos + 4) / lwc1(w + 52) + lwc1(pos + 8) / lwc1(w + 56)
+    (lwc1(pos)).pdiv(lwc1(w + 48)) + (lwc1(pos + 4)).pdiv(lwc1(w + 52)) + (lwc1(pos + 8)).pdiv(lwc1(w + 56))
 }
 
 /// Turn a character to the angle `angle`: the angle and its record's copy at +2972, and no turn speed (@ 0x236988).

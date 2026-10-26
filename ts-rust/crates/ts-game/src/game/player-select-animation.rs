@@ -135,14 +135,14 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
             return;
         }
     }
-    let strength = (f12 * 8.0_f32 * f12 * 8.0_f32 + f13 * 7.0_f32 * f13 * 7.0_f32).abs().sqrt();
-    let unit = 113.0_f32.abs().sqrt();
+    let strength = (f12 * 8.0_f32 * f12 * 8.0_f32 + f13 * 7.0_f32 * f13 * 7.0_f32).abs().psqrt();
+    let unit = 113.0_f32.abs().psqrt();
     if !((unit * 0.5_f32) < strength) {
         let rate = lwc1(s0 + 2960);
-        swc1(s0 + 2960, rate + (strength - unit * 0.5_f32) / unit * lwc1(0x3ad118) * rate);
+        swc1(s0 + 2960, rate + ((strength - unit * 0.5_f32)).pdiv(unit) * lwc1(0x3ad118) * rate);
     } else {
         let rate = lwc1(s0 + 2960);
-        swc1(s0 + 2960, rate + (strength - unit * 0.5_f32) / unit * lwc1(0x3ad114) * (1.0_f32 - rate));
+        swc1(s0 + 2960, rate + ((strength - unit * 0.5_f32)).pdiv(unit) * lwc1(0x3ad114) * (1.0_f32 - rate));
     }
     if !(strength < lwc1(0x3ad11c)) {
         let mut side = fptodp(f12);
@@ -161,7 +161,7 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
                     swc1(player_now + 224, 0.0_f32);
                 } else {
                     'b9: {
-                        let slope = fptodp(-f13 / f12);
+                        let slope = fptodp((-f13).pdiv(f12));
                         let arc = atan(slope);
                         player_now = lw(g::currentplayer);
                         let degrees = dptofp(dpdiv(dpmul(arc, ld(0x3a8840)), ld(0x3a8848)));
@@ -202,7 +202,7 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
             }
             root_axis = 0;
         } else {
-            let slope = fptodp(-f13 / f12);
+            let slope = fptodp((-f13).pdiv(f12));
             let arc = atan(slope);
             let player_now = lw(g::currentplayer);
             let degrees = dptofp(dpdiv(dpmul(arc, ld(0x3a8830)), ld(0x3a8838)));
@@ -239,7 +239,7 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
         if distance == 0.0_f32 {
             curAnimSpeed(lw(s1 + 32), strength + 0.75_f32);
         } else {
-            let speed = strength * lwc1(sp + 8) / (distance * 6e+01_f32) / lwc1(0x3ad194);
+            let speed = ((strength * lwc1(sp + 8)).pdiv((distance * 6e+01_f32))).pdiv(lwc1(0x3ad194));
             curAnimSpeed(lw(s1 + 32), speed);
         }
         return;

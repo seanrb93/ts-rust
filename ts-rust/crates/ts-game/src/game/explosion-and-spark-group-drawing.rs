@@ -109,7 +109,7 @@ pub fn particleExplosionGfx(particle: i32, colour: i32, matrix: i32) {
     let mut i = 0;
     let mut batched = 0;
     let mut count = lw(particle + 24);
-    let zoom = 6e+01_f32 / lwc1(lw(g::currentplayer) + 260);
+    let zoom = (6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260));
     let mut header = 0;
     if count > 0 {
         loop {
@@ -148,12 +148,12 @@ pub fn particleExplosionGfx(particle: i32, colour: i32, matrix: i32) {
                                 y = lwc1(sp + 20);
                                 z = lwc1(sp + 24);
                             }
-                            let inverse = 1.0_f32 / w;
+                            let inverse = (1.0_f32).pdiv(w);
                             let window = g::window;
                             let scale = lwc1(0x3ad528);
                             let centre_x = lw(window + 8) as f32;
                             let down = 0 - lw(window + 36);
-                            let size_f = doubled * zoom * lwc1((lw(particle + 928) << 3) + (g::explosiondefs + 4)) / z;
+                            let size_f = (doubled * zoom * lwc1((lw(particle + 928) << 3) + (g::explosiondefs + 4))).pdiv(z);
                             let screen_x = x * inverse;
                             batched += 1;
                             let screen_y = y * inverse;
@@ -224,7 +224,7 @@ pub fn particleSparkGroupGfx(particle: i32, colour: i32, matrix: i32, delta: f32
     let later = age + delta;
     let count = lw(particle + 24);
     let drop = age * gravity * age;
-    sw(sp + 132, ((life - age) / life * 127.0_f32) as i32 & 255);
+    sw(sp + 132, (((life - age)).pdiv(life) * 127.0_f32) as i32 & 255);
     if count > 0 {
         sw(sp + 136, particle + 940);
         sw(sp + 140, particle + 944);
@@ -278,8 +278,8 @@ pub fn particleSparkGroupGfx(particle: i32, colour: i32, matrix: i32, delta: f32
                                         let one = 1.0_f32;
                                         let window = g::window;
                                         let depth_scale = lwc1(0x3ad514);
-                                        let inverse2 = one / w2;
-                                        let inverse1 = one / w1;
+                                        let inverse2 = (one).pdiv(w2);
+                                        let inverse1 = (one).pdiv(w1);
                                         let across = lw(window + 16) as f32;
                                         let down = (0 - lw(window + 36)) as f32;
                                         let half = 0.5_f32;

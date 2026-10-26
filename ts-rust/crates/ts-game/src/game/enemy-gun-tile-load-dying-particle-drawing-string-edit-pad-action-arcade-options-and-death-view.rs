@@ -1529,7 +1529,7 @@ pub fn playerDeathView() {
     let body = lw(player + 384);
     let data = lw(body + 352);
     sw((lw(player) << 2) + g::ipblur, 0);
-    let eye = rest + (target_y - rest) / 35.0_f32;
+    let eye = rest + ((target_y - rest)).pdiv(35.0_f32);
     swc1(player + 112, eye);
     if (top - eye) < floor {
         swc1(player + 112, top - floor);
@@ -1635,7 +1635,7 @@ pub fn playerDeathView() {
                                     let dz = lwc1(prop + 56) - lwc1(player + 160);
                                     swc1(sp + 40, dz);
                                     swc1(sp + 56, dz);
-                                    let inverse = 1.0_f32 / (dx * dx + dy * dy + dz * dz).abs().sqrt();
+                                    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
                                     let ux = lwc1(sp + 48) * inverse;
                                     let uz = lwc1(sp + 56) * inverse;
                                     let uy = lwc1(sp + 52) * inverse;
@@ -1691,8 +1691,8 @@ pub fn playerDeathView() {
                 loop {
                     let ty = lwc1(sp + 20);
                     let tz = lwc1(sp + 24);
-                    let length = (tx * tx + ty * ty + tz * tz).abs().sqrt();
-                    let inverse = 1.0_f32 / length;
+                    let length = (tx * tx + ty * ty + tz * tz).abs().psqrt();
+                    let inverse = (1.0_f32).pdiv(length);
                     let nz = tz * inverse;
                     let ny = ty * inverse;
                     let nx = tx * inverse;
@@ -1715,21 +1715,21 @@ pub fn playerDeathView() {
                     if ay < ax && az < ax {
                         let limit = lwc1(0x3acff0);
                         if limit < ax * speed {
-                            rate = limit / ax;
+                            rate = (limit).pdiv(ax);
                         } else {
                             rate = lwc1(0x3acff4);
                         }
                     } else if ax < ay && az < ay {
                         let limit = lwc1(0x3acff8);
                         if limit < ay * speed {
-                            rate = limit / ay;
+                            rate = (limit).pdiv(ay);
                         } else {
                             rate = lwc1(0x3acffc);
                         }
                     } else {
                         let limit = lwc1(0x3ad000);
                         if limit < az * speed {
-                            rate = limit / az;
+                            rate = (limit).pdiv(az);
                         } else {
                             rate = lwc1(0x3ad004);
                         }
@@ -1753,7 +1753,7 @@ pub fn playerDeathView() {
                         let x = lwc1(player + 1796);
                         let y = lwc1(player + 1800);
                         let z = lwc1(player + 1804);
-                        let inverse = 1.0_f32 / (x * x + y * y + z * z).abs().sqrt();
+                        let inverse = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
                         let nz = lwc1(player + 1804) * inverse;
                         let ny = lwc1(player + 1800) * inverse;
                         swc1(player + 1796, lwc1(player + 1796) * inverse);

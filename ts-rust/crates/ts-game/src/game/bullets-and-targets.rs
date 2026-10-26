@@ -28,7 +28,7 @@ pub fn bulletGetClosest(pos: i32, out: i32) -> i32 {
         }
     }
     if best != 0 {
-        swc1(out, best_d2.abs().sqrt());
+        swc1(out, best_d2.abs().psqrt());
     }
     best
 }

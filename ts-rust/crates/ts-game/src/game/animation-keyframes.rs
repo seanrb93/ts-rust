@@ -16,7 +16,7 @@ pub fn getKeyFrames(_unused: i32, state: i32, first: i32, second: i32) {
                 sw(first, 0);
                 let mut i = lw(anim + 4) - 2;
                 if i >= 0 {
-                    let mut frame_time = lw((i << 2) + lw(anim + 20)) as f32 / 60.0;
+                    let mut frame_time = (lw((i << 2) + lw(anim + 20)) as f32).pdiv(60.0);
                     loop {
                         if frame_time < time {
                             sw(first, i);
@@ -32,7 +32,7 @@ pub fn getKeyFrames(_unused: i32, state: i32, first: i32, second: i32) {
                         if i < 0 {
                             return;
                         }
-                        frame_time = lw((i << 2) + lw(anim + 20)) as f32 / 60.0;
+                        frame_time = (lw((i << 2) + lw(anim + 20)) as f32).pdiv(60.0);
                     }
                 }
                 return;

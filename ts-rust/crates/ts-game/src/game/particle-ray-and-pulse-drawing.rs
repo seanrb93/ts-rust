@@ -22,7 +22,7 @@ pub(super) fn put_words(at: i32, words: &[i32]) {
 pub fn particleRayGfx(particle: i32, colour: i32, matrix: i32) {
     let frame = Frame::new(240);
     let sp = frame.sp();
-    let zoom = 6e+01_f32 / lwc1(lw(g::currentplayer) + 260);
+    let zoom = (6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260));
     let mut i = 0;
     if lw(particle + 24) <= 0 {
         return;
@@ -30,9 +30,9 @@ pub fn particleRayGfx(particle: i32, colour: i32, matrix: i32) {
     loop {
         let step = i as f32;
         let forty = 4e+01_f32;
-        let y = lwc1(particle + 932) + lwc1(particle + 944) * step / forty;
-        let z = lwc1(particle + 936) + lwc1(particle + 948) * step / forty;
-        swc1(sp, lwc1(particle + 928) + lwc1(particle + 940) * step / forty);
+        let y = lwc1(particle + 932) + (lwc1(particle + 944) * step).pdiv(forty);
+        let z = lwc1(particle + 936) + (lwc1(particle + 948) * step).pdiv(forty);
+        swc1(sp, lwc1(particle + 928) + (lwc1(particle + 940) * step).pdiv(forty));
         swc1(sp + 4, y);
         swc1(sp + 8, z);
         matrixVec3Mul4Aligned(&[matrix as i64, sp as i64, (sp + 16) as i64]);
@@ -46,7 +46,7 @@ pub fn particleRayGfx(particle: i32, colour: i32, matrix: i32) {
                 let z = lwc1(sp + 24);
                 if y <= w && low <= z && z <= w {
                     let window = g::window;
-                    let inverse = 1.0_f32 / w;
+                    let inverse = (1.0_f32).pdiv(w);
                     let scale = lwc1(0x3ad550);
                     let across = lw(window + 16) as f32;
                     let down = (0 - lw(window + 36)) as f32;
@@ -63,7 +63,7 @@ pub fn particleRayGfx(particle: i32, colour: i32, matrix: i32) {
                     swc1(sp + 4, py);
                     let r = random_as_float();
                     let table = g::g_SinTable;
-                    let size = ((step + 5e+01_f32) * zoom / z) as i32 as f32;
+                    let size = (((step + 5e+01_f32) * zoom).pdiv(z)) as i32 as f32;
                     let turn_scale = lwc1(0x3ad558);
                     let half = 0.5_f32;
                     let z_out = lwc1(sp + 8);
@@ -74,7 +74,7 @@ pub fn particleRayGfx(particle: i32, colour: i32, matrix: i32) {
                     swc1(sp + 56, z_out);
                     swc1(sp + 72, z_out);
                     let py = lwc1(sp + 4);
-                    let index = (turn / 1.8e+02_f32 * turn_scale + half) as i32;
+                    let index = ((turn).pdiv(1.8e+02_f32) * turn_scale + half) as i32;
                     let dx = size * lwc1(((index & 2047) << 2) + table);
                     let dy = size * lwc1((((index + 512) & 2047) << 2) + table);
                     let half_dx = dx * half;
@@ -154,7 +154,7 @@ pub fn particlePulseGfx(particle: i32, matrix: i32) {
     let sp = frame.sp();
     let mut i = 0;
     let mut pulse = lw(particle + 928);
-    let zoom = 6e+01_f32 / lwc1(lw(g::currentplayer) + 260);
+    let zoom = (6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260));
     let colour = lw((pulse << 3) + g::pulsedefs);
     if lw(particle + 24) <= 0 {
         return;
@@ -162,9 +162,9 @@ pub fn particlePulseGfx(particle: i32, matrix: i32) {
     loop {
         let step = i as f32;
         let twenty = 2e+01_f32;
-        let y = lwc1(particle + 936) + lwc1(particle + 948) * step / twenty;
-        let z = lwc1(particle + 940) + lwc1(particle + 952) * step / twenty;
-        swc1(sp, lwc1(particle + 932) + lwc1(particle + 944) * step / twenty);
+        let y = lwc1(particle + 936) + (lwc1(particle + 948) * step).pdiv(twenty);
+        let z = lwc1(particle + 940) + (lwc1(particle + 952) * step).pdiv(twenty);
+        swc1(sp, lwc1(particle + 932) + (lwc1(particle + 944) * step).pdiv(twenty));
         swc1(sp + 4, y);
         swc1(sp + 8, z);
         matrixVec3Mul4Aligned(&[matrix as i64, sp as i64, (sp + 16) as i64]);
@@ -180,17 +180,17 @@ pub fn particlePulseGfx(particle: i32, matrix: i32) {
                     let offset = i << 2;
                     let window = g::window;
                     let half = 0.5_f32;
-                    let inverse = 1.0_f32 / w;
+                    let inverse = (1.0_f32).pdiv(w);
                     let down = (0 - lw(window + 36)) as f32;
                     let table = g::g_SinTable;
                     let across = lw(window + 16) as f32;
                     let depth_scale = lwc1(0x3ad54c);
                     let centre_x = lw(window + 8) as f32;
                     let screen_x = x * inverse;
-                    let angle = lwc1(particle + offset + 956) * lwc1(0x3ad544) / 1.8e+02_f32 * lwc1(0x3ad548) + half;
+                    let angle = (lwc1(particle + offset + 956) * lwc1(0x3ad544)).pdiv(1.8e+02_f32) * lwc1(0x3ad548) + half;
                     let screen_y = y * inverse;
                     swc1(sp + 16, screen_x);
-                    let size = ((step + 5e+01_f32) * zoom / z) as i32 as f32;
+                    let size = (((step + 5e+01_f32) * zoom).pdiv(z)) as i32 as f32;
                     let index = angle as i32;
                     swc1(sp + 20, screen_y);
                     let depth = z * inverse;
