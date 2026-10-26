@@ -75,7 +75,73 @@ fn native(s: &str) -> Option<String> {
         "Control Pad" => "Controller".to_string(),
         _ => t,
     };
+    // whatever else names the console, its card or its controller (wordings the rules above do not know)
+    for (from, to) in [
+        (" (PS2)", ""),
+        ("(PS2)", ""),
+        ("PlayStation\u{ae}2", "PC"),
+        ("PlayStation 2", "PC"),
+        ("PlayStation2", "PC"),
+        ("PLAYSTATION 2", "PC"),
+        ("PlayStation", "PC"),
+        ("PLAYSTATION", "PC"),
+        ("PS2", "PC"),
+        ("DUALSHOCK 2 analog controller", "controller"),
+        ("DUALSHOCK\u{ae}2 analog controller", "controller"),
+        ("analog controller (DUALSHOCK 2)", "controller"),
+        ("Memory Card", "Saved data"),
+        ("memory card", "saved data"),
+        ("MEMORY CARD", "SAVED DATA"),
+    ] {
+        t = t.replace(from, to);
+    }
     (t != s).then_some(t)
+}
+
+/// The needles that make a text of the executable worth a look (the table of texts has most of them; the others are read from elsewhere).
+const NEEDLES: [&str; 6] = ["(PS2)", "PS2", "PlayStation", "PLAYSTATION", "Memory Card", "MEMORY CARD"];
+
+/// Texts that are not in the table (read straight from the data of the executable) are changed where they are, when the new text is not
+/// longer than the old one.
+fn native_in_place() {
+    let (start, end) = (0x10_0000, 0x3c_0000);
+    let mut at = start;
+    while at < end {
+        // (a run of printable text, as the data has them: strings end in 0)
+        if !(lbu(at) == b'\n' as i32 || (32..127).contains(&lbu(at))) {
+            at += 1;
+            continue;
+        }
+        let from = at;
+        while at < end && (lbu(at) == b'\n' as i32 || (32..127).contains(&lbu(at))) {
+            at += 1;
+        }
+        if at - from < 5 || at - from > 600 || lbu(at) != 0 {
+            continue;
+        }
+        let s = read(from);
+        if !NEEDLES.iter().any(|n| s.contains(n)) {
+            continue;
+        }
+        if let Some(t) = native(&s) {
+            if t.len() <= s.len() {
+                if std::env::var_os("TS_TEXTLOG").is_some() {
+                    eprintln!("[text] data {from:#x}: {s:?} -> {t:?}");
+                }
+                let mut p = from;
+                for b in t.bytes() {
+                    sb(p, b as i32);
+                    p += 1;
+                }
+                while p <= at {
+                    sb(p, 0);
+                    p += 1;
+                }
+            } else if std::env::var_os("TS_TEXTLOG").is_some() {
+                eprintln!("[text] data {from:#x} left (longer): {s:?}");
+            }
+        }
+    }
 }
 
 /// The game's own texts are used as they are.
@@ -85,6 +151,7 @@ pub fn native_text_init() {}
 /// Replace the texts of the memory card and the console in the table of English texts.
 #[cfg(feature = "extensions")]
 pub fn native_text_init() {
+    native_in_place();
     let table = lw(g::languages);
     let mut at = TEXT_AT;
     for i in 0..1246 {
