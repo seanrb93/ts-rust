@@ -12,6 +12,7 @@ fn sine_of(x: i64) -> f32 {
 /// and for the main page (kind 1) the time since the page came up (from 100 when it was not the page before) moves the logo in: the first part scales it up while it flares
 /// (the flare's scales and intensities follow sines of the time), then it settles; for the other pages the logo is small at (500, 19) and the flare is off (@ 0x22a610).
 pub fn frontfxTick(mode: i32) {
+    menu_note_fx_x(mode);
     let previous = lw(g::frontstate);
     if mode != previous {
         if mode == 1 && previous != -1 {
@@ -33,7 +34,7 @@ pub fn frontfxTick(mode: i32) {
     }
     let rate = lwc1(0x3ac8e4);
     let wrap = 3.0_f32;
-    let time = ps2float::add(time, rate);
+    let time = ps2float::add(time, menu_scale(rate));
     swc1(g::frontfxtime, time);
     if wrap <= time {
         swc1(g::frontfxtime, ps2float::sub(time, wrap));
@@ -54,7 +55,7 @@ pub fn frontfxTick(mode: i32) {
         return;
     }
     let first_end = lwc1(0x3ac8e8);
-    let page_time = ps2float::add(lwc1(g::fronttime), rate);
+    let page_time = ps2float::add(lwc1(g::fronttime), menu_scale(rate));
     sw(g::logoposx, 320);
     sw(g::logoposy, 89);
     swc1(g::fronttime, page_time);
@@ -88,7 +89,7 @@ pub fn frontfxTick(mode: i32) {
             let radians = ld(0x3a1878);
             let factor = ld(0x3a1880);
             swc1(g::globalscaley, ps2float::add(one_less, lwc1(0x3ac8f8)));
-            swc1(g::globalscalex, ps2float::add(scale_x, ps2float::mul(ps2float::mul(one_less, wrap), rate)));
+            swc1(g::globalscalex, ps2float::add(scale_x, ps2float::mul(ps2float::mul(ps2float::mul(one_less, wrap), rate), menu_dt_x())));
             let angle = fptodp(past);
             let value = sine_of(dpadd(dpmul(dpmul(dpmul(angle, radians), half), factor), half));
             swc1(g::flarescalarx, ps2float::mul(value, lwc1(0x3ac8fc)));

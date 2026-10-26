@@ -291,11 +291,15 @@ pub fn bossMainLoop() {
     for pad in 0..4 {
         joySetShock(pad, 0, 0);
     }
-    memdbTick();
-    gameTick();
-    lvTickBefore();
+    menu_memdb_tick_x();
+    if menu_skip_x() {
+        menu_effects_x();
+    } else {
+        gameTick();
+        lvTickBefore();
+    }
     let mut index = 0;
-    if lw(g::lvnumplayers) > 0 {
+    if !menu_skip_x() && lw(g::lvnumplayers) > 0 {
         loop {
             let player = lw(g::players) + index * 1820;
             sw(g::currentplayer, player);
@@ -309,7 +313,10 @@ pub fn bossMainLoop() {
             }
         }
     }
-    lvTickAfter();
+    if !menu_skip_x() {
+        lvTickAfter();
+        menu_memdb_mark_x();
+    }
 
     // The list starts with a jump to the memory of the vector unit.
     sw(g::gfxtag, lw((lw(g::curcpudmabuf) << 2) + g::dmalists));

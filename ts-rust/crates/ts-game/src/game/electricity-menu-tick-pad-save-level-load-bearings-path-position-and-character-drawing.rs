@@ -1042,18 +1042,26 @@ pub fn drawChar(a0: i32) {
     matrixRotY(sp, angle);
     matrixVecRotAligned(&[sp as i64, (sp + 64) as i64]);
     let data = lw(a0 + 352);
-    swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), lwc1(sp + 64)));
+    if !menu_skip_x() {
+        swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), lwc1(sp + 64)));
+    }
     let kind = lh(data + 4);
     if kind == 46 || kind == 60 || kind == 40 {
-        rotateChar(a0, 198.0_f32);
+        if !menu_skip_x() {
+            rotateChar(a0, 198.0_f32);
+        }
     } else {
-        rotateChar(a0, 1.8e+02_f32);
+        if !menu_skip_x() {
+            rotateChar(a0, 1.8e+02_f32);
+        }
     }
     let front = lw(g::front);
     let stage_props = g::stageprop;
     let slot = lw(front) << 2;
     let stage_prop = lw(slot + stage_props);
-    swc1(a0 + 56, ps2float::add(lwc1(a0 + 56), lwc1(sp + 72)));
+    if !menu_skip_x() {
+        swc1(a0 + 56, ps2float::add(lwc1(a0 + 56), lwc1(sp + 72)));
+    }
     if stage_prop != 0 {
         if lw(slot + g::propdrawflag) != 0 {
             let prop_model = lw(stage_prop + 32);
@@ -1068,11 +1076,15 @@ pub fn drawChar(a0: i32) {
             let front = lw(g::front);
             let prop = lw((lw(front) << 2) + stage_props);
             let z = lwc1(prop + 56);
-            swc1(prop + 48, ps2float::add(lwc1(prop + 48), lwc1(sp + 64)));
+            if !menu_skip_x() {
+                swc1(prop + 48, ps2float::add(lwc1(prop + 48), lwc1(sp + 64)));
+            }
             let dz = lwc1(sp + 72);
             swc1(prop + 76, half_turn);
             swc1(prop + 84, half_turn);
-            swc1(prop + 56, ps2float::add(z, dz));
+            if !menu_skip_x() {
+                swc1(prop + 56, ps2float::add(z, dz));
+            }
         }
     }
     if (lw(a0 + 16) & 1) != 0 {
@@ -1151,9 +1163,11 @@ pub fn drawChar(a0: i32) {
     let shift = slot + 0x1fc1258;
     let stage = lw(slot + g::stage);
     let prop = lw(slot + g::stageprop);
-    swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), lwc1(shift)));
-    swc1(stage + 48, ps2float::add(lwc1(stage + 48), lwc1(shift)));
-    if prop != 0 {
-        swc1(prop + 48, ps2float::add(lwc1(prop + 48), lwc1(shift)));
+    if !menu_skip_x() {
+        swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), lwc1(shift)));
+        swc1(stage + 48, ps2float::add(lwc1(stage + 48), lwc1(shift)));
+        if prop != 0 {
+            swc1(prop + 48, ps2float::add(lwc1(prop + 48), lwc1(shift)));
+        }
     }
 }

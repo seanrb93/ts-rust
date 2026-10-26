@@ -256,6 +256,9 @@ pub fn joyMtapTick() {
 
 /// The tick of all the 8 controllers, and then of the cheats and of the replay.
 pub fn joyTick() {
+    if menu_skip_x() {
+        return;
+    }
     joyMtapTick();
     sw(g::joy_justdisconnected, 0);
     for index in 0..8 {

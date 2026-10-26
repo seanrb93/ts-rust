@@ -1042,3 +1042,102 @@ pub fn ticks_of(raw: i32) -> f32 {
         raw as f32
     }
 }
+
+// ---- the front end above 60 Hz (the menus' logic runs once per whole tick; the frames in between redraw) ------------------------------
+
+/// This frame completes no whole tick of the front end: its logic and pad sampling are skipped.
+#[inline]
+pub fn menu_skip_x() -> bool {
+    #[cfg(feature = "high-framerate")]
+    {
+        menu_skip()
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        false
+    }
+}
+
+/// The time of this front end frame in ticks (1.0 whenever the front end runs at 60 Hz).
+#[inline]
+pub fn menu_dt_x() -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        menu_dt()
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        1.0_f32
+    }
+}
+
+/// A per call step of the front end's animations scaled by the time of the frame.
+#[inline]
+pub fn menu_scale(v: f32) -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        v * menu_dt()
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        v
+    }
+}
+
+/// A per call step in double precision scaled by the time of the frame.
+#[inline]
+pub fn menu_dp_scale(v: i64) -> i64 {
+    #[cfg(feature = "high-framerate")]
+    {
+        dpmul(v, fptodp(menu_dt()))
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        v
+    }
+}
+
+/// A whole number step of `base` per tick, handed out in the fractions that fit the frame time.
+#[inline]
+pub fn menu_steps_x(base: i32) -> i32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        menu_steps(base)
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        base
+    }
+}
+
+/// `frontfxTick` notes the mode of the front end for the frames in between.
+#[inline]
+pub fn menu_note_fx_x(mode: i32) {
+    #[cfg(feature = "high-framerate")]
+    menu_note_fx(mode);
+    #[cfg(not(feature = "high-framerate"))]
+    let _ = mode;
+}
+
+/// The per frame arena reset of the game's tick (`memdbTick`): the front end's frames in between continue after the logic's allocations.
+#[inline]
+pub fn menu_memdb_tick_x() {
+    #[cfg(feature = "high-framerate")]
+    menu_memdb_tick();
+    #[cfg(not(feature = "high-framerate"))]
+    memdbTick();
+}
+
+/// After the logic of a tick the end of its allocations is marked.
+#[inline]
+pub fn menu_memdb_mark_x() {
+    #[cfg(feature = "high-framerate")]
+    menu_memdb_mark();
+}
+
+/// The animated background of the front end advances on the frames that have no logic.
+#[inline]
+pub fn menu_effects_x() {
+    #[cfg(feature = "high-framerate")]
+    menu_effects();
+}
