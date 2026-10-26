@@ -74,11 +74,13 @@ pub struct Settings {
     pub internal_height: u32,
     /// scaling the internal image up to the window shows its pixels as they are (nearest) instead of smoothed
     pub sharp: bool,
+    /// the console's own picture size, 640x448 (overrides `render_scale` and `internal_height`)
+    pub native: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { render_scale: 1.0, msaa: 1, filter: Filter::Bilinear, aniso: 1, aspect: Some(4.0 / 3.0), hud: HudMode::Edges, internal_height: 0, sharp: false }
+        Settings { render_scale: 1.0, msaa: 1, filter: Filter::Bilinear, aniso: 1, aspect: Some(4.0 / 3.0), hud: HudMode::Edges, internal_height: 0, sharp: false, native: false }
     }
 }
 
@@ -1006,6 +1008,9 @@ impl Renderer {
         if self.settings.internal_height > 0 {
             let h = self.settings.internal_height.clamp(120, 8192);
             size = (((h as f32 * ww / wh).round() as u32).max(16), h);
+        }
+        if self.settings.native {
+            size = (640, 448);
         }
         // keep the internal image inside the GPU's limits and a sane memory budget (colour + depth per sample)
         let max_dim = self.device.limits().max_texture_dimension_2d.min(8192);
