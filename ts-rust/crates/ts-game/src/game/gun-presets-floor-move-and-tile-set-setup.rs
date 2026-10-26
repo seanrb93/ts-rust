@@ -102,13 +102,13 @@ pub fn chrAddFloorMoveToPos(index: i32, pos: i32, angle: i32) {
         swc1(sp + 4, f3);
         let f0 = lwc1(now + 12);
         swc1(sp + 16, f0);
-        let line_x = f2 - f0;
+        let line_x = ps2float::sub(f2, f0);
         let f1 = lwc1(now + 20);
-        let line_z = f3 - f1;
+        let line_z = ps2float::sub(f3, f1);
         swc1(sp + 20, f1);
         swc1(sp + 48, lwc1(old));
         swc1(sp + 52, lwc1(old + 8));
-        let length = (line_x * line_x + line_z * line_z).abs().psqrt();
+        let length = ps2float::add(ps2float::mul(line_x, line_x), ps2float::mul(line_z, line_z)).abs().psqrt();
         swc1(sp + 64, lwc1(old + 12));
         let old_z = lwc1(old + 20);
         swc1(sp + 32, line_x);
@@ -120,38 +120,38 @@ pub fn chrAddFloorMoveToPos(index: i32, pos: i32, angle: i32) {
         let z = lwc1(pos + 8);
         let start_x = lwc1(sp + 16);
         let start_z = lwc1(sp + 20);
-        let rel_x = x - start_x;
+        let rel_x = ps2float::sub(x, start_x);
         let old_start_x = lwc1(sp + 48);
-        let rel_z = z - start_z;
+        let rel_z = ps2float::sub(z, start_z);
         let old_start_z = lwc1(sp + 64);
         swc1(sp + 32, unit_x);
         swc1(sp + 36, unit_z);
         let old_end_z = lwc1(sp + 68);
-        let along = rel_x * unit_x + rel_z * unit_z;
-        let old_unit_z = ((lwc1(sp + 52) - old_end_z)).pdiv(length);
-        let across_x = rel_x - along * unit_x;
-        let across_z = rel_z - along * unit_z;
-        swc1(sp + 80, ((old_start_x - old_start_z)).pdiv(length));
+        let along = ps2float::add(ps2float::mul(rel_x, unit_x), ps2float::mul(rel_z, unit_z));
+        let old_unit_z = (ps2float::sub(lwc1(sp + 52), old_end_z)).pdiv(length);
+        let across_x = ps2float::sub(rel_x, ps2float::mul(along, unit_x));
+        let across_z = ps2float::sub(rel_z, ps2float::mul(along, unit_z));
+        swc1(sp + 80, (ps2float::sub(old_start_x, old_start_z)).pdiv(length));
         swc1(sp + 96, across_x);
         swc1(sp + 100, across_z);
-        let mut across = (across_x * across_x + across_z * across_z).abs().psqrt();
+        let mut across = ps2float::add(ps2float::mul(across_x, across_x), ps2float::mul(across_z, across_z)).abs().psqrt();
         swc1(sp + 84, old_unit_z);
-        if (lwc1(sp + 36) * (x - start_x) - lwc1(sp + 32) * (z - start_z)) < 0.0_f32 {
+        if ps2float::sub(ps2float::mul(lwc1(sp + 36), ps2float::sub(x, start_x)), ps2float::mul(lwc1(sp + 32), ps2float::sub(z, start_z))) < 0.0_f32 {
             across = -across;
         }
         let new_unit_x = lwc1(sp + 80);
         let new_unit_z = lwc1(sp + 84);
-        swc1(pos + 8, old_end_z + along * new_unit_z - across * new_unit_x);
-        swc1(pos, old_start_z + along * new_unit_x + across * new_unit_z);
+        swc1(pos + 8, ps2float::sub(ps2float::add(old_end_z, ps2float::mul(along, new_unit_z)), ps2float::mul(across, new_unit_x)));
+        swc1(pos, ps2float::add(ps2float::add(old_start_z, ps2float::mul(along, new_unit_x)), ps2float::mul(across, new_unit_z)));
         let new_angle = atan2f(new_unit_x, new_unit_z);
         let line_angle = atan2f(lwc1(sp + 32), lwc1(sp + 36));
-        swc1(angle, lwc1(angle) + ((new_angle - line_angle) * 1.8e+02_f32).pdiv(lwc1(0x3ad198)));
+        swc1(angle, ps2float::add(lwc1(angle), ps2float::mul((new_angle - line_angle), 1.8e+02_f32).pdiv(lwc1(0x3ad198))));
         return;
     }
     let z = lwc1(pos + 8);
-    swc1(pos, lwc1(pos) + (lwc1(plat + 48) - before_x));
-    swc1(pos + 8, z + (lwc1(plat + 56) - lwc1(plat + 120)));
-    swc1(angle, lwc1(angle) + (lwc1(plat + 76) - lwc1(plat + 128)));
+    swc1(pos, ps2float::add(lwc1(pos), ps2float::sub(lwc1(plat + 48), before_x)));
+    swc1(pos + 8, ps2float::add(z, ps2float::sub(lwc1(plat + 56), lwc1(plat + 120))));
+    swc1(angle, ps2float::add(lwc1(angle), ps2float::sub(lwc1(plat + 76), lwc1(plat + 128))));
 }
 
 /// Find the counts a tile set needs in the set-up `setup` (a record of 112 bytes, cleared first) by reading the chunks of the map maker's temporary buffer (8-byte headers, the

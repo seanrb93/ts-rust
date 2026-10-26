@@ -81,10 +81,10 @@ fn anim_root(chr: i32, anim: i32, first: i32, last: i32, third: i32, axis: i32, 
         _ => {}
     }
     if lw(lw(lw(chr + 32) + 88) + 12) == 1 {
-        scale *= lwc1(factor_at);
+        scale = ps2float::mul(scale, lwc1(factor_at));
     }
-    swc1(first, lwc1(first) * scale);
-    swc1(last, lwc1(last) * scale);
+    swc1(first, ps2float::mul(lwc1(first), scale));
+    swc1(last, ps2float::mul(lwc1(last), scale));
 }
 
 /// The root movement of animation `anim_number` for a character (@ 0x215590).

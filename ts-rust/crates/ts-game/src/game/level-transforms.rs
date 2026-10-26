@@ -7,18 +7,18 @@ pub fn bgWallTransform(wall: i32, trans: i32, m: i32) {
     matrixVecMul(m, wall + 4);
     matrixVecMul(m, wall + 20);
     let top = lwc1(wall + 32);
-    swc1(wall + 16, lwc1(wall + 16) + lwc1(trans + 8));
-    swc1(wall + 32, top + lwc1(trans + 8));
+    swc1(wall + 16, ps2float::add(lwc1(wall + 16), lwc1(trans + 8)));
+    swc1(wall + 32, ps2float::add(top, lwc1(trans + 8)));
 }
 
 /// Transform a volume: its position (+8), its axes (+20), and turn its angle (+36) by the rotation of the tile (`tilerotang`, by the word at +16 of `tile`) (@ 0x254260).
 pub fn bgVolumeTransform(volume: i32, tile: i32, m: i32) {
     matrixVecMul(m, volume + 8);
     matrixVecRot(m, volume + 20);
-    let angle = lwc1(volume + 36) + lwc1((lw(tile + 16) << 2) + g::tilerotang);
+    let angle = ps2float::add(lwc1(volume + 36), lwc1((lw(tile + 16) << 2) + g::tilerotang));
     swc1(volume + 36, angle);
     if 360.0 <= angle {
-        swc1(volume + 36, angle - 360.0);
+        swc1(volume + 36, ps2float::sub(angle, 360.0));
     }
 }
 
@@ -80,10 +80,10 @@ pub fn bgRoombbTransform(bb: i32, trans: i32) {
     };
     let y0 = lwc1(bb + 4);
     let y1 = lwc1(bb + 16);
-    swc1(bb, new_xz.0 + tx());
-    swc1(bb + 4, y0 + ty());
-    swc1(bb + 8, new_xz.1 + tz());
-    swc1(bb + 12, new_xz.2 + tx());
-    swc1(bb + 16, y1 + ty());
-    swc1(bb + 20, new_xz.3 + tz());
+    swc1(bb, ps2float::add(new_xz.0, tx()));
+    swc1(bb + 4, ps2float::add(y0, ty()));
+    swc1(bb + 8, ps2float::add(new_xz.1, tz()));
+    swc1(bb + 12, ps2float::add(new_xz.2, tx()));
+    swc1(bb + 16, ps2float::add(y1, ty()));
+    swc1(bb + 20, ps2float::add(new_xz.3, tz()));
 }

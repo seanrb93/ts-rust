@@ -49,16 +49,16 @@ pub fn padAddTilePads(tile: i32, matrix: i32, context: i32) {
             sh(new_pad + 8, hall_base + hall);
             swc1(new_pad + 24, direction);
             if quarter == 1 {
-                swc1(new_pad + 24, direction - 90.0_f32);
+                swc1(new_pad + 24, ps2float::sub(direction, 90.0_f32));
             } else if quarter == 2 {
-                swc1(new_pad + 24, direction - 180.0_f32);
+                swc1(new_pad + 24, ps2float::sub(direction, 180.0_f32));
             } else if quarter == 3 {
-                swc1(new_pad + 24, direction - 270.0_f32);
+                swc1(new_pad + 24, ps2float::sub(direction, 270.0_f32));
             }
             let record = new_index * 28 + pads;
             let angle = lwc1(record + 24);
             if angle < 0.0_f32 {
-                swc1(record + 24, angle + 360.0_f32);
+                swc1(record + 24, ps2float::add(angle, 360.0_f32));
             }
             matrixVecMul(matrix, record + 12);
             pads = lw(g::levelpads);

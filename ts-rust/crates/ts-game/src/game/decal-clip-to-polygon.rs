@@ -32,17 +32,17 @@ pub fn decalClipToPoly(
     let (ax, ay, az);
     if corner_a != 1 && corner_a != 3 {
         ay = lwc1(decal + 52);
-        ax = x0 - lwc1(decal + 48);
+        ax = ps2float::sub(x0, lwc1(decal + 48));
         az = lwc1(decal + 56);
     } else {
         ay = lwc1(decal + 20);
-        ax = x0 - lwc1(decal + 16);
+        ax = ps2float::sub(x0, lwc1(decal + 16));
         az = lwc1(decal + 24);
     }
-    let dy = y0 - ay;
+    let dy = ps2float::sub(y0, ay);
     let z0 = lwc1(decal + 8);
-    let dz = z0 - az;
-    let length_a = ax * ax + dy * dy + dz * dz;
+    let dz = ps2float::sub(z0, az);
+    let length_a = ps2float::add(ps2float::add(ax * ax, ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
     let (bx, by, bz);
     if corner_b != 1 && corner_b != 3 {
         bx = lwc1(decal + 48);
@@ -53,9 +53,9 @@ pub fn decalClipToPoly(
         by = lwc1(decal + 20);
         bz = lwc1(decal + 24);
     }
-    let across_x = x0 - bx;
-    let across_y = y0 - by;
-    let across_z = z0 - bz;
+    let across_x = ps2float::sub(x0, bx);
+    let across_y = ps2float::sub(y0, by);
+    let across_z = ps2float::sub(z0, bz);
     sw(sp + 332, decal + 4);
     sw(sp + 356, corner_a << 4);
     sw(sp + 360, corner_b << 4);
@@ -88,35 +88,35 @@ pub fn decalClipToPoly(
             let mut pz = lwc1(start_at + 8);
             let mut py = lwc1(start_at + 4);
             let end_at = lw(sp + 320) + lbu(lw(sp + 324) + next_edge.wrapping_rem(edges)) * 12;
-            let ez = lwc1(end_at + 8) - pz;
-            let ex = lwc1(end_at) - px;
-            let ey = lwc1(end_at + 4) - py;
+            let ez = ps2float::sub(lwc1(end_at + 8), pz);
+            let ex = ps2float::sub(lwc1(end_at), px);
+            let ey = ps2float::sub(lwc1(end_at + 4), py);
             swc1(sp + 280, ez);
             swc1(sp + 272, ex);
             swc1(sp + 276, ey);
-            let cy = ez * nx - ex * nz;
-            let cx = ey * nz - ez * ny;
+            let cy = ps2float::sub(ps2float::mul(ez, nx), ps2float::mul(ex, nz));
+            let cx = ps2float::sub(ps2float::mul(ey, nz), ps2float::mul(ez, ny));
             swc1(sp + 260, cy);
             swc1(sp + 256, cx);
-            let cz = ex * ny - ey * nx;
+            let cz = ps2float::sub(ps2float::mul(ex, ny), ps2float::mul(ey, nx));
             swc1(sp + 264, cz);
-            let unit = (1.0_f32).pdiv((cx * cx + cy * cy + cz * cz).abs().psqrt());
+            let unit = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(cx, cx), ps2float::mul(cy, cy)), ps2float::mul(cz, cz)).abs().psqrt());
             let mut produced: i32 = 0;
             let last = (count - 1) * 12 + in_buffer;
-            let plane_x = lwc1(sp + 256) * unit;
-            let plane_z = lwc1(sp + 264) * unit;
-            let plane_y = lwc1(sp + 260) * unit;
+            let plane_x = ps2float::mul(lwc1(sp + 256), unit);
+            let plane_z = ps2float::mul(lwc1(sp + 264), unit);
+            let plane_y = ps2float::mul(lwc1(sp + 260), unit);
             swc1(sp + 256, plane_x);
             swc1(sp + 264, plane_z);
             swc1(sp + 260, plane_y);
-            let rx = lwc1(last) - px;
+            let rx = ps2float::sub(lwc1(last), px);
             swc1(sp + 288, rx);
-            let ry = lwc1(last + 4) - py;
+            let ry = ps2float::sub(lwc1(last + 4), py);
             swc1(sp + 292, ry);
-            let rz = lwc1(last + 8) - pz;
+            let rz = ps2float::sub(lwc1(last + 8), pz);
             swc1(sp + 296, rz);
             let mut previous_inside = 1;
-            if !((rx * plane_x + ry * plane_y + rz * plane_z) <= 0.0_f32) {
+            if !(ps2float::add(ps2float::add(ps2float::mul(rx, plane_x), ps2float::mul(ry, plane_y)), ps2float::mul(rz, plane_z)) <= 0.0_f32) {
                 previous_inside = 0;
             }
             let mut index = 0;
@@ -136,13 +136,13 @@ pub fn decalClipToPoly(
                     let mz = lwc1(sp + 264);
                     let mut inside = 1;
                     let current = index * 12 + in_buffer;
-                    let rx = lwc1(current) - px;
+                    let rx = ps2float::sub(lwc1(current), px);
                     swc1(sp + 288, rx);
-                    let ry = lwc1(current + 4) - py;
+                    let ry = ps2float::sub(lwc1(current + 4), py);
                     swc1(sp + 292, ry);
-                    let rz = lwc1(current + 8) - pz;
+                    let rz = ps2float::sub(lwc1(current + 8), pz);
                     swc1(sp + 296, rz);
-                    if !((rx * mx + ry * my + rz * mz) <= 0.0_f32) {
+                    if !(ps2float::add(ps2float::add(ps2float::mul(rx, mx), ps2float::mul(ry, my)), ps2float::mul(rz, mz)) <= 0.0_f32) {
                         inside = 0;
                     }
                     'vertex: {
@@ -151,18 +151,18 @@ pub fn decalClipToPoly(
                             if inside == 0 {
                                 recording = false;
                             } else {
-                                let dx = lwc1(current) - lwc1(previous);
+                                let dx = ps2float::sub(lwc1(current), lwc1(previous));
                                 swc1(sp + 304, dx);
-                                let dy = lwc1(current + 4) - lwc1(previous + 4);
+                                let dy = ps2float::sub(lwc1(current + 4), lwc1(previous + 4));
                                 swc1(sp + 308, dy);
-                                let dz = lwc1(current + 8) - lwc1(previous + 8);
+                                let dz = ps2float::sub(lwc1(current + 8), lwc1(previous + 8));
                                 swc1(sp + 312, dz);
                                 let prev_x = lwc1(previous);
-                                let t = (mx * px + my * py + mz * pz - (mx * prev_x + my * lwc1(previous + 4) + mz * lwc1(previous + 8))).pdiv(mx * dx + my * dy + mz * dz);
+                                let t = ps2float::sub(ps2float::add(ps2float::add(ps2float::mul(mx, px), ps2float::mul(my, py)), ps2float::mul(mz, pz)), ps2float::add(ps2float::add(ps2float::mul(mx, prev_x), ps2float::mul(my, lwc1(previous + 4))), ps2float::mul(mz, lwc1(previous + 8)))).pdiv(ps2float::add(ps2float::add(ps2float::mul(mx, dx), ps2float::mul(my, dy)), ps2float::mul(mz, dz)));
                                 let slot = produced * 12 + out_buffer;
-                                swc1(slot, prev_x + t * dx);
-                                swc1(slot + 4, lwc1(previous + 4) + t * lwc1(sp + 308));
-                                swc1(slot + 8, lwc1(previous + 8) + t * lwc1(sp + 312));
+                                swc1(slot, ps2float::add(prev_x, ps2float::mul(t, dx)));
+                                swc1(slot + 4, ps2float::add(lwc1(previous + 4), ps2float::mul(t, lwc1(sp + 308))));
+                                swc1(slot + 8, ps2float::add(lwc1(previous + 8), ps2float::mul(t, lwc1(sp + 312))));
                                 let slot = (produced + 1) * 12 + out_buffer;
                                 swc1(slot, lwc1(current));
                                 swc1(slot + 4, lwc1(current + 4));
@@ -180,18 +180,18 @@ pub fn decalClipToPoly(
                             swc1(slot + 8, lwc1(current + 8));
                             recording = false;
                         } else {
-                            let dx = lwc1(current) - lwc1(previous);
+                            let dx = ps2float::sub(lwc1(current), lwc1(previous));
                             swc1(sp + 304, dx);
                             let slot = produced * 12 + out_buffer;
-                            let dy = lwc1(current + 4) - lwc1(previous + 4);
+                            let dy = ps2float::sub(lwc1(current + 4), lwc1(previous + 4));
                             swc1(sp + 308, dy);
-                            let dz = lwc1(current + 8) - lwc1(previous + 8);
+                            let dz = ps2float::sub(lwc1(current + 8), lwc1(previous + 8));
                             swc1(sp + 312, dz);
                             let prev_x = lwc1(previous);
-                            let t = (mx * px + my * py + mz * pz - (mx * prev_x + my * lwc1(previous + 4) + mz * lwc1(previous + 8))).pdiv(mx * dx + my * dy + mz * dz);
-                            swc1(slot, prev_x + t * dx);
-                            swc1(slot + 4, lwc1(previous + 4) + t * lwc1(sp + 308));
-                            swc1(slot + 8, lwc1(previous + 8) + t * lwc1(sp + 312));
+                            let t = ps2float::sub(ps2float::add(ps2float::add(ps2float::mul(mx, px), ps2float::mul(my, py)), ps2float::mul(mz, pz)), ps2float::add(ps2float::add(ps2float::mul(mx, prev_x), ps2float::mul(my, lwc1(previous + 4))), ps2float::mul(mz, lwc1(previous + 8)))).pdiv(ps2float::add(ps2float::add(ps2float::mul(mx, dx), ps2float::mul(my, dy)), ps2float::mul(mz, dz)));
+                            swc1(slot, ps2float::add(prev_x, ps2float::mul(t, dx)));
+                            swc1(slot + 4, ps2float::add(lwc1(previous + 4), ps2float::mul(t, lwc1(sp + 308))));
+                            swc1(slot + 8, ps2float::add(lwc1(previous + 8), ps2float::mul(t, lwc1(sp + 312))));
                             produced += 1;
                             if lw(sp + 328) == 0 {
                                 recording = false;
@@ -302,7 +302,7 @@ pub fn decalClipToPoly(
             let along_b = HitTestDistancePointToLineSegmentSquared(vertex, sp + 224, sp + 236, 0);
             count_reg = lq(sp + 416);
             recorded_reg = lq(sp + 432);
-            swc1(v_at, ((along_b).pdiv((across_x * across_x + across_y * across_y + across_z * across_z))).abs().psqrt());
+            swc1(v_at, ((along_b).pdiv(ps2float::add(ps2float::add(ps2float::mul(across_x, across_x), ps2float::mul(across_y, across_y)), ps2float::mul(across_z, across_z)))).abs().psqrt());
             let mut u = lwc1(u_at);
             if u < 0.0_f32 {
                 swc1(u_at, 0.0_f32);

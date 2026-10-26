@@ -101,13 +101,13 @@ fn floor_search_setup(pos: i32, height: f32, radius: f32, box_at: i32, point_at:
     let z = lwc1(pos + 8);
     let y = lwc1(pos + 4);
     swc1(box_at + 4, y);
-    swc1(box_at + 12, x + radius);
-    swc1(box_at + 20, z + radius);
-    swc1(box_at + 16, y + height);
-    swc1(box_at, x - radius);
-    swc1(box_at + 8, z - radius);
+    swc1(box_at + 12, ps2float::add(x, radius));
+    swc1(box_at + 20, ps2float::add(z, radius));
+    swc1(box_at + 16, ps2float::add(y, height));
+    swc1(box_at, ps2float::sub(x, radius));
+    swc1(box_at + 8, ps2float::sub(z, radius));
     let found = bgFloorBBIntersectionXZ(box_at, rooms, 20);
-    let top = lwc1(pos + 4) + height;
+    let top = ps2float::add(lwc1(pos + 4), height);
     let x = lwc1(pos);
     swc1(point_at + 8, lwc1(pos + 8));
     swc1(point_at, x);
@@ -164,12 +164,12 @@ pub fn moveFindRoom(pos: i32, height: f32, radius: f32) -> i32 {
     let y = lwc1(pos + 4);
     swc1(sp, x);
     swc1(sp + 20, y);
-    let top = y + height;
-    swc1(sp + 28, x + radius);
-    swc1(sp + 36, z + radius);
-    swc1(sp + 16, x - radius);
+    let top = ps2float::add(y, height);
+    swc1(sp + 28, ps2float::add(x, radius));
+    swc1(sp + 36, ps2float::add(z, radius));
+    swc1(sp + 16, ps2float::sub(x, radius));
     swc1(sp + 32, top);
-    swc1(sp + 24, z - radius);
+    swc1(sp + 24, ps2float::sub(z, radius));
     swc1(sp + 4, top);
     swc1(sp + 8, z);
     let count = bgFloorBBIntersectionXZ(sp + 16, sp + 48, 20);
@@ -197,12 +197,12 @@ pub fn moveFindRoom(pos: i32, height: f32, radius: f32) -> i32 {
         let px = lwc1(pos);
         let mut skip = 0;
         let pz = lwc1(pos + 8);
-        let below = lwc1(pos + 4) - best;
+        let below = ps2float::sub(lwc1(pos + 4), best);
         let mut result = 0;
         swc1(sp + 160, px);
         swc1(sp + 148, below);
-        swc1(sp + 144, px - px);
-        swc1(sp + 152, pz - pz);
+        swc1(sp + 144, ps2float::sub(px, px));
+        swc1(sp + 152, ps2float::sub(pz, pz));
         swc1(sp + 164, best);
         swc1(sp + 168, pz);
         if best_room != 0 {
@@ -258,11 +258,11 @@ pub fn followTarget(chr: i32) {
     swc1(state + 2800, y);
     let z = lwc1(pad + 20);
     swc1(state + 2804, z);
-    let dx = lwc1(chr + 48) - x;
-    let dy = lwc1(chr + 52) - y;
-    let dz = lwc1(chr + 56) - z;
+    let dx = ps2float::sub(lwc1(chr + 48), x);
+    let dy = ps2float::sub(lwc1(chr + 52), y);
+    let dz = ps2float::sub(lwc1(chr + 56), z);
     let waited;
-    if !((dx * dx + dy * dy + dz * dz) < near) {
+    if !(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < near) {
         waited = lwc1(state + 2892);
     } else {
         let count = lw(state + 1688);

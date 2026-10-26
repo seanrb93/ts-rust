@@ -247,7 +247,7 @@ pub fn bgTick() {
                 let value = lwc1(glass);
                 k += 1;
                 if value < 0.0 {
-                    let progress = value + 60.0;
+                    let progress = ps2float::add(value, 60.0);
                     let mut update = true;
                     if !(progress < 0.5) {
                         let params = g::curgameparms;
@@ -256,7 +256,7 @@ pub fn bgTick() {
                         }
                     }
                     if update {
-                        let new = value + dt;
+                        let new = ps2float::add(value, dt);
                         swc1(glass, new);
                         if 0.0 < new {
                             swc1(glass, 0.0);
@@ -270,7 +270,7 @@ pub fn bgTick() {
                             continue;
                         }
                         if !(0.5 <= progress) {
-                            decalSetAlphaScale(decal, 1.0 - (progress + progress));
+                            decalSetAlphaScale(decal, ps2float::sub(1.0, ps2float::add(progress, progress)));
                         } else {
                             decalRemoveDecal(decal);
                             sw(lw(slot) + at + 176, -1);

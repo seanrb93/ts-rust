@@ -15,23 +15,23 @@ fn stick_dead_zone(x: f32) -> f32 {
         if !(x < -0.5_f32) {
             0.0_f32
         } else {
-            let part = x + 0.5_f32;
-            part + part
+            let part = ps2float::add(x, 0.5_f32);
+            ps2float::add(part, part)
         }
     } else if !(0.5_f32 < x) {
         0.0_f32
     } else {
-        let part = x - 0.5_f32;
-        part + part
+        let part = ps2float::sub(x, 0.5_f32);
+        ps2float::add(part, part)
     }
 }
 
 /// The square of `x` with its sign.
 fn signed_square(x: f32) -> f32 {
     if !(0.0_f32 <= x) {
-        -(x * x)
+        -ps2float::mul(x, x)
     } else {
-        x * x
+        ps2float::mul(x, x)
     }
 }
 
@@ -46,7 +46,7 @@ fn size_over(x: f32, limit: f32) -> bool {
 
 /// Make the pose of the prop `prop` at the position `(x, y, z)` (turned by the angle of the prop times `scale` / 180): the matrix of the turn is made at `sp+16` and the pose at `sp+80`, whose position is then at `sp+128`.
 fn pose_matrix(sp: i32, prop: i32, x: f32, y: f32, z: f32, scale: f32) {
-    matrixTransRotY(sp + 16, x, y, z, (lwc1(prop + 76) * scale).pdiv(1.8e+02_f32));
+    matrixTransRotY(sp + 16, x, y, z, ps2float::mul(lwc1(prop + 76), scale).pdiv(1.8e+02_f32));
     let model = lw(prop + 32);
     sceVu0MulMatrix(sp + 80, sp + 16, lw(model + 4) + (lw(lw(model + 92) + 20) << 6));
 }
@@ -54,15 +54,15 @@ fn pose_matrix(sp: i32, prop: i32, x: f32, y: f32, z: f32, scale: f32) {
 /// Put the position of the head of the target prop `target` (`drop` lower) at `sp+160` and the vector from the head of the player's prop to it at `out`.
 fn vector_to_target(sp: i32, p: i32, target: i32, scale: f32, drop: f32, out: i32) {
     pose_matrix(sp, target, lwc1(target + 48), lwc1(target + 52), lwc1(target + 56), scale);
-    let height = lwc1(sp + 132) - drop;
+    let height = ps2float::sub(lwc1(sp + 132), drop);
     let depth = lwc1(sp + 136);
     swc1(sp + 160, lwc1(sp + 128));
     swc1(sp + 164, height);
     swc1(sp + 168, depth);
     pose_matrix(sp, lw(p + 384), lwc1(p + 140), lwc1(p + 144), lwc1(p + 148), scale);
-    let up = lwc1(sp + 164) - lwc1(sp + 132);
-    let along = lwc1(sp + 168) - lwc1(sp + 136);
-    swc1(out, lwc1(sp + 160) - lwc1(sp + 128));
+    let up = ps2float::sub(lwc1(sp + 164), lwc1(sp + 132));
+    let along = ps2float::sub(lwc1(sp + 168), lwc1(sp + 136));
+    swc1(out, ps2float::sub(lwc1(sp + 160), lwc1(sp + 128)));
     swc1(out + 4, up);
     swc1(out + 8, along);
 }
@@ -85,7 +85,7 @@ fn find_auto_aim_target(sp: i32, p: i32, chr: i32, gun: i32) -> i32 {
             let character = lw(g::chrinfo) + index * 0x1210;
             if lw(seen) != 0 {
                 let prop = lw(character + 3020);
-                if 0.0_f32 < lwc1(prop + 520) + lwc1(character + 12) && best < lwc1(seen + 4) {
+                if 0.0_f32 < ps2float::add(lwc1(prop + 520), lwc1(character + 12)) && best < lwc1(seen + 4) {
                     vector_to_target(sp, p, prop, scale, lwc1(0x3ad024), sp + 176);
                     playerAutoAimCalc(lw(g::currentplayer) + 188, sp + 176, seen);
                     let weight = lwc1(seen + 4);
@@ -125,11 +125,11 @@ fn aim_at_target(sp: i32, p: i32, target: i32) {
 /// Set the speeds of the looking for the sticks when the player is not aiming and there is no target: `look_input` is the stick for up and down, `scale` the speed.
 fn set_free_look(p: i32, look_input: f32, scale: f32) {
     let axis = joyGetAxis(lw(lw(g::currentplayer)), lw(lw(g::currentplayer) + 76));
-    swc1(p + 804, -look_input * scale);
+    swc1(p + 804, ps2float::mul(-look_input, scale));
     if lhu(lw(p + 24) + 2) & 1 == 0 {
-        swc1(p + 808, axis * lwc1(0x3ad03c));
+        swc1(p + 808, ps2float::mul(axis, lwc1(0x3ad03c)));
     } else {
-        swc1(p + 808, axis * scale);
+        swc1(p + 808, ps2float::mul(axis, scale));
     }
     sw(p + 828, 0);
 }
@@ -175,8 +175,8 @@ fn read_aiming_sticks(p: i32) -> (f32, f32) {
 
 /// Keep the angle round of a player riding a remote prop in the arc from `low` to `high` of the prop.
 fn clamp_to_arc(p: i32, low: f32, high: f32) {
-    let start = if low < high { low } else { low - 360.0_f32 };
-    let middle = high + (360.0_f32 - (high - start)) * 0.5_f32;
+    let start = if low < high { low } else { ps2float::sub(low, 360.0_f32) };
+    let middle = ps2float::add(high, ps2float::mul(ps2float::sub(360.0_f32, ps2float::sub(high, start)), 0.5_f32));
     let angle = lwc1(p + 276);
     let mut limit = true;
     if !(high < middle) {
@@ -225,8 +225,8 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
         let corner = ground + 20;
         if lhu(ground + 6) & 2 != 0 {
             for axis in 0..3 {
-                swc1(sp + 160 + axis * 4, lwc1(corner + axis * 4) - lwc1(corner + axis * 4 - 12));
-                swc1(sp + 176 + axis * 4, lwc1(corner + 12 + axis * 4) - lwc1(corner + axis * 4));
+                swc1(sp + 160 + axis * 4, ps2float::sub(lwc1(corner + axis * 4), lwc1(corner + axis * 4 - 12)));
+                swc1(sp + 176 + axis * 4, ps2float::sub(lwc1(corner + 12 + axis * 4), lwc1(corner + axis * 4)));
             }
             let a_y = lwc1(sp + 164);
             let b_z = lwc1(sp + 184);
@@ -234,11 +234,11 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
             let a_z = lwc1(sp + 168);
             let b_x = lwc1(sp + 176);
             let a_x = lwc1(sp + 160);
-            let normal_x = a_y * b_z - b_y * a_z;
-            let normal_y = a_z * b_x - b_z * a_x;
-            let normal_z = a_x * b_y - b_x * a_y;
-            let length = (normal_x * normal_x + normal_y * normal_y + normal_z * normal_z).abs().psqrt();
-            if normal_y < length * lwc1(0x3ad08c) {
+            let normal_x = ps2float::sub(ps2float::mul(a_y, b_z), ps2float::mul(b_y, a_z));
+            let normal_y = ps2float::sub(ps2float::mul(a_z, b_x), ps2float::mul(b_z, a_x));
+            let normal_z = ps2float::sub(ps2float::mul(a_x, b_y), ps2float::mul(b_x, a_y));
+            let length = ps2float::add(ps2float::add(ps2float::mul(normal_x, normal_x), ps2float::mul(normal_y, normal_y)), ps2float::mul(normal_z, normal_z)).abs().psqrt();
+            if normal_y < ps2float::mul(length, lwc1(0x3ad08c)) {
                 slide_z = (normal_z).pdiv(length);
                 slide_x = (normal_x).pdiv(length);
                 steep = true;
@@ -247,37 +247,37 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
     }
     let dt = frames();
     if !steep {
-        let x = lwc1(p + 140) + m.sin_yaw * m.forward;
+        let x = ps2float::add(lwc1(p + 140), m.sin_yaw * m.forward);
         swc1(sp + 144, x);
         let y = lwc1(p + 144);
         swc1(sp + 148, y);
-        let z = lwc1(p + 148) + m.cos_yaw * m.forward;
+        let z = ps2float::add(lwc1(p + 148), m.cos_yaw * m.forward);
         swc1(sp + 152, z);
-        swc1(sp + 144, x + lwc1(p + 212) * m.side);
-        swc1(sp + 148, y + lwc1(p + 216) * m.side);
-        swc1(sp + 152, z + lwc1(p + 220) * m.side);
+        swc1(sp + 144, ps2float::add(x, ps2float::mul(lwc1(p + 212), m.side)));
+        swc1(sp + 148, ps2float::add(y, ps2float::mul(lwc1(p + 216), m.side)));
+        swc1(sp + 152, ps2float::add(z, ps2float::mul(lwc1(p + 220), m.side)));
     } else {
-        swc1(sp + 144, lwc1(p + 140) + (dt * slide_x * 8.0_f32).pdiv(60.0_f32));
-        swc1(sp + 148, lwc1(p + 144) - 0.5_f32);
-        swc1(sp + 152, lwc1(p + 148) + (dt * slide_z * 8.0_f32).pdiv(60.0_f32));
+        swc1(sp + 144, ps2float::add(lwc1(p + 140), ps2float::mul(ps2float::mul(dt, slide_x), 8.0_f32).pdiv(60.0_f32)));
+        swc1(sp + 148, ps2float::sub(lwc1(p + 144), 0.5_f32));
+        swc1(sp + 152, ps2float::add(lwc1(p + 148), ps2float::mul(ps2float::mul(dt, slide_z), 8.0_f32).pdiv(60.0_f32)));
     }
-    swc1(sp + 148, lwc1(sp + 148) - dt * lwc1(0x3ad090));
+    swc1(sp + 148, ps2float::sub(lwc1(sp + 148), ps2float::mul(dt, lwc1(0x3ad090))));
     chrAddFloorMoveToPos(lw(p), sp + 144, p + 276);
     let floor_before = lwc1(chr + 0x1198);
     let mut flags = moveTestDoSlide(lw(p), p + 140, sp + 144, p + 824, 1, lwc1(p + 104), lwc1(p + 132));
     let floor_after = lwc1(chr + 0x1198);
-    let step = floor_before - floor_after;
+    let step = ps2float::sub(floor_before, floor_after);
     // The player follows a floor that moved a little.
     if !(0.0_f32 <= step) {
         if -step <= lwc1(0x3ad098) {
             swc1(sp + 148, floor_after);
             flags |= 1;
-            swc1(p + 128, lwc1(p + 128) + step);
+            swc1(p + 128, ps2float::add(lwc1(p + 128), step));
         }
     } else if step <= lwc1(0x3ad094) {
         swc1(sp + 148, floor_after);
         flags |= 1;
-        swc1(p + 128, lwc1(p + 128) + step);
+        swc1(p + 128, ps2float::add(lwc1(p + 128), step));
     }
     let mut drop;
     if flags & 1 != 0 {
@@ -287,14 +287,14 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
         sw(p + 296, 2);
         if !steep {
             let dt = frames();
-            let speed_z = ((m.cos_yaw * m.forward + lwc1(p + 220) * m.side)).pdiv(dt);
-            swc1(p + 856, ((m.sin_yaw * m.forward + lwc1(p + 212) * m.side)).pdiv(dt));
+            let speed_z = (ps2float::add(m.cos_yaw * m.forward, ps2float::mul(lwc1(p + 220), m.side))).pdiv(dt);
+            swc1(p + 856, (ps2float::add(m.sin_yaw * m.forward, ps2float::mul(lwc1(p + 212), m.side))).pdiv(dt));
             swc1(p + 864, speed_z);
             sw(chr + 2864, 0);
         } else {
             let fall = (-lwc1(p + 376)).pdiv(lw(p + 340) as f32);
-            swc1(p + 864, (slide_z * 8.0_f32).pdiv(60.0_f32));
-            swc1(p + 856, (slide_x * 8.0_f32).pdiv(60.0_f32));
+            swc1(p + 864, ps2float::mul(slide_z, 8.0_f32).pdiv(60.0_f32));
+            swc1(p + 856, ps2float::mul(slide_x, 8.0_f32).pdiv(60.0_f32));
             swc1(chr + 2864, fall);
         }
         drop = lwc1(chr + 2864);
@@ -305,7 +305,7 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
         if !(bounce < 0.0_f32) {
             let dt = frames();
             if 0.0_f32 < bounce {
-                let settled = bounce - dt * lwc1(0x3ad0a8);
+                let settled = ps2float::sub(bounce, ps2float::mul(dt, lwc1(0x3ad0a8)));
                 swc1(p + 124, settled);
                 if settled < 0.0_f32 {
                     swc1(p + 124, 0.0_f32);
@@ -323,17 +323,17 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
     } else {
         dt = frames();
     }
-    let speed = drop + dt * lwc1(0x3ad0a0);
+    let speed = ps2float::add(drop, ps2float::mul(dt, lwc1(0x3ad0a0)));
     swc1(chr + 2864, speed);
-    let bounce = lwc1(p + 124) + speed * dt;
+    let bounce = ps2float::add(lwc1(p + 124), ps2float::mul(speed, dt));
     swc1(p + 124, bounce);
     if 0.0_f32 < bounce {
         swc1(p + 124, 0.0_f32);
     }
     let eye = lwc1(p + 116);
     let lowest = lwc1(0x3ad0a4);
-    if (eye + lwc1(p + 124)) < lowest {
-        swc1(p + 124, lowest - eye);
+    if ps2float::add(eye, lwc1(p + 124)) < lowest {
+        swc1(p + 124, ps2float::sub(lowest, eye));
     }
     flags
 }
@@ -346,52 +346,52 @@ fn move_pushed(sp: i32, p: i32) -> i32 {
     let push_x = lwc1(sp + 160);
     let push_y = lwc1(sp + 164);
     let push_z = lwc1(sp + 168);
-    let size = (push_x * push_x + push_y * push_y + push_z * push_z).abs().psqrt();
+    let size = ps2float::add(ps2float::add(ps2float::mul(push_x, push_x), ps2float::mul(push_y, push_y)), ps2float::mul(push_z, push_z)).abs().psqrt();
     let dt = frames();
-    let limit = dt * lwc1(0x3ad0ac);
+    let limit = ps2float::mul(dt, lwc1(0x3ad0ac));
     let mut part = size;
     if limit < size {
         part = limit;
     }
     let fraction = (part).pdiv(size);
-    let step_x = lwc1(sp + 160) * fraction;
-    let step_y = lwc1(sp + 164) * fraction;
-    let step_z = lwc1(sp + 168) * fraction;
+    let step_x = ps2float::mul(lwc1(sp + 160), fraction);
+    let step_y = ps2float::mul(lwc1(sp + 164), fraction);
+    let step_z = ps2float::mul(lwc1(sp + 168), fraction);
     swc1(sp + 160, step_x);
     swc1(sp + 164, step_y);
     swc1(sp + 168, step_z);
-    swc1(sp + 144, lwc1(p + 140) + step_x);
-    swc1(sp + 148, lwc1(p + 144) + step_y);
-    swc1(sp + 152, lwc1(p + 148) + step_z);
-    let left = lwc1(p + 300) - step_x;
+    swc1(sp + 144, ps2float::add(lwc1(p + 140), step_x));
+    swc1(sp + 148, ps2float::add(lwc1(p + 144), step_y));
+    swc1(sp + 152, ps2float::add(lwc1(p + 148), step_z));
+    let left = ps2float::sub(lwc1(p + 300), step_x);
     swc1(p + 300, left);
-    let left = left - lwc1(sp + 160);
+    let left = ps2float::sub(left, lwc1(sp + 160));
     swc1(p + 300, left);
-    swc1(p + 300, left - lwc1(sp + 160));
+    swc1(p + 300, ps2float::sub(left, lwc1(sp + 160)));
     if fraction == 1.0_f32 {
         let speed_x = lwc1(sp + 160);
         sw(p + 296, 2);
         swc1(p + 856, (speed_x).pdiv(dt));
         swc1(p + 864, (lwc1(sp + 168)).pdiv(dt));
     }
-    swc1(p + 124, lwc1(p + 124) * lwc1(0x3ad0b0));
+    swc1(p + 124, ps2float::mul(lwc1(p + 124), lwc1(0x3ad0b0)));
     moveTestDoSlide(lw(p), p + 140, sp + 144, p + 824, 1, lwc1(p + 104), lwc1(p + 132))
 }
 
 /// The mode 2 (falling): the speed down grows, the player moves, and when it lands it takes the fall (a rumble by how far it fell) or dies. Gives the flags of the move test.
 fn move_falling(sp: i32, p: i32, chr: i32) -> i32 {
     let floor = lwc1(0x3ad0b8);
-    let speed = lwc1(chr + 2864) - frames() * lwc1(0x3ad0b4);
+    let speed = ps2float::sub(lwc1(chr + 2864), ps2float::mul(frames(), lwc1(0x3ad0b4)));
     swc1(chr + 2864, speed);
     if speed < floor {
         swc1(chr + 2864, floor);
     }
     let dt = frames();
     let damping = lwc1(0x3ad0bc);
-    swc1(sp + 144, lwc1(p + 140) + lwc1(p + 856) * dt);
-    swc1(sp + 148, lwc1(p + 144) + lwc1(chr + 2864) * dt);
-    swc1(sp + 152, lwc1(p + 148) + lwc1(p + 864) * dt);
-    swc1(p + 124, lwc1(p + 124) * damping);
+    swc1(sp + 144, ps2float::add(lwc1(p + 140), ps2float::mul(lwc1(p + 856), dt)));
+    swc1(sp + 148, ps2float::add(lwc1(p + 144), ps2float::mul(lwc1(chr + 2864), dt)));
+    swc1(sp + 152, ps2float::add(lwc1(p + 148), ps2float::mul(lwc1(p + 864), dt)));
+    swc1(p + 124, ps2float::mul(lwc1(p + 124), damping));
     let flags = moveTestDoSlide(lw(p), p + 140, sp + 144, p + 824, 1, lwc1(p + 104), lwc1(p + 132));
     let x = lwc1(sp + 144);
     let body = lw(p + 384);
@@ -399,26 +399,26 @@ fn move_falling(sp: i32, p: i32, chr: i32) -> i32 {
     let character = lw(body + 352);
     let y = lwc1(sp + 148);
     let bounce = lwc1(p + 124);
-    let head = y + lwc1(p + 116);
+    let head = ps2float::add(y, lwc1(p + 116));
     let dt = frames();
     sw(character + 2708, (lw(character + 2708) | 1) & -33);
     swc1(p + 144, y);
     let z = lwc1(sp + 152);
     swc1(p + 152, x);
-    swc1(p + 156, head + bounce);
+    swc1(p + 156, ps2float::add(head, bounce));
     swc1(p + 160, z);
     swc1(p + 148, z);
-    StatsAdd(52, lw(chr), dt * lwc1(0x3ad0c0));
+    StatsAdd(52, lw(chr), ps2float::mul(dt, lwc1(0x3ad0c0)));
     if flags & 1 == 0 {
         return flags;
     }
     // Landed: how far did it fall?
     let started = lwc1(chr + 2956);
     if !(started == lwc1(g::shakeangz_172 + 4)) {
-        let fallen = started - lwc1(chr + 0x1198);
+        let fallen = ps2float::sub(started, lwc1(chr + 0x1198));
         if 2.0_f32 < fallen && fallen < 10.0_f32 {
             swc1(p + 1780, lwc1(0x3ad0c4));
-            swc1(p + 1776, ((fallen - 2.0_f32)).pdiv(12.0_f32));
+            swc1(p + 1776, (ps2float::sub(fallen, 2.0_f32)).pdiv(12.0_f32));
         } else if 10.0_f32 <= fallen {
             swc1(p + 1776, 1.0_f32);
             swc1(p + 1780, lwc1(0x3ad0c8));
@@ -435,20 +435,20 @@ fn move_falling(sp: i32, p: i32, chr: i32) -> i32 {
 
 /// The mode 3 (swimming): move by the sticks, sinking a little. Gives the flags of the move test.
 fn move_swimming(sp: i32, p: i32, m: &Motion) -> i32 {
-    let x = lwc1(p + 140) + m.sin_yaw * m.forward;
-    let sink = frames() * lwc1(0x3ad0cc);
+    let x = ps2float::add(lwc1(p + 140), m.sin_yaw * m.forward);
+    let sink = ps2float::mul(frames(), lwc1(0x3ad0cc));
     swc1(sp + 144, x);
     let y = lwc1(p + 144);
     swc1(sp + 148, y);
-    let z = lwc1(p + 148) + m.cos_yaw * m.forward;
+    let z = ps2float::add(lwc1(p + 148), m.cos_yaw * m.forward);
     swc1(sp + 152, z);
-    swc1(sp + 144, x + lwc1(p + 212) * m.side);
-    let y = y + lwc1(p + 216) * m.side;
+    swc1(sp + 144, ps2float::add(x, ps2float::mul(lwc1(p + 212), m.side)));
+    let y = ps2float::add(y, ps2float::mul(lwc1(p + 216), m.side));
     swc1(sp + 148, y);
-    let along = lwc1(p + 220) * m.side;
-    swc1(sp + 148, y - sink);
-    swc1(sp + 152, z + along);
-    swc1(p + 124, lwc1(p + 124) * lwc1(0x3ad0d0));
+    let along = ps2float::mul(lwc1(p + 220), m.side);
+    swc1(sp + 148, ps2float::sub(y, sink));
+    swc1(sp + 152, ps2float::add(z, along));
+    swc1(p + 124, ps2float::mul(lwc1(p + 124), lwc1(0x3ad0d0)));
     let flags = moveTestDoSlide(lw(p), p + 140, sp + 144, p + 824, 1, lwc1(p + 104), lwc1(p + 132));
     if flags & 1 != 0 {
         sw(p + 296, 0);
@@ -463,19 +463,19 @@ fn move_dead(sp: i32, p: i32, chr: i32) {
     swc1(sp + 144, lwc1(model + 128));
     swc1(sp + 148, lwc1(model + 132));
     swc1(sp + 152, lwc1(model + 136));
-    matrixRotY(sp + 208, (lwc1(body + 76) * lwc1(0x3ad0d4)).pdiv(1.8e+02_f32));
+    matrixRotY(sp + 208, ps2float::mul(lwc1(body + 76), lwc1(0x3ad0d4)).pdiv(1.8e+02_f32));
     matrixVecRotAligned(&[(sp + 208) as i64, (sp + 144) as i64]);
     let height = lwc1(sp + 148);
     let depth = lwc1(sp + 152);
-    swc1(sp + 144, lwc1(sp + 144) + lwc1(body + 48));
-    swc1(sp + 148, height + lwc1(body + 52));
-    swc1(sp + 152, depth + lwc1(body + 56));
+    swc1(sp + 144, ps2float::add(lwc1(sp + 144), lwc1(body + 48)));
+    swc1(sp + 148, ps2float::add(height, lwc1(body + 52)));
+    swc1(sp + 152, ps2float::add(depth, lwc1(body + 56)));
     moveTestDoSlide(lw(p), body + 48, sp + 144, 0, 1, lwc1(p + 104), lwc1(p + 132));
     swc1(body + 48, lwc1(sp + 144));
     let limit = lwc1(0x3ad0d8);
     swc1(body + 52, lwc1(sp + 148));
     swc1(body + 56, lwc1(sp + 152));
-    swc1(sp + 148, lwc1(sp + 148) + (lwc1(p + 116) + lwc1(p + 124)));
+    swc1(sp + 148, ps2float::add(lwc1(sp + 148), ps2float::add(lwc1(p + 116), lwc1(p + 124))));
     let room = moveFindRoom(sp + 144, limit, limit);
     let flags = lw(body + 16);
     sw(body + 12, room);
@@ -505,10 +505,10 @@ fn move_dead(sp: i32, p: i32, chr: i32) {
 fn turn_toward(angle: f32, difference: f32, wanted: f32, step: f32) -> f32 {
     if !(0.0_f32 <= difference) {
         if !(-difference < step) {
-            return if !(difference < 0.0_f32) { angle - step } else { angle + step };
+            return if !(difference < 0.0_f32) { ps2float::sub(angle, step) } else { ps2float::add(angle, step) };
         }
     } else if !(difference < step) {
-        return if !(difference < 0.0_f32) { angle - step } else { angle + step };
+        return if !(difference < 0.0_f32) { ps2float::sub(angle, step) } else { ps2float::add(angle, step) };
     }
     wanted
 }
@@ -520,31 +520,31 @@ fn move_into_prop(sp: i32, p: i32, chr: i32) {
     let info = lw(prop + 352);
     let wanted_yaw = lwc1(info + 108);
     let yaw_difference = anglediff(wanted_yaw, yaw);
-    let yaw_step = frames() * lwc1(0x3ad0dc);
+    let yaw_step = ps2float::mul(frames(), lwc1(0x3ad0dc));
     remoteGetStandPos(prop, sp + 160, lwc1(info + 108));
     swc1(p + 276, turn_toward(lwc1(p + 276), yaw_difference, lwc1(info + 108), yaw_step));
     let pitch = lwc1(p + 284);
     let pitch_difference = anglediff(-lwc1(info + 112), pitch);
-    let pitch_step = frames() * lwc1(0x3ad0e0);
+    let pitch_step = ps2float::mul(frames(), lwc1(0x3ad0e0));
     let new_pitch = if !(0.0_f32 <= pitch_difference) {
         if -pitch_difference < pitch_step {
             -lwc1(info + 112)
         } else {
             let now = lwc1(p + 284);
-            if !(pitch_difference < 0.0_f32) { now - pitch_step } else { now + pitch_step }
+            if !(pitch_difference < 0.0_f32) { ps2float::sub(now, pitch_step) } else { ps2float::add(now, pitch_step) }
         }
     } else if pitch_difference < pitch_step {
         -lwc1(info + 112)
     } else {
         let now = lwc1(p + 284);
-        if !(pitch_difference < 0.0_f32) { now - pitch_step } else { now + pitch_step }
+        if !(pitch_difference < 0.0_f32) { ps2float::sub(now, pitch_step) } else { ps2float::add(now, pitch_step) }
     };
     swc1(p + 284, new_pitch);
     let dt = frames();
     let k = lwc1(0x3ad0e4);
     swc1(p + 140, lwc1(sp + 160));
     let limit = lwc1(0x3ad0e8);
-    let bounce = lwc1(p + 124) + dt * k;
+    let bounce = ps2float::add(lwc1(p + 124), ps2float::mul(dt, k));
     swc1(p + 144, lwc1(sp + 164));
     let z = lwc1(sp + 168);
     swc1(p + 124, bounce);
@@ -553,25 +553,25 @@ fn move_into_prop(sp: i32, p: i32, chr: i32) {
         swc1(p + 124, limit);
     }
     let bounce = lwc1(p + 124);
-    let head = lwc1(p + 144) + lwc1(p + 116);
+    let head = ps2float::add(lwc1(p + 144), lwc1(p + 116));
     let z = lwc1(p + 148);
     swc1(p + 152, lwc1(p + 140));
     swc1(p + 160, z);
-    swc1(p + 156, head + bounce);
+    swc1(p + 156, ps2float::add(head, bounce));
 }
 
 /// The mode 7 (riding a remote prop): the player is where the prop puts it, and turns with it. Gives the flags of the move test.
 fn move_on_prop(sp: i32, p: i32, chr: i32) -> i32 {
     let prop = lw(chr + 0x11b4);
     remoteGetStandPos(prop, sp + 176, lwc1(p + 276));
-    swc1(sp + 180, lwc1(sp + 180) - 1.0_f32);
+    swc1(sp + 180, ps2float::sub(lwc1(sp + 180), 1.0_f32));
     let flags = moveTest(lw(p), p + 140, sp + 176, 0, p + 824, 1, lwc1(p + 104), lwc1(p + 132));
     if flags & 2 != 0 {
         let angle = remoteGetStandAngle(prop, sp + 176);
         swc1(p + 276, angle);
     }
     let limit = lwc1(0x3ad0f0);
-    let bounce = lwc1(p + 124) + frames() * lwc1(0x3ad0ec);
+    let bounce = ps2float::add(lwc1(p + 124), ps2float::mul(frames(), lwc1(0x3ad0ec)));
     swc1(p + 124, bounce);
     if limit < bounce {
         swc1(p + 124, limit);
@@ -586,7 +586,7 @@ fn move_on_prop(sp: i32, p: i32, chr: i32) -> i32 {
     swc1(p + 152, x);
     swc1(p + 160, z);
     swc1(p + 148, z);
-    swc1(p + 156, y + eye + bounce);
+    swc1(p + 156, ps2float::add(ps2float::add(y, eye), bounce));
     flags
 }
 
@@ -597,13 +597,13 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     joyGetAxis(lw(p), lw(p + 92));
 
     // The speed the player moved at, and the place it was.
-    let dx = lwc1(p + 140) - lwc1(p + 344);
-    let dy = lwc1(p + 144) - lwc1(p + 348);
-    let dz = lwc1(p + 148) - lwc1(p + 352);
-    let dx2 = dx * dx;
-    let dz2 = dz * dz;
-    swc1(p + 376, (dx2 + dy * dy + dz2).abs().psqrt());
-    swc1(p + 380, (dx2 + dz2).abs().psqrt());
+    let dx = ps2float::sub(lwc1(p + 140), lwc1(p + 344));
+    let dy = ps2float::sub(lwc1(p + 144), lwc1(p + 348));
+    let dz = ps2float::sub(lwc1(p + 148), lwc1(p + 352));
+    let dx2 = ps2float::mul(dx, dx);
+    let dz2 = ps2float::mul(dz, dz);
+    swc1(p + 376, ps2float::add(ps2float::add(dx2, ps2float::mul(dy, dy)), dz2).abs().psqrt());
+    swc1(p + 380, ps2float::add(dx2, dz2).abs().psqrt());
     let frames_before = lw(p + 292);
     for (to, from) in [(344, 140), (348, 144), (352, 148), (356, 152), (360, 156), (364, 160), (368, 276), (372, 284)] {
         swc1(p + to, lwc1(p + from));
@@ -628,7 +628,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     }
     let dt = frames();
     if lw(p + 296) != 4 {
-        StatsAdd(65, lw(p), dt * lwc1(0x3ad014));
+        StatsAdd(65, lw(p), ps2float::mul(dt, lwc1(0x3ad014)));
     }
 
     // The aim button.
@@ -661,11 +661,11 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     } else {
         let dt = frames();
         if joyBut(lw(p)) & lw(p + 48) != 0 {
-            swc1(p + 264, lwc1(p + 264) - dt);
+            swc1(p + 264, ps2float::sub(lwc1(p + 264), dt));
         }
         let dt = frames();
         if joyBut(lw(p)) & lw(p + 52) != 0 {
-            swc1(p + 264, lwc1(p + 264) + dt);
+            swc1(p + 264, ps2float::add(lwc1(p + 264), dt));
         }
         let least = lwc1(p + 272);
         if lwc1(p + 264) < least {
@@ -676,14 +676,14 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
         }
         let dt = frames();
         if lw(p + 20) & 2 != 0 {
-            StatsAdd(56, lw(chr), dt * lwc1(0x3ad018));
+            StatsAdd(56, lw(chr), ps2float::mul(dt, lwc1(0x3ad018)));
         }
         wanted = lwc1(p + 264);
     }
     let shown = lwc1(p + 260);
     if wanted != shown {
-        let limit = frames() + frames();
-        let mut step = wanted - shown;
+        let limit = ps2float::add(frames(), frames());
+        let mut step = ps2float::sub(wanted, shown);
         if limit < step {
             step = limit;
         }
@@ -691,7 +691,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
         if step < least {
             step = least;
         }
-        swc1(p + 260, shown + step);
+        swc1(p + 260, ps2float::add(shown, step));
     }
 
     // The sticks.
@@ -702,8 +702,8 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     let dt = frames();
     let side_before = lwc1(p + 812);
     let look_before = lwc1(p + 816);
-    let look_smoothed = look_before + (lwc1(p + 808) - look_before) * smooth * dt;
-    swc1(p + 812, side_before + (lwc1(p + 804) - side_before) * smooth * dt);
+    let look_smoothed = ps2float::add(look_before, ps2float::mul(ps2float::mul(ps2float::sub(lwc1(p + 808), look_before), smooth), dt));
+    swc1(p + 812, ps2float::add(side_before, ps2float::mul(ps2float::mul(ps2float::sub(lwc1(p + 804), side_before), smooth), dt)));
     swc1(p + 816, look_smoothed);
     let (mut walk, mut strafe) = if !aiming {
         (joyGetAxis(lw(p), lw(p + 68)), joyGetAxis(lw(lw(g::currentplayer)), lw(lw(g::currentplayer) + 72)))
@@ -714,20 +714,20 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     // The height of the eyes: lower when the player does not run.
     let dt = frames();
     if lw(p + 20) & 1 != 0 {
-        StatsAdd(54, lw(chr), dt * lwc1(0x3ad044));
+        StatsAdd(54, lw(chr), ps2float::mul(dt, lwc1(0x3ad044)));
         if walk == 0.0_f32 && strafe == 0.0_f32 {
-            swc1(p + 120, lwc1(p + 108) - lwc1(p + 112));
+            swc1(p + 120, ps2float::sub(lwc1(p + 108), lwc1(p + 112)));
         } else {
-            swc1(p + 120, lwc1(p + 108) + lwc1(0x3ad048) - lwc1(p + 112));
+            swc1(p + 120, ps2float::sub(ps2float::add(lwc1(p + 108), lwc1(0x3ad048)), lwc1(p + 112)));
         }
     } else {
-        swc1(p + 120, lwc1(p + 104) - lwc1(p + 112));
+        swc1(p + 120, ps2float::sub(lwc1(p + 104), lwc1(p + 112)));
     }
     let wanted_height = lwc1(p + 120);
     let height = lwc1(p + 116);
     if wanted_height != height {
-        let mut step = wanted_height - height;
-        let limit = frames() * lwc1(0x3ad04c);
+        let mut step = ps2float::sub(wanted_height, height);
+        let limit = ps2float::mul(frames(), lwc1(0x3ad04c));
         if limit < step {
             step = limit;
         }
@@ -735,7 +735,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
         if step < least {
             step = least;
         }
-        swc1(p + 116, height + step * lwc1(0x3ad050));
+        swc1(p + 116, ps2float::add(height, ps2float::mul(step, lwc1(0x3ad050))));
     }
     let character = lw(lw(p + 384) + 352);
     let spawn = lw(character + 0x11a4);
@@ -745,9 +745,9 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     }
     let stance = lw(p + 288);
     if lw(p + 20) & 1 != 0 {
-        turn = turn * 0.75_f32;
-        walk = walk * 0.75_f32;
-        strafe = strafe * 0.75_f32;
+        turn = ps2float::mul(turn, 0.75_f32);
+        walk = ps2float::mul(walk, 0.75_f32);
+        strafe = ps2float::mul(strafe, 0.75_f32);
     }
 
     // The stance: 0 standing, 1 walking, 2 running (for the sticks).
@@ -773,21 +773,21 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     if lw(p + 296) != 6 {
         let dt = frames();
         let stance = lw(p + 288);
-        swc1(p + 276, lwc1(p + 276) + turn * lwc1(0x3ad054) * ((lwc1(p + 260)).pdiv(60.0_f32)) * dt);
+        swc1(p + 276, ps2float::add(lwc1(p + 276), ps2float::mul(ps2float::mul(ps2float::mul(turn, lwc1(0x3ad054)), ((lwc1(p + 260)).pdiv(60.0_f32))), dt)));
         if stance == 2 && lhu(lw(p + 24) + 2) & 8 != 0 {
             let pitch = lwc1(p + 284);
-            let eased = pitch - pitch * lwc1(0x3ad058) * dt;
+            let eased = ps2float::sub(pitch, ps2float::mul(ps2float::mul(pitch, lwc1(0x3ad058)), dt));
             swc1(p + 284, eased);
             let small = if !(0.0_f32 <= eased) { -eased < 0.5_f32 } else { eased < 0.5_f32 };
             if small {
                 sw(p + 288, 1);
             }
         } else {
-            swc1(p + 284, lwc1(p + 284) + look * lwc1(0x3ad05c) * ((lwc1(p + 260)).pdiv(60.0_f32)) * frames());
+            swc1(p + 284, ps2float::add(lwc1(p + 284), ps2float::mul(ps2float::mul(ps2float::mul(look, lwc1(0x3ad05c)), ((lwc1(p + 260)).pdiv(60.0_f32))), frames())));
         }
         if lwc1(p + 276) < 0.0_f32 {
             loop {
-                let wrapped = lwc1(p + 276) + 360.0_f32;
+                let wrapped = ps2float::add(lwc1(p + 276), 360.0_f32);
                 swc1(p + 276, wrapped);
                 if !(wrapped < 0.0_f32) {
                     break;
@@ -796,7 +796,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
         }
         if 360.0_f32 <= lwc1(p + 276) {
             loop {
-                let wrapped = lwc1(p + 276) - 360.0_f32;
+                let wrapped = ps2float::sub(lwc1(p + 276), 360.0_f32);
                 swc1(p + 276, wrapped);
                 if !(360.0_f32 <= wrapped) {
                     break;
@@ -814,8 +814,8 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
             let prop = lw(chr + 0x11b4);
             let info = lw(prop + 352);
             let base = lwc1(prop + 76);
-            let low = lwc1(info + 40) + base;
-            let high = lwc1(info + 44) + base;
+            let low = ps2float::add(lwc1(info + 40), base);
+            let high = ps2float::add(lwc1(info + 44), base);
             if lwc1(p + 284) < -10.0_f32 {
                 swc1(p + 284, -10.0_f32);
             }
@@ -832,108 +832,108 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     let pad_linked = lw(g::padlinkedit);
     let bob = lwc1(p + 312);
     let dt = frames();
-    let phase = lwc1(p + 324) + bob * 0.5_f32 * dt;
+    let phase = ps2float::add(lwc1(p + 324), ps2float::mul(ps2float::mul(bob, 0.5_f32), dt));
     swc1(p + 324, phase);
     if 360.0_f32 <= phase {
         sw(p + 324, 0);
     }
-    let phase = lwc1(p + 328) + lwc1(p + 316) * 0.5_f32 * frames();
+    let phase = ps2float::add(lwc1(p + 328), ps2float::mul(ps2float::mul(lwc1(p + 316), 0.5_f32), frames()));
     swc1(p + 328, phase);
     if 360.0_f32 < phase {
         sw(p + 328, 0);
     }
     let dt = frames();
     let amount;
-    if !(((dt * 4.0_f32).pdiv(60.0_f32)) < lwc1(p + 376)) {
+    if !((ps2float::mul(dt, 4.0_f32).pdiv(60.0_f32)) < lwc1(p + 376)) {
         amount = lwc1(p + 320);
     } else {
         let size = lwc1(p + 320);
         if size < 1.0_f32 {
-            swc1(p + 320, size + dt * lwc1(0x3ad060));
+            swc1(p + 320, ps2float::add(size, ps2float::mul(dt, lwc1(0x3ad060))));
         }
         let speed = lwc1(p + 312);
         let dt = frames();
         if speed < 3.0_f32 {
-            swc1(p + 312, speed + dt * lwc1(0x3ad064));
+            swc1(p + 312, ps2float::add(speed, ps2float::mul(dt, lwc1(0x3ad064))));
         }
         amount = lwc1(p + 320);
     }
     let dt = frames();
     if 0.5_f32 < amount {
-        swc1(p + 320, amount - dt * lwc1(0x3ad068));
+        swc1(p + 320, ps2float::sub(amount, ps2float::mul(dt, lwc1(0x3ad068))));
     }
     let speed = lwc1(p + 312);
     let dt = frames();
     if 1.0_f32 < speed {
-        swc1(p + 312, speed - dt * lwc1(0x3ad06c));
+        swc1(p + 312, ps2float::sub(speed, ps2float::mul(dt, lwc1(0x3ad06c))));
     }
-    swc1(p + 316, lwc1(p + 312) * lwc1(0x3ad070));
+    swc1(p + 316, ps2float::mul(lwc1(p + 312), lwc1(0x3ad070)));
     if pad_linked == 0 && lw(g::propedit) == 0 {
         let scale = lwc1(0x3ad074);
-        let sideways = lwc1(p + 320) * 0.5_f32;
-        swc1(p + 332, sideways * sinf((lwc1(p + 324) * scale).pdiv(1.8e+02_f32)));
-        swc1(p + 336, lwc1(p + 320) * sinf((lwc1(p + 328) * scale).pdiv(1.8e+02_f32)));
+        let sideways = ps2float::mul(lwc1(p + 320), 0.5_f32);
+        swc1(p + 332, ps2float::mul(sideways, sinf(ps2float::mul(lwc1(p + 324), scale).pdiv(1.8e+02_f32))));
+        swc1(p + 336, ps2float::mul(lwc1(p + 320), sinf(ps2float::mul(lwc1(p + 328), scale).pdiv(1.8e+02_f32))));
     }
 
     // The directions the player looks along and moves by.
     let scale = lwc1(0x3ad078);
     let bob_yaw = lwc1(p + 332);
-    let cos_look_yaw = cosf(((lwc1(p + 276) + bob_yaw) * scale).pdiv(1.8e+02_f32));
-    let sin_look_yaw = sinf(((lwc1(p + 276) + lwc1(p + 332)) * scale).pdiv(1.8e+02_f32));
-    let cos_look_pitch = cosf(((lwc1(p + 284) + lwc1(p + 336)) * scale).pdiv(1.8e+02_f32));
-    let sin_look_pitch = sinf(((lwc1(p + 284) + lwc1(p + 336)) * scale).pdiv(1.8e+02_f32));
+    let cos_look_yaw = cosf(ps2float::mul(ps2float::add(lwc1(p + 276), bob_yaw), scale).pdiv(1.8e+02_f32));
+    let sin_look_yaw = sinf(ps2float::mul(ps2float::add(lwc1(p + 276), lwc1(p + 332)), scale).pdiv(1.8e+02_f32));
+    let cos_look_pitch = cosf(ps2float::mul(ps2float::add(lwc1(p + 284), lwc1(p + 336)), scale).pdiv(1.8e+02_f32));
+    let sin_look_pitch = sinf(ps2float::mul(ps2float::add(lwc1(p + 284), lwc1(p + 336)), scale).pdiv(1.8e+02_f32));
     let yaw = lwc1(p + 276);
     swc1(p + 192, sin_look_pitch);
     swc1(p + 188, cos_look_pitch * sin_look_yaw);
     swc1(p + 196, cos_look_pitch * cos_look_yaw);
-    let cos_yaw = cosf((yaw * scale).pdiv(1.8e+02_f32));
-    let sin_yaw = sinf((lwc1(p + 276) * scale).pdiv(1.8e+02_f32));
-    cosf((lwc1(p + 284) * scale).pdiv(1.8e+02_f32));
-    sinf((lwc1(p + 284) * scale).pdiv(1.8e+02_f32));
+    let cos_yaw = cosf(ps2float::mul(yaw, scale).pdiv(1.8e+02_f32));
+    let sin_yaw = sinf(ps2float::mul(lwc1(p + 276), scale).pdiv(1.8e+02_f32));
+    cosf(ps2float::mul(lwc1(p + 284), scale).pdiv(1.8e+02_f32));
+    sinf(ps2float::mul(lwc1(p + 284), scale).pdiv(1.8e+02_f32));
     let sway = lwc1(0x3ad07c);
     let look_x = lwc1(p + 188);
     let previous_y = lwc1(p + 228);
-    let sway_look = lwc1(p + 816) * sway * lwc1(p + 252);
+    let sway_look = ps2float::mul(ps2float::mul(lwc1(p + 816), sway), lwc1(p + 252));
     let dt = frames();
-    let sway_side = lwc1(p + 812) * sway * lwc1(p + 256) * lwc1(p + 240);
+    let sway_side = ps2float::mul(ps2float::mul(ps2float::mul(lwc1(p + 812), sway), lwc1(p + 256)), lwc1(p + 240));
     swc1(p + 212, -cos_yaw);
     sw(p + 216, 0);
     swc1(p + 220, sin_yaw);
-    let step = dt * lwc1(0x3ad080);
-    swc1(chr + 2976, look_x + sway_side + sway_look * previous_y);
+    let step = ps2float::mul(dt, lwc1(0x3ad080));
+    swc1(chr + 2976, ps2float::add(ps2float::add(look_x, sway_side), ps2float::mul(sway_look, previous_y)));
     swc1(
         chr + 2980,
-        lwc1(p + 192) + lwc1(p + 812) * sway * lwc1(p + 256) * lwc1(p + 244) + lwc1(p + 816) * sway * lwc1(p + 252) * lwc1(p + 232),
+        ps2float::add(ps2float::add(lwc1(p + 192), ps2float::mul(ps2float::mul(ps2float::mul(lwc1(p + 812), sway), lwc1(p + 256)), lwc1(p + 244))), ps2float::mul(ps2float::mul(ps2float::mul(lwc1(p + 816), sway), lwc1(p + 252)), lwc1(p + 232))),
     );
     swc1(
         chr + 2984,
-        lwc1(p + 196) + lwc1(p + 812) * sway * lwc1(p + 256) * lwc1(p + 248) + lwc1(p + 816) * sway * lwc1(p + 252) * lwc1(p + 236),
+        ps2float::add(ps2float::add(lwc1(p + 196), ps2float::mul(ps2float::mul(ps2float::mul(lwc1(p + 812), sway), lwc1(p + 256)), lwc1(p + 248))), ps2float::mul(ps2float::mul(ps2float::mul(lwc1(p + 816), sway), lwc1(p + 252)), lwc1(p + 236))),
     );
 
     // The sticks move by no more than the limits that follow them, and make the distances for this frame.
     let walk_limit = lwc1(p + 1784);
-    if walk_limit + step < walk {
-        walk = walk_limit + step;
+    if ps2float::add(walk_limit, step) < walk {
+        walk = ps2float::add(walk_limit, step);
     }
-    if walk < walk_limit - step {
-        walk = walk_limit - step;
+    if walk < ps2float::sub(walk_limit, step) {
+        walk = ps2float::sub(walk_limit, step);
     }
     let speed_scale = lwc1(0x3ad084);
     let strafe_limit = lwc1(p + 1788);
-    let strafe_step = dt * speed_scale;
-    if strafe_limit + strafe_step < strafe {
-        strafe = strafe_limit + strafe_step;
+    let strafe_step = ps2float::mul(dt, speed_scale);
+    if ps2float::add(strafe_limit, strafe_step) < strafe {
+        strafe = ps2float::add(strafe_limit, strafe_step);
     }
-    if strafe < strafe_limit - strafe_step {
-        strafe = strafe_limit - strafe_step;
+    if strafe < ps2float::sub(strafe_limit, strafe_step) {
+        strafe = ps2float::sub(strafe_limit, strafe_step);
     }
     let mut backward = 0.0_f32;
-    let side_speed = strafe * lwc1(0x3ad088);
+    let side_speed = ps2float::mul(strafe, lwc1(0x3ad088));
     swc1(p + 1788, strafe);
-    let forward = walk * speed_scale * dt;
+    let forward = ps2float::mul(ps2float::mul(walk, speed_scale), dt);
     swc1(p + 1784, walk);
     let mut forwards_stat = backward;
-    let side = side_speed * dt;
+    let side = ps2float::mul(side_speed, dt);
     if !(backward < forward) {
         backward = -forward;
     } else {
@@ -990,14 +990,14 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
             let character = lw(lw(p + 384) + 352);
             swc1(p + 140, x);
             let y = lwc1(sp + 148);
-            let head = y + lwc1(p + 116);
+            let head = ps2float::add(y, lwc1(p + 116));
             let bounce = lwc1(p + 124);
             let character_flags = lw(character + 2708);
             swc1(p + 144, y);
             let z = lwc1(sp + 152);
             sw(character + 2708, (character_flags | 1) & -33);
             swc1(p + 152, x);
-            swc1(p + 156, head + bounce);
+            swc1(p + 156, ps2float::add(head, bounce));
             swc1(p + 160, z);
             swc1(p + 148, z);
         }
@@ -1012,7 +1012,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
             let mut left = ticks;
             loop {
                 left -= 1;
-                eased = eased - eased * 0.25_f32;
+                eased = ps2float::sub(eased, ps2float::mul(eased, 0.25_f32));
                 if left == 0 {
                     break;
                 }
@@ -1027,20 +1027,20 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
         let head = lwc1(p + 156);
         let floor = lwc1(p + 144);
         let margin = lwc1(0x3ad0f4);
-        if (head + lwc1(p + 128)) < floor + margin {
-            swc1(p + 128, floor - head + margin);
+        if ps2float::add(head, lwc1(p + 128)) < ps2float::add(floor, margin) {
+            swc1(p + 128, ps2float::add(ps2float::sub(floor, head), margin));
         }
         let head = lwc1(p + 156);
-        swc1(p + 156, head + lwc1(p + 128));
+        swc1(p + 156, ps2float::add(head, lwc1(p + 128)));
     }
     playerselectanim(walk, strafe, turn);
 
     // The portals the player crossed give the room.
     let mut room = lw(p + 796);
     let mut next = if room == 0 { 1 } else { room };
-    swc1(sp + 272, lwc1(p + 152) - lwc1(p + 356));
-    swc1(sp + 276, lwc1(p + 156) - lwc1(p + 360));
-    swc1(sp + 280, lwc1(p + 160) - lwc1(p + 364));
+    swc1(sp + 272, ps2float::sub(lwc1(p + 152), lwc1(p + 356)));
+    swc1(sp + 276, ps2float::sub(lwc1(p + 156), lwc1(p + 360)));
+    swc1(sp + 280, ps2float::sub(lwc1(p + 160), lwc1(p + 364)));
     let mut previous = 0;
     room = 0;
     if next != 0 {
@@ -1060,43 +1060,43 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     let zero = lwc1(p + 164);
     let look_y = lwc1(p + 192);
     let look_x = lwc1(p + 188);
-    let y_zero = look_y * zero;
+    let y_zero = ps2float::mul(look_y, zero);
     let top = lwc1(p + 156);
-    let right_x = lwc1(p + 152) + look_x;
+    let right_x = ps2float::add(lwc1(p + 152), look_x);
     let behind = lwc1(p + 160);
-    let up_x = look_z - y_zero;
-    let up_y = look_x * zero - look_z * zero;
+    let up_x = ps2float::sub(look_z, y_zero);
+    let up_y = ps2float::sub(ps2float::mul(look_x, zero), ps2float::mul(look_z, zero));
     sw(p + 796, room);
-    let up_z = y_zero - look_x;
+    let up_z = ps2float::sub(y_zero, look_x);
     swc1(p + 176, right_x);
     swc1(p + 168, 1.0_f32);
     swc1(p + 244, up_y);
     sw(p + 172, 0);
     swc1(p + 240, up_x);
     swc1(p + 248, up_z);
-    swc1(p + 180, top + look_y);
-    swc1(p + 184, behind + look_z);
-    let length = (1.0_f32).pdiv((up_x * up_x + up_y * up_y + up_z * up_z).abs().psqrt());
+    swc1(p + 180, ps2float::add(top, look_y));
+    swc1(p + 184, ps2float::add(behind, look_z));
+    let length = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(up_x, up_x), ps2float::mul(up_y, up_y)), ps2float::mul(up_z, up_z)).abs().psqrt());
     let look_z = lwc1(p + 196);
     let look_x = lwc1(p + 188);
     let look_y = lwc1(p + 192);
-    let unit_z = lwc1(p + 248) * length;
-    let unit_x = lwc1(p + 240) * length;
-    let unit_y = lwc1(p + 244) * length;
+    let unit_z = ps2float::mul(lwc1(p + 248), length);
+    let unit_x = ps2float::mul(lwc1(p + 240), length);
+    let unit_y = ps2float::mul(lwc1(p + 244), length);
     swc1(p + 248, unit_z);
     swc1(p + 240, unit_x);
     swc1(p + 244, unit_y);
-    let side_x = look_z * unit_x - look_x * unit_z;
-    let side_y = look_y * unit_z - look_z * unit_y;
+    let side_x = ps2float::sub(ps2float::mul(look_z, unit_x), ps2float::mul(look_x, unit_z));
+    let side_y = ps2float::sub(ps2float::mul(look_y, unit_z), ps2float::mul(look_z, unit_y));
     swc1(p + 232, side_x);
     swc1(p + 228, side_y);
-    let side_z = look_x * unit_y - look_y * unit_x;
+    let side_z = ps2float::sub(ps2float::mul(look_x, unit_y), ps2float::mul(look_y, unit_x));
     swc1(p + 236, side_z);
-    let length = (1.0_f32).pdiv((side_y * side_y + side_x * side_x + side_z * side_z).abs().psqrt());
+    let length = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(side_y, side_y), ps2float::mul(side_x, side_x)), ps2float::mul(side_z, side_z)).abs().psqrt());
     let mode = lw(p + 296);
-    let basis_y = lwc1(p + 228) * length;
-    let basis_x = lwc1(p + 232) * length;
-    swc1(p + 236, lwc1(p + 236) * length);
+    let basis_y = ps2float::mul(lwc1(p + 228), length);
+    let basis_x = ps2float::mul(lwc1(p + 232), length);
+    swc1(p + 236, ps2float::mul(lwc1(p + 236), length));
     swc1(p + 228, basis_y);
     swc1(p + 232, basis_x);
     if mode != 4 {
@@ -1164,7 +1164,7 @@ pub fn playerTick() {
     pose_matrix(sp, body, lwc1(p + 140), lwc1(p + 144), lwc1(p + 148), lwc1(0x3ad008));
     let drop = lwc1(0x3ad00c);
     swc1(chr + 3008, lwc1(sp + 128));
-    swc1(chr + 3012, lwc1(sp + 132) - drop);
+    swc1(chr + 3012, ps2float::sub(lwc1(sp + 132), drop));
     swc1(chr + 3016, lwc1(sp + 136));
     let mut seen_total = 0;
     let mut index = 0;
@@ -1174,7 +1174,7 @@ pub fn playerTick() {
             let seen = lw(index * 12 + lw(p + 820));
             seen_total += seen;
             if index != own && seen != 0 {
-                StatsAddChar(4, own, index, frames() * lwc1(0x3ad010));
+                StatsAddChar(4, own, index, ps2float::mul(frames(), lwc1(0x3ad010)));
             }
             index += 1;
             if index >= lw(g::lvnumplayers) + lw(g::numactivechars) {
@@ -1213,23 +1213,23 @@ pub fn playerTick() {
         swc1(sp + 292, y);
         let z = lwc1(chr + 2984);
         swc1(sp + 296, z);
-        let length = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
-        let unit_x = lwc1(sp + 288) * length;
-        let unit_z = lwc1(sp + 296) * length;
-        let unit_y = lwc1(sp + 292) * length;
+        let length = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)).abs().psqrt());
+        let unit_x = ps2float::mul(lwc1(sp + 288), length);
+        let unit_z = ps2float::mul(lwc1(sp + 296), length);
+        let unit_y = ps2float::mul(lwc1(sp + 292), length);
         swc1(sp + 288, unit_x);
         swc1(sp + 296, unit_z);
         swc1(sp + 292, unit_y);
-        let across = (unit_x * unit_x + unit_z * unit_z).abs().psqrt();
+        let across = ps2float::add(ps2float::mul(unit_x, unit_x), ps2float::mul(unit_z, unit_z)).abs().psqrt();
         let pitch = atan2f(lwc1(sp + 292), across);
         let radians = lwc1(0x3ad0f8);
-        swc1(lw(body + 352) + 2968, (pitch * 1.8e+02_f32).pdiv(radians));
+        swc1(lw(body + 352) + 2968, ps2float::mul(pitch, 1.8e+02_f32).pdiv(radians));
         let round = atan2f(lwc1(sp + 288), lwc1(sp + 296));
         let character = lw(body + 352);
-        let degrees = (round * 1.8e+02_f32).pdiv(radians);
+        let degrees = ps2float::mul(round, 1.8e+02_f32).pdiv(radians);
         swc1(character + 2972, degrees);
         if degrees < 0.0_f32 {
-            swc1(character + 2972, degrees + 3.6e+02_f32);
+            swc1(character + 2972, ps2float::add(degrees, 3.6e+02_f32));
         }
     }
     let character_flags = lw(lw(p + 384) + 352) + 28;
@@ -1243,7 +1243,7 @@ pub fn playerTick() {
     let ticks = lw(g::updateframesi);
     if lwc1(0x3ad0fc) < lwc1(p + 1776) && ticks != 0 && lhu(lw(p + 24) + 2) & 48 == 48 {
         let left = joyGetShockLeft(lw(p));
-        let strength = (left as f32 + lwc1(p + 1776) * 128.0_f32) as i32;
+        let strength = ps2float::add(left as f32, ps2float::mul(lwc1(p + 1776), 128.0_f32)) as i32;
         let right = joyGetShockRight(lw(p));
         joySetShock(lw(p), strength, right);
     }
@@ -1253,7 +1253,7 @@ pub fn playerTick() {
         let mut shake = lwc1(p + 1776);
         let mut left = ticks;
         loop {
-            shake = shake * decay;
+            shake = ps2float::mul(shake, decay);
             left -= 1;
             if left == 0 {
                 break;

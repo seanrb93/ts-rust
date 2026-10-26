@@ -26,10 +26,10 @@ pub fn findmypad(chr: i32) {
     swc1(state + 2800, y);
     let z = lwc1(pad + 20);
     swc1(state + 2804, z);
-    let dx = lwc1(chr + 48) - x;
-    let dy = lwc1(chr + 52) - y;
-    let dz = lwc1(chr + 56) - z;
-    if !((dx * dx + dy * dy + dz * dz) < near) {
+    let dx = ps2float::sub(lwc1(chr + 48), x);
+    let dy = ps2float::sub(lwc1(chr + 52), y);
+    let dz = ps2float::sub(lwc1(chr + 56), z);
+    if !(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < near) {
         let target = lw(state + 2788);
         let waited;
         if target == 0 {

@@ -17,7 +17,7 @@ pub fn boatsignDamage(prop: i32, _a1: i32, _a2: i32, _a3: i32, _a4: i32, hit_dir
     memset(sp + 16, 0, 12);
     let state = lw(prop + 352);
     let multiplier = getSwingDirectionMultiplier(hit_direction, sp, sp + 16);
-    swc1(state + 20, lwc1(state + 20) + multiplier * force * 18.0_f32);
+    swc1(state + 20, ps2float::add(lwc1(state + 20), ps2float::mul(ps2float::mul(multiplier, force), 18.0_f32)));
 }
 
 /// The banner: like the boat sign about its own way, with the sign of the swing turned round when the banner faces away (its direction at +76 180 or more) (@ 0x279908).
@@ -32,13 +32,13 @@ pub fn bannerDamage(prop: i32, _a1: i32, _a2: i32, _a3: i32, _a4: i32, hit_direc
     let change;
     let scale;
     if !(180.0_f32 <= lwc1(prop + 76)) {
-        change = multiplier * force;
+        change = ps2float::mul(multiplier, force);
         scale = 18.0_f32;
     } else {
         scale = 18.0_f32;
-        change = -multiplier * force;
+        change = ps2float::mul(-multiplier, force);
     }
-    swc1(state + 20, swing + change * scale);
+    swc1(state + 20, ps2float::add(swing, change * scale));
 }
 
 /// The chandelier: swung in two directions, +20 and +28 of its state, by 10 times the force (@ 0x279ae8).
@@ -51,9 +51,9 @@ pub fn chandelierDamage(prop: i32, _a1: i32, _a2: i32, _a3: i32, _a4: i32, hit_d
     let scale = 10.0_f32;
     let state = lw(prop + 352);
     let first = getSwingDirectionMultiplier(hit_direction, sp, sp + 32);
-    swc1(state + 20, lwc1(state + 20) + first * force * scale);
+    swc1(state + 20, ps2float::add(lwc1(state + 20), ps2float::mul(ps2float::mul(first, force), scale)));
     let second = getSwingDirectionMultiplier(hit_direction, sp + 16, sp + 32);
-    swc1(state + 28, lwc1(state + 28) + second * force * scale);
+    swc1(state + 28, ps2float::add(lwc1(state + 28), ps2float::mul(ps2float::mul(second, force), scale)));
 }
 
 /// The lantern: the same as the chandelier with 18 (@ 0x2799e0).
@@ -66,9 +66,9 @@ pub fn lanternDamage(prop: i32, _a1: i32, _a2: i32, _a3: i32, _a4: i32, hit_dire
     let scale = 18.0_f32;
     let state = lw(prop + 352);
     let first = getSwingDirectionMultiplier(hit_direction, sp, sp + 32);
-    swc1(state + 20, lwc1(state + 20) + first * force * scale);
+    swc1(state + 20, ps2float::add(lwc1(state + 20), ps2float::mul(ps2float::mul(first, force), scale)));
     let second = getSwingDirectionMultiplier(hit_direction, sp + 16, sp + 32);
-    swc1(state + 28, lwc1(state + 28) + second * force * scale);
+    swc1(state + 28, ps2float::add(lwc1(state + 28), ps2float::mul(ps2float::mul(second, force), scale)));
 }
 
 /// How a hit turns a vehicle: the vehicle's side vector (12 bytes at 0x3a8160) is turned by its three angles (at +52 of its state, by the game's constant `to_radians_at`), and the
@@ -83,19 +83,19 @@ fn vehicle_hit(prop: i32, hit_direction: i32, force: f32, to_radians_at: i32, sc
     let mut result = 0.0_f32;
     matrixRotZXY(
         sp,
-        (lwc1(state + 52) * k).pdiv(degrees),
-        (lwc1(state + 56) * k).pdiv(degrees),
-        (lwc1(state + 60) * k).pdiv(degrees),
+        ps2float::mul(lwc1(state + 52), k).pdiv(degrees),
+        ps2float::mul(lwc1(state + 56), k).pdiv(degrees),
+        ps2float::mul(lwc1(state + 60), k).pdiv(degrees),
     );
     matrixVecMulAligned(&[sp as i64, (sp + 80) as i64]);
     let x = lwc1(hit_direction);
     let y = lwc1(hit_direction + 4);
     let z = lwc1(hit_direction + 8);
-    fptodp(x * x + y * y + z * z);
+    fptodp(ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)));
     let x = lwc1(hit_direction);
     let y = lwc1(hit_direction + 4);
     let z = lwc1(hit_direction + 8);
-    let wide = fptodp(x * x + y * y + z * z);
+    let wide = fptodp(ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)));
     let root = sqrt(wide);
     let length = dptofp(root);
     let nx = (lwc1(hit_direction)).pdiv(length);
@@ -103,32 +103,32 @@ fn vehicle_hit(prop: i32, hit_direction: i32, force: f32, to_radians_at: i32, sc
     let nz = (lwc1(hit_direction + 8)).pdiv(length);
     let sz = lwc1(sp + 88);
     let sy = lwc1(sp + 84);
-    let first = lwc1(sp + 80) * nx;
+    let first = ps2float::mul(lwc1(sp + 80), nx);
     swc1(sp + 64, nx);
     swc1(sp + 68, ny);
     swc1(sp + 72, nz);
-    let dot = first + sy * ny + sz * nz;
-    let mut angle = (acosf(dot) * degrees).pdiv(k);
+    let dot = ps2float::add(ps2float::add(first, ps2float::mul(sy, ny)), ps2float::mul(sz, nz));
+    let mut angle = ps2float::mul(acosf(dot), degrees).pdiv(k);
     if angle < result {
-        angle += 360.0_f32;
+        angle = ps2float::add(angle, 360.0_f32);
     }
     let ninety = 90.0_f32;
     if angle < ninety {
-        result = -(((ninety - angle)).pdiv(ninety));
+        result = -((ps2float::sub(ninety, angle)).pdiv(ninety));
     }
     if ninety <= angle && angle < degrees {
-        result = ((angle - ninety)).pdiv(ninety);
+        result = (ps2float::sub(angle, ninety)).pdiv(ninety);
     }
     let change;
     if degrees <= angle && angle < 270.0_f32 {
-        result = ((ninety - (angle - degrees))).pdiv(ninety);
+        result = (ps2float::sub(ninety, ps2float::sub(angle, degrees))).pdiv(ninety);
     }
     if !(270.0_f32 <= angle) {
-        change = force * result;
+        change = ps2float::mul(force, result);
     } else {
-        change = force * -(((angle - 270.0_f32)).pdiv(90.0_f32));
+        change = ps2float::mul(force, -((ps2float::sub(angle, 270.0_f32)).pdiv(90.0_f32)));
     }
-    swc1(state + 96, lwc1(state + 96) + change * scale);
+    swc1(state + 96, ps2float::add(lwc1(state + 96), ps2float::mul(change, scale)));
 }
 
 /// The helicopter's turn from a hit (@ 0x277860).
@@ -178,7 +178,7 @@ pub fn enemyExplosionNearby(chr: i32) {
             let y = lwc1(chr + 52);
             swc1(entry + 4, y);
             let z = lwc1(chr + 56);
-            let distance = x * x + y * y + z * z;
+            let distance = ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z));
             swc1(entry + 8, z);
             if distance < nearest {
                 nearest = distance;
@@ -205,10 +205,10 @@ pub fn enemyFiredAt(chr: i32) -> i32 {
     if target_state == 0 {
         return 0;
     }
-    let dx = lwc1(target + 48) - lwc1(chr + 48);
-    let dy = lwc1(target + 52) - lwc1(chr + 52);
+    let dx = ps2float::sub(lwc1(target + 48), lwc1(chr + 48));
+    let dy = ps2float::sub(lwc1(target + 52), lwc1(chr + 52));
     let number = lw(target_state);
-    let dz = lwc1(target + 56) - lwc1(chr + 56);
+    let dz = ps2float::sub(lwc1(target + 56), lwc1(chr + 56));
     let ammo;
     if number >= lw(g::lvnumplayers) {
         let record = number * 0x1210 + lw(g::chrinfo);
@@ -224,7 +224,7 @@ pub fn enemyFiredAt(chr: i32) -> i32 {
         ammo = lw(player + 748);
     }
     if ammo < 10 {
-        if !(25.0_f32 < dx * dx + dy * dy + dz * dz) {
+        if !(25.0_f32 < ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz))) {
             return 0;
         }
         let aiming = checkAimingFront(chr, target, lwc1(0x3ada78));
@@ -254,11 +254,11 @@ pub fn awareOfTarget(chr: i32) -> i32 {
         let mut i = 0;
         loop {
             let record = i * 0x1210 + chars;
-            let dy = lwc1(record + 2936) - y;
-            let dx = lwc1(record + 2932) - x;
-            let dz = lwc1(record + 2940) - z;
+            let dy = ps2float::sub(lwc1(record + 2936), y);
+            let dx = ps2float::sub(lwc1(record + 2932), x);
+            let dz = ps2float::sub(lwc1(record + 2940), z);
             i += 1;
-            if (dx * dx + dy * dy + dz * dz) < lwc1((lw(record + 2944) << 2) + g::bulletSoundRadius) {
+            if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < lwc1((lw(record + 2944) << 2) + g::bulletSoundRadius) {
                 return 2;
             }
             if i >= players {
@@ -267,8 +267,8 @@ pub fn awareOfTarget(chr: i32) -> i32 {
         }
     }
     let target = lw(state + 2788);
-    let dy = lwc1(target + 52) - lwc1(chr + 52);
-    let dx = lwc1(target + 48) - lwc1(chr + 48);
-    let dz = lwc1(target + 56) - lwc1(chr + 56);
-    if (dx * dx + dy * dy + dz * dz) < 4.0_f32 { 3 } else { 0 }
+    let dy = ps2float::sub(lwc1(target + 52), lwc1(chr + 52));
+    let dx = ps2float::sub(lwc1(target + 48), lwc1(chr + 48));
+    let dz = ps2float::sub(lwc1(target + 56), lwc1(chr + 56));
+    if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < 4.0_f32 { 3 } else { 0 }
 }

@@ -7,8 +7,8 @@ use ts_rt::*;
 pub const SENTINEL: u32 = 0xFFFF_FFF0;
 pub const STEP_LIMIT: u64 = 60_000_000;
 
-/// Whether additions, subtractions and multiplications give the console's results (an overflow is the largest float, not infinity: `TS_VERIFY_CLAMP=0` turns it off).  The hand-written
-/// code leaves overflows to the host except at the places that need it, so the tests on random memory (huge numbers everywhere) run with it off.
+/// Whether additions, subtractions and multiplications (also those of the vector unit) give the console's results (an overflow is the largest float, not infinity:
+/// `TS_VERIFY_CLAMP=0` turns it off).  The hand-written code does the same through `ts_rt::ps2float`.
 fn clamp() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| std::env::var("TS_VERIFY_CLAMP").map_or(true, |v| v != "0"))
@@ -581,7 +581,7 @@ impl Cpu {
                 0x2f => (K::Min, 0),
                 0x2e => {
                     // opmsub
-                    let r = [acc[0] - a[1] * t[2], acc[1] - a[2] * t[0], acc[2] - a[0] * t[1]];
+                    let r = [fsub(acc[0], fmul(a[1], t[2])), fsub(acc[1], fmul(a[2], t[0])), fsub(acc[2], fmul(a[0], t[1]))];
                     for k in 0..3 {
                         if lanes[k] && fd != 0 {
                             self.vf[fd][k] = r[k].to_bits();
@@ -632,13 +632,13 @@ impl Cpu {
         let mut r = [0f32; 4];
         for k in 0..4 {
             r[k] = match op {
-                K::Add => a[k] + b[k],
-                K::Sub => a[k] - b[k],
-                K::Mul => a[k] * b[k],
+                K::Add => fadd(a[k], b[k]),
+                K::Sub => fsub(a[k], b[k]),
+                K::Mul => fmul(a[k], b[k]),
                 K::Max => a[k].max(b[k]),
                 K::Min => a[k].min(b[k]),
-                K::Madd => acc[k] + a[k] * b[k],
-                K::Msub => acc[k] - a[k] * b[k],
+                K::Madd => fadd(acc[k], fmul(a[k], b[k])),
+                K::Msub => fsub(acc[k], fmul(a[k], b[k])),
             };
         }
         for k in 0..4 {

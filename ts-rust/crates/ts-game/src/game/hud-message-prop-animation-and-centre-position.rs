@@ -54,7 +54,7 @@ pub fn hudMessageDraw(player: i32) {
             let fraction = (past as f32).pdiv(3e+01_f32);
             let turned = dpmul(dpmul(fptodp(fraction), ld(0x3a9a28)), half);
             let index = dptoli(dpadd(dpmul(turned, ld(0x3a9a30)), half));
-            slide = (-((1.0_f32 - lwc1((((index + 512) & 2047) << 2) + g::g_SinTable)) * lw(g::window + 12) as f32)) as i32;
+            slide = (-ps2float::mul(ps2float::sub(1.0_f32, lwc1((((index + 512) & 2047) << 2) + g::g_SinTable)), lw(g::window + 12) as f32)) as i32;
         }
         offset = slide;
     } else {
@@ -62,7 +62,7 @@ pub fn hudMessageDraw(player: i32) {
         let fraction = (time as f32).pdiv(3e+01_f32);
         let turned = dpmul(dpmul(fptodp(fraction), ld(0x3a9a18)), half);
         let index = dptoli(dpadd(dpmul(turned, ld(0x3a9a20)), half));
-        offset = ((1.0_f32 - lwc1(((index & 2047) << 2) + g::g_SinTable)) * lw(g::window + 12) as f32) as i32;
+        offset = ps2float::mul(ps2float::sub(1.0_f32, lwc1(((index & 2047) << 2) + g::g_SinTable)), lw(g::window + 12) as f32) as i32;
     }
     let total = strlen(text);
     let mut at = 0;
@@ -133,11 +133,11 @@ pub fn calPropMatrices(prop: i32, scale: f32) {
     let anim = lw((lw(prop + 96) << 2) + g::pAnimations);
     let length = lwc1(anim + 16);
     if 0.0_f32 < length {
-        let step = lwc1(g::updateframesf) * lwc1(state + 44);
+        let step = ps2float::mul(lwc1(g::updateframesf), lwc1(state + 44));
         let time = lwc1(state + 4);
         sw(state + 56, 0);
         let looping = lw(anim + 12) & 1;
-        let moved = time + (step).pdiv(6e+01_f32);
+        let moved = ps2float::add(time, (step).pdiv(6e+01_f32));
         swc1(state + 4, moved);
         if looping == 0 {
             if length < moved {
@@ -148,7 +148,7 @@ pub fn calPropMatrices(prop: i32, scale: f32) {
             loop {
                 let now = lwc1(state + 4);
                 sw(state + 56, 1);
-                let back = now - length;
+                let back = ps2float::sub(now, length);
                 swc1(state + 4, back);
                 if !(length < back) {
                     break;
@@ -162,7 +162,7 @@ pub fn calPropMatrices(prop: i32, scale: f32) {
         } else {
             let mut up;
             loop {
-                up = now + length;
+                up = ps2float::add(now, length);
                 now = up;
                 if !(up < 0.0_f32) {
                     break;
@@ -175,9 +175,9 @@ pub fn calPropMatrices(prop: i32, scale: f32) {
         if wrapped != 0 && (lw(anim + 12) & 1) != 0 {
             extractAnimData(prop, anim, 0, lw(anim + 4) - 1, sp + 176, scale);
             extractAnimData(prop, anim, 0, 0, sp + 208, scale);
-            let y = lwc1(sp + 212) + lwc1(state + 24) - lwc1(sp + 180);
-            let z = lwc1(sp + 216) + lwc1(state + 28) - lwc1(sp + 184);
-            swc1(state + 20, lwc1(sp + 208) + lwc1(state + 20) - lwc1(sp + 176));
+            let y = ps2float::sub(ps2float::add(lwc1(sp + 212), lwc1(state + 24)), lwc1(sp + 180));
+            let z = ps2float::sub(ps2float::add(lwc1(sp + 216), lwc1(state + 28)), lwc1(sp + 184));
+            swc1(state + 20, ps2float::sub(ps2float::add(lwc1(sp + 208), lwc1(state + 20)), lwc1(sp + 176)));
             swc1(state + 24, y);
             swc1(state + 28, z);
         }
@@ -198,7 +198,7 @@ pub fn calPropMatrices(prop: i32, scale: f32) {
     } else {
         let times = lw(anim + 20);
         let from = (lw((before << 2) + times) as f32).pdiv(6e+01_f32);
-        blend = ((lwc1(state + 4) - from)).pdiv(((lw((after << 2) + times) as f32).pdiv(6e+01_f32) - from));
+        blend = (ps2float::sub(lwc1(state + 4), from)).pdiv(ps2float::sub((lw((after << 2) + times) as f32).pdiv(6e+01_f32), from));
         count = lw(anim + 8);
     }
     let mut i = 0;
@@ -226,11 +226,11 @@ pub fn calPropMatrices(prop: i32, scale: f32) {
             quaternionSlerp(&[(sp + 16) as i64, (sp + 32) as i64, sp as i64, blend.to_bits() as i64]);
             quaternionToMatrix(lw(prop + 4), sp);
             let x0 = lwc1(sp + 112);
-            swc1(lw(prop + 4) + 48, x0 + (lwc1(sp + 144) - x0) * blend);
+            swc1(lw(prop + 4) + 48, ps2float::add(x0, ps2float::mul(ps2float::sub(lwc1(sp + 144), x0), blend)));
             let y0 = lwc1(sp + 116);
-            swc1(lw(prop + 4) + 52, y0 + (lwc1(sp + 148) - y0) * blend);
+            swc1(lw(prop + 4) + 52, ps2float::add(y0, ps2float::mul(ps2float::sub(lwc1(sp + 148), y0), blend)));
             let z0 = lwc1(sp + 120);
-            swc1(lw(prop + 4) + 56, z0 + (lwc1(sp + 152) - z0) * blend);
+            swc1(lw(prop + 4) + 56, ps2float::add(z0, ps2float::mul(ps2float::sub(lwc1(sp + 152), z0), blend)));
             before = lw(sp + 240);
             if i >= lw(anim + 8) {
                 break;
@@ -247,13 +247,13 @@ pub fn calPropMatrices(prop: i32, scale: f32) {
         let b = lwc1(prop + 104);
         let c = lwc1(prop + 108);
         let d = lwc1(prop + 120);
-        let move_x = b - lwc1(prop + 116);
+        let move_x = ps2float::sub(b, lwc1(prop + 116));
         let e = lwc1(prop + 124);
         swc1(prop + 124, a);
         swc1(prop + 128, move_x);
         swc1(prop + 116, b);
-        swc1(prop + 132, c - d);
-        swc1(prop + 136, a - e);
+        swc1(prop + 132, ps2float::sub(c, d));
+        swc1(prop + 136, ps2float::sub(a, e));
         swc1(prop + 120, c);
     }
 }
@@ -364,9 +364,9 @@ pub fn propCalculateCentrePos(prop: i32) {
     let half = 0.5_f32;
     let at = table + number * 12;
     let degrees = lwc1(0x3acbcc);
-    let centre_x = min_x + (lwc1(sp + 96) - min_x) * half;
-    let centre_y = min_y + (lwc1(sp + 100) - min_y) * half;
-    let centre_z = min_z + (lwc1(sp + 104) - min_z) * half;
+    let centre_x = ps2float::add(min_x, ps2float::mul(ps2float::sub(lwc1(sp + 96), min_x), half));
+    let centre_y = ps2float::add(min_y, ps2float::mul(ps2float::sub(lwc1(sp + 100), min_y), half));
+    let centre_z = ps2float::add(min_z, ps2float::mul(ps2float::sub(lwc1(sp + 104), min_z), half));
     swc1(number * 12 + table, centre_x);
     swc1(at + 4, centre_y);
     swc1(at + 8, centre_z);
@@ -374,14 +374,14 @@ pub fn propCalculateCentrePos(prop: i32) {
     let angle = lwc1(prop + 76);
     swc1(sp + 68, centre_y);
     swc1(sp + 72, centre_z);
-    matrixRotY(sp, (angle * degrees).pdiv(1.8e+02_f32));
+    matrixRotY(sp, ps2float::mul(angle, degrees).pdiv(1.8e+02_f32));
     matrixVecMulAligned(&[sp as i64, (sp + 64) as i64]);
-    let depth = lwc1(sp + 104) - lwc1(sp + 88);
+    let depth = ps2float::sub(lwc1(sp + 104), lwc1(sp + 88));
     let turned_y = lwc1(sp + 68);
-    let width = (lwc1(sp + 96) - lwc1(sp + 80)) * half;
+    let width = ps2float::mul(ps2float::sub(lwc1(sp + 96), lwc1(sp + 80)), half);
     let turned_z = lwc1(sp + 72);
     swc1(prop + 508, lwc1(sp + 64));
-    let depth_half = depth * half;
+    let depth_half = ps2float::mul(depth, half);
     swc1(prop + 512, turned_y);
     swc1(prop + 516, turned_z);
     if !(depth_half < width) {
@@ -390,9 +390,9 @@ pub fn propCalculateCentrePos(prop: i32) {
         swc1(prop + 528, width);
     }
     let kind = lw(prop + 4);
-    swc1(prop + 524, (lwc1(sp + 100) - lwc1(sp + 84)) * 0.5_f32);
+    swc1(prop + 524, ps2float::mul(ps2float::sub(lwc1(sp + 100), lwc1(sp + 84)), 0.5_f32));
     if kind == 310 {
         let radius = lwc1(prop + 528);
-        swc1(prop + 528, radius + radius);
+        swc1(prop + 528, ps2float::add(radius, radius));
     }
 }

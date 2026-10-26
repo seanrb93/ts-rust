@@ -8,40 +8,40 @@ use crate::*;
 pub fn hittestMoveCircleToLine(out: i32, x: f32, z: f32, radius: f32, dx: f32, dz: f32, x1: f32, z1: f32, x2: f32) -> f32 {
     let frame = Frame::new(160);
     let z2 = lwc1(frame.sp() + 160);
-    let speed = (dx * dx + dz * dz).abs().psqrt();
+    let speed = ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz)).abs().psqrt();
     if speed == 0.0_f32 {
         return 2.0_f32;
     }
-    let line_x = x2 - x1;
-    let line_z = z2 - z1;
+    let line_x = ps2float::sub(x2, x1);
+    let line_z = ps2float::sub(z2, z1);
     let inv_speed = (1.0_f32).pdiv(speed);
-    let line_len2 = line_x * line_x + line_z * line_z;
+    let line_len2 = ps2float::add(ps2float::mul(line_x, line_x), ps2float::mul(line_z, line_z));
     let reach;
     if !(0.0_f32 < line_len2) {
-        reach = hittestMoveCircleToPoint(out, x, z, radius, dx * inv_speed, dz * inv_speed, x2, z2);
+        reach = hittestMoveCircleToPoint(out, x, z, radius, ps2float::mul(dx, inv_speed), ps2float::mul(dz, inv_speed), x2, z2);
     } else {
-        if 0.0_f32 <= line_z * dx - line_x * dz {
+        if 0.0_f32 <= ps2float::sub(ps2float::mul(line_z, dx), ps2float::mul(line_x, dz)) {
             return 2.0_f32;
         }
-        let rel_x = x - x1;
-        let rel_z = z - z1;
-        if (line_z * rel_x - line_x * rel_z) < 0.0_f32 {
+        let rel_x = ps2float::sub(x, x1);
+        let rel_z = ps2float::sub(z, z1);
+        if ps2float::sub(ps2float::mul(line_z, rel_x), ps2float::mul(line_x, rel_z)) < 0.0_f32 {
             return 1.0_f32;
         }
-        let along = rel_x * line_x + rel_z * line_z;
+        let along = ps2float::add(ps2float::mul(rel_x, line_x), ps2float::mul(rel_z, line_z));
         let point_x;
         let point_z;
         if !(along < 0.0_f32) {
             if !(line_len2 < along) {
                 let inv = (1.0_f32).pdiv(line_len2.abs().psqrt());
-                let nx = line_z * inv;
-                let nz = -line_x * inv;
+                let nx = ps2float::mul(line_z, inv);
+                let nz = ps2float::mul(-line_x, inv);
                 if out != 0 {
                     swc1(out + 4, nz);
                     swc1(out, nx);
                 }
-                let start_side = nx * rel_x + nz * rel_z;
-                let end_side = nx * (x + dx - x1) + nz * (z + dz - z1);
+                let start_side = ps2float::add(ps2float::mul(nx, rel_x), ps2float::mul(nz, rel_z));
+                let end_side = ps2float::add(ps2float::mul(nx, ps2float::sub(ps2float::add(x, dx), x1)), ps2float::mul(nz, ps2float::sub(ps2float::add(z, dz), z1)));
                 let mut found = None;
                 if !(start_side == end_side) {
                     if !(start_side < end_side) {
@@ -50,14 +50,14 @@ pub fn hittestMoveCircleToLine(out: i32, x: f32, z: f32, radius: f32, dx: f32, d
                         } else if start_side <= -radius {
                             found = Some(speed);
                         } else if radius <= start_side {
-                            found = Some(start_side - radius);
+                            found = Some(ps2float::sub(start_side, radius));
                         }
                     } else if radius <= start_side {
                         found = Some(speed);
                     } else if end_side <= -radius {
                         found = Some(speed);
                     } else if start_side <= -radius {
-                        found = Some(-start_side - radius);
+                        found = Some(ps2float::sub(-start_side, radius));
                     }
                 }
                 match found {
@@ -72,7 +72,7 @@ pub fn hittestMoveCircleToLine(out: i32, x: f32, z: f32, radius: f32, dx: f32, d
             point_x = x1;
             point_z = z1;
         }
-        reach = hittestMoveCircleToPoint(out, x, z, radius, dx * inv_speed, dz * inv_speed, point_x, point_z);
+        reach = hittestMoveCircleToPoint(out, x, z, radius, ps2float::mul(dx, inv_speed), ps2float::mul(dz, inv_speed), point_x, point_z);
     }
     finish(reach, speed, inv_speed)
 }
@@ -81,7 +81,7 @@ pub fn hittestMoveCircleToLine(out: i32, x: f32, z: f32, radius: f32, dx: f32, d
 fn finish(reach: f32, speed: f32, inv_speed: f32) -> f32 {
     if !(speed <= reach) {
         if !(reach <= 0.0_f32) {
-            return reach * inv_speed;
+            return ps2float::mul(reach, inv_speed);
         }
         return 0.0_f32;
     }

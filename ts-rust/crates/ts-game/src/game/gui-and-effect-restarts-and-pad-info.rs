@@ -239,13 +239,13 @@ pub fn challengeFormatScore(challenge: i32, score: i32) -> i32 {
     }
     if kind >= 3 {
         if kind == 3 {
-            let percent = score as f32 * 1.5258789e-05_f32 * 1e+02_f32;
+            let percent = ps2float::mul(ps2float::mul(score as f32, 1.5258789e-05_f32), 1e+02_f32);
             let texts = lw((lw(g::cur_language) << 2) + g::languages);
             let wide = fptodp(percent);
             return vafmt(&[0x3a0928, lw(texts + 2640) as i64, wide]);
         }
         if kind == 4 {
-            return vafmt(&[0x3ae5b0, (score as f32 * 1.5258789e-05_f32) as i32 as i64]);
+            return vafmt(&[0x3ae5b0, ps2float::mul(score as f32, 1.5258789e-05_f32) as i32 as i64]);
         }
     } else if kind == 1 {
         return gameFormatTime(score);

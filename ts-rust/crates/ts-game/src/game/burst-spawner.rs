@@ -33,7 +33,7 @@ pub fn particleNewBurst(owner: i32, kind: i32, at: i32, flag: i32, speed: f32) {
     let spread_x = lwc1(info + 68);
     let spread_y = lwc1(info + 72);
     let spread_z = lwc1(info + 76);
-    let (centre_x, centre_y, centre_z) = (spread_x * half, spread_y * half, spread_z * half);
+    let (centre_x, centre_y, centre_z) = (ps2float::mul(spread_x, half), ps2float::mul(spread_y, half), ps2float::mul(spread_z, half));
     if count > 0 {
         loop {
             let place = i << 4;
@@ -43,20 +43,20 @@ pub fn particleNewBurst(owner: i32, kind: i32, at: i32, flag: i32, speed: f32) {
             let r = random_as_float();
             let base = lw(group + 4) * 104 + (g::particleinfos + 56);
             let to = i * 12 + (group + 2528);
-            swc1(to, lwc1(base) + (r * 2.3283064e-10_f32 * spread_x - centre_x));
+            swc1(to, ps2float::add(lwc1(base), ps2float::sub(ps2float::mul(ps2float::mul(r, 2.3283064e-10_f32), spread_x), centre_x)));
             let r = random_as_float();
             let base = lw(group + 4) * 104 + (g::particleinfos + 60);
             let to = i * 12 + (group + 2532);
-            swc1(to, lwc1(base) + (r * 2.3283064e-10_f32 * spread_y - centre_y));
+            swc1(to, ps2float::add(lwc1(base), ps2float::sub(ps2float::mul(ps2float::mul(r, 2.3283064e-10_f32), spread_y), centre_y)));
             let r = random_as_float();
             let base = lw(group + 4) * 104 + (g::particleinfos + 64);
             let to = i * 12 + (group + 2536);
-            swc1(to, lwc1(base) + (r * 2.3283064e-10_f32 * spread_z - centre_z));
+            swc1(to, ps2float::add(lwc1(base), ps2float::sub(ps2float::mul(ps2float::mul(r, 2.3283064e-10_f32), spread_z), centre_z)));
             let r = random_as_float();
             let to = group + 3728 + (i << 2);
             let kind_now = lw(group + 4);
             i += 1;
-            swc1(to, (r * 2.3283064e-10_f32 - 0.5_f32) * lwc1(kind_now * 104 + (g::particleinfos + 36)));
+            swc1(to, ps2float::mul(ps2float::sub(ps2float::mul(r, 2.3283064e-10_f32), 0.5_f32), lwc1(kind_now * 104 + (g::particleinfos + 36))));
             if i >= lw(group + 24) {
                 break;
             }

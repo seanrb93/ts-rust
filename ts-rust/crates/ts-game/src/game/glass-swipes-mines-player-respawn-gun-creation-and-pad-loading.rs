@@ -11,28 +11,28 @@ pub fn bgGlassSwipeTestRoom(a0: i32, a1: i32, a2: i32, _a3: i32, a4: i32) {
     let list = lw(a0 * 44 + lw(g::levelrooms) + 16);
     if list != 0 {
         let mut i = 0;
-        let dx = lwc1(a4) - lwc1(a2);
+        let dx = ps2float::sub(lwc1(a4), lwc1(a2));
         let end_z = lwc1(a4 + 8);
-        let dy = lwc1(a4 + 4) - lwc1(a2 + 4);
+        let dy = ps2float::sub(lwc1(a4 + 4), lwc1(a2 + 4));
         let start_z = lwc1(a2 + 8);
         let first = lw(list);
         swc1(sp + 16, dx);
-        let dz = end_z - start_z;
+        let dz = ps2float::sub(end_z, start_z);
         swc1(sp + 20, dy);
         swc1(sp + 24, dz);
         if first != 0 {
             loop {
                 let glass = lw((i << 2) + list);
                 if 0.0_f32 <= lwc1(glass) {
-                    let distance = dx * dx + dy * dy + dz * dz;
+                    let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                     let hit = bgHittestDistGlass(a2, sp + 16, glass + 16, glass + 56, glass + 96, glass + 136, sp + 32, sp + 48, distance);
                     let hit_x = lwc1(sp + 32);
                     if hit != 0 {
-                        let hit_y = lwc1(sp + 36) - lwc1(a2 + 4);
-                        let hit_z = lwc1(sp + 40) - lwc1(a2 + 8);
+                        let hit_y = ps2float::sub(lwc1(sp + 36), lwc1(a2 + 4));
+                        let hit_z = ps2float::sub(lwc1(sp + 40), lwc1(a2 + 8));
                         let room = lw(a1 + 12);
                         let flags = lw(a1 + 16) & -33;
-                        swc1(sp + 64, hit_x - lwc1(a2));
+                        swc1(sp + 64, ps2float::sub(hit_x, lwc1(a2)));
                         swc1(sp + 68, hit_y);
                         swc1(sp + 72, hit_z);
                         sw(a1 + 16, flags);
@@ -81,13 +81,13 @@ pub fn bulletExplodeMines(a0: i32, f12: f32) {
         if ((lw(bullet) - 14) as u32) >= 3 {
             i += 1;
         } else {
-            let dx = x - lwc1(bullet + 24);
+            let dx = ps2float::sub(x, lwc1(bullet + 24));
             swc1(sp + 16, dx);
-            let dy = y - lwc1(bullet + 28);
+            let dy = ps2float::sub(y, lwc1(bullet + 28));
             swc1(sp + 20, dy);
-            let dz = z - lwc1(bullet + 32);
+            let dz = ps2float::sub(z, lwc1(bullet + 32));
             swc1(sp + 24, dz);
-            if (dx * dx + dy * dy + dz * dz) < f12 * f12 {
+            if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < ps2float::mul(f12, f12) {
                 'b5: {
                     sw(sp, 0);
                     let position = bullet + 24;
@@ -400,20 +400,20 @@ pub fn enemyInformOthers(a0: i32) {
                 } else {
                     let x = lwc1(a0 + 48);
                     let y = lwc1(a0 + 52);
-                    let dx = lwc1(other + 48) - x;
-                    let dy = lwc1(other + 52) - y;
+                    let dx = ps2float::sub(lwc1(other + 48), x);
+                    let dy = ps2float::sub(lwc1(other + 52), y);
                     let z = lwc1(a0 + 56);
-                    let dz = lwc1(other + 56) - z;
-                    if (dx * dx + dy * dy + dz * dz) < lwc1(other_record + 2884) {
+                    let dz = ps2float::sub(lwc1(other + 56), z);
+                    if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < lwc1(other_record + 2884) {
                         flag = 1;
                     }
                     let up = lwc1(0x3ada74);
                     swc1(sp, x);
                     swc1(sp + 8, z);
-                    swc1(sp + 4, y + up);
-                    swc1(sp + 16, lwc1(other + 48) - x);
-                    swc1(sp + 20, lwc1(other + 52) - y);
-                    swc1(sp + 24, lwc1(other + 56) - z);
+                    swc1(sp + 4, ps2float::add(y, up));
+                    swc1(sp + 16, ps2float::sub(lwc1(other + 48), x));
+                    swc1(sp + 20, ps2float::sub(lwc1(other + 52), y));
+                    swc1(sp + 24, ps2float::sub(lwc1(other + 56), z));
                     let mut room = bgPortalCrossed(sp, sp + 16, lw(a0 + 12), 0, 0);
                     let mut previous = 0;
                     let mut last = 0;
@@ -528,11 +528,11 @@ pub fn selectChar(a0: i32, a1: i32) {
     let player = lw(g::currentplayer);
     let distance = lwc1(0x3ac9c0);
     let x = lwc1(player + 152);
-    let dx = lwc1(player + 176) * distance;
+    let dx = ps2float::mul(lwc1(player + 176), distance);
     sw(chr + 344, 0);
-    swc1(chr + 48, x + dx);
-    swc1(chr + 52, lwc1(player + 156) + lwc1(player + 180) * distance - 1.0_f32);
-    swc1(chr + 56, lwc1(player + 160) + lwc1(player + 184) * distance);
+    swc1(chr + 48, ps2float::add(x, dx));
+    swc1(chr + 52, ps2float::sub(ps2float::add(lwc1(player + 156), ps2float::mul(lwc1(player + 180), distance)), 1.0_f32));
+    swc1(chr + 56, ps2float::add(lwc1(player + 160), ps2float::mul(lwc1(player + 184), distance)));
     tlhAdjustChrPosition(chr);
     sw(index + 0x1fc1238, chr);
 }
@@ -723,9 +723,9 @@ pub fn gmLastStandTick() {
             let offset = i * 1820;
             let player = i * 1820 + lw(g::players);
             let chr = lw(player + 384);
-            let dx = lwc1(chr + 48) - lwc1(info + 4);
-            let dz = -(lwc1(chr + 56) - lwc1(info + 8));
-            let distance_squared = dx * dx + dz * dz;
+            let dx = ps2float::sub(lwc1(chr + 48), lwc1(info + 4));
+            let dz = -ps2float::sub(lwc1(chr + 56), lwc1(info + 8));
+            let distance_squared = ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz));
             let record = lw(chr + 352);
             if lw(player + 296) == 4 {
             } else if !(lwc1(info + 12) < distance_squared.abs().psqrt()) {
@@ -737,7 +737,7 @@ pub fn gmLastStandTick() {
                 let mut deadline = lw(record + 252);
                 let mut now = lw(g::gameframe);
                 if deadline == 0 {
-                    let set = (lw(g::gameframe) as f32 + lwc1(info + 16) * 6e+01_f32) as i32;
+                    let set = ps2float::add(lw(g::gameframe) as f32, ps2float::mul(lwc1(info + 16), 6e+01_f32)) as i32;
                     sw(record + 252, set);
                     deadline = set;
                     now = lw(g::gameframe);

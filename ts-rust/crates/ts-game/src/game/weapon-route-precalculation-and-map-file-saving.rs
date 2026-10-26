@@ -114,7 +114,7 @@ pub fn enemyPreCalcEnemyRoutes() {
                             weapons = lw(g::numPickupWeapons);
                         } else {
                             weapons = lw(g::numPickupWeapons);
-                            cost = route + lwc1(g::lasthallroutecost);
+                            cost = ps2float::add(route, lwc1(g::lasthallroutecost));
                         }
                     }
                     let combo = lw(thing + 12);
@@ -181,7 +181,7 @@ pub fn enemyPreCalcEnemyRoutes() {
                         let score = if cost == 0.0_f32 {
                             lwc1(0x3ada8c)
                         } else {
-                            ((((100 - lh((lw(combo_at) << 3) + GUNCOMBOS)) as f32).pdiv(1e+02_f32) + 1.0_f32)).pdiv((cost * cost))
+                            (ps2float::add(((100 - lh((lw(combo_at) << 3) + GUNCOMBOS)) as f32).pdiv(1e+02_f32), 1.0_f32)).pdiv(ps2float::mul(cost, cost))
                         };
                         if !(score < best_score) {
                             j += 1;

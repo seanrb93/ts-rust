@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// The frames that passed as seconds.
@@ -138,13 +138,13 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
         swc1(sp + 72, lwc1(offset + 8));
     }
     pi = lwc1(0x3ad3bc);
-    matrixRotY(sp, (lwc1(s5_1 + 80) * pi).pdiv(1.8e+02_f32));
+    matrixRotY(sp, ps2float::mul(lwc1(s5_1 + 80), pi).pdiv(1.8e+02_f32));
     matrixVecMulAligned(&[sp as i64, (sp + 64) as i64]);
     let player_data = lw(s5_1 + 356);
-    swc1(s3_2 + 48, lwc1(player_data + 140) + lwc1(sp + 64));
+    swc1(s3_2 + 48, ps2float::add(lwc1(player_data + 140), lwc1(sp + 64)));
     let f1_13 = lwc1(player_data + 144);
-    swc1(s3_2 + 52, f1_13 + (lwc1(player_data + 156) - f1_13) - lwc1(player_data + 104) + lwc1(sp + 68));
-    swc1(s3_2 + 56, lwc1(player_data + 148) + lwc1(sp + 72));
+    swc1(s3_2 + 52, ps2float::add(ps2float::sub(ps2float::add(f1_13, ps2float::sub(lwc1(player_data + 156), f1_13)), lwc1(player_data + 104)), lwc1(sp + 68)));
+    swc1(s3_2 + 56, ps2float::add(lwc1(player_data + 148), lwc1(sp + 72)));
     if curAnim(s3_2, anim) == 0 {
         if (lw(s4_1 + 2708) & 32) != 0 {
             return lw(a0 + 12);
@@ -189,7 +189,7 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
         }
         let mut hit = 0;
         'b33: {
-            matrixTransRotY(sp + 80, lwc1(s3_2 + 48), lwc1(s3_2 + 52), lwc1(s3_2 + 56), (lwc1(s3_2 + 76) * pi).pdiv(1.8e+02_f32));
+            matrixTransRotY(sp + 80, lwc1(s3_2 + 48), lwc1(s3_2 + 52), lwc1(s3_2 + 56), ps2float::mul(lwc1(s3_2 + 76), pi).pdiv(1.8e+02_f32));
             let inst = lw(s3_2 + 32);
             sceVu0MulMatrix(sp + 144, sp + 80, lw(inst + 4) + (lw(lw(inst + 92) + 20) << 6));
             let inst = lw(s3_2 + 32);
@@ -202,9 +202,9 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
             let f4_5 = lwc1(sp + 208);
             let f5_4 = lwc1(sp + 212);
             let f6_3 = lwc1(sp + 216);
-            let f5_5 = f5_4 + (lwc1(sp + 196) - f5_4) * 2.5_f32;
-            let f6_4 = f6_3 + (lwc1(sp + 200) - f6_3) * 2.5_f32;
-            swc1(sp + 224, f4_5 + (lwc1(sp + 192) - f4_5) * 2.5_f32);
+            let f5_5 = ps2float::add(f5_4, ps2float::mul(ps2float::sub(lwc1(sp + 196), f5_4), 2.5_f32));
+            let f6_4 = ps2float::add(f6_3, ps2float::mul(ps2float::sub(lwc1(sp + 200), f6_3), 2.5_f32));
+            swc1(sp + 224, ps2float::add(f4_5, ps2float::mul(ps2float::sub(lwc1(sp + 192), f4_5), 2.5_f32)));
             swc1(sp + 228, f5_5);
             swc1(sp + 232, f6_4);
             if lwc1(mind + 2920) == 0.0_f32 && lwc1(mind + 2924) == 0.0_f32 && lwc1(mind + 2928) == 0.0_f32 {
@@ -213,8 +213,8 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
             let inst = lw(s3_2 + 32);
             let time = lwc1(inst + 100);
             let length = lwc1(lw((lw(inst + 96) << 2) + g::pAnimations) + 16);
-            if (length * lwc1(0x3ad3c0)) < time {
-                if time < length * 0.5_f32 {
+            if ps2float::mul(length, lwc1(0x3ad3c0)) < time {
+                if time < ps2float::mul(length, 0.5_f32) {
                     let found = propSwipeTest(s5_1, sp + 208, mind + 2920, sp + 224, sp + 240, 0);
                     hit = if (found ^ lw((lw(lw(g::currentplayer)) << 2) + 0x1fe99b0)) != 0 { found } else { 0 };
                 }
@@ -226,21 +226,21 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
             if hit != 0 {
                 if frames > 0 {
                     bulletExplodeMines(sp + 240, 0.25_f32);
-                    let dx = lwc1(sp + 224) - lwc1(sp + 208);
+                    let dx = ps2float::sub(lwc1(sp + 224), lwc1(sp + 208));
                     let base_z = lwc1(sp + 216);
-                    let dy = lwc1(sp + 228) - lwc1(sp + 212);
+                    let dy = ps2float::sub(lwc1(sp + 228), lwc1(sp + 212));
                     let tip_z = lwc1(sp + 232);
                     swc1(sp + 256, dx);
-                    let dz = tip_z - base_z;
+                    let dz = ps2float::sub(tip_z, base_z);
                     let number = lw(lw(g::currentplayer));
                     swc1(sp + 260, dy);
                     sw((number << 2) + 0x1fe99b0, hit);
                     swc1(sp + 264, dz);
-                    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+                    let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
                     let kind = lw(hit + 8);
-                    let nx = lwc1(sp + 256) * inverse;
-                    let ny = lwc1(sp + 260) * inverse;
-                    swc1(sp + 264, lwc1(sp + 264) * inverse);
+                    let nx = ps2float::mul(lwc1(sp + 256), inverse);
+                    let ny = ps2float::mul(lwc1(sp + 260), inverse);
+                    swc1(sp + 264, ps2float::mul(lwc1(sp + 264), inverse));
                     swc1(sp + 256, nx);
                     swc1(sp + 260, ny);
                     if kind == 8 {
@@ -461,24 +461,24 @@ pub fn gunUpdate(a0: i32, a1: i32) {
             let step = lwc1(0x3ad3b4);
             let mut gun = lw(s3_1);
             let info = gun * 400 + g::guns;
-            let wave = lwc1(((((now as f32 * scale).pdiv(1.8e+02_f32) * step + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable);
-            let before = lwc1((((((now - frames) as f32 * scale).pdiv(1.8e+02_f32) * step + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable);
+            let wave = lwc1(((ps2float::add(ps2float::mul(ps2float::mul(now as f32, scale).pdiv(1.8e+02_f32), step), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable);
+            let before = lwc1(((ps2float::add(ps2float::mul(ps2float::mul((now - frames) as f32, scale).pdiv(1.8e+02_f32), step), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable);
             let side = if a1 != 0 { -1.0_f32 } else { 1.0_f32 };
             if 0.5_f32 <= wave {
                 if before < 0.5_f32 {
                     let r = random_unit();
                     prop = lw(a0 + 12);
                     gun = lw(s3_1);
-                    swc1(a0 + 64, r * 5.0_f32);
+                    swc1(a0 + 64, ps2float::mul(r, 5.0_f32));
                 }
             }
             let player = lw(g::currentplayer);
             let height = lwc1(lw(g::currentplayer) + 396);
-            let sway = side * ((wave - 0.5_f32) * lwc1(a0 + 64));
+            let sway = ps2float::mul(side, ps2float::mul(ps2float::sub(wave, 0.5_f32), lwc1(a0 + 64)));
             let across = if a1 == 0 { lwc1(info + 32) } else { -lwc1(info + 32) };
-            swc1(prop + 48, across + height);
-            swc1(prop + 52, lwc1(info + 36) + lwc1(player + 400));
-            swc1(prop + 56, lwc1(info + 40) + lwc1(player + 404));
+            swc1(prop + 48, ps2float::add(across, height));
+            swc1(prop + 52, ps2float::add(lwc1(info + 36), lwc1(player + 400)));
+            swc1(prop + 56, ps2float::add(lwc1(info + 40), lwc1(player + 404)));
             let (f4_2, f2_4);
             if ((gun - 14) as u32) >= (5 as u32) && gun != 25 {
                 f2_4 = lwc1(player + 260);
@@ -488,14 +488,14 @@ pub fn gunUpdate(a0: i32, a1: i32) {
                 f2_4 = lwc1(player + 260);
             }
             let f21_2 = (f2_4).pdiv(6e+01_f32);
-            let f20_2 = f4_2 * 3e+01_f32;
-            swc1(prop + 72, lwc1(a0 + 60) + f20_2 * lwc1(player + 816) * f21_2);
+            let f20_2 = ps2float::mul(f4_2, 3e+01_f32);
+            swc1(prop + 72, ps2float::add(lwc1(a0 + 60), ps2float::mul(ps2float::mul(f20_2, lwc1(player + 816)), f21_2)));
             let f22_1 = lwc1(player + 812);
-            let f0_3 = if ilinkGetNumLocalPlayers() != 2 { f20_2 * f22_1 } else { (f20_2 + f20_2) * f22_1 };
-            swc1(prop + 76, 1.8e+02_f32 - f0_3 * f21_2);
+            let f0_3 = if ilinkGetNumLocalPlayers() != 2 { ps2float::mul(f20_2, f22_1) } else { ps2float::mul(ps2float::add(f20_2, f20_2), f22_1) };
+            swc1(prop + 76, ps2float::sub(1.8e+02_f32, ps2float::mul(f0_3, f21_2)));
             prop = lw(a0 + 12);
             state = lw(a0);
-            swc1(prop + 88, sway + -2.0_f32);
+            swc1(prop + 88, ps2float::add(sway, -2.0_f32));
         }
     }
     let mut result = Some(prop);
@@ -582,8 +582,8 @@ fn change_state(a0: i32, new_state: i32) -> Step {
 
 /// The end of the states that move the gun by the offsets `lift` and `slide` before the update of its parts.
 fn move_and_update(a0: i32, s3_1: i32, prop: i32, lift: f32, slide: f32) -> Step {
-    swc1(prop + 52, lwc1(prop + 52) + lift);
-    swc1(prop + 72, lwc1(prop + 72) + slide);
+    swc1(prop + 52, ps2float::add(lwc1(prop + 52), lift));
+    swc1(prop + 72, ps2float::add(lwc1(prop + 72), slide));
     gunUpdateParts(a0, s3_1);
     Step::Prop(lw(a0 + 12))
 }
@@ -661,12 +661,12 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         2 => {
             let length = lwc1(0x3ad3d0);
             let fraction = (lwc1(a0 + 4)).pdiv(length);
-            swc1(prop + 52, lwc1(prop + 52) - fraction * lwc1(0x3ad3d4));
+            swc1(prop + 52, ps2float::sub(lwc1(prop + 52), ps2float::mul(fraction, lwc1(0x3ad3d4))));
             gunUpdateParts(a0, s3_1);
             let prop_now = lw(a0 + 12);
             let step = seconds_now;
-            swc1(prop_now + 72, lwc1(prop_now + 72) + fraction * 6e+01_f32);
-            let time = lwc1(a0 + 4) + step;
+            swc1(prop_now + 72, ps2float::add(lwc1(prop_now + 72), ps2float::mul(fraction, 6e+01_f32)));
+            let time = ps2float::add(lwc1(a0 + 4), step);
             swc1(a0 + 4, time);
             if !(length <= time) {
                 return Step::Prop(prop_now);
@@ -679,7 +679,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         4 => Step::Prop(prop),
         5 => {
             let mut prop_now = prop;
-            let time = lwc1(a0 + 4) - seconds_now;
+            let time = ps2float::sub(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if time <= 0.0_f32 {
                 let mut left_able = 0;
@@ -720,13 +720,13 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         }
         6 => {
             let length = lwc1(0x3ad3e4);
-            let fraction = ((length - lwc1(a0 + 4))).pdiv(length);
+            let fraction = (ps2float::sub(length, lwc1(a0 + 4))).pdiv(length);
             let info = lw(s3_1) * 400 + g::guns;
-            let slide = lwc1(prop + 72) + fraction * 6e+01_f32;
-            swc1(prop + 52, lwc1(prop + 52) - fraction * lwc1(0x3ad3e8));
+            let slide = ps2float::add(lwc1(prop + 72), ps2float::mul(fraction, 6e+01_f32));
+            swc1(prop + 52, ps2float::sub(lwc1(prop + 52), ps2float::mul(fraction, lwc1(0x3ad3e8))));
             swc1(prop + 72, slide);
             gunUpdateParts(a0, s3_1);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if !(length <= time) {
                 return Step::Prop(lw(a0 + 12));
@@ -757,11 +757,11 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
                 length = lwc1(0x3ad3dc);
             }
             let fraction = (time_now).pdiv(length);
-            let slide = lwc1(prop + 72) + fraction * 6e+01_f32;
-            swc1(prop + 52, lwc1(prop + 52) - fraction * lwc1(0x3ad3e0));
+            let slide = ps2float::add(lwc1(prop + 72), ps2float::mul(fraction, 6e+01_f32));
+            swc1(prop + 52, ps2float::sub(lwc1(prop + 52), ps2float::mul(fraction, lwc1(0x3ad3e0))));
             swc1(prop + 72, slide);
             gunUpdateParts(a0, s3_1);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if !(length <= time) {
                 return Step::Prop(lw(a0 + 12));
@@ -792,12 +792,12 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
             } else {
                 (lwc1(0x3ad440), lwc1(0x3ad444), 9e+01_f32)
             };
-            let fraction = ((length - lwc1(a0 + 4))).pdiv(length);
-            let slide = lwc1(prop + 72) + fraction * up;
-            swc1(prop + 52, lwc1(prop + 52) - fraction * kick);
+            let fraction = (ps2float::sub(length, lwc1(a0 + 4))).pdiv(length);
+            let slide = ps2float::add(lwc1(prop + 72), ps2float::mul(fraction, up));
+            swc1(prop + 52, ps2float::sub(lwc1(prop + 52), ps2float::mul(fraction, kick)));
             swc1(prop + 72, slide);
             gunUpdateParts(a0, s3_1);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             let done = length <= time;
             swc1(a0 + 4, time);
             end_of_pump(a0, info, done)
@@ -805,34 +805,34 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         9 => {
             let length = lwc1(0x3ad3f8);
             let fraction = (lwc1(a0 + 4)).pdiv(length);
-            swc1(a0 + 136, fraction * 45.0_f32);
-            swc1(prop + 72, lwc1(prop + 72) + fraction * -2e+01_f32);
+            swc1(a0 + 136, ps2float::mul(fraction, 45.0_f32));
+            swc1(prop + 72, ps2float::add(lwc1(prop + 72), ps2float::mul(fraction, -2e+01_f32)));
             gunUpdateParts(a0, s3_1);
             updateShotgunReload(a0);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if !(length <= time) {
                 return Step::Prop(lw(a0 + 12));
             }
             resetPlayerGunReload(a0, s3_1);
-            let rest = lwc1(a0 + 4) - length;
+            let rest = ps2float::sub(lwc1(a0 + 4), length);
             sw(a0, 10);
             let prop_now = lw(a0 + 12);
-            swc1(a0 + 4, rest + 0.0_f32);
+            swc1(a0 + 4, ps2float::add(rest, 0.0_f32));
             Step::Prop(prop_now)
         }
         10 => {
             let length = lwc1(0x3ad3fc);
             let fraction = (lwc1(a0 + 4)).pdiv(length);
             let side = if a1 != 0 { -1.0_f32 } else { 1.0_f32 };
-            let roll = lwc1(prop + 88) + side * (fraction * 35.0_f32);
-            let drop = lwc1(prop + 52) - fraction * 0.0_f32;
-            swc1(prop + 72, lwc1(prop + 72) + (-9e+01_f32 - (1.0_f32 - fraction) * -7e+01_f32));
+            let roll = ps2float::add(lwc1(prop + 88), ps2float::mul(side, ps2float::mul(fraction, 35.0_f32)));
+            let drop = ps2float::sub(lwc1(prop + 52), ps2float::mul(fraction, 0.0_f32));
+            swc1(prop + 72, ps2float::add(lwc1(prop + 72), ps2float::sub(-9e+01_f32, ps2float::mul(ps2float::sub(1.0_f32, fraction), -7e+01_f32))));
             swc1(prop + 88, roll);
             swc1(prop + 52, drop);
             gunUpdateParts(a0, s3_1);
             updateShotgunReload(a0);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if !(length <= time) {
                 return Step::Prop(lw(a0 + 12));
@@ -842,7 +842,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
             let hand = lwc1(0x3ad400);
             let shell = lwc1(0x3ad404);
             let second = lw(a0 + 144);
-            let rest = lwc1(a0 + 4) - length + 0.0_f32;
+            let rest = ps2float::add(ps2float::sub(lwc1(a0 + 4), length), 0.0_f32);
             sw(a0, 11);
             let prop_now = lw(a0 + 12);
             swc1(a0 + 4, rest);
@@ -859,32 +859,32 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
             let time_now = lwc1(a0 + 4);
             let length = lwc1(0x3ad408);
             let fraction = (time_now).pdiv(length);
-            let slide = lwc1(prop + 72) + (fraction * 1.4e+02_f32 * fraction + -9e+01_f32);
-            let drop = lwc1(prop + 52) - (fraction * lwc1(0x3ad40c) * fraction * fraction + 0.0_f32);
-            swc1(prop + 88, lwc1(prop + 88) + side * ((1.0_f32 - fraction) * 35.0_f32));
+            let slide = ps2float::add(lwc1(prop + 72), ps2float::add(ps2float::mul(ps2float::mul(fraction, 1.4e+02_f32), fraction), -9e+01_f32));
+            let drop = ps2float::sub(lwc1(prop + 52), ps2float::add(ps2float::mul(ps2float::mul(ps2float::mul(fraction, lwc1(0x3ad40c)), fraction), fraction), 0.0_f32));
+            swc1(prop + 88, ps2float::add(lwc1(prop + 88), ps2float::mul(side, ps2float::mul(ps2float::sub(1.0_f32, fraction), 35.0_f32))));
             swc1(prop + 72, slide);
             swc1(prop + 52, drop);
             gunUpdateParts(a0, s3_1);
             updateShotgunReload(a0);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if !(length <= time) {
                 return Step::Prop(lw(a0 + 12));
             }
             let first = lw(a0 + 140);
             sw(a0, 14);
-            swc1(a0 + 4, time - length + 0.0_f32);
+            swc1(a0 + 4, ps2float::add(ps2float::sub(time, length), 0.0_f32));
             drop_shells(a0, first)
         }
         12 => {
             let length = lwc1(0x3ad418);
             let fraction = (lwc1(a0 + 4)).pdiv(length);
-            let drop = lwc1(prop + 52) - (1.0_f32 - fraction) * lwc1(0x3ad41c);
-            swc1(prop + 72, lwc1(prop + 72) + (5e+01_f32 - fraction * 7e+01_f32));
+            let drop = ps2float::sub(lwc1(prop + 52), ps2float::mul(ps2float::sub(1.0_f32, fraction), lwc1(0x3ad41c)));
+            swc1(prop + 72, ps2float::add(lwc1(prop + 72), ps2float::sub(5e+01_f32, ps2float::mul(fraction, 7e+01_f32))));
             swc1(prop + 52, drop);
             gunUpdateParts(a0, s3_1);
             updateShotgunReload(a0);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if !(length <= time) {
                 return Step::Prop(lw(a0 + 12));
@@ -896,12 +896,12 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         }
         13 => {
             let length = lwc1(0x3ad420);
-            let left = 1.0_f32 - (lwc1(a0 + 4)).pdiv(length);
-            swc1(a0 + 136, left * 45.0_f32 * left * left);
-            swc1(prop + 72, lwc1(prop + 72) + left * -2e+01_f32);
+            let left = ps2float::sub(1.0_f32, (lwc1(a0 + 4)).pdiv(length));
+            swc1(a0 + 136, ps2float::mul(ps2float::mul(ps2float::mul(left, 45.0_f32), left), left));
+            swc1(prop + 72, ps2float::add(lwc1(prop + 72), ps2float::mul(left, -2e+01_f32)));
             gunUpdateParts(a0, s3_1);
             updateShotgunReload(a0);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if !(length <= time) {
                 return Step::Prop(lw(a0 + 12));
@@ -912,11 +912,11 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
             drop_shells(a0, first)
         }
         14 => {
-            let slide = lwc1(prop + 72) + 5e+01_f32;
+            let slide = ps2float::add(lwc1(prop + 72), 5e+01_f32);
             let step = seconds_now;
-            swc1(prop + 52, lwc1(prop + 52) + lwc1(0x3ad410));
+            swc1(prop + 52, ps2float::add(lwc1(prop + 52), lwc1(0x3ad410)));
             swc1(prop + 72, slide);
-            swc1(a0 + 4, lwc1(a0 + 4) + step);
+            swc1(a0 + 4, ps2float::add(lwc1(a0 + 4), step));
             gunUpdateParts(a0, s3_1);
             if lwc1(0x3ad414) <= lwc1(a0 + 4) {
                 sw(a0 + 4, 0);
@@ -947,11 +947,11 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         15 => {
             let length = lwc1(0x3ad428);
             let fraction = (lwc1(a0 + 4)).pdiv(length);
-            let roll = lwc1(prop + 88) + fraction * -5e+01_f32;
-            swc1(prop + 52, lwc1(prop + 52) - fraction * lwc1(0x3ad42c));
+            let roll = ps2float::add(lwc1(prop + 88), ps2float::mul(fraction, -5e+01_f32));
+            swc1(prop + 52, ps2float::sub(lwc1(prop + 52), ps2float::mul(fraction, lwc1(0x3ad42c))));
             swc1(prop + 88, roll);
             gunUpdateParts(a0, s3_1);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if !(length <= time) {
                 return Step::Prop(lw(a0 + 12));
@@ -962,13 +962,13 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         }
         16 => {
             let length = lwc1(0x3ad430);
-            let left = 1.0_f32 - (lwc1(a0 + 4)).pdiv(length);
-            let roll = lwc1(prop + 88) + left * -5e+01_f32;
-            swc1(prop + 52, lwc1(prop + 52) - left * lwc1(0x3ad434));
+            let left = ps2float::sub(1.0_f32, (lwc1(a0 + 4)).pdiv(length));
+            let roll = ps2float::add(lwc1(prop + 88), ps2float::mul(left, -5e+01_f32));
+            swc1(prop + 52, ps2float::sub(lwc1(prop + 52), ps2float::mul(left, lwc1(0x3ad434))));
             swc1(prop + 88, roll);
             gunUpdateParts(a0, s3_1);
             updateFuse(a0, 0.0_f32);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             if length <= time {
                 swc1(a0 + 4, 0.0_f32);
@@ -986,7 +986,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
             let fraction = (lwc1(a0 + 4)).pdiv(length);
             gunUpdateParts(a0, s3_1);
             updateFuse(a0, fraction);
-            let time = lwc1(a0 + 4) + seconds_now;
+            let time = ps2float::add(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             let mut fire = true;
             if !(length <= time) {
@@ -1023,7 +1023,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         }
         _ => {
             // state 18
-            let time = lwc1(a0 + 4) - seconds_now;
+            let time = ps2float::sub(lwc1(a0 + 4), seconds_now);
             swc1(a0 + 4, time);
             let mut prop_now = prop;
             if time <= 0.0_f32 {

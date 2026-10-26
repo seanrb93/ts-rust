@@ -161,7 +161,7 @@ pub fn propMakeVisible(a0: i32) {
             swc1(sp + 4, y);
             swc1(sp + 8, lwc1(record + 32));
             if mode == 8 {
-                swc1(sp + 4, y + 0.5_f32);
+                swc1(sp + 4, ps2float::add(y, 0.5_f32));
             }
             if isRoomVisibleByAnyPlayer(lw(a0 + 12)) != 0 {
                 obInstSetOverrideStates(lw(a0 + 32), 3, -1, -1, 0);
@@ -393,20 +393,20 @@ pub fn fxSelectCharGfx() {
         if state != 5 {
             if state != 6 {
                 let time = lwc1(index + 0x1fc12c8);
-                let mut fade = time + time;
+                let mut fade = ps2float::add(time, time);
                 if 1.0_f32 < fade {
-                    fade = 2.0_f32 - fade;
+                    fade = ps2float::sub(2.0_f32, fade);
                 }
                 let window = g::window;
                 let height = lw(window + 32) as f32;
-                let colour = (fade * 127.0_f32) as i32;
-                let bar = height * 0.5_f32 * fade;
+                let colour = ps2float::mul(fade, 127.0_f32) as i32;
+                let bar = ps2float::mul(ps2float::mul(height, 0.5_f32), fade);
                 dlSetBlend(1);
                 dlFillRectangle(lw(g::window), lw(window + 20), lw(window + 4), lw(window + 24), colour | 0x7f7f7f00);
                 dlSetBlend(0);
                 let top = lw(window + 20);
-                dlFillRectangle(lw(g::window), top, lw(window + 4), (top as f32 + bar) as i32, 0x7f000000);
-                dlFillRectangle(lw(g::window), (lw(window + 20) as f32 + (height - bar)) as i32, lw(window + 4), lw(window + 24), 0x7f000000);
+                dlFillRectangle(lw(g::window), top, lw(window + 4), ps2float::add(top as f32, bar) as i32, 0x7f000000);
+                dlFillRectangle(lw(g::window), ps2float::add(lw(window + 20) as f32, ps2float::sub(height, bar)) as i32, lw(window + 4), lw(window + 24), 0x7f000000);
                 dlSetBlend(1);
             }
         }
@@ -744,7 +744,7 @@ pub fn autogunDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
     let frame = Frame::new(208);
     let sp = frame.sp();
     if 1.0_f32 < lwc1(a0 + 532) {
-        let angle = lwc1(a0 + 76) * lwc1(0x3acda8);
+        let angle = ps2float::mul(lwc1(a0 + 76), lwc1(0x3acda8));
         sw(sp + 72, 0);
         let zero = lwc1(sp + 72);
         let turn = (angle).pdiv(1.8e+02_f32);
@@ -752,9 +752,9 @@ pub fn autogunDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
         swc1(sp + 68, -0.5_f32);
         matrixRotZXY(sp, zero, turn, zero);
         matrixVecMul(sp, sp + 64);
-        let y = lwc1(sp + 68) + lwc1(a0 + 52);
-        let z = lwc1(sp + 72) + lwc1(a0 + 56);
-        swc1(sp + 64, lwc1(sp + 64) + lwc1(a0 + 48));
+        let y = ps2float::add(lwc1(sp + 68), lwc1(a0 + 52));
+        let z = ps2float::add(lwc1(sp + 72), lwc1(a0 + 56));
+        swc1(sp + 64, ps2float::add(lwc1(sp + 64), lwc1(a0 + 48)));
         swc1(sp + 68, y);
         swc1(sp + 72, z);
         particleNewExplosion(0, 1, sp + 64, a3, a4, a5, a1, 0);
@@ -773,7 +773,7 @@ pub fn deergunDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
     let frame = Frame::new(208);
     let sp = frame.sp();
     if 1.0_f32 < lwc1(a0 + 532) {
-        let angle = lwc1(a0 + 76) * lwc1(0x3acdac);
+        let angle = ps2float::mul(lwc1(a0 + 76), lwc1(0x3acdac));
         sw(sp + 68, 0);
         let zero = lwc1(sp + 68);
         let turn = (angle).pdiv(1.8e+02_f32);
@@ -781,9 +781,9 @@ pub fn deergunDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
         sw(sp + 72, 0);
         matrixRotZXY(sp, zero, turn, zero);
         matrixVecMul(sp, sp + 64);
-        let y = lwc1(sp + 68) + lwc1(a0 + 52);
-        let z = lwc1(sp + 72) + lwc1(a0 + 56);
-        swc1(sp + 64, lwc1(sp + 64) + lwc1(a0 + 48));
+        let y = ps2float::add(lwc1(sp + 68), lwc1(a0 + 52));
+        let z = ps2float::add(lwc1(sp + 72), lwc1(a0 + 56));
+        swc1(sp + 64, ps2float::add(lwc1(sp + 64), lwc1(a0 + 48)));
         swc1(sp + 68, y);
         swc1(sp + 72, z);
         particleNewExplosion(0, 0, sp + 64, a3, a4, a5, a1, 0);

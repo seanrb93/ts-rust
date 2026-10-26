@@ -29,7 +29,7 @@ fn lowest_minus(a: f32, b: f32, c: f32, d: f32, offset: f32) -> f32 {
                     break 'b35;
                 }
             }
-            return d - offset;
+            return ps2float::sub(d, offset);
         }
         'b39: {
             if !(b < a) {
@@ -39,12 +39,12 @@ fn lowest_minus(a: f32, b: f32, c: f32, d: f32, offset: f32) -> f32 {
             } else if !(c < b) {
                 break 'b39;
             }
-            return c - offset;
+            return ps2float::sub(c, offset);
         }
         if !(b < a) {
-            return a - offset;
+            return ps2float::sub(a, offset);
         } else {
-            return b - offset;
+            return ps2float::sub(b, offset);
         }
     }
 }
@@ -74,7 +74,7 @@ fn highest_plus(a: f32, b: f32, c: f32, d: f32, offset: f32) -> f32 {
                 break 'b42;
             }
         }
-        return d + offset;
+        return ps2float::add(d, offset);
     }
     'b46: {
         if !(a < b) {
@@ -84,19 +84,19 @@ fn highest_plus(a: f32, b: f32, c: f32, d: f32, offset: f32) -> f32 {
         } else if !(b < c) {
             break 'b46;
         }
-        return c + offset;
+        return ps2float::add(c, offset);
     }
     if !(a < b) {
-        a + offset
+        ps2float::add(a, offset)
     } else {
-        b + offset
+        ps2float::add(b, offset)
     }
 }
 
 /// Make the value at `dest` the `base` moved by a random amount of up to the constant at `scale_address`, keeping it between 0 and 1 (outside that the base is kept).
 fn jitter(base: f32, scale_address: i32, dest: i32) {
     let roll = random_as_float();
-    let value = base + (roll * 2.3283064e-10_f32 - 0.5_f32) * lwc1(scale_address);
+    let value = ps2float::add(base, ps2float::mul(ps2float::sub(ps2float::mul(roll, 2.3283064e-10_f32), 0.5_f32), lwc1(scale_address)));
     swc1(dest, value);
     if !(value <= 0.0_f32) {
         if !(1.0_f32 <= value) {
@@ -207,23 +207,23 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     let f6 = lwc1(v0_3);
     let f7 = lwc1(v0_3 + 4);
     let f8 = lwc1(v0_3 + 8);
-    let f0_2 = lwc1(a0_4) - f6;
-    let f4_1 = lwc1(v1_2 + 4) - f7;
+    let f0_2 = ps2float::sub(lwc1(a0_4), f6);
+    let f4_1 = ps2float::sub(lwc1(v1_2 + 4), f7);
     let f1_1 = lwc1(a0_4 + 8);
-    let f5_1 = lwc1(v1_2 + 8) - f8;
-    let f3_1 = lwc1(a0_4 + 4) - f7;
-    swc1(sp + 96, lwc1(v1_2) - f6);
+    let f5_1 = ps2float::sub(lwc1(v1_2 + 8), f8);
+    let f3_1 = ps2float::sub(lwc1(a0_4 + 4), f7);
+    swc1(sp + 96, ps2float::sub(lwc1(v1_2), f6));
     swc1(sp + 100, f4_1);
     swc1(sp + 112, f0_2);
     swc1(sp + 116, f3_1);
-    swc1(sp + 120, f1_1 - f8);
+    swc1(sp + 120, ps2float::sub(f1_1, f8));
     swc1(sp + 104, f5_1);
-    let f0_3 = (1.0_f32).pdiv((f11 * f11 + f10 * f10 + f9 * f9).abs().psqrt());
+    let f0_3 = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(f11, f11), ps2float::mul(f10, f10)), ps2float::mul(f9, f9)).abs().psqrt());
     let a2_1 = lw(sp + 480) & 256;
     sw(sp + 516, a2_1);
-    let f9_2 = f9 * f0_3;
-    let f7_2 = f11 * f0_3;
-    let f8_2 = f10 * f0_3;
+    let f9_2 = ps2float::mul(f9, f0_3);
+    let f7_2 = ps2float::mul(f11, f0_3);
+    let f8_2 = ps2float::mul(f10, f0_3);
     swc1(sp + 136, f9_2);
     swc1(sp + 128, f7_2);
     swc1(sp + 132, f8_2);
@@ -232,13 +232,13 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         let f6_2 = lwc1(s4 + 4);
         let f1_2 = lwc1(s4 + 8);
         let a3_1 = lw(sp + 500);
-        size = size * 0.5_f32;
+        size = ps2float::mul(size, 0.5_f32);
         sw(a3_1 + 8, lw(a3_1 + 8) | 256);
-        let f0_4 = f7_2 * f2_1 + f8_2 * f6_2 + f9_2 * f1_2;
-        let f0_5 = f0_4 + f0_4;
-        swc1(sp + 136, f9_2 - f0_5 * f1_2);
-        swc1(sp + 128, f7_2 - f0_5 * f2_1);
-        swc1(sp + 132, f8_2 - f0_5 * f6_2);
+        let f0_4 = ps2float::add(ps2float::add(ps2float::mul(f7_2, f2_1), ps2float::mul(f8_2, f6_2)), ps2float::mul(f9_2, f1_2));
+        let f0_5 = ps2float::add(f0_4, f0_4);
+        swc1(sp + 136, ps2float::sub(f9_2, ps2float::mul(f0_5, f1_2)));
+        swc1(sp + 128, ps2float::sub(f7_2, ps2float::mul(f0_5, f2_1)));
+        swc1(sp + 132, ps2float::sub(f8_2, ps2float::mul(f0_5, f6_2)));
     }
     sw(fp + 0x1188, 80);
     jitter(lwc1(s6), 0x3ad4dc, sp + 144);
@@ -272,10 +272,10 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         let v0_8 = if -1 < a0_5 { a0_5 } else { a4_2 + 16 };
         a4_2 += 2;
         let v1_3 = (a0_5 - ((v0_8 >> 4) << 4)) << 3;
-        swc1(a2_2, f1_15 + (lwc1(sp + 144 + v1_3) - f1_15) * 0.5_f32);
+        swc1(a2_2, ps2float::add(f1_15, ps2float::mul(ps2float::sub(lwc1(sp + 144 + v1_3), f1_15), 0.5_f32)));
         a2_2 += 16;
         let f1_16 = lwc1(a3_2 - 8);
-        swc1(a3_2, f1_16 + (lwc1(sp + 148 + v1_3) - f1_16) * 0.5_f32);
+        swc1(a3_2, ps2float::add(f1_16, ps2float::mul(ps2float::sub(lwc1(sp + 148 + v1_3), f1_16), 0.5_f32)));
         a3_2 += 16;
         if a4_2 >= 16 {
             break;
@@ -290,11 +290,11 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         let f0_6 = lwc1(a0_6);
         s7_1 -= 1;
         a0_6 += 8;
-        swc1(v0_9, f0_6 - f3_2);
+        swc1(v0_9, ps2float::sub(f0_6, f3_2));
         v0_9 += 8;
         let f0_7 = lwc1(a1_1);
         a1_1 += 8;
-        swc1(v1_4, f0_7 - f4_5);
+        swc1(v1_4, ps2float::sub(f0_7, f4_5));
         v1_4 += 8;
         if s7_1 < 0 {
             break;
@@ -327,17 +327,17 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         let v0_14 = fptodp(f12_4);
         let f0_9 = dptofp(atan2(v0_13, v0_14));
         let f1_17 = lwc1(0x3ad4f0);
-        let a1_4 = (f0_9 * f1_17 + 0.5_f32) as i32;
-        let v1_5 = (f0_8 * f1_17 + 0.5_f32) as i32;
+        let a1_4 = ps2float::add(ps2float::mul(f0_9, f1_17), 0.5_f32) as i32;
+        let v1_5 = ps2float::add(ps2float::mul(f0_8, f1_17), 0.5_f32) as i32;
         let mut f20 = lwc1(((v1_5 + 512 & 2047) << 2) + g::g_SinTable);
         let mut f21 = lwc1(((v1_5 & 2047) << 2) + g::g_SinTable);
         let mut f22 = lwc1(((a1_4 + 512 & 2047) << 2) + g::g_SinTable);
         let mut f23 = lwc1(((a1_4 & 2047) << 2) + g::g_SinTable);
-        let f28 = random_as_float() * 2.3283064e-10_f32 * f31 + lwc1(0x3ad4f4);
-        let f27 = random_as_float() * 2.3283064e-10_f32 * f31 + lwc1(0x3ad4f8);
-        let f25 = random_as_float() * 2.3283064e-10_f32 * f31 + lwc1(0x3ad4fc);
-        let f29 = f25 + random_as_float() * 2.3283064e-10_f32 * f31;
-        let f24 = random_as_float() * 2.3283064e-10_f32 * f31 + 0.5_f32;
+        let f28 = ps2float::add(ps2float::mul(ps2float::mul(random_as_float(), 2.3283064e-10_f32), f31), lwc1(0x3ad4f4));
+        let f27 = ps2float::add(ps2float::mul(ps2float::mul(random_as_float(), 2.3283064e-10_f32), f31), lwc1(0x3ad4f8));
+        let f25 = ps2float::add(ps2float::mul(ps2float::mul(random_as_float(), 2.3283064e-10_f32), f31), lwc1(0x3ad4fc));
+        let f29 = ps2float::add(f25, ps2float::mul(ps2float::mul(random_as_float(), 2.3283064e-10_f32), f31));
+        let f24 = ps2float::add(ps2float::mul(ps2float::mul(random_as_float(), 2.3283064e-10_f32), f31), 0.5_f32);
         let f0_20 = random_as_float();
         let v0_22 = lw(sp + 524);
         let s3_2 = v0_22 + s2;
@@ -346,12 +346,12 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         let v1_6 = lw(sp + 520);
         let s2_2 = v1_6 + s2;
         let s1_2 = v1_6 + s1;
-        let f3_4 = f3_3 + (lwc1(s4_2) - f3_3) * 0.5_f32;
-        let f26 = f0_20 * 2.3283064e-10_f32 * f31 + lwc1(0x3ad500);
+        let f3_4 = ps2float::add(f3_3, ps2float::mul(ps2float::sub(lwc1(s4_2), f3_3), 0.5_f32));
+        let f26 = ps2float::add(ps2float::mul(ps2float::mul(f0_20, 2.3283064e-10_f32), f31), lwc1(0x3ad500));
         swc1(sp + 400, f3_4);
         let f1_18 = lwc1(s2_2);
-        let f1_19 = f1_18 + (lwc1(s1_2) - f1_18) * 0.5_f32;
-        let f2_2 = (f3_4 * f3_4 + f1_19 * f1_19).abs().psqrt();
+        let f1_19 = ps2float::add(f1_18, ps2float::mul(ps2float::sub(lwc1(s1_2), f1_18), 0.5_f32));
+        let f2_2 = ps2float::add(ps2float::mul(f3_4, f3_4), ps2float::mul(f1_19, f1_19)).abs().psqrt();
         swc1(sp + 404, f1_19);
         let f1_20 = (lwc1(sp + 404)).pdiv(f2_2);
         swc1(sp + 400, (lwc1(sp + 400)).pdiv(f2_2));
@@ -376,46 +376,46 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         swc1(sp + 420, f3_5);
         s7_2 = s5_1;
         let f0_22 = lwc1(s3_2);
-        swc1(sp + 432, f2_3 + f0_22 * f28 * f20);
-        swc1(sp + 436, f3_5 + lwc1(s2_2) * f28 * f21);
-        swc1(sp + 448, f2_3 + lwc1(s4_2) * f27 * f22);
-        swc1(sp + 452, f3_5 + lwc1(s1_2) * f27 * f23);
+        swc1(sp + 432, ps2float::add(f2_3, ps2float::mul(ps2float::mul(f0_22, f28), f20)));
+        swc1(sp + 436, ps2float::add(f3_5, ps2float::mul(ps2float::mul(lwc1(s2_2), f28), f21)));
+        swc1(sp + 448, ps2float::add(f2_3, ps2float::mul(ps2float::mul(lwc1(s4_2), f27), f22)));
+        swc1(sp + 452, ps2float::add(f3_5, ps2float::mul(ps2float::mul(lwc1(s1_2), f27), f23)));
         set_quad(sp, s6, fp, s0_1, size, 0, true);
         // the second quad
-        let f0_23 = lwc1(s3_2) * f25;
+        let f0_23 = ps2float::mul(lwc1(s3_2), f25);
         let f2_4 = lwc1(s6);
         let f3_6 = lwc1(s6 + 4);
-        swc1(sp + 416, f2_4 + f0_23 * f20);
-        swc1(sp + 420, f3_6 + lwc1(s2_2) * f25 * f21);
-        swc1(sp + 464, f2_4 + lwc1(s4_2) * f29 * f22);
-        swc1(sp + 468, f3_6 + lwc1(s1_2) * f29 * f23);
+        swc1(sp + 416, ps2float::add(f2_4, ps2float::mul(f0_23, f20)));
+        swc1(sp + 420, ps2float::add(f3_6, ps2float::mul(ps2float::mul(lwc1(s2_2), f25), f21)));
+        swc1(sp + 464, ps2float::add(f2_4, ps2float::mul(ps2float::mul(lwc1(s4_2), f29), f22)));
+        swc1(sp + 468, ps2float::add(f3_6, ps2float::mul(ps2float::mul(lwc1(s1_2), f29), f23)));
         set_quad(sp, s6, fp, s0_1 + 1, size, 0, false);
         // the third quad
-        let f0_24 = lwc1(s3_2) * f24;
+        let f0_24 = ps2float::mul(lwc1(s3_2), f24);
         let f2_5 = lwc1(s6);
         let f3_7 = lwc1(s6 + 4);
-        swc1(sp + 432, f2_5 + f0_24 * f20);
-        swc1(sp + 436, f3_7 + lwc1(s2_2) * f24 * f21);
-        swc1(sp + 448, f2_5 + lwc1(s4_2) * f24 * f22);
-        swc1(sp + 452, f3_7 + lwc1(s1_2) * f24 * f23);
+        swc1(sp + 432, ps2float::add(f2_5, ps2float::mul(f0_24, f20)));
+        swc1(sp + 436, ps2float::add(f3_7, ps2float::mul(ps2float::mul(lwc1(s2_2), f24), f21)));
+        swc1(sp + 448, ps2float::add(f2_5, ps2float::mul(ps2float::mul(lwc1(s4_2), f24), f22)));
+        swc1(sp + 452, ps2float::add(f3_7, ps2float::mul(ps2float::mul(lwc1(s1_2), f24), f23)));
         set_quad(sp, s6, fp, s0_1 + 2, size, 0, false);
         // the fourth quad
-        let f0_25 = lwc1(s3_2) * f26;
+        let f0_25 = ps2float::mul(lwc1(s3_2), f26);
         let f2_6 = lwc1(s6);
         let f3_8 = lwc1(s6 + 4);
-        swc1(sp + 416, f2_6 + f0_25 * f20);
-        swc1(sp + 420, f3_8 + lwc1(s2_2) * f26 * f21);
-        swc1(sp + 464, f2_6 + lwc1(s4_2) * f26 * f22);
-        swc1(sp + 468, f3_8 + lwc1(s1_2) * f26 * f23);
+        swc1(sp + 416, ps2float::add(f2_6, ps2float::mul(f0_25, f20)));
+        swc1(sp + 420, ps2float::add(f3_8, ps2float::mul(ps2float::mul(lwc1(s2_2), f26), f21)));
+        swc1(sp + 464, ps2float::add(f2_6, ps2float::mul(ps2float::mul(lwc1(s4_2), f26), f22)));
+        swc1(sp + 468, ps2float::add(f3_8, ps2float::mul(ps2float::mul(lwc1(s1_2), f26), f23)));
         set_quad(sp, s6, fp, s0_1 + 3, size, 0, false);
         // the last quad, the cap
         let f0_26 = lwc1(s3_2);
         let f1_24 = lwc1(s6);
         let f2_7 = lwc1(s6 + 4);
-        swc1(sp + 432, f1_24 + f0_26);
-        swc1(sp + 436, f2_7 + lwc1(s2_2));
-        swc1(sp + 448, f1_24 + lwc1(s4_2));
-        swc1(sp + 452, f2_7 + lwc1(s1_2));
+        swc1(sp + 432, ps2float::add(f1_24, f0_26));
+        swc1(sp + 436, ps2float::add(f2_7, lwc1(s2_2)));
+        swc1(sp + 448, ps2float::add(f1_24, lwc1(s4_2)));
+        swc1(sp + 452, ps2float::add(f2_7, lwc1(s1_2)));
         set_quad(sp, s6, fp, s0_1 + 4, size, 1, false);
         if s7_2 >= 16 {
             break;
@@ -427,9 +427,9 @@ pub fn particleNewGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     let v0_43;
     if lw(sp + 516) == 0 {
         let a2_9 = lw(sp + 848);
-        a1_10 = (lwc1(a2_9) * 27.0_f32 + 1e+02_f32) as i32;
-        v0_43 = (lwc1(a2_9 + 8) * 27.0_f32 + 1e+02_f32) as i32;
-        v1_13 = (lwc1(a2_9 + 4) * 27.0_f32 + 1e+02_f32) as i32;
+        a1_10 = ps2float::add(ps2float::mul(lwc1(a2_9), 27.0_f32), 1e+02_f32) as i32;
+        v0_43 = ps2float::add(ps2float::mul(lwc1(a2_9 + 8), 27.0_f32), 1e+02_f32) as i32;
+        v1_13 = ps2float::add(ps2float::mul(lwc1(a2_9 + 4), 27.0_f32), 1e+02_f32) as i32;
     } else {
         a1_10 = 127;
         v0_43 = 127;

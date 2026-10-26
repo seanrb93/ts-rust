@@ -32,13 +32,13 @@ pub fn bglightGet(instance: i32, at: i32, first: i32, second: i32) {
             let light = lw((first_index << 2) + 0x1fc5f18);
             let light_x = lwc1(light + 68);
             sw(0x1fc63c8, light);
-            let dx = x - light_x;
+            let dx = ps2float::sub(x, light_x);
             swc1(nearest + 4, dx);
-            let dy = lwc1(at + 4) - lwc1(light + 72);
+            let dy = ps2float::sub(lwc1(at + 4), lwc1(light + 72));
             swc1(nearest + 8, dy);
-            let dz = lwc1(at + 8) - lwc1(light + 76);
+            let dz = ps2float::sub(lwc1(at + 8), lwc1(light + 76));
             swc1(nearest + 12, dz);
-            let distance = dx * dx + dy * dy + dz * dz;
+            let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
             swc1(nearest + 16, distance);
             if 4e+02_f32 <= distance {
                 search = 1;
@@ -49,13 +49,13 @@ pub fn bglightGet(instance: i32, at: i32, first: i32, second: i32) {
             let light = lw((second_index << 2) + 0x1fc5f18);
             let light_x = lwc1(light + 68);
             sw(next, light);
-            let dx = x - light_x;
+            let dx = ps2float::sub(x, light_x);
             swc1(next + 4, dx);
-            let dy = lwc1(at + 4) - lwc1(light + 72);
+            let dy = ps2float::sub(lwc1(at + 4), lwc1(light + 72));
             swc1(next + 8, dy);
-            let dz = lwc1(at + 8) - lwc1(light + 76);
+            let dz = ps2float::sub(lwc1(at + 8), lwc1(light + 76));
             swc1(next + 12, dz);
-            let distance = dx * dx + dy * dy + dz * dz;
+            let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
             swc1(next + 16, distance);
             if 4e+02_f32 <= distance {
                 search = 1;
@@ -76,18 +76,18 @@ pub fn bglightGet(instance: i32, at: i32, first: i32, second: i32) {
                 let light = lw((i << 2) + 0x1fc5f18);
                 let light_x = lwc1(light + 68);
                 sw(scratch, light);
-                let dx = x - light_x;
+                let dx = ps2float::sub(x, light_x);
                 swc1(scratch + 4, dx);
-                let dy = lwc1(at + 4) - lwc1(light + 72);
+                let dy = ps2float::sub(lwc1(at + 4), lwc1(light + 72));
                 swc1(scratch + 8, dy);
-                let dz = lwc1(at + 8) - lwc1(light + 76);
+                let dz = ps2float::sub(lwc1(at + 8), lwc1(light + 76));
                 swc1(scratch + 12, dz);
                 let distance;
-                if lh(light + 6) != 0 && (dx * lwc1(light + 128) + dy * lwc1(light + 132) + dz * lwc1(light + 136)) <= 0.0_f32 {
+                if lh(light + 6) != 0 && ps2float::add(ps2float::add(ps2float::mul(dx, lwc1(light + 128)), ps2float::mul(dy, lwc1(light + 132))), ps2float::mul(dz, lwc1(light + 136))) <= 0.0_f32 {
                     distance = lwc1(g::numbglights + 4);
                 } else {
                     let (a, b, c) = (lwc1(scratch + 4), lwc1(scratch + 8), lwc1(scratch + 12));
-                    distance = a * a + b * b + c * c;
+                    distance = ps2float::add(ps2float::add(ps2float::mul(a, a), ps2float::mul(b, b)), ps2float::mul(c, c));
                 }
                 swc1(scratch + 16, distance);
                 let distance = lwc1(scratch + 16);
@@ -158,16 +158,16 @@ pub fn quadRenderAligned(texture: i32, matrix: i32, corners: i32, _a3: i32, _a4:
     sh(tag, 4);
     sb(next + 3, 48);
     let tag = lw(g::gfxtag);
-    let u0 = u + 0.0_f32;
+    let u0 = ps2float::add(u, 0.0_f32);
     let one = 1.0_f32;
     let next = tag + 16;
     sw(tag + 4, g::vif_entry_loadm_36c1b0);
     sw(g::gfxtag, next);
-    let v0 = v + 0.0_f32;
+    let v0 = ps2float::add(v, 0.0_f32);
     sh(tag, 1);
-    let u1 = u + one;
+    let u1 = ps2float::add(u, one);
     sb(next + 3, 48);
-    let v1 = v + one;
+    let v1 = ps2float::add(v, one);
     sw(packet, 0x6c018000);
     let tag = lw(g::gfxtag);
     let first = lwc1(corners);
@@ -250,29 +250,29 @@ pub fn zoomtileTick() {
     let zero = lwc1(prop + 48);
     let x = lwc1(sp);
     sw(prop + 16, prop_flags | 0x1000001);
-    swc1(prop + 48, x + zero);
-    swc1(prop + 52, lwc1(sp + 4) + zero);
+    swc1(prop + 48, ps2float::add(x, zero));
+    swc1(prop + 52, ps2float::add(lwc1(sp + 4), zero));
     let z = lwc1(sp + 8);
     swc1(prop + 76, turn);
-    swc1(prop + 56, z + zero);
+    swc1(prop + 56, ps2float::add(z, zero));
     if (flags & 3) != 0 {
-        matrixRotY(sp + 32, (turn * lwc1(0x3aca5c)).pdiv(1.8e+02_f32));
+        matrixRotY(sp + 32, ps2float::mul(turn, lwc1(0x3aca5c)).pdiv(1.8e+02_f32));
         let mut i = 0;
         let tile_x = lwc1(sp);
         let tile = lw((lw(g::zoomtilenum) << 2) + g::tiles);
         let tile_z = lwc1(sp + 8);
-        let tile_y = lwc1(sp + 4) + zero;
+        let tile_y = ps2float::add(lwc1(sp + 4), zero);
         let size_z = lw(tile + 4) as f32;
         let pads = lw(0x3b0078);
         let size_x = lw(tile) as f32;
         swc1(sp + 20, zero);
         swc1(sp + 4, tile_y);
-        let offset_z = -size_z * 2.5_f32;
-        let offset_x = -size_x * 2.5_f32;
+        let offset_z = ps2float::mul(-size_z, 2.5_f32);
+        let offset_x = ps2float::mul(-size_x, 2.5_f32);
         swc1(sp + 24, offset_z);
         swc1(sp + 16, offset_x);
-        swc1(sp + 8, tile_z + offset_z);
-        swc1(sp, tile_x + offset_x);
+        swc1(sp + 8, ps2float::add(tile_z, offset_z));
+        swc1(sp, ps2float::add(tile_x, offset_x));
         if pads > 0 {
             loop {
                 let pad_record = i * 24 + 0x1fc4108;
@@ -287,10 +287,10 @@ pub fn zoomtileTick() {
                     swc1(pad_prop + 48, lwc1(pad + 12));
                     swc1(place + 4, lwc1(pad + 16));
                     swc1(place + 8, lwc1(pad + 20));
-                    swc1(pad_prop + 48, lwc1(pad_prop + 48) + lwc1(sp));
+                    swc1(pad_prop + 48, ps2float::add(lwc1(pad_prop + 48), lwc1(sp)));
                     let depth = lwc1(place + 8);
-                    swc1(place + 4, lwc1(place + 4) + lwc1(sp + 4));
-                    swc1(place + 8, depth + lwc1(sp + 8));
+                    swc1(place + 4, ps2float::add(lwc1(place + 4), lwc1(sp + 4)));
+                    swc1(place + 8, ps2float::add(depth, lwc1(sp + 8)));
                     matrixVecMul(sp + 32, place);
                     let angle = lwc1(g::zoomtileroty);
                     let new_flags = lw(pad_prop + 16) | 0x1000001;
@@ -298,15 +298,15 @@ pub fn zoomtileTick() {
                     swc1(pad_prop + 76, angle);
                     sw(pad_prop + 16, new_flags);
                     let turned = if pad_record != aimed {
-                        angle + 45.0_f32
+                        ps2float::add(angle, 45.0_f32)
                     } else {
-                        angle + lw(g::tickframenum).wrapping_rem(360) as f32
+                        ps2float::add(angle, lw(g::tickframenum).wrapping_rem(360) as f32)
                     };
                     swc1(pad_prop + 76, turned);
                     count = lw(0x3b0078);
                     if 3.6e+02_f32 <= turned {
                         loop {
-                            let less = lwc1(pad_prop + 76) - 3.6e+02_f32;
+                            let less = ps2float::sub(lwc1(pad_prop + 76), 3.6e+02_f32);
                             swc1(pad_prop + 76, less);
                             if !(3.6e+02_f32 <= less) {
                                 break;
@@ -335,7 +335,7 @@ pub fn zoomtileTick() {
             sw(circle + 16, circle_flags | 0x1000001);
             if 3.6e+02_f32 <= angle {
                 loop {
-                    angle -= 3.6e+02_f32;
+                    angle = ps2float::sub(angle, 3.6e+02_f32);
                     if !(3.6e+02_f32 <= angle) {
                         break;
                     }
@@ -348,15 +348,15 @@ pub fn zoomtileTick() {
         }
     }
     let camera = g::flexcam + 12;
-    let tilt = lwc1(g::zoomtiletilt) * lwc1(0x3aca60);
+    let tilt = ps2float::mul(lwc1(g::zoomtiletilt), lwc1(0x3aca60));
     let scale = lwc1(0x3aca64);
     sw(g::flexcam, 0);
     let distance = lwc1(g::zoomtiledist);
     sw(g::flexcam + 12, 0);
     sw(camera + 8, 0);
     sw(camera + 4, 0);
-    let angle = ((tilt).pdiv(1.8e+02_f32) * scale + 0.5_f32) as i32;
-    let up = lwc1(((angle + 512 & 2047) << 2) + g::g_SinTable) * distance;
-    swc1(g::flexcam + 4, lwc1(((angle & 2047) << 2) + g::g_SinTable) * distance);
+    let angle = ps2float::add(ps2float::mul((tilt).pdiv(1.8e+02_f32), scale), 0.5_f32) as i32;
+    let up = ps2float::mul(lwc1(((angle + 512 & 2047) << 2) + g::g_SinTable), distance);
+    swc1(g::flexcam + 4, ps2float::mul(lwc1(((angle & 2047) << 2) + g::g_SinTable), distance));
     swc1(g::flexcam + 8, up);
 }

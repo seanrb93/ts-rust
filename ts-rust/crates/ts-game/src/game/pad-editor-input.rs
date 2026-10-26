@@ -11,22 +11,22 @@ pub fn editTranslate(p: i32) {
         return;
     }
     if joyBut(0) & 0x1000 != 0 && shift == 0 {
-        swc1(p, lwc1(p) - lwc1(0x3acba8));
+        swc1(p, ps2float::sub(lwc1(p), lwc1(0x3acba8)));
     }
     if joyBut(0) & 0x4000 != 0 && shift == 0 {
-        swc1(p, lwc1(p) + lwc1(0x3acbac));
+        swc1(p, ps2float::add(lwc1(p), lwc1(0x3acbac)));
     }
     if joyBut(0) & 0x2000 != 0 {
-        swc1(p + 8, lwc1(p + 8) + lwc1(0x3acbb0));
+        swc1(p + 8, ps2float::add(lwc1(p + 8), lwc1(0x3acbb0)));
     }
     if joyBut(0) & 0x8000 != 0 {
-        swc1(p + 8, lwc1(p + 8) - lwc1(0x3acbb4));
+        swc1(p + 8, ps2float::sub(lwc1(p + 8), lwc1(0x3acbb4)));
     }
     if joyBut(0) & 0x1000 != 0 && shift != 0 {
-        swc1(p + 4, lwc1(p + 4) + lwc1(0x3acbb8));
+        swc1(p + 4, ps2float::add(lwc1(p + 4), lwc1(0x3acbb8)));
     }
     if joyBut(0) & 0x4000 != 0 && shift != 0 {
-        swc1(p + 4, lwc1(p + 4) - lwc1(0x3acbbc));
+        swc1(p + 4, ps2float::sub(lwc1(p + 4), lwc1(0x3acbbc)));
     }
 }
 

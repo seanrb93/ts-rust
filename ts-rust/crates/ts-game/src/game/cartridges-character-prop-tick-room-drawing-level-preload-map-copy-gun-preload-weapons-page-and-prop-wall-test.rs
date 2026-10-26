@@ -39,18 +39,18 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     let holder = lw(a1 + 64);
     let mut point = sp + 160;
     let f1 = lwc1(a0 + 72);
-    let x = lwc1(holder + 48) + lwc1(a0 + 68);
+    let x = ps2float::add(lwc1(holder + 48), lwc1(a0 + 68));
     let f2 = lwc1(a0 + 76);
     let player = lw(g::currentplayer);
     let to_radians = lwc1(0x3ad2a8);
     swc1(sp + 144, x);
     let degrees = 1.8e+02_f32;
-    let y = lwc1(holder + 52) + f1;
+    let y = ps2float::add(lwc1(holder + 52), f1);
     let owner = lw(lw(player + 384) + 352);
     swc1(sp + 148, y);
-    let z = lwc1(holder + 56) + f2;
+    let z = ps2float::add(lwc1(holder + 56), f2);
     swc1(sp + 152, z);
-    let heading = (lwc1(holder + 76) * to_radians).pdiv(degrees);
+    let heading = ps2float::mul(lwc1(holder + 76), to_radians).pdiv(degrees);
     matrixTransRotY(sp, x, y, z, heading);
     sceVu0MulMatrix(sp + 64, sp, lw(lw(holder + 32) + 4));
     matrixTrans(sp, lwc1(sp + 160), lwc1(point + 4), lwc1(point + 8));
@@ -62,7 +62,7 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     swc1(a1 + 92, dz);
     let x = lwc1(sp + 144);
     let y = lwc1(sp + 148);
-    let heading = (lwc1(holder + 76) * to_radians).pdiv(degrees);
+    let heading = ps2float::mul(lwc1(holder + 76), to_radians).pdiv(degrees);
     let z = lwc1(sp + 152);
     matrixTransRotY(sp, x, y, z, heading);
     sceVu0MulMatrix(sp + 64, sp, lw(lw(holder + 32) + 4));
@@ -87,18 +87,18 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     let pz = lwc1(sp + 152);
     swc1(sp + 132, lwc1(point + 4));
     swc1(sp + 136, lwc1(point + 8));
-    let rx = (lwc1(prop + 72) * to_radians).pdiv(degrees);
-    let ry = (lwc1(prop + 76) * to_radians).pdiv(degrees);
-    let rz = (lwc1(prop + 88) * to_radians).pdiv(degrees);
+    let rx = ps2float::mul(lwc1(prop + 72), to_radians).pdiv(degrees);
+    let ry = ps2float::mul(lwc1(prop + 76), to_radians).pdiv(degrees);
+    let rz = ps2float::mul(lwc1(prop + 88), to_radians).pdiv(degrees);
     matrixTransRotZXY(sp, px, py, pz, rx, ry, rz);
     matrixVecRotAligned(&[sp as i64, (sp + 128) as i64]);
     let vy = lwc1(sp + 132);
     let vz = lwc1(sp + 136);
     let current = lw(g::currentplayer);
-    swc1(a0 + 28, lwc1(sp + 128) + lwc1(prop + 48));
+    swc1(a0 + 28, ps2float::add(lwc1(sp + 128), lwc1(prop + 48)));
     let matrix = lw(current + 1772);
-    swc1(a0 + 32, vy + lwc1(prop + 52));
-    swc1(a0 + 36, vz + lwc1(prop + 56));
+    swc1(a0 + 32, ps2float::add(vy, lwc1(prop + 52)));
+    swc1(a0 + 36, ps2float::add(vz, lwc1(prop + 56)));
     matrixVecMul(matrix, a0 + 28);
     let second = lw(a2 + 348);
     let point = if second < 0 { sp + 160 } else { lw(bones + 72) + second * 12 };
@@ -110,19 +110,19 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     let px = lwc1(sp + 144);
     let py = lwc1(sp + 148);
     swc1(sp + 136, lwc1(point + 8));
-    let rz = (lwc1(prop + 88) * to_radians).pdiv(degrees);
-    let rx = (lwc1(prop + 72) * to_radians).pdiv(degrees);
-    let ry = (lwc1(prop + 76) * to_radians).pdiv(degrees);
+    let rz = ps2float::mul(lwc1(prop + 88), to_radians).pdiv(degrees);
+    let rx = ps2float::mul(lwc1(prop + 72), to_radians).pdiv(degrees);
+    let ry = ps2float::mul(lwc1(prop + 76), to_radians).pdiv(degrees);
     let pz = lwc1(sp + 152);
     matrixTransRotZXY(sp, px, py, pz, rx, ry, rz);
     matrixVecRotAligned(&[sp as i64, (sp + 128) as i64]);
     let vy = lwc1(sp + 132);
     let vz = lwc1(sp + 136);
     let current = lw(g::currentplayer);
-    swc1(a0 + 40, lwc1(sp + 128) + lwc1(prop + 48));
+    swc1(a0 + 40, ps2float::add(lwc1(sp + 128), lwc1(prop + 48)));
     let matrix = lw(current + 1772);
-    swc1(a0 + 44, vy + lwc1(prop + 52));
-    swc1(a0 + 48, vz + lwc1(prop + 56));
+    swc1(a0 + 44, ps2float::add(vy, lwc1(prop + 52)));
+    swc1(a0 + 48, ps2float::add(vz, lwc1(prop + 56)));
     matrixVecMul(matrix, a0 + 40);
     let kind = lw(lw(sp + 176) + 4);
     if kind != -1 {
@@ -151,18 +151,18 @@ pub fn chrPropTickAfter(a0: i32) {
                 y = lwc1(a0 + 52);
             } else {
                 if (ld(a0 + 16) & 0x80000180_i64) == 0_i64 {
-                    let angle = (lwc1(a0 + 80) * lwc1(0x3acca0)).pdiv(1.8e+02_f32);
+                    let angle = ps2float::mul(lwc1(a0 + 80), lwc1(0x3acca0)).pdiv(1.8e+02_f32);
                     matrixRotY(sp + 16, angle);
                     matrixVecMul(sp + 16, sp);
                     let marker = lw(a0 + 536);
                     let step = lwc1(g::updateframesf);
                     let model = lw(a0 + 32);
                     let spin = lwc1(marker + 76);
-                    swc1(marker + 48, lwc1(a0 + 48) + lwc1(sp));
+                    swc1(marker + 48, ps2float::add(lwc1(a0 + 48), lwc1(sp)));
                     let bone = lw(lw(model + 92) + 20);
-                    let z = lwc1(a0 + 56) + lwc1(sp + 8);
+                    let z = ps2float::add(lwc1(a0 + 56), lwc1(sp + 8));
                     let matrices = lw(model + 4);
-                    swc1(marker + 76, spin + (step + step));
+                    swc1(marker + 76, ps2float::add(spin, ps2float::add(step, step)));
                     swc1(marker + 56, z);
                     top = lwc1((bone << 6) + matrices + 52);
                     y = lwc1(a0 + 52);
@@ -170,15 +170,15 @@ pub fn chrPropTickAfter(a0: i32) {
                 }
                 y = lwc1(a0 + 52);
             }
-            top = y + 2.0_f32;
+            top = ps2float::add(y, 2.0_f32);
         }
         let marker = lw(a0 + 536);
-        let height = y + top;
+        let height = ps2float::add(y, top);
         let cleared = lw(marker + 16) & -2;
         let offset = lwc1(0x3acca4);
         sw(marker + 16, cleared);
         let visible = lw(a0 + 16) & 1;
-        swc1(marker + 52, height + offset);
+        swc1(marker + 52, ps2float::add(height, offset));
         sw(marker + 16, cleared | visible);
         sw(marker + 12, lw(a0 + 12));
     }
@@ -207,7 +207,7 @@ pub fn chrPropTickAfter(a0: i32) {
                         }
                         let x = lwc1(a0 + 48);
                         let y = lwc1(a0 + 52);
-                        let angle = (lwc1(a0 + 76) * lwc1(0x3acca8)).pdiv(1.8e+02_f32);
+                        let angle = ps2float::mul(lwc1(a0 + 76), lwc1(0x3acca8)).pdiv(1.8e+02_f32);
                         let z = lwc1(a0 + 56);
                         matrixTransRotY(sp + 208, x, y, z, angle);
                         let model = lw(a0 + 32);
@@ -224,7 +224,7 @@ pub fn chrPropTickAfter(a0: i32) {
                                 let kind = lw(existing);
                                 if start <= power {
                                     let half = 0x3fe0000000000000_i64;
-                                    let phase = ((power - start)).pdiv(lwc1(0x3accb0));
+                                    let phase = (ps2float::sub(power, start)).pdiv(lwc1(0x3accb0));
                                     let d = dpmul(fptodp(phase), ld(0x3a7fb8));
                                     let d = dpmul(d, half);
                                     let d = dpmul(d, ld(0x3a7fc0));
@@ -232,11 +232,11 @@ pub fn chrPropTickAfter(a0: i32) {
                                     let index = dptoli(d) as i32;
                                     let wave = lwc1((((index + 512) & 2047) << 2) + g::g_SinTable);
                                     if kind == 11 {
-                                        obInstSetOverrideCol(lw(a0 + 32), 255, 220, 196, wave * lwc1(0x3accb4));
+                                        obInstSetOverrideCol(lw(a0 + 32), 255, 220, 196, ps2float::mul(wave, lwc1(0x3accb4)));
                                         handle = lw(data + 0x11a8);
                                         break 'colour;
                                     }
-                                    obInstSetOverrideCol(lw(a0 + 32), 128, 128, 255, wave * lwc1(0x3accb8));
+                                    obInstSetOverrideCol(lw(a0 + 32), 128, 128, 255, ps2float::mul(wave, lwc1(0x3accb8)));
                                 }
                                 handle = lw(data + 0x11a8);
                             }
@@ -991,11 +991,11 @@ pub fn MoveTestPropWalls(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a
         let mut i = 0;
         if wall != 0 {
             let y = lwc1(a3 + 4);
-            let mut top = y + f13;
+            let mut top = ps2float::add(y, f13);
             loop {
                 if !(lwc1(wall + 8) < top) {
                     i += 1;
-                } else if !(y < lwc1(wall + 16) - lwc1(0x3acd10)) {
+                } else if !(y < ps2float::sub(lwc1(wall + 16), lwc1(0x3acd10))) {
                     i += 1;
                 } else {
                     let ax = lwc1(wall + 12);
@@ -1013,16 +1013,16 @@ pub fn MoveTestPropWalls(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a
                         i += 1;
                     } else {
                         let cx = lwc1(wall + 20);
-                        let dx = cx - lwc1(a3);
-                        let cross = (lwc1(wall + 4) - cx) * (bx - z);
+                        let dx = ps2float::sub(cx, lwc1(a3));
+                        let cross = ps2float::mul(ps2float::sub(lwc1(wall + 4), cx), ps2float::sub(bx, z));
                         let mut side_c = 1;
-                        if !((dx * (ax - bx)) <= cross) {
+                        if !(ps2float::mul(dx, ps2float::sub(ax, bx)) <= cross) {
                             side_c = 0;
                         }
                         if side_c != side_b {
                             i += 1;
                         } else {
-                            if !(0.0_f32 < (bx - ax) * dx + cross) {
+                            if !(0.0_f32 < ps2float::add(ps2float::mul(ps2float::sub(bx, ax), dx), cross)) {
                                 right_count += 1;
                             } else {
                                 left_count += 1;
@@ -1035,7 +1035,7 @@ pub fn MoveTestPropWalls(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a
                 if wall == 0 {
                     break;
                 }
-                top = y + f13;
+                top = ps2float::add(y, f13);
             }
         }
         less = (right_count < left_count) as i32;
@@ -1067,15 +1067,15 @@ pub fn MoveTestPropWalls(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a
         let mut y = lwc1(a3 + 4);
         loop {
             'wall: {
-                if !(lwc1(wall + 8) < y + f13) {
+                if !(lwc1(wall + 8) < ps2float::add(y, f13)) {
                     i += 1;
                 } else if !(y < lwc1(wall + 16)) {
                     i += 1;
                 } else {
-                    let dx = lwc1(wall + 28) - lwc1(wall + 12);
+                    let dx = ps2float::sub(lwc1(wall + 28), lwc1(wall + 12));
                     swc1(sp + 32, dx);
-                    let dz = lwc1(wall + 4) - lwc1(wall + 20);
-                    let length = (dx * dx + dz * dz).abs().psqrt();
+                    let dz = ps2float::sub(lwc1(wall + 4), lwc1(wall + 20));
+                    let length = ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz)).abs().psqrt();
                     swc1(sp + 36, dz);
                     let nx = (lwc1(sp + 32)).pdiv(length);
                     let px = lwc1(a3);
@@ -1083,10 +1083,10 @@ pub fn MoveTestPropWalls(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a
                     let pz = lwc1(a3 + 8);
                     swc1(sp + 32, nx);
                     swc1(sp + 36, nz);
-                    let ox = lwc1(wall + 4) - px;
+                    let ox = ps2float::sub(lwc1(wall + 4), px);
                     swc1(sp + 48, ox);
-                    let oz = lwc1(wall + 12) - pz;
-                    let distance = nx * ox + nz * oz;
+                    let oz = ps2float::sub(lwc1(wall + 12), pz);
+                    let distance = ps2float::add(ps2float::mul(nx, ox), ps2float::mul(nz, oz));
                     swc1(sp + 52, oz);
                     if 0.0_f32 < distance {
                         if !(distance < nearest) {
@@ -1109,15 +1109,15 @@ pub fn MoveTestPropWalls(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a
     }
     let ny = lwc1(sp + 20);
     if nearest < lwc1(0x3af938) {
-        let push = nearest + lwc1(0x3acd14);
+        let push = ps2float::add(nearest, lwc1(0x3acd14));
         let x = lwc1(a3);
-        let dx = push * lwc1(sp + 16);
+        let dx = ps2float::mul(push, lwc1(sp + 16));
         let y = lwc1(a3 + 4);
-        let dz = lwc1(a3 + 8) + push * ny;
+        let dz = ps2float::add(lwc1(a3 + 8), ps2float::mul(push, ny));
         sw(a1 + 16, lw(a1 + 16) & -33);
         swc1(sp + 36, y);
         swc1(sp + 40, dz);
-        swc1(sp + 32, x + dx);
+        swc1(sp + 32, ps2float::add(x, dx));
         let result = moveTest(lw(sp + 84), a3, sp + 32, 0, 0, 0, f13, f12);
         sw(a1 + 16, lw(a1 + 16) | 32);
         if (result & 2) == 0 {
@@ -1127,14 +1127,14 @@ pub fn MoveTestPropWalls(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a
             swc1(a3, x);
             swc1(a3 + 8, z);
             swc1(a3 + 4, y);
-            let ox = x - lwc1(a1 + 48);
+            let ox = ps2float::sub(x, lwc1(a1 + 48));
             swc1(a5, ox);
-            let oz = lwc1(a3 + 8) - lwc1(a1 + 56);
+            let oz = ps2float::sub(lwc1(a3 + 8), lwc1(a1 + 56));
             swc1(a5 + 4, oz);
-            let length = (ox * ox + oz * oz).abs().psqrt();
+            let length = ps2float::add(ps2float::mul(ox, ox), ps2float::mul(oz, oz)).abs().psqrt();
             let first = lwc1(a5);
             let second = (lwc1(a5 + 4)).pdiv(length);
-            let slowed = f12 * lwc1(0x3acd18);
+            let slowed = ps2float::mul(f12, lwc1(0x3acd18));
             swc1(a5, (first).pdiv(length));
             swc1(a5 + 4, second);
             swc1(a6, slowed);

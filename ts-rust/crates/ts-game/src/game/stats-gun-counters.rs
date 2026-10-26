@@ -30,7 +30,7 @@ pub fn StatsSetGun(gun: i32, player: i32, combo: i32, value: f32) {
 /// Add `value` to the counter (@ 0x2241a8).
 pub fn StatsAddGun(gun: i32, player: i32, combo: i32, value: f32) {
     if let Some(at) = gun_counter(gun, player, combo) {
-        swc1(at, lwc1(at) + value);
+        swc1(at, ps2float::add(lwc1(at), value));
     }
 }
 

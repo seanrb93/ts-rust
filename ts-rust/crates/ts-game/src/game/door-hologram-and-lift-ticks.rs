@@ -16,7 +16,7 @@ pub fn doorPropTick(prop: i32) {
     if open == 0 {
         let frame = lwc1(g::updateframesf);
         if 0.0_f32 < position {
-            position -= frame * lwc1(0x3acc30);
+            position = ps2float::sub(position, ps2float::mul(frame, lwc1(0x3acc30)));
             swc1(state + 32, position);
         }
         if position < 0.0_f32 {
@@ -27,7 +27,7 @@ pub fn doorPropTick(prop: i32) {
         let one = 1.0_f32;
         let frame = lwc1(g::updateframesf);
         if position < one {
-            position += frame * lwc1(0x3acc2c);
+            position = ps2float::add(position, ps2float::mul(frame, lwc1(0x3acc2c)));
             swc1(state + 32, position);
         }
         if one < position {
@@ -50,9 +50,9 @@ pub fn doorPropTick(prop: i32) {
     let kind = lw(state + 4);
     let travel = lwc1(state + 36);
     match kind {
-        1 => matrixTrans(lw(lw(prop + 32) + 4), travel * position, 0.0_f32, 0.0_f32),
-        0 => matrixTrans(lw(lw(prop + 32) + 4), -travel * position, 0.0_f32, 0.0_f32),
-        3 => matrixTrans(lw(lw(prop + 32) + 4), 0.0_f32, travel * position, 0.0_f32),
+        1 => matrixTrans(lw(lw(prop + 32) + 4), ps2float::mul(travel, position), 0.0_f32, 0.0_f32),
+        0 => matrixTrans(lw(lw(prop + 32) + 4), ps2float::mul(-travel, position), 0.0_f32, 0.0_f32),
+        3 => matrixTrans(lw(lw(prop + 32) + 4), 0.0_f32, ps2float::mul(travel, position), 0.0_f32),
         2 => {
             let model = lw(prop + 32);
             let skeleton = lw(model);
@@ -61,8 +61,8 @@ pub fn doorPropTick(prop: i32) {
             let first = lb(bones + 3);
             let second = lb(first * 80 + bones + 4);
             sceVu0UnitMatrix(matrices);
-            matrixTrans(lw(lw(prop + 32) + 4) + (first << 6), -lwc1(state + 36) * lwc1(state + 32), 0.0_f32, 0.0_f32);
-            matrixTrans(lw(lw(prop + 32) + 4) + (second << 6), lwc1(state + 36) * lwc1(state + 32), 0.0_f32, 0.0_f32);
+            matrixTrans(lw(lw(prop + 32) + 4) + (first << 6), ps2float::mul(-lwc1(state + 36), lwc1(state + 32)), 0.0_f32, 0.0_f32);
+            matrixTrans(lw(lw(prop + 32) + 4) + (second << 6), ps2float::mul(lwc1(state + 36), lwc1(state + 32)), 0.0_f32, 0.0_f32);
         }
         _ => {}
     }
@@ -118,9 +118,9 @@ pub fn hologramPropTick(prop: i32) {
             let state = lw(record + 2716);
             if state != 0x2000 && state != 0 {
                 let other = lw(record + 3020);
-                let dx = lwc1(other + 48) - lwc1(prop + 48);
-                let dz = lwc1(other + 56) - lwc1(prop + 56);
-                if (dx * dx + dz * dz).abs().psqrt() < 8.0_f32 {
+                let dx = ps2float::sub(lwc1(other + 48), lwc1(prop + 48));
+                let dz = ps2float::sub(lwc1(other + 56), lwc1(prop + 56));
+                if ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz)).abs().psqrt() < 8.0_f32 {
                     near = true;
                 }
             }
@@ -137,12 +137,12 @@ pub fn hologramPropTick(prop: i32) {
     let beyond;
     if !near {
         limit = 0.0_f32;
-        now = alpha - lwc1(0x3acf84);
+        now = ps2float::sub(alpha, lwc1(0x3acf84));
         beyond = now < limit;
         swc1(g::hologramAlpha, now);
     } else {
         limit = 1.0_f32;
-        now = alpha + lwc1(0x3acf80);
+        now = ps2float::add(alpha, lwc1(0x3acf80));
         beyond = limit < now;
         swc1(g::hologramAlpha, now);
     }
@@ -150,8 +150,8 @@ pub fn hologramPropTick(prop: i32) {
         now = limit;
         swc1(g::hologramAlpha, limit);
     }
-    set_alpha_of_colours(prop, sp, fptoui(now * 127.0_f32));
-    let wave = lw(g::gameframe) as f32 * lwc1(0x3acf88);
+    set_alpha_of_colours(prop, sp, fptoui(ps2float::mul(now, 127.0_f32)));
+    let wave = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3acf88));
     swc1(prop + 76, wave);
     swc1(prop + 72, wave);
 }
@@ -175,9 +175,9 @@ pub fn liftPropTick(prop: i32) {
                 let char_state = lw(record + 2716);
                 if char_state != 0x2000 && char_state != 0 {
                     let other = lw(record + 3020);
-                    let dx = lwc1(other + 48) - lwc1(prop + 48);
-                    let dz = lwc1(other + 56) - lwc1(prop + 56);
-                    if (dx * dx + dz * dz).abs().psqrt() < 1.0_f32 {
+                    let dx = ps2float::sub(lwc1(other + 48), lwc1(prop + 48));
+                    let dz = ps2float::sub(lwc1(other + 56), lwc1(prop + 56));
+                    if ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz)).abs().psqrt() < 1.0_f32 {
                         sw(state + 72, 1);
                     }
                     count = lw(g::lvnumplayers);
@@ -192,12 +192,12 @@ pub fn liftPropTick(prop: i32) {
         return;
     }
     let end_x = lwc1(state + 60);
-    swc1(state + 44, lwc1(state + 44) + seconds);
+    swc1(state + 44, ps2float::add(lwc1(state + 44), seconds));
     let start_y = lwc1(prop + 40);
     let start_z = lwc1(prop + 44);
-    swc1(sp, end_x - lwc1(prop + 36));
-    swc1(sp + 4, lwc1(state + 64) - start_y);
-    swc1(sp + 8, lwc1(state + 68) - start_z);
+    swc1(sp, ps2float::sub(end_x, lwc1(prop + 36)));
+    swc1(sp + 4, ps2float::sub(lwc1(state + 64), start_y));
+    swc1(sp + 8, ps2float::sub(lwc1(state + 68), start_z));
     let mut timer = lwc1(state + 44);
     if 11.0_f32 < timer {
         swc1(state + 44, -3.0_f32);
@@ -211,21 +211,21 @@ pub fn liftPropTick(prop: i32) {
             return;
         }
         if 0.0_f32 <= timer && timer < 4.0_f32 {
-            let angle = dptofp(dpmul(fptodp(timer * 0.25_f32), ld(0x3a8610)));
-            let ease = 1.0_f32 - (cosf(angle) + 1.0_f32) * 0.5_f32;
-            let x = lwc1(prop + 36) + lwc1(sp) * ease;
-            let y = lwc1(prop + 40) + lwc1(sp + 4) * ease;
-            swc1(prop + 56, lwc1(prop + 44) + lwc1(sp + 8) * ease);
+            let angle = dptofp(dpmul(fptodp(ps2float::mul(timer, 0.25_f32)), ld(0x3a8610)));
+            let ease = ps2float::sub(1.0_f32, ps2float::mul(ps2float::add(cosf(angle), 1.0_f32), 0.5_f32));
+            let x = ps2float::add(lwc1(prop + 36), ps2float::mul(lwc1(sp), ease));
+            let y = ps2float::add(lwc1(prop + 40), ps2float::mul(lwc1(sp + 4), ease));
+            swc1(prop + 56, ps2float::add(lwc1(prop + 44), ps2float::mul(lwc1(sp + 8), ease)));
             swc1(prop + 48, x);
             swc1(prop + 52, y);
             return;
         }
         if 7.0_f32 <= timer {
-            let angle = dptofp(dpmul(fptodp((timer - 7.0_f32) * 0.25_f32), ld(0x3a8618)));
-            let ease = (cosf(angle) + 1.0_f32) * 0.5_f32;
-            let x = lwc1(prop + 36) + lwc1(sp) * ease;
-            let y = lwc1(prop + 40) + lwc1(sp + 4) * ease;
-            swc1(prop + 56, lwc1(prop + 44) + lwc1(sp + 8) * ease);
+            let angle = dptofp(dpmul(fptodp(ps2float::mul(ps2float::sub(timer, 7.0_f32), 0.25_f32)), ld(0x3a8618)));
+            let ease = ps2float::mul(ps2float::add(cosf(angle), 1.0_f32), 0.5_f32);
+            let x = ps2float::add(lwc1(prop + 36), ps2float::mul(lwc1(sp), ease));
+            let y = ps2float::add(lwc1(prop + 40), ps2float::mul(lwc1(sp + 4), ease));
+            swc1(prop + 56, ps2float::add(lwc1(prop + 44), ps2float::mul(lwc1(sp + 8), ease)));
             swc1(prop + 48, x);
             swc1(prop + 52, y);
         }

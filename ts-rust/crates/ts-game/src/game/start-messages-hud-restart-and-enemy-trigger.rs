@@ -207,10 +207,10 @@ pub fn enemyTriggered(enemy: i32) -> i32 {
                 break;
             }
             let player = i * 1820 + lw(g::players);
-            let dx = lwc1(player + 140) - lwc1(enemy + 48);
-            let dy = lwc1(player + 144) - lwc1(enemy + 52);
-            let dz = lwc1(player + 148) - lwc1(enemy + 56);
-            if (dx * dx + dy * dy + dz * dz) < 16.0_f32 {
+            let dx = ps2float::sub(lwc1(player + 140), lwc1(enemy + 48));
+            let dy = ps2float::sub(lwc1(player + 144), lwc1(enemy + 52));
+            let dz = ps2float::sub(lwc1(player + 148), lwc1(enemy + 56));
+            if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < 16.0_f32 {
                 return 1;
             }
             i += 1;
@@ -237,7 +237,7 @@ pub fn tlhAdjustChrPosition(chr: i32) {
             0 | 25 | 26 | 60 => {
                 let x = dptofp(dpadd(fptodp(lwc1(chr + 48)), ld(0x3a1cb8)));
                 let z = lwc1(chr + 56);
-                let y = lwc1(chr + 52) + 0.0_f32;
+                let y = ps2float::add(lwc1(chr + 52), 0.0_f32);
                 swc1(chr + 48, x);
                 swc1(chr + 52, y);
                 z_add = (fptodp(z), ld(0x3a1cc0));
@@ -245,7 +245,7 @@ pub fn tlhAdjustChrPosition(chr: i32) {
             38 | 44 | 58 => {
                 let x = dptofp(dpadd(fptodp(lwc1(chr + 48)), 0_i64));
                 let z = lwc1(chr + 56);
-                let y = lwc1(chr + 52) + 0.0_f32;
+                let y = ps2float::add(lwc1(chr + 52), 0.0_f32);
                 swc1(chr + 48, x);
                 swc1(chr + 52, y);
                 z_add = (fptodp(z), ld(0x3a1cc8));

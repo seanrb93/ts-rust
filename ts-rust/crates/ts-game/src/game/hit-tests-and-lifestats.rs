@@ -8,8 +8,8 @@ pub fn hittestLineBox(center: i32, half: i32, from: i32, to: i32) -> i32 {
     // x
     let mut ex = lwc1(half);
     let c = lwc1(center);
-    let mut p_to = lwc1(to) - c;
-    let mut p_from = lwc1(from) - c;
+    let mut p_to = ps2float::sub(lwc1(to), c);
+    let mut p_from = ps2float::sub(lwc1(from), c);
     if ex < 0.0 {
         ex = -ex;
         p_from = -p_from;
@@ -26,8 +26,8 @@ pub fn hittestLineBox(center: i32, half: i32, from: i32, to: i32) -> i32 {
     // y
     let mut ey = lwc1(half + 4);
     let c = lwc1(center + 4);
-    let mut q_to = lwc1(to + 4) - c;
-    let mut q_from = lwc1(from + 4) - c;
+    let mut q_to = ps2float::sub(lwc1(to + 4), c);
+    let mut q_from = ps2float::sub(lwc1(from + 4), c);
     if ey < 0.0 {
         ey = -ey;
         q_from = -q_from;
@@ -41,10 +41,10 @@ pub fn hittestLineBox(center: i32, half: i32, from: i32, to: i32) -> i32 {
         y_min = q_to;
         y_max = q_from;
     }
-    let x_low_y = x_min * ey;
-    let y_low_x = y_min * ex;
-    let x_high_y = x_max * ey;
-    let y_high_x = y_max * ex;
+    let x_low_y = ps2float::mul(x_min, ey);
+    let y_low_x = ps2float::mul(y_min, ex);
+    let x_high_y = ps2float::mul(x_max, ey);
+    let y_high_x = ps2float::mul(y_max, ex);
     let low_along;
     let low_scale;
     if !(y_low_x < x_low_y) {
@@ -71,8 +71,8 @@ pub fn hittestLineBox(center: i32, half: i32, from: i32, to: i32) -> i32 {
     // z
     let mut ez = lwc1(half + 8);
     let c = lwc1(center + 8);
-    let mut r_to = lwc1(to + 8) - c;
-    let mut r_from = lwc1(from + 8) - c;
+    let mut r_to = ps2float::sub(lwc1(to + 8), c);
+    let mut r_from = ps2float::sub(lwc1(from + 8), c);
     if ez < 0.0 {
         ez = -ez;
         r_from = -r_from;
@@ -86,11 +86,11 @@ pub fn hittestLineBox(center: i32, half: i32, from: i32, to: i32) -> i32 {
         z_min = r_to;
         z_max = r_from;
     }
-    let low = low_along * ez;
-    if !(low < z_min * low_scale) {
-        let high = z_max * low_scale;
+    let low = ps2float::mul(low_along, ez);
+    if !(low < ps2float::mul(z_min, low_scale)) {
+        let high = ps2float::mul(z_max, low_scale);
         if !(high < low) { 1 } else { 0 }
-    } else if (high_along * ez) < z_min * high_scale {
+    } else if ps2float::mul(high_along, ez) < ps2float::mul(z_min, high_scale) {
         0
     } else {
         1
@@ -149,10 +149,10 @@ pub fn suggestTarget(chr: i32, target: i32, kind: i32) -> i32 {
                     return lw(rec + 3020);
                 }
                 let t = lw(rec + 3020);
-                let dx = lwc1(t + 48) - lwc1(chr + 48);
-                let dy = lwc1(t + 52) - lwc1(chr + 52);
-                let dz = lwc1(t + 56) - lwc1(chr + 56);
-                let d2 = dx * dx + dy * dy + dz * dz;
+                let dx = ps2float::sub(lwc1(t + 48), lwc1(chr + 48));
+                let dy = ps2float::sub(lwc1(t + 52), lwc1(chr + 52));
+                let dz = ps2float::sub(lwc1(t + 56), lwc1(chr + 56));
+                let d2 = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                 if d2 < best_d2 {
                     best_d2 = d2;
                     best = i;
@@ -163,10 +163,10 @@ pub fn suggestTarget(chr: i32, target: i32, kind: i32) -> i32 {
             let (z, x, y) = (lwc1(chr + 56), lwc1(chr + 48), lwc1(chr + 52));
             for i in 0..n {
                 let t = lw(i * 0x1210 + chr_info + 3020);
-                let dy = lwc1(t + 52) - y;
-                let dx = lwc1(t + 48) - x;
-                let dz = lwc1(t + 56) - z;
-                let d2 = dx * dx + dy * dy + dz * dz;
+                let dy = ps2float::sub(lwc1(t + 52), y);
+                let dx = ps2float::sub(lwc1(t + 48), x);
+                let dz = ps2float::sub(lwc1(t + 56), z);
+                let d2 = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                 if d2 < best_d2 {
                     best_d2 = d2;
                     best = i;
@@ -196,7 +196,7 @@ pub fn StatsGetOverallLifestats(out: i32, first: i32, second: i32, third: i32) {
     sw(out + 24, largest(24));
     sw(out + 28, sum3(28));
     sw(out + 32, sum3(32));
-    let fsum = |at: i32| lwc1(first + at) + lwc1(second + at) + lwc1(third + at);
+    let fsum = |at: i32| ps2float::add(ps2float::add(lwc1(first + at), lwc1(second + at)), lwc1(third + at));
     let f36 = fsum(36);
     sw(out + 52, sum3(52));
     swc1(out + 36, f36);
@@ -211,11 +211,11 @@ pub fn StatsGetOverallLifestats(out: i32, first: i32, second: i32, third: i32) {
         sw(out + 64 + 4 * i, sum3(64 + 4 * i));
         swc1(out + 200 + 4 * i, fsum(200 + 4 * i));
     }
-    let f344 = lwc1(first + 344) + lwc1(second + 344);
+    let f344 = ps2float::add(lwc1(first + 344), lwc1(second + 344));
     let third_344 = lwc1(third + 344);
     sw(out + 340, -1);
     sw(out + 336, -1);
-    swc1(out + 344, f344 + third_344);
+    swc1(out + 344, ps2float::add(f344, third_344));
     for i in 0..48 {
         sb(out + 348 + i, lbu(second + 348 + i));
     }

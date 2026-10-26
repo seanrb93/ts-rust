@@ -62,10 +62,10 @@ pub fn enemyPatrol(enemy: i32) {
         swc1(record + 2800, py);
         let pz = lwc1(pad + 20);
         swc1(record + 2804, pz);
-        let dx = lwc1(enemy + 48) - px;
-        let dy = lwc1(enemy + 52) - py;
-        let dz = lwc1(enemy + 56) - pz;
-        if (dx * dx + dy * dy + dz * dz) < range {
+        let dx = ps2float::sub(lwc1(enemy + 48), px);
+        let dy = ps2float::sub(lwc1(enemy + 52), py);
+        let dz = ps2float::sub(lwc1(enemy + 56), pz);
+        if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < range {
             let count = lw(record + 1688);
             sw(record + 680, next);
             sw(record + 1688, count - 1);
@@ -106,10 +106,10 @@ pub fn enemyPillarAlien(enemy: i32) {
             let slot = i << 2;
             let player = i * 1820 + list;
             i += 1;
-            let dx = lwc1(player + 140) - x;
-            let dy = lwc1(player + 144) - y;
-            let dz = lwc1(player + 148) - z;
-            swc1(sp + slot, dx * dx + dy * dy + dz * dz);
+            let dx = ps2float::sub(lwc1(player + 140), x);
+            let dy = ps2float::sub(lwc1(player + 144), y);
+            let dz = ps2float::sub(lwc1(player + 148), z);
+            swc1(sp + slot, ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)));
             if i >= players {
                 break;
             }

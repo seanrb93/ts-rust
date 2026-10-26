@@ -240,15 +240,15 @@ pub fn fxCreateStage(a0: i32) {
     }
     let distance = lwc1(0x3ac9cc);
     let x = lwc1(player + 152);
-    let dx = lwc1(player + 176) * distance;
+    let dx = ps2float::mul(lwc1(player + 176), distance);
     let flags = lw(prop + 16);
     sw(prop + 576, a0);
-    swc1(prop + 48, x + dx);
+    swc1(prop + 48, ps2float::add(x, dx));
     let y = lwc1(player + 156);
-    let dy = lwc1(player + 180) * distance;
+    let dy = ps2float::mul(lwc1(player + 180), distance);
     sw(prop + 16, flags | 0x1000000);
-    swc1(prop + 52, y + dy - 1.0_f32);
-    swc1(prop + 56, lwc1(player + 160) + lwc1(player + 184) * distance);
+    swc1(prop + 52, ps2float::sub(ps2float::add(y, dy), 1.0_f32));
+    swc1(prop + 56, ps2float::add(lwc1(player + 160), ps2float::mul(lwc1(player + 184), distance)));
 }
 
 /// The tick of a clock prop of the mall: the hands (matrices at +64, +128 and +192) are turned about Z, and the sound 30 plays when the seconds change (@ 0x2793e8).

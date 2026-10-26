@@ -51,9 +51,9 @@ pub fn bgTileLoadLevel() {
                                         let s0_1 = lhu(s1_1 + 10);
                                         let a0_4 = lo_1 + s6_1;
                                         let a3_1 = lhu(s1_1 + 8);
-                                        swc1(sp + 4, lb(s1_1 + 4) as f32 * f1_1);
-                                        swc1(sp + 8, lb(s1_1 + 5) as f32 * 4.0_f32);
-                                        swc1(sp + 12, lb(s1_1 + 6) as f32 * f1_1);
+                                        swc1(sp + 4, ps2float::mul(lb(s1_1 + 4) as f32, f1_1));
+                                        swc1(sp + 8, ps2float::mul(lb(s1_1 + 5) as f32, 4.0_f32));
+                                        swc1(sp + 12, ps2float::mul(lb(s1_1 + 6) as f32, f1_1));
                                         let v1_3 = lbu(s1_1 + 7);
                                         sh(sp + 20, a3_1);
                                         sw(sp + 16, v1_3);
@@ -223,7 +223,7 @@ pub fn bgTileLoadLevel() {
                                             }
                                             f1_2 = lwc1(s0_6 + 8);
                                         }
-                                        if (lwc1(s2_4 + 8) * f1_2 + lwc1(s2_4 + 12) * lwc1(s0_6 + 12) + lwc1(s2_4 + 16) * lwc1(s0_6 + 16)) < lwc1(0x3acaa8) {
+                                        if ps2float::add(ps2float::add(ps2float::mul(lwc1(s2_4 + 8), f1_2), ps2float::mul(lwc1(s2_4 + 12), lwc1(s0_6 + 12))), ps2float::mul(lwc1(s2_4 + 16), lwc1(s0_6 + 16))) < lwc1(0x3acaa8) {
                                             memset(sp, 0, 12);
                                             let a4_2 = 0x3a25a0;
                                             let a2_8 = lw(a4_2 + 8);
@@ -268,9 +268,9 @@ pub fn bgTileLoadLevel() {
                                                     let v1_7 = s2_4 + 24 + a1_18 * 12;
                                                     let a0_20 = s2_4 + 32 + a1_18 * 12;
                                                     let v0_8 = s2_4 + 28 + a1_18 * 12;
-                                                    swc1(sp, lwc1(sp) + lwc1(v1_7));
-                                                    swc1(sp + 4, f2_1 + lwc1(v0_8));
-                                                    swc1(sp + 8, f3_1 + lwc1(a0_20));
+                                                    swc1(sp, ps2float::add(lwc1(sp), lwc1(v1_7)));
+                                                    swc1(sp + 4, ps2float::add(f2_1, lwc1(v0_8)));
+                                                    swc1(sp + 8, ps2float::add(f3_1, lwc1(a0_20)));
                                                     let f0_1 = lwc1(v1_7);
                                                     if f17_1 < f0_1 {
                                                         swc1(sp + 48, f0_1);
@@ -324,9 +324,9 @@ pub fn bgTileLoadLevel() {
                                                     let v1_8 = s0_6 + 24 + a1_19 * 12;
                                                     let a0_21 = s0_6 + 32 + a1_19 * 12;
                                                     let v0_10 = s0_6 + 28 + a1_19 * 12;
-                                                    swc1(sp + 64, f11_1 + lwc1(v1_8));
-                                                    swc1(sp + 68, f4_1 + lwc1(v0_10));
-                                                    swc1(sp + 72, f12_1 + lwc1(a0_21));
+                                                    swc1(sp + 64, ps2float::add(f11_1, lwc1(v1_8)));
+                                                    swc1(sp + 68, ps2float::add(f4_1, lwc1(v0_10)));
+                                                    swc1(sp + 72, ps2float::add(f12_1, lwc1(a0_21)));
                                                     let f0_8 = lwc1(v1_8);
                                                     if f5_1 < f0_8 {
                                                         swc1(sp + 96, f0_8);
@@ -369,39 +369,39 @@ pub fn bgTileLoadLevel() {
                                                 f4_1 = lwc1(sp + 68);
                                                 f12_1 = lwc1(sp + 72);
                                             }
-                                            let f10_2 = f10_1 - f13_1;
-                                            let f6_2 = f6_1 - f14_1;
+                                            let f10_2 = ps2float::sub(f10_1, f13_1);
+                                            let f6_2 = ps2float::sub(f6_1, f14_1);
                                             let f3_3 = ((a2_10 << 16) >> 16) as f32;
                                             let f13_2 = lwc1(0x3acaac);
-                                            let f5_2 = f5_1 - f17_1;
+                                            let f5_2 = ps2float::sub(f5_1, f17_1);
                                             swc1(sp + 132, f10_2);
-                                            let f9_2 = f9_1 - f16_1;
+                                            let f9_2 = ps2float::sub(f9_1, f16_1);
                                             swc1(sp + 128, f6_2);
                                             let f2_3 = (f11_1).pdiv(f3_3);
                                             let f4_2 = (f4_1).pdiv(f3_3);
                                             swc1(sp + 144, f5_2);
                                             let f3_4 = (f12_1).pdiv(f3_3);
                                             swc1(sp + 148, f9_2);
-                                            let f7_2 = f7_1 - f15_1;
-                                            let f8_2 = f8_1 - f18_1;
-                                            let f0_13 = f2_3 - f21_1;
+                                            let f7_2 = ps2float::sub(f7_1, f15_1);
+                                            let f8_2 = ps2float::sub(f8_1, f18_1);
+                                            let f0_13 = ps2float::sub(f2_3, f21_1);
                                             swc1(sp + 64, f2_3);
-                                            let f1_5 = f4_2 - f19_1;
+                                            let f1_5 = ps2float::sub(f4_2, f19_1);
                                             swc1(sp + 68, f4_2);
-                                            let f2_4 = f3_4 - f20_1;
+                                            let f2_4 = ps2float::sub(f3_4, f20_1);
                                             swc1(sp + 72, f3_4);
                                             swc1(sp + 112, f0_13);
                                             swc1(sp + 136, f7_2);
                                             swc1(sp + 152, f8_2);
                                             swc1(sp + 116, f1_5);
                                             swc1(sp + 120, f2_4);
-                                            if (f0_13 * f0_13 + f1_5 * f1_5 + f2_4 * f2_4) <= f13_2 {
+                                            if ps2float::add(ps2float::add(ps2float::mul(f0_13, f0_13), ps2float::mul(f1_5, f1_5)), ps2float::mul(f2_4, f2_4)) <= f13_2 {
                                                 a1_14 = lw(g::bgNumPortals);
-                                                if !((f6_2 * f6_2 + f10_2 * f10_2 + f7_2 * f7_2) <= f13_2) {
+                                                if !(ps2float::add(ps2float::add(ps2float::mul(f6_2, f6_2), ps2float::mul(f10_2, f10_2)), ps2float::mul(f7_2, f7_2)) <= f13_2) {
                                                     break 'b24;
                                                 }
                                                 s1_4 = a7_2;
-                                                if !((f5_2 * f5_2 + f9_2 * f9_2 + f8_2 * f8_2) <= f13_2) {
+                                                if !(ps2float::add(ps2float::add(ps2float::mul(f5_2, f5_2), ps2float::mul(f9_2, f9_2)), ps2float::mul(f8_2, f8_2)) <= f13_2) {
                                                     break 'b23;
                                                 }
                                                 let mut v1_9 = lw(s2_4);

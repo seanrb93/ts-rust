@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// What the enemy `enemy` does as a sniper, by its state at +2728 of its record: with more than one player it takes the co-op target (+2788), and without a target nothing is done.
@@ -41,8 +41,8 @@ pub fn enemySnipe1(enemy: i32) {
                     let r = random_unit();
                     let scale = lwc1(record + 2964);
                     sw(record + 2892, 0);
-                    swc1(record + 2964, scale * 0.25_f32);
-                    swc1(record + 2732, r + r + 0.5_f32);
+                    swc1(record + 2964, ps2float::mul(scale, 0.25_f32));
+                    swc1(record + 2732, ps2float::add(ps2float::add(r, r), 0.5_f32));
                     break 'state;
                 }
                 1 => {
@@ -54,7 +54,7 @@ pub fn enemySnipe1(enemy: i32) {
                     let r = random_unit();
                     sw(record + 2892, 0);
                     extra = lwc1(0x3ada34);
-                    base_time = r * 0.5_f32;
+                    base_time = ps2float::mul(r, 0.5_f32);
                 }
                 2 => {
                     sw(record + 2708, lw(record + 2708) & -5);
@@ -76,7 +76,7 @@ pub fn enemySnipe1(enemy: i32) {
                     let r = random_unit();
                     extra = 1.0_f32;
                     sw(record + 2892, 0);
-                    base_time = r + r;
+                    base_time = ps2float::add(r, r);
                 }
                 4 => {
                     if (lw(record + 2704) & 2) != 0 {
@@ -95,7 +95,7 @@ pub fn enemySnipe1(enemy: i32) {
                         let r = random_unit();
                         extra = 1.0_f32;
                         sw(record + 2892, 0);
-                        base_time = r + r;
+                        base_time = ps2float::add(r, r);
                     }
                 }
                 5 => {

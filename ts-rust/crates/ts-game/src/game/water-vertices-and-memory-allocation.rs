@@ -25,11 +25,11 @@ pub fn vtxlistWaterxyz(source: i32, out: i32, count: i32, table: i32) {
             let y = lwc1(from + 4);
             let factor = lwc1(at + lw((table << 2) + g::waterMemory));
             from += 12;
-            let reduced = lwc1(g::waterreduction) * factor;
-            let wave_x = lwc1(((((x * lwc1(g::waterperiodx) + time * lwc1(g::waterspeedx)) * k + half) as i32 & 2047) << 2) + sines);
-            let wave_z = lwc1(((((z * lwc1(g::waterperiodz) + time * lwc1(g::waterspeedz)) * k + half) as i32 & 2047) << 2) + sines);
+            let reduced = ps2float::mul(lwc1(g::waterreduction), factor);
+            let wave_x = lwc1(((ps2float::add(ps2float::mul(ps2float::add(ps2float::mul(x, lwc1(g::waterperiodx)), ps2float::mul(time, lwc1(g::waterspeedx))), k), half) as i32 & 2047) << 2) + sines);
+            let wave_z = lwc1(((ps2float::add(ps2float::mul(ps2float::add(ps2float::mul(z, lwc1(g::waterperiodz)), ps2float::mul(time, lwc1(g::waterspeedz))), k), half) as i32 & 2047) << 2) + sines);
             swc1(to + 8, z);
-            swc1(to + 4, y + (wave_x + wave_z) * amplitude * factor - reduced);
+            swc1(to + 4, ps2float::sub(ps2float::add(y, ps2float::mul(ps2float::mul(ps2float::add(wave_x, wave_z), amplitude), factor)), reduced));
             to += 12;
             if i >= count {
                 break;

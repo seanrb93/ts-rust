@@ -7,29 +7,29 @@ use crate::*;
 pub fn specialfxBlastRadius(at: i32, time: f32, start: f32, duration: f32, raise: f32) {
     let frame = Frame::new(80);
     let sp = frame.sp();
-    if !(start <= time) || !(time < start + duration) {
+    if !(start <= time) || !(time < ps2float::add(start, duration)) {
         return;
     }
     let top = 127.0_f32;
-    let gone = ((time - start)).pdiv(duration);
+    let gone = (ps2float::sub(time, start)).pdiv(duration);
     let z = lwc1(at + 8);
-    let y = lwc1(at + 4) + raise;
+    let y = ps2float::add(lwc1(at + 4), raise);
     let x = lwc1(at);
     let player = lw(g::currentplayer);
     swc1(sp + 68, y);
     swc1(sp + 20, y);
     swc1(sp + 36, y);
-    let size = gone * 3.0_f32;
+    let size = ps2float::mul(gone, 3.0_f32);
     swc1(sp + 52, y);
     let texture = lw(0x3b018c);
-    let z_low = z - size;
-    let x_high = x + size;
-    let x_low = x - size;
+    let z_low = ps2float::sub(z, size);
+    let x_high = ps2float::add(x, size);
+    let x_low = ps2float::sub(x, size);
     swc1(sp + 72, z_low);
-    let z_high = z + size;
+    let z_high = ps2float::add(z, size);
     swc1(sp + 64, x_high);
     swc1(sp + 32, x_high);
-    let colour = ((top - gone * top) as i32) << 24 | 0x3f6a7f;
+    let colour = (ps2float::sub(top, ps2float::mul(gone, top)) as i32) << 24 | 0x3f6a7f;
     swc1(sp + 48, x_low);
     sw(sp, colour);
     swc1(sp + 40, z_high);
@@ -103,21 +103,21 @@ pub fn bgPortalPlaneClip(from: i32, to: i32, axis: i32, mask: i32, a: f32, b: f3
                 let used = lw(0x3b009c);
                 let out_count = lw(to + 80);
                 let pool = lw(0x3b0098);
-                let d_current = a * lwc1(current + at) + lwc1(current + 12) * b;
-                let d_next = a * lwc1(next + at) + lwc1(next + 12) * b;
+                let d_current = ps2float::add(ps2float::mul(a, lwc1(current + at)), ps2float::mul(lwc1(current + 12), b));
+                let d_next = ps2float::add(ps2float::mul(a, lwc1(next + at)), ps2float::mul(lwc1(next + 12), b));
                 sw(0x3b009c, used + 1);
                 let made = pool + used * 20;
                 sw(to + (out_count << 2), made);
                 sw(to + 80, out_count + 1);
-                let t = (d_current).pdiv((d_current - d_next));
+                let t = (d_current).pdiv(ps2float::sub(d_current, d_next));
                 let x = lwc1(current);
-                swc1(made, x + t * (lwc1(next) - x));
+                swc1(made, ps2float::add(x, ps2float::mul(t, ps2float::sub(lwc1(next), x))));
                 let y = lwc1(current + 4);
-                swc1(made + 4, y + t * (lwc1(next + 4) - y));
+                swc1(made + 4, ps2float::add(y, ps2float::mul(t, ps2float::sub(lwc1(next + 4), y))));
                 let z = lwc1(current + 8);
-                swc1(made + 8, z + t * (lwc1(next + 8) - z));
+                swc1(made + 8, ps2float::add(z, ps2float::mul(t, ps2float::sub(lwc1(next + 8), z))));
                 let w = lwc1(current + 12);
-                swc1(made + 12, w + t * (lwc1(next + 12) - w));
+                swc1(made + 12, ps2float::add(w, ps2float::mul(t, ps2float::sub(lwc1(next + 12), w))));
                 bgPortalCalcOutCode(made);
                 next_flags = lw(next + 16);
             }

@@ -366,7 +366,7 @@ pub fn gmKnockOutTick() {
                 let x = lwc1(position + 12);
                 sw(data + 36, pad);
                 swc1(bag + 48, x);
-                swc1(bag + 52, lwc1(position + 16) + lwc1(data + 20));
+                swc1(bag + 52, ps2float::add(lwc1(position + 16), lwc1(data + 20)));
                 swc1(bag + 56, lwc1(position + 20));
                 soundStart(200, 0);
             }
@@ -417,14 +417,14 @@ pub fn decalNewDecalMain(a0: i32, a1: i32, a2: i32, a3: i32) {
     if object_kind != 2 {
         let x;
         if lw(a1 + 140) != 2 {
-            let angle = (lwc1(a1 + 76) * lwc1(0x3ad5cc)).pdiv(1.8e+02_f32);
+            let angle = ps2float::mul(lwc1(a1 + 76), lwc1(0x3ad5cc)).pdiv(1.8e+02_f32);
             matrixRotY(sp + 48, angle);
             x = lwc1(a1 + 48);
         } else {
             let scale = lwc1(0x3ad5c8);
-            let rx = (lwc1(a1 + 72) * scale).pdiv(1.8e+02_f32);
-            let ry = (lwc1(a1 + 76) * scale).pdiv(1.8e+02_f32);
-            let rz = (lwc1(a1 + 88) * scale).pdiv(1.8e+02_f32);
+            let rx = ps2float::mul(lwc1(a1 + 72), scale).pdiv(1.8e+02_f32);
+            let ry = ps2float::mul(lwc1(a1 + 76), scale).pdiv(1.8e+02_f32);
+            let rz = ps2float::mul(lwc1(a1 + 88), scale).pdiv(1.8e+02_f32);
             matrixRotZXY(sp + 48, rx, ry, rz);
             x = lwc1(a1 + 48);
         }
@@ -432,9 +432,9 @@ pub fn decalNewDecalMain(a0: i32, a1: i32, a2: i32, a3: i32) {
         let z = lwc1(decal + 28);
         let position = decal + 20;
         let normal = decal + 32;
-        swc1(decal + 20, lwc1(decal + 20) - x);
-        swc1(decal + 24, y - lwc1(a1 + 52));
-        swc1(decal + 28, z - lwc1(a1 + 56));
+        swc1(decal + 20, ps2float::sub(lwc1(decal + 20), x));
+        swc1(decal + 24, ps2float::sub(y, lwc1(a1 + 52)));
+        swc1(decal + 28, ps2float::sub(z, lwc1(a1 + 56)));
         sceVu0InversMatrix(sp + 112, sp + 48);
         matrixVecMul(sp + 112, position);
         matrixVecMul(sp + 112, normal);
@@ -448,12 +448,12 @@ pub fn decalNewDecalMain(a0: i32, a1: i32, a2: i32, a3: i32) {
                 sceVu0CopyMatrix(sp + 48, bones + (bone << 6));
                 let z = lwc1(decal + 28);
                 let bz = lwc1(sp + 104);
-                let y = lwc1(decal + 24) - lwc1(sp + 100);
-                swc1(decal + 20, lwc1(decal + 20) - lwc1(sp + 96));
+                let y = ps2float::sub(lwc1(decal + 24), lwc1(sp + 100));
+                swc1(decal + 20, ps2float::sub(lwc1(decal + 20), lwc1(sp + 96)));
                 sw(sp + 96, 0);
                 swc1(decal + 24, y);
                 sw(sp + 100, 0);
-                swc1(decal + 28, z - bz);
+                swc1(decal + 28, ps2float::sub(z, bz));
                 sw(sp + 104, 0);
                 sceVu0InversMatrix(sp + 112, sp + 48);
                 matrixVecMul(sp + 112, position);
@@ -463,25 +463,25 @@ pub fn decalNewDecalMain(a0: i32, a1: i32, a2: i32, a3: i32) {
         }
         let ny = lwc1(decal + 36);
         let nz = lwc1(decal + 40);
-        let length = (nx * nx + ny * ny + nz * nz).abs().psqrt();
+        let length = ps2float::add(ps2float::add(ps2float::mul(nx, nx), ps2float::mul(ny, ny)), ps2float::mul(nz, nz)).abs().psqrt();
         let inverse = (1.0_f32).pdiv(length);
-        swc1(decal + 40, nz * inverse);
-        swc1(decal + 32, nx * inverse);
-        swc1(decal + 36, ny * inverse);
+        swc1(decal + 40, ps2float::mul(nz, inverse));
+        swc1(decal + 32, ps2float::mul(nx, inverse));
+        swc1(decal + 36, ps2float::mul(ny, inverse));
     }
     let nz = lwc1(a3 + 8);
     let nx = lwc1(a3);
     let out = lwc1(0x3ad5d0);
     let ny = lwc1(a3 + 4);
     let back = lwc1(0x3ad5d4);
-    let from_x = lwc1(a2) + nx * out;
-    let from_y = lwc1(a2 + 4) + ny * out;
-    swc1(sp + 24, lwc1(a2 + 8) + nz * out);
+    let from_x = ps2float::add(lwc1(a2), ps2float::mul(nx, out));
+    let from_y = ps2float::add(lwc1(a2 + 4), ps2float::mul(ny, out));
+    swc1(sp + 24, ps2float::add(lwc1(a2 + 8), ps2float::mul(nz, out)));
     swc1(sp + 16, from_x);
-    swc1(sp + 40, nz * back);
+    swc1(sp + 40, ps2float::mul(nz, back));
     swc1(sp + 20, from_y);
-    swc1(sp + 32, nx * back);
-    swc1(sp + 36, ny * back);
+    swc1(sp + 32, ps2float::mul(nx, back));
+    swc1(sp + 36, ps2float::mul(ny, back));
     sw(sp, 0);
     sw(sp + 8, 0);
     let result = bgLineTest(lw(a1 + 12), sp + 16, sp + 32, 0, 0, 0, 0, 8);

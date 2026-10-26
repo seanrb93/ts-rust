@@ -36,7 +36,7 @@ pub fn padSetRoomNums() {
             if (lw(record + 4) & 1) != 0 {
                 let room = moveFindRoom(record + 12, 1.25_f32, 0.0_f32);
                 pads = lw(g::levelpads);
-                let height = lwc1(g::lastfloorheight) + lwc1(0x3acba4);
+                let height = ps2float::add(lwc1(g::lastfloorheight), lwc1(0x3acba4));
                 pads_count = lw(g::numpads);
                 let target = offset + pads;
                 sh(target + 10, room);
@@ -74,10 +74,10 @@ pub fn propCalcRooms(prop: i32) {
     let search_box;
     if kind != 256 && kind != 4 {
         let x_offset = lwc1(prop + 508);
-        let y = lwc1(prop + 52) + lwc1(prop + 512);
+        let y = ps2float::add(lwc1(prop + 52), lwc1(prop + 512));
         let radius = lwc1(0x3acbec);
-        let z = lwc1(prop + 56) + lwc1(prop + 516);
-        swc1(sp + 32, lwc1(prop + 48) + x_offset);
+        let z = ps2float::add(lwc1(prop + 56), lwc1(prop + 516));
+        swc1(sp + 32, ps2float::add(lwc1(prop + 48), x_offset));
         swc1(sp + 36, y);
         swc1(sp + 40, z);
         let room = moveFindRoom(sp + 32, radius, radius);
@@ -88,17 +88,17 @@ pub fn propCalcRooms(prop: i32) {
         search_box = true;
     }
     if search_box {
-        let x = lwc1(prop + 48) + lwc1(prop + 508);
-        let y = lwc1(prop + 52) + lwc1(prop + 512);
+        let x = ps2float::add(lwc1(prop + 48), lwc1(prop + 508));
+        let y = ps2float::add(lwc1(prop + 52), lwc1(prop + 512));
         let half_x = lwc1(prop + 528);
-        let z = lwc1(prop + 56) + lwc1(prop + 516);
+        let z = ps2float::add(lwc1(prop + 56), lwc1(prop + 516));
         let half_y = lwc1(prop + 524);
-        swc1(sp + 12, x + half_x);
-        swc1(sp + 16, y + half_y);
-        swc1(sp + 20, z + half_x);
-        swc1(sp, x - half_x);
-        swc1(sp + 4, y - half_y);
-        swc1(sp + 8, z - half_x);
+        swc1(sp + 12, ps2float::add(x, half_x));
+        swc1(sp + 16, ps2float::add(y, half_y));
+        swc1(sp + 20, ps2float::add(z, half_x));
+        swc1(sp, ps2float::sub(x, half_x));
+        swc1(sp + 4, ps2float::sub(y, half_y));
+        swc1(sp + 8, ps2float::sub(z, half_x));
         let count = bgRoomBBIntersection(sp, prop + 144, 10);
         sw(prop + 184, count);
     }

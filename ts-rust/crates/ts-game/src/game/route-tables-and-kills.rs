@@ -44,13 +44,13 @@ pub fn calcfloorheight(a: i32, b: i32, c: i32, x: f32, z: f32) -> f32 {
     let mut bc = [0.0_f32; 3];
     for i in 0..3 {
         let (pa, pb, pc) = (lwc1(a + 4 * i), lwc1(b + 4 * i), lwc1(c + 4 * i));
-        ab[i as usize] = pb - pa;
-        bc[i as usize] = pc - pb;
+        ab[i as usize] = ps2float::sub(pb, pa);
+        bc[i as usize] = ps2float::sub(pc, pb);
     }
-    let nx = ab[1] * bc[2] - bc[1] * ab[2];
-    let ny = ab[2] * bc[0] - bc[2] * ab[0];
-    let nz = ab[0] * bc[1] - bc[0] * ab[1];
-    ((nx * ax + ny * ay + nz * az - nx * x - nz * z)).pdiv(ny)
+    let nx = ps2float::sub(ps2float::mul(ab[1], bc[2]), ps2float::mul(bc[1], ab[2]));
+    let ny = ps2float::sub(ps2float::mul(ab[2], bc[0]), ps2float::mul(bc[2], ab[0]));
+    let nz = ps2float::sub(ps2float::mul(ab[0], bc[1]), ps2float::mul(bc[0], ab[1]));
+    (ps2float::sub(ps2float::sub(ps2float::add(ps2float::add(ps2float::mul(nx, ax), ps2float::mul(ny, ay)), ps2float::mul(nz, az)), ps2float::mul(nx, x)), ps2float::mul(nz, z))).pdiv(ny)
 }
 
 /// Whether the score of the challenge just played is a new best, by the way its condition (kind at +12: 0-1 lower is better, 2 equal, 3-4 higher is better) compares (@ 0x21f088).

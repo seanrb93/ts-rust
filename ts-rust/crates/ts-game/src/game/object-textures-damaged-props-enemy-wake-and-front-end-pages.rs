@@ -486,13 +486,13 @@ pub fn specialfxOccasionalRocketSmokeTick(a0: i32) {
                 trap("break");
             }
             let time_at = a0 * 92 + (groups + 52);
-            if (((roll as i32 as u32) % ((2040_i32).wrapping_div(ticks) as u32)) as i32) == (lwc1(time_at) * factor) as i32 {
+            if (((roll as i32 as u32) % ((2040_i32).wrapping_div(ticks) as u32)) as i32) == ps2float::mul(lwc1(time_at), factor) as i32 {
                 let stream = particleNewStream(stream_at, 8, a0 * 92 + (groups + 12), 0, 0, 0.0_f32);
                 sw(stream_at, stream);
                 let roll = random_as_float();
                 let groups = g::fxgroups;
                 let ticks = lw(g::updateframesi);
-                swc1(time_at, roll * 2.3283064e-10_f32);
+                swc1(time_at, ps2float::mul(roll, 2.3283064e-10_f32));
                 sw(groups + a0 * 92 + 48, 0);
                 if ticks > 0 {
                     let range = 4e+01_f32;
@@ -515,12 +515,12 @@ pub fn specialfxOccasionalRocketSmokeTick(a0: i32) {
         particleUpdateRate(stream, 0.0_f32);
         return;
     }
-    let half = fptodp(time * 0.5_f32);
+    let half = fptodp(ps2float::mul(time, 0.5_f32));
     let scaled = dpmul(half, ld(0x3a9738));
     let angle = dpmul(scaled, ld(0x3a9740));
     let rounded = dpadd(angle, 0x3fe0000000000000_i64);
     let index = dptoli(rounded);
-    particleUpdateRate(lw(stream_at), (lwc1(((index & 2047) << 2) + g::g_SinTable) * 25.0_f32 + 1.0_f32) as i32 as f32);
+    particleUpdateRate(lw(stream_at), ps2float::add(ps2float::mul(lwc1(((index & 2047) << 2) + g::g_SinTable), 25.0_f32), 1.0_f32) as i32 as f32);
 }
 
 /// Draw the story page: the background, the story level's name with arrows (flashing colour), and the best times of the three skill levels of the story level for the

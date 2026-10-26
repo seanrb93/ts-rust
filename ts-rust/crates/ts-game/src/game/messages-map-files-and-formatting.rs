@@ -98,7 +98,7 @@ pub fn trigMake() {
     loop {
         let angle = i as f32;
         i += 1;
-        let radians = angle * 0.00048828125_f32 * turn;
+        let radians = ps2float::mul(ps2float::mul(angle, 0.00048828125_f32), turn);
         swc1(at, sinf(radians));
         at += 4;
         if i >= 2048 {

@@ -13,7 +13,7 @@ pub fn gongDamage(a0: i32, _a1: i32, _a2: i32, _a3: i32, _a4: i32, a5: i32, f12:
     memset(sp + 16, 0, 12);
     let record = lw(a0 + 352);
     let multiplier = getSwingDirectionMultiplier(a5, sp, sp + 16);
-    swc1(record + 20, lwc1(record + 20) + multiplier * f12 * 9.0_f32);
+    swc1(record + 20, ps2float::add(lwc1(record + 20), ps2float::mul(ps2float::mul(multiplier, f12), 9.0_f32)));
     soundStart(14, a0 + 48);
 }
 
@@ -28,7 +28,7 @@ pub fn pubsignDamage(a0: i32, _a1: i32, _a2: i32, _a3: i32, _a4: i32, a5: i32, f
     memset(sp + 16, 0, 12);
     let record = lw(a0 + 352);
     let multiplier = getSwingDirectionMultiplier(a5, sp, sp + 16);
-    swc1(record + 20, lwc1(record + 20) + multiplier * f12 * 24.0_f32);
+    swc1(record + 20, ps2float::add(lwc1(record + 20), ps2float::mul(ps2float::mul(multiplier, f12), 24.0_f32)));
     soundStart(34, a0 + 48);
 }
 

@@ -10,7 +10,7 @@ pub fn specialfxRingSpawnTick(group: i32) {
     let groups = g::fxgroups;
     let slot = group * 92 + (groups + 56);
     let prop = lw(slot);
-    let step = lwc1(g::updateframesf) * lwc1(0x3ad708);
+    let step = ps2float::mul(lwc1(g::updateframesf), lwc1(0x3ad708));
     if prop != 0 {
         let limit = 1.5_f32;
         let time_at = group * 92 + (groups + 48);
@@ -27,7 +27,7 @@ pub fn specialfxRingSpawnTick(group: i32) {
     let groups = g::fxgroups;
     let first = group * 92 + (groups + 72);
     if lw(first) != 0 {
-        matrixRotY(sp, (step * 3e+02_f32 * lwc1(0x3ad70c)).pdiv(1.8e+02_f32) * lw(groups + group * 92 + 4) as f32);
+        matrixRotY(sp, ps2float::mul(ps2float::mul(ps2float::mul(step, 3e+02_f32), lwc1(0x3ad70c)).pdiv(1.8e+02_f32), lw(groups + group * 92 + 4) as f32));
         matrixScaleSet(sp + 64, 1.0_f32, 1.0_f32, 1.0_f32);
         let matrix = lw(first) + 928;
         sceVu0MulMatrix(matrix, matrix, sp + 64);
@@ -36,7 +36,7 @@ pub fn specialfxRingSpawnTick(group: i32) {
     }
     let second = group * 92 + (groups + 76);
     if lw(second) != 0 {
-        matrixRotY(sp, (step * -3e+02_f32 * lwc1(0x3ad710)).pdiv(1.8e+02_f32) * lw(groups + group * 92 + 4) as f32);
+        matrixRotY(sp, ps2float::mul(ps2float::mul(ps2float::mul(step, -3e+02_f32), lwc1(0x3ad710)).pdiv(1.8e+02_f32), lw(groups + group * 92 + 4) as f32));
         matrixScaleSet(sp + 64, 1.0_f32, 1.0_f32, 1.0_f32);
         let matrix = lw(second) + 928;
         sceVu0MulMatrix(matrix, matrix, sp + 64);
@@ -54,7 +54,7 @@ pub fn specialfxSphereSpawnTick(group: i32) {
     let frame = Frame::new(144);
     let sp = frame.sp();
     let groups = g::fxgroups;
-    let step = lwc1(g::updateframesf) * lwc1(0x3ad714);
+    let step = ps2float::mul(lwc1(g::updateframesf), lwc1(0x3ad714));
     let times = groups + 48;
     let slots = groups + 56;
     let mut offset = 0;
@@ -90,8 +90,8 @@ pub fn specialfxSphereSpawnTick(group: i32) {
     let groups = g::fxgroups;
     let particles = group * 92 + (groups + 72);
     if lw(particles) != 0 {
-        matrixRotY(sp, (step * 3e+02_f32 * lwc1(0x3ad71c)).pdiv(1.8e+02_f32) * lw(groups + group * 92 + 4) as f32);
-        let grow = step * lwc1(0x3ad720) + 1.0_f32;
+        matrixRotY(sp, ps2float::mul(ps2float::mul(ps2float::mul(step, 3e+02_f32), lwc1(0x3ad71c)).pdiv(1.8e+02_f32), lw(groups + group * 92 + 4) as f32));
+        let grow = ps2float::add(ps2float::mul(step, lwc1(0x3ad720)), 1.0_f32);
         let tall = dptofp(dpadd(dpmul(fptodp(step), ld(0x3a97a0)), 0x3ff0000000000000_i64));
         matrixScaleSet(sp + 64, grow, tall, grow);
         let matrix = lw(particles) + 928;

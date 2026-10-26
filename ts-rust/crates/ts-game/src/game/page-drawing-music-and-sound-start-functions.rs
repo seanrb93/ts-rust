@@ -61,7 +61,7 @@ pub fn musicClose() {
 /// The wind at a position: the weather time shifted for the position, the wind written to `a2` (@ 0x2a8450).
 pub fn weatherGetWindAtPosition(a0: i32, _a1: i32, a2: i32) {
     let shift = weatherCalcPositionalTime(a0);
-    weatherCalcWindAtTime(a2, lwc1(g::weather + 60) + shift);
+    weatherCalcWindAtTime(a2, ps2float::add(lwc1(g::weather + 60), shift));
 }
 
 /// Draw the map name page: its background and the string editor (@ 0x24d1f0).
@@ -182,8 +182,8 @@ pub fn weatherCalcWindStrengthInDir(a0: i32, _a1: i32, a2: i32) -> f32 {
     let frame = Frame::new(48);
     let sp = frame.sp();
     let shift = weatherCalcPositionalTime(a0);
-    weatherCalcWindAtTime(sp, lwc1(g::weather + 60) + shift);
-    lwc1(sp) * lwc1(a2) + lwc1(sp + 4) * lwc1(a2 + 4) + lwc1(sp + 8) * lwc1(a2 + 8)
+    weatherCalcWindAtTime(sp, ps2float::add(lwc1(g::weather + 60), shift));
+    ps2float::add(ps2float::add(ps2float::mul(lwc1(sp), lwc1(a2)), ps2float::mul(lwc1(sp + 4), lwc1(a2 + 4))), ps2float::mul(lwc1(sp + 8), lwc1(a2 + 8)))
 }
 
 /// Leave the map maker: the map is backed up and the game is reset to the menu (102) (@ 0x24ee10).

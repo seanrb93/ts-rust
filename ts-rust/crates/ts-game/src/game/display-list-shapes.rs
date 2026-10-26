@@ -123,12 +123,12 @@ pub fn dlFillRectangleFloat(colour: i32, x0: f32, y0: f32, x1: f32, y1: f32) {
             colour >> 16 & 255,
             colour >> 8 & 255,
             colour & 255,
-            (x0 * scale) as i32 + 0x6c00,
-            (y0 * scale) as i32 + 0x7900,
+            ps2float::mul(x0, scale) as i32 + 0x6c00,
+            ps2float::mul(y0, scale) as i32 + 0x7900,
             -1,
             0,
-            (x1 * scale) as i32 + 0x6c00,
-            (y1 * scale) as i32 + 0x7900,
+            ps2float::mul(x1, scale) as i32 + 0x6c00,
+            ps2float::mul(y1, scale) as i32 + 0x7900,
             -1,
             0,
             0x140007fc,
@@ -166,8 +166,8 @@ pub fn ipInvertScreen() {
 /// Draw the bar of an amount (the fraction `amount` of the width `width` filled) at (`x`, `y`), `height` high: filled in a colour that goes from green to red and flashes when low,
 /// the rest in a dark one (@ 0x2b1328).
 pub fn hudAmountBarGfx(x: i32, y: i32, width: i32, height: i32, amount: f32) {
-    let level = (amount * 128.0_f32) as i32;
-    let filled_to = x + (amount * width as f32) as i32;
+    let level = ps2float::mul(amount, 128.0_f32) as i32;
+    let filled_to = x + ps2float::mul(amount, width as f32) as i32;
     let colour = if level < 41 && (lw(g::tickframenum) & 16) == 0 {
         0x64646460
     } else {
@@ -204,10 +204,10 @@ pub fn mmDrawRect(x0: i32, y0: i32, x1: i32, y1: i32, colour: i32) {
     let scale_y = lw(g::scale_mtowy);
     let (dy1, dy0, dx0) = (y1 - view_y, y0 - view_y, x0 - view_x);
     let unit = 1.5258789e-05_f32;
-    let fx0 = window_x + FMul(dx0, scale_x) as i32 as f32 * unit;
-    let fy1 = window_y + FMul(dy1, scale_y) as i32 as f32 * unit;
-    let fx1 = window_x + FMul(dx1, scale_x) as i32 as f32 * unit;
-    let fy0 = window_y + FMul(dy0, scale_y) as i32 as f32 * unit;
+    let fx0 = ps2float::add(window_x, ps2float::mul(FMul(dx0, scale_x) as i32 as f32, unit));
+    let fy1 = ps2float::add(window_y, ps2float::mul(FMul(dy1, scale_y) as i32 as f32, unit));
+    let fx1 = ps2float::add(window_x, ps2float::mul(FMul(dx1, scale_x) as i32 as f32, unit));
+    let fy0 = ps2float::add(window_y, ps2float::mul(FMul(dy0, scale_y) as i32 as f32, unit));
     dlFillRectangleFloat(colour, fx0, fy0, fx1, fy1);
 }
 
@@ -227,11 +227,11 @@ pub fn draw_slider(x: i32, y: i32, value: i32, range: i32, hide_rest: i32) {
     let scale_x = lwc1(0x3ac984);
     let window = g::window;
     let width = lw(window + 12) as f32;
-    let bottom = y + (lw(window + 32) as f32 * lwc1(0x3ac988)) as i32;
-    let right = x + (width * scale_x) as i32;
+    let bottom = y + ps2float::mul(lw(window + 32) as f32, lwc1(0x3ac988)) as i32;
+    let right = x + ps2float::mul(width, scale_x) as i32;
     let inner_bottom = bottom - 1;
     let inner_right = right - 1;
-    let split = x + ((value as f32 * scale_x).pdiv(range as f32) * width) as i32;
+    let split = x + ps2float::mul(ps2float::mul(value as f32, scale_x).pdiv(range as f32), width) as i32;
     dlFillRectangle(x - 2, y - 1, right + 1, bottom, 64);
     dlFillRectangle(x, y, split - 1, inner_bottom, 0x287f147f);
     dlFillRectangle(split, y, inner_right, inner_bottom, 0x2840147f);
@@ -248,10 +248,10 @@ pub fn hudMeterGfx(x: i32, y: i32, width: i32, height: i32, colour: i32, strengt
     let bottom = y + height;
     let half = 0.5_f32;
     let right = x + width;
-    let first = x + (w * fraction_a) as i32;
-    let second = x + (w * fraction_b) as i32;
+    let first = x + ps2float::mul(w, fraction_a) as i32;
+    let second = x + ps2float::mul(w, fraction_b) as i32;
     let byte = (strength << 24) >> 24;
-    dlFillRectangleFloat(79, (x - 1) as f32, y as f32 - half, right as f32, bottom as f32 - half);
+    dlFillRectangleFloat(79, (x - 1) as f32, ps2float::sub(y as f32, half), right as f32, ps2float::sub(bottom as f32, half));
     let inner_bottom = bottom - 1;
     dlFillRectangle(x, y, first, inner_bottom, colour);
     let mut from = first;
@@ -286,18 +286,18 @@ pub fn dlTextureRectangleFloat(u0: i32, v0: i32, u1: i32, v1: i32, colour: i32, 
         sw(packet + 4 + 4 * i as i32, *w);
     }
     sh(tag, 5);
-    sw(packet + 32, (x0 * scale) as i32 + 0x6c00);
+    sw(packet + 32, ps2float::mul(x0, scale) as i32 + 0x6c00);
     sw(g::gfxtag, tag + 16);
     let rest = [
-        (y0 * scale) as i32 + 0x7900,
+        ps2float::mul(y0, scale) as i32 + 0x7900,
         -1,
         0,
         u1 + 8,
         v1 + 8,
         0,
         0,
-        (x1 * scale) as i32 + 0x6c00,
-        (y1 * scale) as i32 + 0x7900,
+        ps2float::mul(x1, scale) as i32 + 0x6c00,
+        ps2float::mul(y1, scale) as i32 + 0x7900,
         -1,
         0,
     ];
@@ -349,8 +349,8 @@ pub fn dlDrawTriangleStrip(points: i32, count: i32, textured: i32) {
         sw(cursor + 4, ((colour as u32) >> 16) as i32 & 255);
         sw(cursor + 8, ((colour as u32) >> 8) as i32 & 255);
         sw(cursor + 12, colour & 255);
-        sw(cursor + 16, (x * scale) as i32 + 0x6c00);
-        sw(cursor + 20, (y * scale) as i32 + 0x7900);
+        sw(cursor + 16, ps2float::mul(x, scale) as i32 + 0x6c00);
+        sw(cursor + 20, ps2float::mul(y, scale) as i32 + 0x7900);
         sw(cursor + 24, -1);
         sw(cursor + 28, 0);
         cursor += 32;

@@ -15,8 +15,8 @@ pub fn windowGfx() {
         (0 - height_offset) as f32,
         lwc1(0x3ac81c),
         1.0,
-        x + 1728.0 + left,
-        y + 1936.0 + height_offset as f32,
+        ps2float::add(ps2float::add(x, 1728.0), left),
+        ps2float::add(ps2float::add(y, 1936.0), height_offset as f32),
         32768.0,
         0.0,
     ];

@@ -47,7 +47,7 @@ pub fn bgGlassLineTestRoom(room: i32, start: i32, direction: i32, count: i32) {
             loop {
                 let pane = lw(at);
                 if 0.0_f32 <= lwc1(pane) {
-                    let limit2 = dx * dx + dy * dy + dz * dz;
+                    let limit2 = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                     let hit = bgHittestDistGlass(start, direction, pane + 16, pane + 56, pane + 96, pane + 136, sp, sp + 16, limit2);
                     if hit == 0 {
                         // no hit: the glass flag is not looked at

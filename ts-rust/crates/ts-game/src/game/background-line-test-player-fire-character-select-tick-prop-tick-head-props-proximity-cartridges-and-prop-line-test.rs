@@ -28,7 +28,7 @@ pub fn bgLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
         let x = lwc1(a2);
         let y = lwc1(a2 + 4);
         let z = lwc1(a2 + 8);
-        limit = x * x + y * y + z * z;
+        limit = ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z));
     }
     let mut best = limit;
     if room != 0 {
@@ -38,14 +38,14 @@ pub fn bgLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
             let hx = lwc1(sp + 32);
             if hit != 0 {
                 let hy = lwc1(sp + 36);
-                let dx = hx - lwc1(a1);
+                let dx = ps2float::sub(hx, lwc1(a1));
                 let start_z = lwc1(a1 + 8);
-                let dy = hy - lwc1(a1 + 4);
+                let dy = ps2float::sub(hy, lwc1(a1 + 4));
                 let hz = lwc1(sp + 40);
                 swc1(sp + 64, dx);
-                let dz = hz - start_z;
+                let dz = ps2float::sub(hz, start_z);
                 swc1(sp + 68, dy);
-                let distance = dx * dx + dy * dy + dz * dz;
+                let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                 swc1(sp + 72, dz);
                 if distance < best {
                     let nx = lwc1(sp + 48);
@@ -103,10 +103,10 @@ pub fn bgLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
             let ny = lwc1(sp + 20);
             let nz = lwc1(sp + 24);
             let normal = lw(sp + 84);
-            let inverse = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
-            swc1(normal + 8, nz * inverse);
-            swc1(normal, nx * inverse);
-            swc1(normal + 4, ny * inverse);
+            let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(nx, nx), ps2float::mul(ny, ny)), ps2float::mul(nz, nz)).abs().psqrt());
+            swc1(normal + 8, ps2float::mul(nz, inverse));
+            swc1(normal, ps2float::mul(nx, inverse));
+            swc1(normal + 4, ps2float::mul(ny, inverse));
         }
         result = lw(sp + 96);
     }
@@ -166,7 +166,7 @@ pub fn gunPlayerFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) {
                     if kind != 8 {
                         if kind != 11 {
                             if kind != 13 {
-                                swc1(a1 + 80, lwc1(stats + 72) * lwc1(0x3ad2d4));
+                                swc1(a1 + 80, ps2float::mul(lwc1(stats + 72), lwc1(0x3ad2d4)));
                             }
                         }
                     }
@@ -286,7 +286,7 @@ pub fn fxSelectCharTick(a0: i32) {
                             let position_at = at + 0x1fc1248;
                             let wanted = lw(at + 0x1fc1298);
                             let current = lw(at + 0x1fc1288);
-                            let position = lwc1(position_at) + lwc1(at + 0x1fc1278) * lwc1(g::updateframesf) * lwc1(0x3ac9d4);
+                            let position = ps2float::add(lwc1(position_at), ps2float::mul(ps2float::mul(lwc1(at + 0x1fc1278), lwc1(g::updateframesf)), lwc1(0x3ac9d4)));
                             swc1(position_at, position);
                             if wanted == current {
                                 let flag_at = at + 0x1fc12d8;
@@ -348,7 +348,7 @@ pub fn fxSelectCharTick(a0: i32) {
                             let position_at = at + 0x1fc1248;
                             let wanted = lw(at + 0x1fc1298);
                             let current = lw(at + 0x1fc1288);
-                            let position = lwc1(position_at) - lwc1(at + 0x1fc1278) * lwc1(g::updateframesf) * lwc1(0x3ac9d0);
+                            let position = ps2float::sub(lwc1(position_at), ps2float::mul(ps2float::mul(lwc1(at + 0x1fc1278), lwc1(g::updateframesf)), lwc1(0x3ac9d0)));
                             swc1(position_at, position);
                             if wanted == current {
                                 let flag_at = at + 0x1fc12d8;
@@ -417,14 +417,14 @@ pub fn fxSelectCharTick(a0: i32) {
         let value = dptofp(dpmul(product, scale));
         swc1(at + 0x1fc1258, value);
     } else {
-        swc1(at + 0x1fc1258, lwc1(at + 0x1fc1248) * lwc1(0x3ac9d8));
+        swc1(at + 0x1fc1258, ps2float::mul(lwc1(at + 0x1fc1248), lwc1(0x3ac9d8)));
     }
     let at = lw(front) << 2;
     let flash = at + 0x1fc12b8;
     let step = lwc1(g::updateframesf);
     if lw(flash) != 0 {
         let progress_at = at + 0x1fc12c8;
-        let progress = lwc1(progress_at) + step * lwc1(0x3ac9dc) * lwc1(0x3ac9e0);
+        let progress = ps2float::add(lwc1(progress_at), ps2float::mul(ps2float::mul(step, lwc1(0x3ac9dc)), lwc1(0x3ac9e0)));
         swc1(progress_at, progress);
         if 1.0_f32 <= progress {
             sw(flash, 0);
@@ -436,11 +436,11 @@ pub fn fxSelectCharTick(a0: i32) {
     let turn;
     let target = player * 12 + g::phi;
     if lw(0x3aff20) < 2 {
-        turn = lwc1((player << 2) + 0x1fc1248) * 6e+01_f32;
+        turn = ps2float::mul(lwc1((player << 2) + 0x1fc1248), 6e+01_f32);
     } else {
-        turn = lwc1((player << 2) + 0x1fc1248) * degrees;
+        turn = ps2float::mul(lwc1((player << 2) + 0x1fc1248), degrees);
     }
-    swc1(target, degrees - turn);
+    swc1(target, ps2float::sub(degrees, turn));
 }
 
 /// Tick of the props before they are moved (@ 0x26f500). First every used prop gets the buffers for its animation (the matrices and the override pointers; the props that
@@ -605,7 +605,7 @@ pub fn propTickBefore() {
                     }
                 }
             }
-            let angle = (heading * lwc1(0x3acccc)).pdiv(1.8e+02_f32);
+            let angle = ps2float::mul(heading, lwc1(0x3acccc)).pdiv(1.8e+02_f32);
             i += 1;
             matrixRotY(sp, angle);
             let table = 0x1fd0df0;
@@ -634,11 +634,11 @@ pub fn headPropTick(a0: i32) {
     let frame = Frame::new(272);
     let sp = frame.sp();
     let state = lw(a0 + 352);
-    let timer = lwc1(state + 68) - (lwc1(g::updateframesf)).pdiv(6e+01_f32);
+    let timer = ps2float::sub(lwc1(state + 68), (lwc1(g::updateframesf)).pdiv(6e+01_f32));
     sw(a0 + 16, lw(a0 + 16) | 0x40000000);
     swc1(state + 68, timer);
     if timer < 1.0_f32 {
-        let alpha = (timer * 127.0_f32) as i32;
+        let alpha = ps2float::mul(timer, 127.0_f32) as i32;
         let alpha_byte = alpha & 255;
         if alpha >= 0 {
             obInstSetOverrideStates(lw(a0 + 32), 3, -1, -1, alpha_byte);
@@ -678,9 +678,9 @@ pub fn headPropTick(a0: i32) {
                 let step = lwc1(g::updateframesf);
                 swc1(a0 + 60, lwc1(state + 100));
                 if step == 0.0_f32 {
-                    swc1(a0 + 64, lwc1(state + 104) + 0.5_f32);
+                    swc1(a0 + 64, ps2float::add(lwc1(state + 104), 0.5_f32));
                 } else {
-                    swc1(a0 + 64, lwc1(state + 104) + (0.5_f32).pdiv(step));
+                    swc1(a0 + 64, ps2float::add(lwc1(state + 104), (0.5_f32).pdiv(step)));
                 }
                 let vx = lwc1(a0 + 60);
                 let vy = lwc1(a0 + 64);
@@ -690,10 +690,10 @@ pub fn headPropTick(a0: i32) {
                 sw(state + 64, 3);
                 sw(a0 + 140, 2);
                 sw(g::headtick, 0);
-                let scale = ((1.0_f32).pdiv((vx * vx + vy * vy + vz * vz).abs().psqrt()) * 12.0_f32).pdiv(6e+01_f32);
-                swc1(a0 + 68, z * scale);
-                swc1(a0 + 60, vx * scale);
-                swc1(a0 + 64, vy * scale);
+                let scale = ps2float::mul((1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(vx, vx), ps2float::mul(vy, vy)), ps2float::mul(vz, vz)).abs().psqrt()), 12.0_f32).pdiv(6e+01_f32);
+                swc1(a0 + 68, ps2float::mul(z, scale));
+                swc1(a0 + 60, ps2float::mul(vx, scale));
+                swc1(a0 + 64, ps2float::mul(vy, scale));
                 swc1(state + 72, 15.0_f32);
                 sw(state + 80, 0);
                 sw(state + 76, 0);
@@ -706,71 +706,71 @@ pub fn headPropTick(a0: i32) {
                 {
                     let step = lwc1(g::updateframesf);
                     let x = lwc1(a0 + 48);
-                    let dy = lwc1(a0 + 64) * step;
+                    let dy = ps2float::mul(lwc1(a0 + 64), step);
                     let matrix = lw(lw(a0 + 32) + 4);
-                    let dz = lwc1(a0 + 68) * step;
-                    swc1(sp + 80, lwc1(a0 + 60) * step);
+                    let dz = ps2float::mul(lwc1(a0 + 68), step);
+                    swc1(sp + 80, ps2float::mul(lwc1(a0 + 60), step));
                     swc1(sp + 84, dy);
                     swc1(sp + 88, dz);
                     let owner = lw(state + 96);
                     let y = lwc1(a0 + 52);
                     let flags = lw(owner + 16);
                     let z = lwc1(a0 + 56);
-                    swc1(sp + 160, x + lwc1(matrix + 48));
-                    swc1(sp + 164, y + lwc1(matrix + 52));
+                    swc1(sp + 160, ps2float::add(x, lwc1(matrix + 48)));
+                    swc1(sp + 164, ps2float::add(y, lwc1(matrix + 52)));
                     let mz = lwc1(matrix + 56);
                     sw(owner + 16, flags & -33);
                     sw(sp, 0);
                     sw(sp + 8, 0);
-                    swc1(sp + 168, z + mz);
+                    swc1(sp + 168, ps2float::add(z, mz));
                     let hit = bgLineTest(lw(a0 + 12), sp + 160, sp + 80, 0, sp + 96, sp + 112, a0 + 12, 48);
                     sw(lw(state + 96) + 16, flags);
                     if hit == 0 {
                         let step = lwc1(g::updateframesf);
-                        let vy = lwc1(a0 + 64) + step * lwc1(0x3acc20);
-                        let ny = lwc1(a0 + 52) + lwc1(sp + 84);
+                        let vy = ps2float::add(lwc1(a0 + 64), ps2float::mul(step, lwc1(0x3acc20)));
+                        let ny = ps2float::add(lwc1(a0 + 52), lwc1(sp + 84));
                         let damp = lwc1(0x3acc24);
-                        let nz = lwc1(a0 + 56) + lwc1(sp + 88);
+                        let nz = ps2float::add(lwc1(a0 + 56), lwc1(sp + 88));
                         let vz = lwc1(a0 + 68);
-                        let vx = lwc1(a0 + 60) * damp;
-                        swc1(a0 + 48, lwc1(a0 + 48) + lwc1(sp + 80));
+                        let vx = ps2float::mul(lwc1(a0 + 60), damp);
+                        swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), lwc1(sp + 80)));
                         swc1(a0 + 52, ny);
                         swc1(a0 + 56, nz);
                         swc1(a0 + 60, vx);
-                        swc1(a0 + 68, vz * damp);
-                        swc1(a0 + 64, vy * damp);
-                        let spin = lwc1(state + 84) + lwc1(state + 72) * step;
+                        swc1(a0 + 68, ps2float::mul(vz, damp));
+                        swc1(a0 + 64, ps2float::mul(vy, damp));
+                        let spin = ps2float::add(lwc1(state + 84), ps2float::mul(lwc1(state + 72), step));
                         swc1(state + 84, spin);
                         if 3.6e+02_f32 < spin {
-                            swc1(state + 84, spin - 3.6e+02_f32);
+                            swc1(state + 84, ps2float::sub(spin, 3.6e+02_f32));
                         }
                         let spin = lwc1(state + 84);
                         if spin < 0.0_f32 {
-                            swc1(state + 84, spin + 3.6e+02_f32);
+                            swc1(state + 84, ps2float::add(spin, 3.6e+02_f32));
                         }
-                        let spin = lwc1(state + 88) + lwc1(state + 76) * lwc1(g::updateframesf);
+                        let spin = ps2float::add(lwc1(state + 88), ps2float::mul(lwc1(state + 76), lwc1(g::updateframesf)));
                         swc1(state + 88, spin);
                         if 3.6e+02_f32 < spin {
-                            swc1(state + 88, spin - 3.6e+02_f32);
+                            swc1(state + 88, ps2float::sub(spin, 3.6e+02_f32));
                         }
                         let spin = lwc1(state + 88);
                         if spin < 0.0_f32 {
-                            swc1(state + 88, spin + 3.6e+02_f32);
+                            swc1(state + 88, ps2float::add(spin, 3.6e+02_f32));
                         }
-                        let spin = lwc1(state + 92) + lwc1(state + 80) * lwc1(g::updateframesf);
+                        let spin = ps2float::add(lwc1(state + 92), ps2float::mul(lwc1(state + 80), lwc1(g::updateframesf)));
                         swc1(state + 92, spin);
                         if 3.6e+02_f32 < spin {
-                            swc1(state + 92, spin - 3.6e+02_f32);
+                            swc1(state + 92, ps2float::sub(spin, 3.6e+02_f32));
                         }
                         let spin = lwc1(state + 92);
                         if spin < 0.0_f32 {
-                            swc1(state + 92, spin + 3.6e+02_f32);
+                            swc1(state + 92, ps2float::add(spin, 3.6e+02_f32));
                         }
                     } else {
                         let damp = lwc1(0x3acc10);
-                        let sy = lwc1(state + 76) * damp;
-                        let sz = lwc1(state + 80) * damp;
-                        swc1(state + 72, lwc1(state + 72) * damp);
+                        let sy = ps2float::mul(lwc1(state + 76), damp);
+                        let sz = ps2float::mul(lwc1(state + 80), damp);
+                        swc1(state + 72, ps2float::mul(lwc1(state + 72), damp));
                         swc1(state + 76, sy);
                         swc1(state + 80, sz);
                         let vx = lwc1(sp + 80);
@@ -779,20 +779,20 @@ pub fn headPropTick(a0: i32) {
                         let nx = lwc1(sp + 112);
                         let ny = lwc1(sp + 116);
                         let nz = lwc1(sp + 120);
-                        let mut length = (vx * vx).abs().psqrt() + vy * vy + vz * vz;
+                        let mut length = ps2float::add(ps2float::add(ps2float::mul(vx, vx).abs().psqrt(), ps2float::mul(vy, vy)), ps2float::mul(vz, vz));
                         let inverse = (1.0_f32).pdiv(length);
                         let slow = length < lwc1(0x3acc14);
-                        let ux = vx * inverse;
-                        let uy = vy * inverse;
-                        let uz = vz * inverse;
+                        let ux = ps2float::mul(vx, inverse);
+                        let uy = ps2float::mul(vy, inverse);
+                        let uz = ps2float::mul(vz, inverse);
                         swc1(sp + 128, ux);
                         swc1(sp + 132, uy);
                         swc1(sp + 136, uz);
-                        let dot = ux * nx + uy * ny + uz * nz;
-                        let twice = dot + dot;
-                        swc1(sp + 152, uz - twice * nz);
-                        swc1(sp + 144, ux - twice * nx);
-                        swc1(sp + 148, uy - twice * ny);
+                        let dot = ps2float::add(ps2float::add(ps2float::mul(ux, nx), ps2float::mul(uy, ny)), ps2float::mul(uz, nz));
+                        let twice = ps2float::add(dot, dot);
+                        swc1(sp + 152, ps2float::sub(uz, ps2float::mul(twice, nz)));
+                        swc1(sp + 144, ps2float::sub(ux, ps2float::mul(twice, nx)));
+                        swc1(sp + 148, ps2float::sub(uy, ps2float::mul(twice, ny)));
                         if slow {
                             swc1(state + 72, 0.0_f32);
                             length = 0.0_f32;
@@ -803,16 +803,16 @@ pub fn headPropTick(a0: i32) {
                         let rx = lwc1(sp + 144);
                         if step == 0.0_f32 {
                             let factor = lwc1(0x3acc1c);
-                            let ry = lwc1(sp + 148) * length * factor;
-                            let rz = lwc1(sp + 152) * length * factor;
-                            swc1(a0 + 60, rx * length * factor);
+                            let ry = ps2float::mul(ps2float::mul(lwc1(sp + 148), length), factor);
+                            let rz = ps2float::mul(ps2float::mul(lwc1(sp + 152), length), factor);
+                            swc1(a0 + 60, ps2float::mul(ps2float::mul(rx, length), factor));
                             swc1(a0 + 64, ry);
                             swc1(a0 + 68, rz);
                         } else {
                             let factor = lwc1(0x3acc18);
-                            let ry = (lwc1(sp + 148) * length * factor).pdiv(step);
-                            let rz = (lwc1(sp + 152) * length * factor).pdiv(step);
-                            swc1(a0 + 60, (rx * length * factor).pdiv(step));
+                            let ry = ps2float::mul(ps2float::mul(lwc1(sp + 148), length), factor).pdiv(step);
+                            let rz = ps2float::mul(ps2float::mul(lwc1(sp + 152), length), factor).pdiv(step);
+                            swc1(a0 + 60, ps2float::mul(ps2float::mul(rx, length), factor).pdiv(step));
                             swc1(a0 + 64, ry);
                             swc1(a0 + 68, rz);
                         }
@@ -827,9 +827,9 @@ pub fn headPropTick(a0: i32) {
                 let keep_z = lwc1(matrix + 56);
                 swc1(lw(lw(a0 + 32) + 4) + 52, -lwc1(a0 + 512));
                 swc1(lw(lw(a0 + 32) + 4) + 56, -lwc1(a0 + 516));
-                let rz = (lwc1(state + 92) * radians).pdiv(1.8e+02_f32);
-                let rx = (lwc1(state + 84) * radians).pdiv(1.8e+02_f32);
-                let ry = (lwc1(state + 88) * radians).pdiv(1.8e+02_f32);
+                let rz = ps2float::mul(lwc1(state + 92), radians).pdiv(1.8e+02_f32);
+                let rx = ps2float::mul(lwc1(state + 84), radians).pdiv(1.8e+02_f32);
+                let ry = ps2float::mul(lwc1(state + 88), radians).pdiv(1.8e+02_f32);
                 matrixRotZXY(sp + 16, rx, ry, rz);
                 let matrix = lw(lw(a0 + 32) + 4);
                 sceVu0MulMatrix(matrix, matrix, sp + 16);
@@ -854,10 +854,10 @@ pub fn updateProximityProps(a0: i32, a1: i32) {
     let owner = lw(a0 + 96);
     let model = lw(lw(owner + 32));
     let z = lwc1(owner + 56);
-    let rx = (lwc1(owner + 72) * scale).pdiv(1.8e+02_f32);
-    let ry = (lwc1(owner + 76) * scale).pdiv(1.8e+02_f32);
+    let rx = ps2float::mul(lwc1(owner + 72), scale).pdiv(1.8e+02_f32);
+    let ry = ps2float::mul(lwc1(owner + 76), scale).pdiv(1.8e+02_f32);
     let x = lwc1(owner + 48);
-    let rz = (lwc1(owner + 88) * scale).pdiv(1.8e+02_f32);
+    let rz = ps2float::mul(lwc1(owner + 88), scale).pdiv(1.8e+02_f32);
     let y = lwc1(owner + 52);
     let bones = model - lw(model) * 80;
     matrixTransRotZXY(sp + 16, x, y, z, rx, ry, rz);
@@ -868,16 +868,16 @@ pub fn updateProximityProps(a0: i32, a1: i32) {
         let vx = lwc1(part + 60);
         let vz = lwc1(part + 68);
         let px = lwc1(part + 48);
-        let spin = lwc1(part + 88) - step * 12.0_f32;
+        let spin = ps2float::sub(lwc1(part + 88), ps2float::mul(step, 12.0_f32));
         let pz = lwc1(part + 56);
-        let new_vy = vy - step * lwc1(0x3ad1c0);
-        let new_y = lwc1(part + 52) + vy * step;
-        swc1(part + 72, lwc1(part + 72) + step * 16.0_f32);
+        let new_vy = ps2float::sub(vy, ps2float::mul(step, lwc1(0x3ad1c0)));
+        let new_y = ps2float::add(lwc1(part + 52), ps2float::mul(vy, step));
+        swc1(part + 72, ps2float::add(lwc1(part + 72), ps2float::mul(step, 16.0_f32)));
         swc1(part + 88, spin);
         swc1(part + 64, new_vy);
         swc1(part + 52, new_y);
-        swc1(part + 48, px + vx * step);
-        swc1(part + 56, pz + vz * step);
+        swc1(part + 48, ps2float::add(px, ps2float::mul(vx, step)));
+        swc1(part + 56, ps2float::add(pz, ps2float::mul(vz, step)));
         let flags;
         if !(lwc1(0x3ad1c4) < lwc1(a0 + 132)) {
             flags = lw(part + 16);
@@ -887,9 +887,9 @@ pub fn updateProximityProps(a0: i32, a1: i32) {
                 flags = lw(part + 16);
             } else {
                 swc1(part + 52, floor);
-                swc1(part + 68, vz * 0.5_f32);
-                swc1(part + 64, new_vy * -0.5_f32);
-                swc1(part + 60, vx * 0.5_f32);
+                swc1(part + 68, ps2float::mul(vz, 0.5_f32));
+                swc1(part + 64, ps2float::mul(new_vy, -0.5_f32));
+                swc1(part + 60, ps2float::mul(vx, 0.5_f32));
                 flags = lw(part + 16);
             }
         }
@@ -914,13 +914,13 @@ pub fn updateProximityProps(a0: i32, a1: i32) {
             if lw(a0 + 120) >= 4 {
                 let part = lw(a0 + 144);
                 let step = lwc1(g::updateframesf);
-                swc1(sp + 112, lwc1(part + 60) * step);
-                swc1(sp + 116, lwc1(part + 64) * step);
+                swc1(sp + 112, ps2float::mul(lwc1(part + 60), step));
+                swc1(sp + 116, ps2float::mul(lwc1(part + 64), step));
                 let vz = lwc1(part + 68);
                 sw(sp + 8, sp + 144);
                 sw(sp, 0);
                 let room = lw(part + 12);
-                swc1(sp + 120, vz * step);
+                swc1(sp + 120, ps2float::mul(vz, step));
                 let hit = bgLineTest(room, part + 48, sp + 112, 0, sp + 80, sp + 96, part + 12, 48);
                 if lw(sp + 144) != 0 {
                     let source = 0x3a8a60;
@@ -939,12 +939,12 @@ pub fn updateProximityProps(a0: i32, a1: i32) {
                         let y = lwc1(part + 52);
                         let gravity = lwc1(0x3ad1cc);
                         let z = lwc1(part + 56);
-                        swc1(part + 48, lwc1(part + 48) + lwc1(sp + 112));
-                        let vy = lwc1(part + 64) - step * gravity;
-                        swc1(part + 52, y + lwc1(sp + 116));
+                        swc1(part + 48, ps2float::add(lwc1(part + 48), lwc1(sp + 112)));
+                        let vy = ps2float::sub(lwc1(part + 64), ps2float::mul(step, gravity));
+                        swc1(part + 52, ps2float::add(y, lwc1(sp + 116)));
                         let dz = lwc1(sp + 120);
                         swc1(part + 64, vy);
-                        swc1(part + 56, z + dz);
+                        swc1(part + 56, ps2float::add(z, dz));
                         break 'moved;
                     }
                     sound = lw(a0 + 256);
@@ -1001,19 +1001,19 @@ pub fn updateProximityProps(a0: i32, a1: i32) {
                     swc1(a0 + 148, lwc1(lw(a0 + 96) + 52));
                     let random = random_as_float();
                     let part = lw(a0 + 140);
-                    let base = lwc1(a0 + 128) * lwc1(0x3ad1d0);
-                    swc1(part + 60, base + (random * 2.3283064e-10_f32 - 0.5_f32) * lwc1(0x3ad1d4));
+                    let base = ps2float::mul(lwc1(a0 + 128), lwc1(0x3ad1d0));
+                    swc1(part + 60, ps2float::add(base, ps2float::mul(ps2float::sub(ps2float::mul(random, 2.3283064e-10_f32), 0.5_f32), lwc1(0x3ad1d4))));
                     let random = random_as_float();
                     let part = lw(a0 + 140);
                     let range = lwc1(0x3ad1d8);
-                    swc1(part + 64, random * 2.3283064e-10_f32 * range + range);
+                    swc1(part + 64, ps2float::add(ps2float::mul(ps2float::mul(random, 2.3283064e-10_f32), range), range));
                     let random = random_as_float();
                     let part = lw(a0 + 140);
-                    let base = lwc1(a0 + 136) * range;
-                    let spread = random * 2.3283064e-10_f32;
+                    let base = ps2float::mul(lwc1(a0 + 136), range);
+                    let spread = ps2float::mul(random, 2.3283064e-10_f32);
                     let third = lwc1(0x3ad1dc);
                     sw(a0 + 120, lw(a0 + 120) + 1);
-                    swc1(part + 68, base + (spread - 0.5_f32) * third);
+                    swc1(part + 68, ps2float::add(base, ps2float::mul(ps2float::sub(spread, 0.5_f32), third)));
                     break 'done;
                 }
                 3 => {
@@ -1022,12 +1022,12 @@ pub fn updateProximityProps(a0: i32, a1: i32) {
                     }
                     let scale_a = lwc1(0x3ad1e0);
                     let scale_b = lwc1(0x3ad1e4);
-                    let vx = lwc1(a0 + 128) * scale_a;
+                    let vx = ps2float::mul(lwc1(a0 + 128), scale_a);
                     sw(a0 + 120, stage + 1);
                     let part = lw(a0 + 144);
                     swc1(part + 60, vx);
-                    swc1(part + 64, lwc1(a0 + 132) * scale_b);
-                    swc1(part + 68, lwc1(a0 + 136) * scale_a);
+                    swc1(part + 64, ps2float::mul(lwc1(a0 + 132), scale_b));
+                    swc1(part + 68, ps2float::mul(lwc1(a0 + 136), scale_a));
                     sw(a0 + 72, 0);
                     break 'done;
                 }
@@ -1101,26 +1101,26 @@ pub fn addCartridge(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
         swc1(prop + 72, 0.0_f32);
         let degrees = 1.8e+02_f32;
         let scale = lwc1(0x3ad468);
-        let ry = lwc1(holder + 76) + degrees;
-        let rz = lwc1(holder + 88) * scale;
+        let ry = ps2float::add(lwc1(holder + 76), degrees);
+        let rz = ps2float::mul(lwc1(holder + 88), scale);
         let player = lw(g::currentplayer);
-        let rx = lwc1(holder + 72) * scale;
+        let rx = ps2float::mul(lwc1(holder + 72), scale);
         sw(prop + 140, 1);
         let body = lw(player + 384);
         sw(prop + 16, 0);
         sw(cartridge + 64, prop);
         sw(prop + 12, lw(body + 12));
-        matrixRotZXY(sp + 112, (rx).pdiv(degrees), (ry * scale).pdiv(degrees), (rz).pdiv(degrees));
+        matrixRotZXY(sp + 112, (rx).pdiv(degrees), ps2float::mul(ry, scale).pdiv(degrees), (rz).pdiv(degrees));
         sceVu0MulMatrix(cartridge, lw(lw(g::currentplayer) + 1772), sp + 112);
         swc1(cartridge + 56, 0.0_f32);
         swc1(cartridge + 48, 0.0_f32);
         swc1(cartridge + 52, 0.0_f32);
         let factor = lwc1(a5 + 336);
         let sz = lwc1(a5 + 332);
-        let dx = (lwc1(a3 + 96) - lwc1(a3 + 84)) * factor;
-        let dy = (lwc1(a3 + 100) - lwc1(a3 + 88)) * factor;
+        let dx = ps2float::mul(ps2float::sub(lwc1(a3 + 96), lwc1(a3 + 84)), factor);
+        let dy = ps2float::mul(ps2float::sub(lwc1(a3 + 100), lwc1(a3 + 88)), factor);
         let sy = lwc1(a5 + 328);
-        let dz = (lwc1(a3 + 104) - lwc1(a3 + 92)) * factor;
+        let dz = ps2float::mul(ps2float::sub(lwc1(a3 + 104), lwc1(a3 + 92)), factor);
         swc1(sp + 16, lwc1(a5 + 324));
         swc1(sp, dx);
         swc1(sp + 4, dy);
@@ -1135,10 +1135,10 @@ pub fn addCartridge(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
         let source = lw(a4 + 12);
         swc1(prop + 72, 0.0_f32);
         let scale = lwc1(0x3ad460);
-        let rz = lwc1(source + 88) * scale;
-        let rx = lwc1(source + 72) * scale;
+        let rz = ps2float::mul(lwc1(source + 88), scale);
+        let rx = ps2float::mul(lwc1(source + 72), scale);
         let degrees = 1.8e+02_f32;
-        let ry = lwc1(source + 76) * scale;
+        let ry = ps2float::mul(lwc1(source + 76), scale);
         let player = lw(g::currentplayer);
         sw(prop + 140, 1);
         let body = lw(player + 384);
@@ -1151,10 +1151,10 @@ pub fn addCartridge(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
         swc1(cartridge + 52, 0.0_f32);
         let factor = lwc1(a5 + 336);
         let sx = lwc1(a5 + 324);
-        let dx = (lwc1(a4 + 40) - lwc1(a4 + 28)) * factor;
+        let dx = ps2float::mul(ps2float::sub(lwc1(a4 + 40), lwc1(a4 + 28)), factor);
         let sz = lwc1(a5 + 332);
-        let dy = (lwc1(a4 + 44) - lwc1(a4 + 32)) * factor;
-        let dz = (lwc1(a4 + 48) - lwc1(a4 + 36)) * factor;
+        let dy = ps2float::mul(ps2float::sub(lwc1(a4 + 44), lwc1(a4 + 32)), factor);
+        let dz = ps2float::mul(ps2float::sub(lwc1(a4 + 48), lwc1(a4 + 36)), factor);
         let shot_kind = lw(a3);
         swc1(sp + 20, lwc1(a5 + 328));
         swc1(sp, dx);
@@ -1163,45 +1163,45 @@ pub fn addCartridge(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
         swc1(sp + 24, sz);
         swc1(sp + 16, sx);
         if shot_kind == 23 {
-            swc1(sp + 16, sx - lwc1(0x3ad464));
+            swc1(sp + 16, ps2float::sub(sx, lwc1(0x3ad464)));
         }
         matrixVecRotAligned(&[cartridge as i64, (sp + 16) as i64]);
     }
-    let random = random_as_float() * 2.3283064e-10_f32 - 0.5_f32;
+    let random = ps2float::sub(ps2float::mul(random_as_float(), 2.3283064e-10_f32), 0.5_f32);
     let prop = lw(cartridge + 64);
-    swc1(prop + 60, lwc1(sp) + (random + random) * lwc1(sp + 16));
-    let random = random_as_float() * 2.3283064e-10_f32 - 0.5_f32;
+    swc1(prop + 60, ps2float::add(lwc1(sp), ps2float::mul(ps2float::add(random, random), lwc1(sp + 16))));
+    let random = ps2float::sub(ps2float::mul(random_as_float(), 2.3283064e-10_f32), 0.5_f32);
     let prop = lw(cartridge + 64);
-    swc1(prop + 64, lwc1(sp + 4) + (random + random) * lwc1(sp + 20));
+    swc1(prop + 64, ps2float::add(lwc1(sp + 4), ps2float::mul(ps2float::add(random, random), lwc1(sp + 20))));
     let random = random_as_float();
     let prop = lw(cartridge + 64);
     let step = lwc1(g::updateframesf);
-    let random = random * 2.3283064e-10_f32 - 0.5_f32;
+    let random = ps2float::sub(ps2float::mul(random, 2.3283064e-10_f32), 0.5_f32);
     let holder = lw(a6 + 3020);
     let thousand = 1e+03_f32;
-    swc1(prop + 68, lwc1(sp + 8) + (random + random) * lwc1(sp + 24));
-    let vx = ((lwc1(holder + 48) - lwc1(holder + 112))).pdiv(step);
+    swc1(prop + 68, ps2float::add(lwc1(sp + 8), ps2float::mul(ps2float::add(random, random), lwc1(sp + 24))));
+    let vx = (ps2float::sub(lwc1(holder + 48), lwc1(holder + 112))).pdiv(step);
     swc1(sp + 32, vx);
-    swc1(sp + 36, ((lwc1(holder + 52) - lwc1(holder + 116))).pdiv(step));
-    swc1(sp + 40, ((lwc1(holder + 56) - lwc1(holder + 120))).pdiv(step));
+    swc1(sp + 36, (ps2float::sub(lwc1(holder + 52), lwc1(holder + 116))).pdiv(step));
+    swc1(sp + 40, (ps2float::sub(lwc1(holder + 56), lwc1(holder + 120))).pdiv(step));
     let vy = lwc1(prop + 64);
-    let new_vx = lwc1(prop + 60) + vx;
+    let new_vx = ps2float::add(lwc1(prop + 60), vx);
     let vz = lwc1(prop + 68);
     let px = lwc1(prop + 48);
     let py = lwc1(prop + 52);
     swc1(prop + 60, new_vx);
     let pz = lwc1(prop + 56);
-    let new_vy = vy + lwc1(sp + 36);
+    let new_vy = ps2float::add(vy, lwc1(sp + 36));
     swc1(prop + 64, new_vy);
     let extra = lwc1(sp + 40);
-    swc1(prop + 48, px + new_vx * step);
-    let new_vz = vz + extra;
+    swc1(prop + 48, ps2float::add(px, ps2float::mul(new_vx, step)));
+    let new_vz = ps2float::add(vz, extra);
     swc1(prop + 68, new_vz);
-    swc1(prop + 52, py + new_vy * step);
-    swc1(prop + 56, pz + new_vz * step);
-    swc1(cartridge + 68, new_vx * thousand);
+    swc1(prop + 52, ps2float::add(py, ps2float::mul(new_vy, step)));
+    swc1(prop + 56, ps2float::add(pz, ps2float::mul(new_vz, step)));
+    swc1(cartridge + 68, ps2float::mul(new_vx, thousand));
     sw(cartridge + 72, 0);
-    swc1(cartridge + 76, lwc1(prop + 68) * thousand);
+    swc1(cartridge + 76, ps2float::mul(lwc1(prop + 68), thousand));
     swc1(cartridge + 84, lwc1(holder + 52));
     sw(cartridge + 80, 0);
     let flags;
@@ -1268,27 +1268,27 @@ pub fn propLineTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     let dx = lwc1(a2);
     let dy = lwc1(a2 + 4);
     let dz = lwc1(a2 + 8);
-    let end_x = lwc1(a1) + dx;
+    let end_x = ps2float::add(lwc1(a1), dx);
     let start_z = lwc1(a1 + 8);
     let mut limit = lwc1(g::headtick + 4);
-    let end_y = lwc1(a1 + 4) + dy;
+    let end_y = ps2float::add(lwc1(a1 + 4), dy);
     swc1(sp + 32, dx);
     swc1(sp + 48, end_x);
     swc1(sp + 36, dy);
     swc1(sp + 52, end_y);
-    swc1(sp + 56, start_z + dz);
+    swc1(sp + 56, ps2float::add(start_z, dz));
     swc1(sp + 40, dz);
-    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
-    let nz = lwc1(sp + 40) * inverse;
-    let ny = lwc1(sp + 36) * inverse;
-    swc1(sp + 32, lwc1(sp + 32) * inverse);
+    let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
+    let nz = ps2float::mul(lwc1(sp + 40), inverse);
+    let ny = ps2float::mul(lwc1(sp + 36), inverse);
+    swc1(sp + 32, ps2float::mul(lwc1(sp + 32), inverse));
     swc1(sp + 40, nz);
     swc1(sp + 36, ny);
     if a3 == 0 {
         let x = lwc1(a2);
         let y = lwc1(a2 + 4);
         let z = lwc1(a2 + 8);
-        limit = x * x + y * y + z * z;
+        limit = ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z));
     }
     let mut mask;
     'room: {
@@ -1302,14 +1302,14 @@ pub fn propLineTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
             let hit = obInstLineTest(lw(room + 32), a1, a2, a3, sp + 64, sp + 80);
             let hx = lwc1(sp + 64);
             if hit != 0 {
-                let ox = hx - lwc1(a1);
+                let ox = ps2float::sub(hx, lwc1(a1));
                 let sz = lwc1(a1 + 8);
-                let oy = lwc1(sp + 68) - lwc1(a1 + 4);
+                let oy = ps2float::sub(lwc1(sp + 68), lwc1(a1 + 4));
                 let hz = lwc1(sp + 72);
                 swc1(sp + 96, ox);
-                let oz = hz - sz;
+                let oz = ps2float::sub(hz, sz);
                 swc1(sp + 100, oy);
-                let distance = ox * ox + oy * oy + oz * oz;
+                let distance = ps2float::add(ps2float::add(ps2float::mul(ox, ox), ps2float::mul(oy, oy)), ps2float::mul(oz, oz));
                 swc1(sp + 104, oz);
                 if distance < limit {
                     limit = distance;
@@ -1432,14 +1432,14 @@ pub fn propLineTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                             }
                             let hx = lwc1(sp + 64);
                             if hit_prop != 0 {
-                                let ox = hx - lwc1(a1);
+                                let ox = ps2float::sub(hx, lwc1(a1));
                                 let sz = lwc1(a1 + 8);
-                                let oy = lwc1(sp + 68) - lwc1(a1 + 4);
+                                let oy = ps2float::sub(lwc1(sp + 68), lwc1(a1 + 4));
                                 let hz = lwc1(sp + 72);
                                 swc1(sp + 112, ox);
-                                let oz = hz - sz;
+                                let oz = ps2float::sub(hz, sz);
                                 swc1(sp + 116, oy);
-                                let distance = ox * ox + oy * oy + oz * oz;
+                                let distance = ps2float::add(ps2float::add(ps2float::mul(ox, ox), ps2float::mul(oy, oy)), ps2float::mul(oz, oz));
                                 swc1(sp + 120, oz);
                                 if distance < limit {
                                     let px;

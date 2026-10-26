@@ -154,7 +154,7 @@ pub fn decalTick() {
                 let start = verts + lbu(face_vertices + lw(out + edge * 8)) * 12;
                 let end = verts + lbu(face_vertices + lw(out + edge * 8 + 4)) * 12;
                 edge += 1;
-                let e = [lwc1(start) - lwc1(end), lwc1(start + 4) - lwc1(end + 4), lwc1(start + 8) - lwc1(end + 8)];
+                let e = [ps2float::sub(lwc1(start), lwc1(end)), ps2float::sub(lwc1(start + 4), lwc1(end + 4)), ps2float::sub(lwc1(start + 8), lwc1(end + 8))];
                 let (min_x, max_x) = if lwc1(start) < lwc1(end) { (lwc1(start), lwc1(end)) } else { (lwc1(end), lwc1(start)) };
                 let (min_y, max_y) = if lwc1(start + 4) < lwc1(end + 4) { (lwc1(start + 4), lwc1(end + 4)) } else { (lwc1(end + 4), lwc1(start + 4)) };
                 let (min_z, max_z) = if lwc1(start + 8) < lwc1(end + 8) { (lwc1(start + 8), lwc1(end + 8)) } else { (lwc1(end + 8), lwc1(start + 8)) };
@@ -203,7 +203,7 @@ pub fn decalTick() {
                                             let nx = (lh(rec + 2) as f32).pdiv(scale);
                                             let ny = (lh(rec + 4) as f32).pdiv(scale);
                                             let nz = (lh(rec + 6) as f32).pdiv(scale);
-                                            let mut across = nx * e[0] + ny * e[1] + nz * e[2];
+                                            let mut across = ps2float::add(ps2float::add(ps2float::mul(nx, e[0]), ps2float::mul(ny, e[1])), ps2float::mul(nz, e[2]));
                                             'face: {
                                                 if !(0.0_f32 <= across) {
                                                     across = -across;
@@ -211,9 +211,9 @@ pub fn decalTick() {
                                                 if !(across <= lwc1(0x3ad5e4)) {
                                                     break 'face;
                                                 }
-                                                let inverse = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
-                                                let n = [nx * inverse, ny * inverse, nz * inverse];
-                                                let facing = n[0] * normal[0] + n[1] * normal[1] + n[2] * normal[2];
+                                                let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(nx, nx), ps2float::mul(ny, ny)), ps2float::mul(nz, nz)).abs().psqrt());
+                                                let n = [ps2float::mul(nx, inverse), ps2float::mul(ny, inverse), ps2float::mul(nz, inverse)];
+                                                let facing = ps2float::add(ps2float::add(ps2float::mul(n[0], normal[0]), ps2float::mul(n[1], normal[1])), ps2float::mul(n[2], normal[2]));
                                                 if !(lwc1(0x3ad5e8) <= facing) {
                                                     break 'face;
                                                 }
@@ -233,8 +233,8 @@ pub fn decalTick() {
                                                     let next = (k + 1).wrapping_rem(count);
                                                     let vk = tile_verts + lbu(list + k) * 12;
                                                     let vn = tile_verts + lbu(list + next) * 12;
-                                                    let d1 = [lwc1(vk) - lwc1(end), lwc1(vk + 4) - lwc1(end + 4), lwc1(vk + 8) - lwc1(end + 8)];
-                                                    let d2 = [lwc1(vn) - lwc1(start), lwc1(vn + 4) - lwc1(start + 4), lwc1(vn + 8) - lwc1(start + 8)];
+                                                    let d1 = [ps2float::sub(lwc1(vk), lwc1(end)), ps2float::sub(lwc1(vk + 4), lwc1(end + 4)), ps2float::sub(lwc1(vk + 8), lwc1(end + 8))];
+                                                    let d2 = [ps2float::sub(lwc1(vn), lwc1(start)), ps2float::sub(lwc1(vn + 4), lwc1(start + 4)), ps2float::sub(lwc1(vn + 8), lwc1(start + 8))];
                                                     if shares_edge(e, d1, d2) {
                                                         let at = queue + write * ENTRY_SIZE;
                                                         if lwc1(0x3ad5f8) <= facing {
@@ -243,12 +243,12 @@ pub fn decalTick() {
                                                             break 'face;
                                                         }
                                                         if lwc1(0x3ad5fc) <= facing {
-                                                            let dx = point[0] - lwc1(vk);
-                                                            let dy = point[1] - lwc1(vk + 4);
-                                                            let dz = point[2] - lwc1(vk + 8);
+                                                            let dx = ps2float::sub(point[0], lwc1(vk));
+                                                            let dy = ps2float::sub(point[1], lwc1(vk + 4));
+                                                            let dz = ps2float::sub(point[2], lwc1(vk + 8));
                                                             write += 1;
-                                                            let along = -(dx * n[0] + dy * n[1] + dz * n[2]);
-                                                            let projected = [point[0] + along * n[0], point[1] + along * n[1], point[2] + along * n[2]];
+                                                            let along = -ps2float::add(ps2float::add(ps2float::mul(dx, n[0]), ps2float::mul(dy, n[1])), ps2float::mul(dz, n[2]));
+                                                            let projected = [ps2float::add(point[0], ps2float::mul(along, n[0])), ps2float::add(point[1], ps2float::mul(along, n[1])), ps2float::add(point[2], ps2float::mul(along, n[2]))];
                                                             push_entry(at, scan, tile_no, f, projected, n);
                                                             break 'face;
                                                         }

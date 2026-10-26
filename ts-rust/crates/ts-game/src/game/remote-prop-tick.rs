@@ -5,12 +5,12 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// Turn an angle in degrees into radians with the value of pi at `pi_at`.
 fn radians(degrees: f32, pi: f32) -> f32 {
-    (degrees * pi).pdiv(1.8e+02_f32)
+    ps2float::mul(degrees, pi).pdiv(1.8e+02_f32)
 }
 
 /// Move the angle at `at` towards `target` by `step`, but not past it.
@@ -18,11 +18,11 @@ fn step_toward(at: i32, target: f32, step: f32) {
     let value = lwc1(at);
     let passed;
     if !(value < target) {
-        let moved = value - step;
+        let moved = ps2float::sub(value, step);
         passed = moved < target;
         swc1(at, moved);
     } else {
-        let moved = value + step;
+        let moved = ps2float::add(value, step);
         passed = target < moved;
         swc1(at, moved);
     }
@@ -35,7 +35,7 @@ fn step_toward(at: i32, target: f32, step: f32) {
 fn bounce(mind: i32, value_at: i32, speed_at: i32, min_at: i32, max_at: i32) {
     let speed = lwc1(mind + speed_at);
     let min = lwc1(mind + min_at);
-    let moved = lwc1(mind + value_at) + speed * lwc1(g::updateframesf);
+    let moved = ps2float::add(lwc1(mind + value_at), ps2float::mul(speed, lwc1(g::updateframesf)));
     swc1(mind + value_at, moved);
     if moved < min {
         swc1(mind + value_at, min);
@@ -111,49 +111,49 @@ fn state_sweep(a0: i32, mind: i32, sp: i32, pivot: i32) {
     swc1(mind + 24, lwc1(mind + 20));
     let pi = lwc1(0x3acc3c);
     rotated_pivot(a0, sp, pivot, sp + 96, pi);
-    let f22_1 = lwc1(a0 + 52) + lwc1(sp + 96) - lwc1(mind + 72);
+    let f22_1 = ps2float::sub(ps2float::add(lwc1(a0 + 52), lwc1(sp + 96)), lwc1(mind + 72));
     let tangent = tanf(radians(lwc1(mind + 12), pi));
     let distance = (f22_1).pdiv(tangent);
     sw(sp + 80, 0);
     swc1(sp + 88, 1.0_f32);
     sw(sp + 84, 0);
-    matrixRotY(sp + 16, ((lwc1(mind + 20) + lwc1(a0 + 76)) * pi).pdiv(1.8e+02_f32));
+    matrixRotY(sp + 16, ps2float::mul(ps2float::add(lwc1(mind + 20), lwc1(a0 + 76)), pi).pdiv(1.8e+02_f32));
     matrixVecRotAligned(&[(sp + 16) as i64, (sp + 80) as i64]);
-    let x = lwc1(sp + 80) * distance;
+    let x = ps2float::mul(lwc1(sp + 80), distance);
     let base_x = lwc1(a0 + 48);
-    let y = lwc1(sp + 84) * distance;
+    let y = ps2float::mul(lwc1(sp + 84), distance);
     let rotated_x = lwc1(sp + 96);
-    let z = lwc1(sp + 88) * distance;
+    let z = ps2float::mul(lwc1(sp + 88), distance);
     swc1(sp + 80, x);
     swc1(sp + 84, y);
     swc1(sp + 88, z);
     let players = lw(g::lvnumplayers);
     swc1(mind + 84, lwc1(mind + 72));
-    swc1(mind + 80, base_x + rotated_x + x);
-    swc1(mind + 88, lwc1(a0 + 56) + lwc1(sp + 104) + lwc1(sp + 88));
+    swc1(mind + 80, ps2float::add(ps2float::add(base_x, rotated_x), x));
+    swc1(mind + 88, ps2float::add(ps2float::add(lwc1(a0 + 56), lwc1(sp + 104)), lwc1(sp + 88)));
     if players > 0 {
         let mut n = 0;
         loop {
             let player = lw(n * 1820 + lw(g::players) + 384);
             let data = lw(player + 352);
             if (lw(data + 2708) & 32) == 0 {
-                let dx = lwc1(mind + 80) - lwc1(player + 48);
-                let dy = lwc1(mind + 84) - lwc1(player + 52);
+                let dx = ps2float::sub(lwc1(mind + 80), lwc1(player + 48));
+                let dy = ps2float::sub(lwc1(mind + 84), lwc1(player + 52));
                 let reach = lwc1(mind + 92);
-                let dz = lwc1(mind + 88) - lwc1(player + 56);
-                if (dx * dx + dy * dy + dz * dz) < reach * reach {
+                let dz = ps2float::sub(lwc1(mind + 88), lwc1(player + 56));
+                if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < ps2float::mul(reach, reach) {
                     let team = lw(mind + 8);
                     let same_team = team != 0 && team == lw(data + 24);
                     if !same_team {
                         remoteGetPivotePos(a0, sp + 128);
                         let f2_6 = lwc1(sp + 132);
                         let f4_3 = lwc1(sp + 136);
-                        swc1(sp + 112, lwc1(player + 48) - lwc1(sp + 128));
-                        swc1(sp + 116, lwc1(player + 52) + 1.0_f32 - f2_6);
+                        swc1(sp + 112, ps2float::sub(lwc1(player + 48), lwc1(sp + 128)));
+                        swc1(sp + 116, ps2float::sub(ps2float::add(lwc1(player + 52), 1.0_f32), f2_6));
                         let f1_8 = lwc1(player + 56);
                         sw(sp, 0);
                         sw(sp + 8, 0);
-                        swc1(sp + 120, f1_8 - f4_3);
+                        swc1(sp + 120, ps2float::sub(f1_8, f4_3));
                         let blocked = bgLineTest(lw(mind + 120), sp + 128, sp + 112, 0, 0, 0, 0, -3);
                         if blocked == 0 {
                             sw(mind + 116, 0);
@@ -178,19 +178,19 @@ fn state_track(a0: i32, mind: i32, sp: i32, pivot: i32, model: i32) -> bool {
     rotated_pivot(a0, sp, pivot, sp + 96, pi);
     let target = lw(mind + 96);
     let base_z = lwc1(a0 + 56);
-    let dx = lwc1(target + 48) - (lwc1(a0 + 48) + lwc1(sp + 96));
+    let dx = ps2float::sub(lwc1(target + 48), ps2float::add(lwc1(a0 + 48), lwc1(sp + 96)));
     let rotated_z = lwc1(sp + 104);
-    let rotated_y = lwc1(a0 + 52) + lwc1(sp + 100);
+    let rotated_y = ps2float::add(lwc1(a0 + 52), lwc1(sp + 100));
     swc1(sp + 80, dx);
-    let dy = lwc1(target + 52) + 1.0_f32 - rotated_y;
+    let dy = ps2float::sub(ps2float::add(lwc1(target + 52), 1.0_f32), rotated_y);
     swc1(sp + 84, dy);
-    let dz = lwc1(target + 56) - (base_z + rotated_z);
+    let dz = ps2float::sub(lwc1(target + 56), ps2float::add(base_z, rotated_z));
     swc1(sp + 88, dz);
-    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
-    let heading = (lwc1(a0 + 76) * pi).pdiv(1.8e+02_f32);
-    let nx = lwc1(sp + 80) * inverse;
-    let ny = lwc1(sp + 84) * inverse;
-    swc1(sp + 88, lwc1(sp + 88) * inverse);
+    let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
+    let heading = ps2float::mul(lwc1(a0 + 76), pi).pdiv(1.8e+02_f32);
+    let nx = ps2float::mul(lwc1(sp + 80), inverse);
+    let ny = ps2float::mul(lwc1(sp + 84), inverse);
+    swc1(sp + 88, ps2float::mul(lwc1(sp + 88), inverse));
     swc1(sp + 80, nx);
     swc1(sp + 84, ny);
     matrixRotY(sp + 16, -heading);
@@ -201,19 +201,19 @@ fn state_track(a0: i32, mind: i32, sp: i32, pivot: i32, model: i32) -> bool {
     if lb(model + 7) != 1 {
         let forward = lwc1(sp + 88);
         let up = lwc1(sp + 84);
-        let flat = (side * side + forward * forward).abs().psqrt();
-        pitch = -((atan2f(up, flat) * 1.8e+02_f32).pdiv(pi));
+        let flat = ps2float::add(ps2float::mul(side, side), ps2float::mul(forward, forward)).abs().psqrt();
+        pitch = -(ps2float::mul(atan2f(up, flat), 1.8e+02_f32).pdiv(pi));
         exact = true;
         if pitch < 0.0_f32 {
-            pitch = pitch + 3.6e+02_f32;
+            pitch = ps2float::add(pitch, 3.6e+02_f32);
         }
     } else {
         pitch = lwc1(mind + 12);
         exact = false;
     }
-    let mut yaw = (atan2f(lwc1(sp + 80), lwc1(sp + 88)) * 1.8e+02_f32).pdiv(lwc1(0x3acc44));
+    let mut yaw = ps2float::mul(atan2f(lwc1(sp + 80), lwc1(sp + 88)), 1.8e+02_f32).pdiv(lwc1(0x3acc44));
     if yaw < -9e+01_f32 {
-        yaw = yaw + 3.6e+02_f32;
+        yaw = ps2float::add(yaw, 3.6e+02_f32);
     }
     let max_pitch = lwc1(mind + 36);
     if max_pitch < pitch {
@@ -266,9 +266,9 @@ fn state_track(a0: i32, mind: i32, sp: i32, pivot: i32, model: i32) -> bool {
     let f2_9 = lwc1(sp + 148);
     let dead = lw(target_data + 2708) & 32;
     let f4_5 = lwc1(sp + 152);
-    swc1(sp + 112, lwc1(target_now + 48) - lwc1(sp + 144));
-    swc1(sp + 116, lwc1(target_now + 52) + 1.0_f32 - f2_9);
-    swc1(sp + 120, lwc1(target_now + 56) - f4_5);
+    swc1(sp + 112, ps2float::sub(lwc1(target_now + 48), lwc1(sp + 144)));
+    swc1(sp + 116, ps2float::sub(ps2float::add(lwc1(target_now + 52), 1.0_f32), f2_9));
+    swc1(sp + 120, ps2float::sub(lwc1(target_now + 56), f4_5));
     if dead == 0 {
         sw(sp, 0);
         sw(sp + 8, 0);
@@ -314,25 +314,25 @@ fn state_wait(a0: i32, mind: i32, sp: i32) {
         } else if lw(g::updateframesi) <= 0 {
             n += 1;
         } else {
-            let dx = lwc1(player + 48) - lwc1(a0 + 48);
-            let dy = lwc1(player + 52) - lwc1(a0 + 52);
-            let dz = lwc1(player + 56) - lwc1(a0 + 56);
-            if (dx * dx + dy * dy + dz * dz) < lwc1(0x3acc48) {
+            let dx = ps2float::sub(lwc1(player + 48), lwc1(a0 + 48));
+            let dy = ps2float::sub(lwc1(player + 52), lwc1(a0 + 52));
+            let dz = ps2float::sub(lwc1(player + 56), lwc1(a0 + 56));
+            if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < lwc1(0x3acc48) {
                 remoteGetPivotePos(a0, sp + 112);
                 soundStart(218, data + 140);
                 let z = lwc1(sp + 120);
                 let own_z = lwc1(data + 148);
-                let x = lwc1(sp + 112) - lwc1(data + 140);
+                let x = ps2float::sub(lwc1(sp + 112), lwc1(data + 140));
                 sw(mind + 4, 5);
-                let relative_z = z - own_z;
+                let relative_z = ps2float::sub(z, own_z);
                 sw(mind + 96, player);
                 sw(data + 296, 6);
                 let facing = atan2f(x, relative_z);
                 sw(info + 0x11b4, a0);
-                let yaw = (facing * 1.8e+02_f32).pdiv(lwc1(0x3acc4c));
+                let yaw = ps2float::mul(facing, 1.8e+02_f32).pdiv(lwc1(0x3acc4c));
                 swc1(mind + 108, yaw);
                 if yaw < 0.0_f32 {
-                    swc1(mind + 108, yaw + 3.6e+02_f32);
+                    swc1(mind + 108, ps2float::add(yaw, 3.6e+02_f32));
                 }
                 let tilt = -lwc1(data + 284);
                 swc1(mind + 112, tilt);
@@ -376,8 +376,8 @@ fn state_enter(a0: i32, mind: i32, sp: i32) {
             let mut yaw_done = false;
             let mut pitch_done = false;
             let mut in_place = false;
-            let target_yaw = lwc1(mind + 20) + lwc1(a0 + 76);
-            let step = lwc1(g::updateframesf) * 4.0_f32;
+            let target_yaw = ps2float::add(lwc1(mind + 20), lwc1(a0 + 76));
+            let step = ps2float::mul(lwc1(g::updateframesf), 4.0_f32);
             let yaw_error = anglediff(lwc1(mind + 108), target_yaw);
             remoteGetStandPos(a0, sp + 112, lwc1(mind + 108));
             let stand_y = lwc1(sp + 116);
@@ -397,10 +397,10 @@ fn state_enter(a0: i32, mind: i32, sp: i32) {
             let near = if !(0.0_f32 <= yaw_error) { -yaw_error < step } else { yaw_error < step };
             if near {
                 yaw_done = true;
-                new_yaw = lwc1(mind + 108) - lwc1(a0 + 76);
+                new_yaw = ps2float::sub(lwc1(mind + 108), lwc1(a0 + 76));
             } else {
                 let yaw = lwc1(mind + 20);
-                new_yaw = if !(yaw_error < 0.0_f32) { yaw - step } else { yaw + step };
+                new_yaw = if !(yaw_error < 0.0_f32) { ps2float::sub(yaw, step) } else { ps2float::add(yaw, step) };
             }
             swc1(mind + 20, new_yaw);
             let pitch_error = anglediff(lwc1(mind + 112), lwc1(mind + 12));
@@ -411,7 +411,7 @@ fn state_enter(a0: i32, mind: i32, sp: i32) {
                 new_pitch = lwc1(mind + 112);
             } else {
                 let pitch = lwc1(mind + 12);
-                new_pitch = if !(pitch_error < 0.0_f32) { pitch - step } else { pitch + step };
+                new_pitch = if !(pitch_error < 0.0_f32) { ps2float::sub(pitch, step) } else { ps2float::add(pitch, step) };
             }
             swc1(mind + 12, new_pitch);
             if !yaw_done || !pitch_done || !in_place {
@@ -435,7 +435,7 @@ fn state_ridden(a0: i32, mind: i32) {
     let buttons = if lw(lw(g::front) + 20) != 0 { 0 } else { joyNewBut(lw(player)) };
     if lw(chr + 0x11b4) != 0 && (lw(chr + 2708) & 32) == 0 {
         if (buttons & lw(player + 36)) == 0 {
-            swc1(mind + 20, lwc1(chr + 2972) - lwc1(a0 + 76));
+            swc1(mind + 20, ps2float::sub(lwc1(chr + 2972), lwc1(a0 + 76)));
             swc1(mind + 12, -lwc1(chr + 2968));
         } else {
             release_player(mind, chr, player);
@@ -445,7 +445,7 @@ fn state_ridden(a0: i32, mind: i32) {
         sw(mind + 4, 4);
     }
     let frames = lwc1(g::updateframesf);
-    StatsAdd(63, lw(player), frames * lwc1(0x3acc50));
+    StatsAdd(63, lw(player), ps2float::mul(frames, lwc1(0x3acc50)));
 }
 
 /// Tick of a remote prop (@ 0x26c440): the state at +4 says what it does (1 sweeps for players, 2 aims at one and fires, 3 goes back to the sweep, 4 waits to be used, 5
@@ -490,7 +490,7 @@ pub fn remotePropTick(a0: i32) {
             let bone = lw(lw(a0 + 32) + 4) + 128;
             pivot_rotate(&[bone], scratch, pivot, lwc1(0x3acc54), mind);
             let vector = lw(model + 72);
-            let spin = (random_unit() * 3.6e+02_f32 * lwc1(0x3acc70)).pdiv(1.8e+02_f32);
+            let spin = ps2float::mul(ps2float::mul(random_unit(), 3.6e+02_f32), lwc1(0x3acc70)).pdiv(1.8e+02_f32);
             flash_spin(bone, scratch, vector, spin);
         }
     } else {
@@ -502,11 +502,11 @@ pub fn remotePropTick(a0: i32) {
             let mut d = lwc1(mind + 136);
             let mut n = frames;
             loop {
-                a = a * 0.75_f32;
+                a = ps2float::mul(a, 0.75_f32);
                 n -= 1;
-                b = b * 0.75_f32;
-                c = c * lwc1(0x3acc58);
-                d = d * lwc1(0x3acc5c);
+                b = ps2float::mul(b, 0.75_f32);
+                c = ps2float::mul(c, lwc1(0x3acc58));
+                d = ps2float::mul(d, lwc1(0x3acc5c));
                 if n == 0 {
                     break;
                 }
@@ -525,7 +525,7 @@ pub fn remotePropTick(a0: i32) {
                     if (lhu(lw(id * 1820 + lw(g::players) + 24) + 2) & 80) == 80 {
                         let left = joyGetShockLeft(id);
                         let right = joyGetShockRight(id);
-                        joySetShock(id, left, right + (lwc1(mind + 136) * 128.0_f32) as i32);
+                        joySetShock(id, left, right + ps2float::mul(lwc1(mind + 136), 128.0_f32) as i32);
                     }
                 }
             }
@@ -533,17 +533,17 @@ pub fn remotePropTick(a0: i32) {
         let barrels = [256, 320, 384, 448, 512].map(|offset| lw(lw(a0 + 32) + 4) + offset);
         pivot_rotate(&barrels, scratch, pivot, lwc1(0x3acc64), mind);
         let recoil = lwc1(0x3acc68);
-        let kicks = [(0, lwc1(mind + 132)), (1, lwc1(mind + 128)), (2, lwc1(mind + 124)), (3, lwc1(mind + 124) * recoil), (4, lwc1(mind + 128) * recoil)];
+        let kicks = [(0, lwc1(mind + 132)), (1, lwc1(mind + 128)), (2, lwc1(mind + 124)), (3, ps2float::mul(lwc1(mind + 124), recoil)), (4, ps2float::mul(lwc1(mind + 128), recoil))];
         for (n, amount) in kicks {
             matrixTrans(scratch, 0.0_f32, 0.0_f32, -amount);
             sceVu0MulMatrix(barrels[n], barrels[n], scratch);
         }
         let first = lw(lw(a0 + 32) + 4) + 64;
         pivot_rotate(&[first], scratch, pivot, lwc1(0x3acc64), mind);
-        flash_spin(first, scratch, lw(model + 72) + 12, random_unit() * 3.6e+02_f32);
+        flash_spin(first, scratch, lw(model + 72) + 12, ps2float::mul(random_unit(), 3.6e+02_f32));
         let second = lw(lw(a0 + 32) + 4) + 128;
         pivot_rotate(&[second], scratch, pivot, lwc1(0x3acc6c), mind);
-        flash_spin(second, scratch, lw(model + 72) + 24, random_unit() * 3.6e+02_f32);
+        flash_spin(second, scratch, lw(model + 72) + 24, ps2float::mul(random_unit(), 3.6e+02_f32));
     }
     if !fire {
         return;

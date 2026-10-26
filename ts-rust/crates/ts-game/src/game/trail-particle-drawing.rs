@@ -29,17 +29,17 @@ pub fn particleTrailGfx(particle: i32, matrix: i32) {
     let half = 0.5_f32;
     let window = g::window;
     loop {
-        let age = lwc1(particle + 12) - (i as f32 * fade_in).pdiv(count as f32);
+        let age = ps2float::sub(lwc1(particle + 12), ps2float::mul(i as f32, fade_in).pdiv(count as f32));
         if 0.0_f32 <= age {
             if age < life {
                 let ratio = (age).pdiv(lwc1(info + 12));
-                let spin = lwc1(particle + (i << 2) + 2128) * age;
+                let spin = ps2float::mul(lwc1(particle + (i << 2) + 2128), age);
                 let mut opacity = 1.0_f32;
-                let turn = (spin * lwc1(0x3ad55c)).pdiv(1.8e+02_f32);
+                let turn = ps2float::mul(spin, lwc1(0x3ad55c)).pdiv(1.8e+02_f32);
                 let mut spin_abs = spin;
                 if !(age < fade_in) {
-                    if (life - fade_out) < age {
-                        opacity = ((life - age)).pdiv(fade_out);
+                    if ps2float::sub(life, fade_out) < age {
+                        opacity = (ps2float::sub(life, age)).pdiv(fade_out);
                     }
                 } else {
                     opacity = (age).pdiv(fade_in);
@@ -48,9 +48,9 @@ pub fn particleTrailGfx(particle: i32, matrix: i32) {
                     spin_abs = -spin;
                 }
                 let at = particle + i * 12;
-                let y = lwc1(at + 932) + lwc1(info + 84) * spin_abs + lwc1(at + 2532) * age;
-                let z = lwc1(at + 936) + lwc1(info + 88) * spin + lwc1(at + 2536) * age;
-                swc1(sp, lwc1(at + 928) + lwc1(info + 80) * spin + lwc1(at + 2528) * age);
+                let y = ps2float::add(ps2float::add(lwc1(at + 932), ps2float::mul(lwc1(info + 84), spin_abs)), ps2float::mul(lwc1(at + 2532), age));
+                let z = ps2float::add(ps2float::add(lwc1(at + 936), ps2float::mul(lwc1(info + 88), spin)), ps2float::mul(lwc1(at + 2536), age));
+                swc1(sp, ps2float::add(ps2float::add(lwc1(at + 928), ps2float::mul(lwc1(info + 80), spin)), ps2float::mul(lwc1(at + 2528), age)));
                 swc1(sp + 4, y);
                 swc1(sp + 8, z);
                 matrixVec3Mul4Aligned(&[lw(sp + 96) as i64, sp as i64, (sp + 16) as i64]);
@@ -65,46 +65,46 @@ pub fn particleTrailGfx(particle: i32, matrix: i32) {
                             let inverse = (one).pdiv(w);
                             let across = lw(window + 16) as f32;
                             let centre_x = lw(window + 8) as f32;
-                            let grow_x = ratio * lwc1(info + 48);
+                            let grow_x = ps2float::mul(ratio, lwc1(info + 48));
                             let down = lw(window + 36);
-                            let grow_y = ratio * lwc1(info + 44);
-                            let depth = z * inverse;
+                            let grow_y = ps2float::mul(ratio, lwc1(info + 44));
+                            let depth = ps2float::mul(z, inverse);
                             let texture = lw(info) << 4;
-                            let angle = turn * lwc1(0x3ad560) + half;
-                            let screen_x = x * inverse;
+                            let angle = ps2float::add(ps2float::mul(turn, lwc1(0x3ad560)), half);
+                            let screen_x = ps2float::mul(x, inverse);
                             let table = g::g_SinTable;
                             let base_size = (lwc1(info + 40)).pdiv(depth);
                             swc1(sp + 24, depth);
-                            let screen_y = y * inverse;
+                            let screen_y = ps2float::mul(y, inverse);
                             let index = angle as i32;
                             let tex_a = lw(texture + (g::particletextures + 8));
-                            let scaled = base_size * ((60.0_f32).pdiv(zoom_raw));
+                            let scaled = ps2float::mul(base_size, ((60.0_f32).pdiv(zoom_raw)));
                             let sine = lwc1(((index & 2047) << 2) + table);
                             let cosine = lwc1((((index + 512) & 2047) << 2) + table);
                             let tex_b = lw(texture + (g::particletextures + 4));
                             swc1(sp + 16, screen_x);
                             swc1(sp + 20, screen_y);
-                            let dx = (scaled * (grow_x + one)) as i32 as f32 * sine;
-                            let dy = (scaled * (grow_y + one)) as i32 as f32 * cosine;
-                            let depth_out = depth * lwc1(0x3ad564);
-                            let px = centre_x + across * screen_x;
-                            let py = lw(window + 28) as f32 + (0 - down) as f32 * screen_y;
-                            let half_dx = dx * half;
-                            let half_dy = dy * half;
+                            let dx = ps2float::mul(ps2float::mul(scaled, ps2float::add(grow_x, one)) as i32 as f32, sine);
+                            let dy = ps2float::mul(ps2float::mul(scaled, ps2float::add(grow_y, one)) as i32 as f32, cosine);
+                            let depth_out = ps2float::mul(depth, lwc1(0x3ad564));
+                            let px = ps2float::add(centre_x, ps2float::mul(across, screen_x));
+                            let py = ps2float::add(lw(window + 28) as f32, ps2float::mul((0 - down) as f32, screen_y));
+                            let half_dx = ps2float::mul(dx, half);
+                            let half_dy = ps2float::mul(dy, half);
                             swc1(sp, px);
                             swc1(sp + 4, py);
-                            swc1(sp + 80, px - dy);
-                            swc1(sp + 84, py - half_dx);
-                            swc1(sp + 64, px - dx);
-                            let z_out = depth_out + 32768.0_f32 + 1e+02_f32;
-                            swc1(sp + 68, py + half_dy);
-                            let alpha_f = opacity * 3e+02_f32;
-                            swc1(sp + 32, px + dy);
-                            swc1(sp + 36, py + half_dx);
+                            swc1(sp + 80, ps2float::sub(px, dy));
+                            swc1(sp + 84, ps2float::sub(py, half_dx));
+                            swc1(sp + 64, ps2float::sub(px, dx));
+                            let z_out = ps2float::add(ps2float::add(depth_out, 32768.0_f32), 1e+02_f32);
+                            swc1(sp + 68, ps2float::add(py, half_dy));
+                            let alpha_f = ps2float::mul(opacity, 3e+02_f32);
+                            swc1(sp + 32, ps2float::add(px, dy));
+                            swc1(sp + 36, ps2float::add(py, half_dx));
                             swc1(sp + 88, z_out);
                             swc1(sp + 8, z_out);
-                            swc1(sp + 48, px + dx);
-                            swc1(sp + 52, py - half_dy);
+                            swc1(sp + 48, ps2float::add(px, dx));
+                            swc1(sp + 52, ps2float::sub(py, half_dy));
                             swc1(sp + 40, z_out);
                             swc1(sp + 56, z_out);
                             swc1(sp + 72, z_out);

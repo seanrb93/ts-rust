@@ -187,7 +187,7 @@ pub fn lvGetRandomPad(chr: i32, wanted: i32) -> i32 {
     }
     let unit = random_as_float();
     let pads = lw(g::numpads) as f32;
-    (pads * (unit * 2.3283064e-10_f32)) as i32
+    ps2float::mul(pads, ps2float::mul(unit, 2.3283064e-10_f32)) as i32
 }
 
 /// Draw the grid of the map maker's view: a vertical line for each multiple of 0x200000 across the map's width and a horizontal one for each down its height (the colour from the

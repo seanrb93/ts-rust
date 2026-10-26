@@ -114,12 +114,12 @@ pub fn HitTestDistanceLineSegmentToPlane(from: i32, to: i32, plane_point: i32, n
     let to_x = lwc1(to);
     let to_y = lwc1(to + 4);
     let nz = lwc1(normal + 8);
-    let rx = to_x - px;
-    let ry = to_y - py;
+    let rx = ps2float::sub(to_x, px);
+    let ry = ps2float::sub(to_y, py);
     let to_z = lwc1(to + 8);
-    let rz = to_z - pz;
-    let d_from = (from_x - px) * nx + (from_y - py) * ny + (from_z - pz) * nz;
-    let d_to = rx * nx + ry * ny + rz * nz;
+    let rz = ps2float::sub(to_z, pz);
+    let d_from = ps2float::add(ps2float::add(ps2float::mul(ps2float::sub(from_x, px), nx), ps2float::mul(ps2float::sub(from_y, py), ny)), ps2float::mul(ps2float::sub(from_z, pz), nz));
+    let d_to = ps2float::add(ps2float::add(ps2float::mul(rx, nx), ps2float::mul(ry, ny)), ps2float::mul(rz, nz));
     let mut done = false;
     if d_from <= 0.0_f32 && d_to <= 0.0_f32 {
         if d_to < d_from {
@@ -147,11 +147,11 @@ pub fn HitTestDistanceLineSegmentToPlane(from: i32, to: i32, plane_point: i32, n
                 if !(0.0_f32 <= b) {
                     b = -b;
                 }
-                let total = if !(0.0_f32 <= d_to) { a - d_to } else { a + d_to };
+                let total = if !(0.0_f32 <= d_to) { ps2float::sub(a, d_to) } else { ps2float::add(a, d_to) };
                 let t = (b).pdiv(total);
-                let x = from_x + t * (to_x - from_x);
-                let y = from_y + t * (to_y - from_y);
-                let z = from_z + t * (to_z - from_z);
+                let x = ps2float::add(from_x, ps2float::mul(t, ps2float::sub(to_x, from_x)));
+                let y = ps2float::add(from_y, ps2float::mul(t, ps2float::sub(to_y, from_y)));
+                let z = ps2float::add(from_z, ps2float::mul(t, ps2float::sub(to_z, from_z)));
                 if foot != 0 {
                     swc1(foot + 8, z);
                     swc1(foot, x);
@@ -166,9 +166,9 @@ pub fn HitTestDistanceLineSegmentToPlane(from: i32, to: i32, plane_point: i32, n
             0.0_f32
         } else {
             if foot != 0 {
-                swc1(foot, to_x - d_to * nx);
-                swc1(foot + 4, lwc1(to + 4) - d_to * lwc1(normal + 4));
-                swc1(foot + 8, lwc1(to + 8) - d_to * lwc1(normal + 8));
+                swc1(foot, ps2float::sub(to_x, ps2float::mul(d_to, nx)));
+                swc1(foot + 4, ps2float::sub(lwc1(to + 4), ps2float::mul(d_to, lwc1(normal + 4))));
+                swc1(foot + 8, ps2float::sub(lwc1(to + 8), ps2float::mul(d_to, lwc1(normal + 8))));
             }
             if near_end != 0 {
                 swc1(near_end, lwc1(to));
@@ -179,9 +179,9 @@ pub fn HitTestDistanceLineSegmentToPlane(from: i32, to: i32, plane_point: i32, n
         }
     } else {
         if foot != 0 {
-            swc1(foot, from_x - d_from * nx);
-            swc1(foot + 4, lwc1(from + 4) - d_from * lwc1(normal + 4));
-            swc1(foot + 8, lwc1(from + 8) - d_from * lwc1(normal + 8));
+            swc1(foot, ps2float::sub(from_x, ps2float::mul(d_from, nx)));
+            swc1(foot + 4, ps2float::sub(lwc1(from + 4), ps2float::mul(d_from, lwc1(normal + 4))));
+            swc1(foot + 8, ps2float::sub(lwc1(from + 8), ps2float::mul(d_from, lwc1(normal + 8))));
         }
         if near_end != 0 {
             swc1(near_end, lwc1(from));
@@ -202,44 +202,44 @@ pub fn hittestLinePoly(start: i32, direction: i32, vertices: i32, order: i32, co
     let dy = lwc1(direction + 4);
     let dz = lwc1(direction + 8);
     let nz = lwc1(normal + 8);
-    let facing = nx * dx + ny * dy + nz * dz;
+    let facing = ps2float::add(ps2float::add(ps2float::mul(nx, dx), ps2float::mul(ny, dy)), ps2float::mul(nz, dz));
     if !(0.0_f32 <= facing) {
         let sx = lwc1(start);
         let first = lbu(order) * 12;
         let sy = lwc1(start + 4);
         let sz = lwc1(start + 8);
         let corner = vertices + lbu(order) * 12;
-        let t = ((nx * lwc1(corner) + ny * lwc1(corner + 4) + nz * lwc1(corner + 8) - (nx * sx + ny * sy + nz * sz))).pdiv(facing);
+        let t = (ps2float::sub(ps2float::add(ps2float::add(ps2float::mul(nx, lwc1(corner)), ps2float::mul(ny, lwc1(corner + 4))), ps2float::mul(nz, lwc1(corner + 8))), ps2float::add(ps2float::add(ps2float::mul(nx, sx), ps2float::mul(ny, sy)), ps2float::mul(nz, sz)))).pdiv(facing);
         if !(t < 0.0_f32) {
             let first_corner = vertices + first;
             let mut k = 1;
-            let pz = sz + t * dz;
-            let px = sx + t * dx;
-            let py = sy + t * dy;
+            let pz = ps2float::add(sz, ps2float::mul(t, dz));
+            let px = ps2float::add(sx, ps2float::mul(t, dx));
+            let py = ps2float::add(sy, ps2float::mul(t, dy));
             let last = lbu(count + order - 1) * 12 + vertices;
-            let ex = lwc1(first_corner) - lwc1(last);
-            let ey = lwc1(first_corner + 4) - lwc1(last + 4);
+            let ex = ps2float::sub(lwc1(first_corner), lwc1(last));
+            let ey = ps2float::sub(lwc1(first_corner + 4), lwc1(last + 4));
             let mut previous = first_corner;
-            let ez = lwc1(first_corner + 8) - lwc1(last + 8);
-            let wx = lwc1(first_corner) - px;
-            let wy = lwc1(first_corner + 4) - py;
-            let wz = lwc1(first_corner + 8) - pz;
-            let mut cz = ex * wy - ey * wx;
-            let mut cy = ez * wx - ex * wz;
-            let mut cx = ey * wz - ez * wy;
+            let ez = ps2float::sub(lwc1(first_corner + 8), lwc1(last + 8));
+            let wx = ps2float::sub(lwc1(first_corner), px);
+            let wy = ps2float::sub(lwc1(first_corner + 4), py);
+            let wz = ps2float::sub(lwc1(first_corner + 8), pz);
+            let mut cz = ps2float::sub(ps2float::mul(ex, wy), ps2float::mul(ey, wx));
+            let mut cy = ps2float::sub(ps2float::mul(ez, wx), ps2float::mul(ex, wz));
+            let mut cx = ps2float::sub(ps2float::mul(ey, wz), ps2float::mul(ez, wy));
             if k < count {
                 loop {
                     let next = lbu(order + k) * 12 + vertices;
-                    let ex = lwc1(next) - lwc1(previous);
-                    let ey = lwc1(next + 4) - lwc1(previous + 4);
-                    let ez = lwc1(next + 8) - lwc1(previous + 8);
-                    let wx = lwc1(next) - px;
-                    let wy = lwc1(next + 4) - py;
-                    let wz = lwc1(next + 8) - pz;
-                    let new_z = ex * wy - ey * wx;
-                    let new_y = ez * wx - ex * wz;
-                    let new_x = ey * wz - ez * wy;
-                    if (cx * new_x + cy * new_y + cz * new_z) < 0.0_f32 {
+                    let ex = ps2float::sub(lwc1(next), lwc1(previous));
+                    let ey = ps2float::sub(lwc1(next + 4), lwc1(previous + 4));
+                    let ez = ps2float::sub(lwc1(next + 8), lwc1(previous + 8));
+                    let wx = ps2float::sub(lwc1(next), px);
+                    let wy = ps2float::sub(lwc1(next + 4), py);
+                    let wz = ps2float::sub(lwc1(next + 8), pz);
+                    let new_z = ps2float::sub(ps2float::mul(ex, wy), ps2float::mul(ey, wx));
+                    let new_y = ps2float::sub(ps2float::mul(ez, wx), ps2float::mul(ex, wz));
+                    let new_x = ps2float::sub(ps2float::mul(ey, wz), ps2float::mul(ez, wy));
+                    if ps2float::add(ps2float::add(ps2float::mul(cx, new_x), ps2float::mul(cy, new_y)), ps2float::mul(cz, new_z)) < 0.0_f32 {
                         return 0;
                     }
                     k += 1;

@@ -85,7 +85,7 @@ pub fn zbtestStartAddGlow() -> i32 {
 pub fn StatsGetAverage(stat: i32, n: i32) -> f32 {
     let mut sum = 0.0_f32;
     for slot in 0..n.max(0) {
-        sum += StatsGet(stat, slot);
+        sum = ps2float::add(sum, StatsGet(stat, slot));
     }
     (sum).pdiv(n as f32)
 }

@@ -80,7 +80,7 @@ pub fn zoomtileWindowDest(a: i32, b: i32, c: i32, d: i32) {
 
 /// The dot product of two unit vectors if it is more than `limit` (they point the same way within a cone), else -1 (@ 0x2c6b00).
 pub fn checkInFrontOfDir(a: i32, b: i32, limit: f32) -> f32 {
-    let dot = lwc1(a) * lwc1(b) + lwc1(a + 4) * lwc1(b + 4) + lwc1(a + 8) * lwc1(b + 8);
+    let dot = ps2float::add(ps2float::add(ps2float::mul(lwc1(a), lwc1(b)), ps2float::mul(lwc1(a + 4), lwc1(b + 4))), ps2float::mul(lwc1(a + 8), lwc1(b + 8)));
     if limit < dot { dot } else { -1.0 }
 }
 
@@ -185,10 +185,10 @@ pub fn creditsTextReset() {
 
 /// Turn a prop's angle at +76 by `speed` degrees a tick, wrapping at 360 (@ 0x2790a0 and 0x27a4d8).
 fn spin_up(prop: i32, speed: f32) {
-    let angle = lwc1(prop + 76) + lwc1(g::updateframesf) * speed;
+    let angle = ps2float::add(lwc1(prop + 76), ps2float::mul(lwc1(g::updateframesf), speed));
     swc1(prop + 76, angle);
     if 360.0 <= angle {
-        swc1(prop + 76, angle - 360.0);
+        swc1(prop + 76, ps2float::sub(angle, 360.0));
     }
 }
 

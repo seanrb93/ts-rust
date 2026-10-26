@@ -9,31 +9,31 @@ pub fn hittestLineCyl(out: i32, normal: i32, base_x: f32, base_y: f32, base_z: f
     let frame = Frame::new(144);
     let sp = frame.sp();
     let start_x = lwc1(sp + 144);
-    let off_x = start_x - base_x;
+    let off_x = ps2float::sub(start_x, base_x);
     let start_z = lwc1(sp + 160);
-    let off_z = start_z - base_z;
+    let off_z = ps2float::sub(start_z, base_z);
     let start_y = lwc1(sp + 152);
-    let inv = (1.0_f32).pdiv((dir_x * dir_x + dir_z * dir_z).abs().psqrt());
-    let across = (off_z * dir_x - off_x * dir_z) * inv;
+    let inv = (1.0_f32).pdiv(ps2float::add(ps2float::mul(dir_x, dir_x), ps2float::mul(dir_z, dir_z)).abs().psqrt());
+    let across = ps2float::mul(ps2float::sub(ps2float::mul(off_z, dir_x), ps2float::mul(off_x, dir_z)), inv);
     if !(radius < across) && !(radius < -across) {
-        let half = ((radius + across) * (radius - across)).abs().psqrt();
-        let along = (off_x * dir_x + off_z * dir_z) * -inv;
-        let near = along - half;
-        let far = along + half;
-        if near < 0.0_f32 && (radius * radius) < near * near + across * across {
+        let half = ps2float::mul(ps2float::add(radius, across), ps2float::sub(radius, across)).abs().psqrt();
+        let along = ps2float::mul(ps2float::add(ps2float::mul(off_x, dir_x), ps2float::mul(off_z, dir_z)), -inv);
+        let near = ps2float::sub(along, half);
+        let far = ps2float::add(along, half);
+        if near < 0.0_f32 && ps2float::mul(radius, radius) < ps2float::add(ps2float::mul(near, near), ps2float::mul(across, across)) {
             return;
         }
         let y_near;
         if !(far < 0.0_f32) {
-            y_near = near * dir_y;
+            y_near = ps2float::mul(near, dir_y);
         } else {
-            if (radius * radius) < far * far + across * across {
+            if ps2float::mul(radius, radius) < ps2float::add(ps2float::mul(far, far), ps2float::mul(across, across)) {
                 return;
             }
-            y_near = near * dir_y;
+            y_near = ps2float::mul(near, dir_y);
         }
-        let top = base_y + height;
-        let y_enter = start_y + y_near;
+        let top = ps2float::add(base_y, height);
+        let y_enter = ps2float::add(start_y, y_near);
         let mut enter_side = 1;
         if !(top < y_enter) {
             enter_side = 2;
@@ -41,7 +41,7 @@ pub fn hittestLineCyl(out: i32, normal: i32, base_x: f32, base_y: f32, base_z: f
                 enter_side = 3;
             }
         }
-        let y_leave = start_y + far * dir_y;
+        let y_leave = ps2float::add(start_y, ps2float::mul(far, dir_y));
         let mut leave_side = 1;
         if !(top < y_leave) {
             leave_side = 2;
@@ -63,9 +63,9 @@ pub fn hittestLineCyl(out: i32, normal: i32, base_x: f32, base_y: f32, base_z: f
         } else if enter_side != 2 {
             return;
         }
-        swc1(out + 4, start_y + y_near);
-        swc1(out + 8, start_z + near * dir_z);
-        swc1(out, start_x + near * dir_x);
+        swc1(out + 4, ps2float::add(start_y, y_near));
+        swc1(out + 8, ps2float::add(start_z, ps2float::mul(near, dir_z)));
+        swc1(out, ps2float::add(start_x, ps2float::mul(near, dir_x)));
         swc1(normal, -dir_x);
         swc1(normal + 4, -dir_y);
         swc1(normal + 8, -dir_z);

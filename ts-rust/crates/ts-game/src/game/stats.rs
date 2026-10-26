@@ -29,7 +29,7 @@ pub fn StatsSet(stat: i32, slot: i32, value: f32) {
 pub fn StatsAdd(stat: i32, slot: i32, value: f32) {
     if stats_slot_in_play(slot) {
         let at = (stat << 2) + slot * PLAYER_STATS_SIZE + g::matchstats;
-        swc1(at, lwc1(at) + value);
+        swc1(at, ps2float::add(lwc1(at), value));
     }
 }
 

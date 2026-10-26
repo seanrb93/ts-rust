@@ -373,7 +373,7 @@ pub fn hudGfx() {
                 radar_row = window_top;
                 sb(sp + 2, 100);
                 sb(sp + 3, 96);
-                sb(sp + 1, (health * 5e+01_f32) as i32 + 50);
+                sb(sp + 1, ps2float::mul(health, 5e+01_f32) as i32 + 50);
                 sb(sp, 0);
                 if pain != 0 {
                     sb(sp + 3, 159);
@@ -382,14 +382,14 @@ pub fn hudGfx() {
                 let armour = lwc1(lw(lw(g::currentplayer) + 384) + 520);
                 if !(armour < 0.5_f32) {
                     sb(sp + 1, 127);
-                    sb(sp, (127.0_f32 - armour * 127.0_f32) as i32);
+                    sb(sp, ps2float::sub(127.0_f32, ps2float::mul(armour, 127.0_f32)) as i32);
                 } else {
                     sb(sp, 127);
-                    sb(sp + 1, (armour * 127.0_f32) as i32);
+                    sb(sp + 1, ps2float::mul(armour, 127.0_f32) as i32);
                 }
                 let hurt = lw(hud + 264);
                 sb(sp + 3, 96);
-                sb(sp + 2, (3e+01_f32 - armour * 3e+01_f32) as i32);
+                sb(sp + 2, ps2float::sub(3e+01_f32, ps2float::mul(armour, 3e+01_f32)) as i32);
                 if hurt != 0 {
                     sb(sp + 3, 127);
                 }
@@ -866,21 +866,21 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                         if !(height < lwc1(a2 + 16)) {
                             break 'prop;
                         }
-                        if !(lwc1(a2 + 4) < height + lwc1(0x3acd1c)) {
+                        if !(lwc1(a2 + 4) < ps2float::add(height, lwc1(0x3acd1c))) {
                             break 'prop;
                         }
                         remoteGetPivotePos(prop, sp + 48);
                         let margin = lwc1(0x3acd20);
-                        let reach = fraction_limit + margin;
-                        let dx = lwc1(sp + 48) - lwc1(a3);
-                        let dz = lwc1(sp + 56) - lwc1(a3 + 8);
-                        let distance = dx * dx + dz * dz;
+                        let reach = ps2float::add(fraction_limit, margin);
+                        let dx = ps2float::sub(lwc1(sp + 48), lwc1(a3));
+                        let dz = ps2float::sub(lwc1(sp + 56), lwc1(a3 + 8));
+                        let distance = ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz));
                         let radius_x;
-                        if !(distance < reach * reach) {
+                        if !(distance < ps2float::mul(reach, reach)) {
                             radius_x = lwc1(a4);
                         } else {
                             let length = distance.abs().psqrt();
-                            fraction_limit = length - margin;
+                            fraction_limit = ps2float::sub(length, margin);
                             if !(0.0_f32 < length) {
                                 swc1(sp + 16, 0.0_f32);
                                 swc1(sp + 20, 0.0_f32);
@@ -912,7 +912,7 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                         break 'prop;
                     }
                     let own = lw(sp + 88);
-                    if !(lwc1(a2 + 4) < height + f13) {
+                    if !(lwc1(a2 + 4) < ps2float::add(height, f13)) {
                         break 'prop;
                     }
                     if own == prop {
@@ -931,18 +931,18 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                         scale = 1.0_f32;
                         centre_x = lwc1(prop + 48);
                     }
-                    let reach = fraction_limit + f12;
-                    let dx = lwc1(a3) - centre_x;
-                    let dz = lwc1(a3 + 8) - lwc1(prop + 56);
-                    let distance = ((dx * dx + dz * dz)).pdiv((scale * scale));
+                    let reach = ps2float::add(fraction_limit, f12);
+                    let dx = ps2float::sub(lwc1(a3), centre_x);
+                    let dz = ps2float::sub(lwc1(a3 + 8), lwc1(prop + 56));
+                    let distance = (ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz))).pdiv((scale * scale));
                     let radius_x;
-                    if !(distance < reach * reach) {
+                    if !(distance < ps2float::mul(reach, reach)) {
                         radius_x = lwc1(a4);
                     } else {
                         'direction: {
                             'random: {
                                 let length = distance.abs().psqrt();
-                                fraction_limit = length - f12;
+                                fraction_limit = ps2float::sub(length, f12);
                                 if 0.0_f32 < length {
                                     if dx == 0.0_f32 {
                                         if dz == 0.0_f32 {
@@ -954,15 +954,15 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                                     break 'direction;
                                 }
                             }
-                            let first = random_as_float() * 2.3283064e-10_f32;
-                            swc1(sp + 16, first + first - 1.0_f32);
+                            let first = ps2float::mul(random_as_float(), 2.3283064e-10_f32);
+                            swc1(sp + 16, ps2float::sub(ps2float::add(first, first), 1.0_f32));
                             let second = random_as_float();
                             let rx = lwc1(sp + 16);
-                            let second = second * 2.3283064e-10_f32;
-                            let ry = second + second - 1.0_f32;
-                            let inverse = (1.0_f32).pdiv((rx * rx + ry * ry));
-                            swc1(sp + 20, ry * inverse);
-                            swc1(sp + 16, rx * inverse);
+                            let second = ps2float::mul(second, 2.3283064e-10_f32);
+                            let ry = ps2float::sub(ps2float::add(second, second), 1.0_f32);
+                            let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::mul(rx, rx), ps2float::mul(ry, ry)));
+                            swc1(sp + 20, ps2float::mul(ry, inverse));
+                            swc1(sp + 16, ps2float::mul(rx, inverse));
                         }
                         radius_x = lwc1(a4);
                     }
@@ -970,7 +970,7 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                     } else if lwc1(a4 + 4) == 0.0_f32 {
                         break 'prop;
                     }
-                    let radius = f12 * scale;
+                    let radius = ps2float::mul(f12, scale);
                     let fraction = hittestMoveCircleToCircle(sp + 32, lwc1(a3), lwc1(a3 + 8), radius, radius_x, lwc1(a4 + 4), lwc1(prop + 48), lwc1(prop + 56), radius);
                     let y = lwc1(sp + 36);
                     if fraction < best {

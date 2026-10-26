@@ -5,7 +5,7 @@ use crate::*;
 /// Move one moving part of a car model: the matrix at `dest` is copied from `source`, then moved by `pivot`, turned about the X axis by `angle_x` (and, with `angle_y`, about the
 /// Y axis first), and moved back (`sp` is the scratch matrix).
 fn car_part(sp: i32, dest: i32, source: i32, pivot: i32, rotation: i32, step: f32, angle_y: Option<f32>) {
-    swc1(rotation, lwc1(rotation) + step);
+    swc1(rotation, ps2float::add(lwc1(rotation), step));
     sceVu0CopyMatrix(dest, source);
     matrixTrans(sp, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
     sceVu0MulMatrix(dest, dest, sp);
@@ -31,11 +31,11 @@ pub fn carPropTick(a0: i32) {
         speed = 1.0_f32;
     }
     let absolute = lw(data);
-    let step = speed * lwc1(g::updateframesf);
-    swc1(a0 + 52, lwc1(a0 + 52) - lwc1(data + 80));
+    let step = ps2float::mul(speed, lwc1(g::updateframesf));
+    swc1(a0 + 52, ps2float::sub(lwc1(a0 + 52), lwc1(data + 80)));
     let height;
     if absolute != 0 {
-        pathPosUpdateRel(a0, step * lwc1(0x3ace0c) * lwc1(0x3ace10));
+        pathPosUpdateRel(a0, ps2float::mul(ps2float::mul(step, lwc1(0x3ace0c)), lwc1(0x3ace10)));
         height = lwc1(a0 + 52);
     } else {
         let value = dpmul(fptodp(step), ld(0x3a8150));
@@ -44,8 +44,8 @@ pub fn carPropTick(a0: i32) {
         height = lwc1(a0 + 52);
     }
     let kind = lw(a0 + 4);
-    swc1(a0 + 52, height + lwc1(data + 80));
-    let spin = lwc1(data + 96) * lwc1(0x3ace14);
+    swc1(a0 + 52, ps2float::add(height, lwc1(data + 80)));
+    let spin = ps2float::mul(lwc1(data + 96), lwc1(0x3ace14));
     swc1(data + 96, spin);
     let model_data = || lw(a0 + 32);
     let matrices = || lw(model_data() + 4);
@@ -54,26 +54,26 @@ pub fn carPropTick(a0: i32) {
             let angle = lwc1(data + 60);
             sw(sp + 288, a0 + 48);
             let to_radians = lwc1(0x3ace18);
-            let x = (lwc1(data + 52) * to_radians).pdiv(1.8e+02_f32);
-            let z = ((angle + spin) * to_radians).pdiv(1.8e+02_f32);
-            let y = (lwc1(data + 56) * to_radians).pdiv(1.8e+02_f32);
+            let x = ps2float::mul(lwc1(data + 52), to_radians).pdiv(1.8e+02_f32);
+            let z = ps2float::mul(ps2float::add(angle, spin), to_radians).pdiv(1.8e+02_f32);
+            let y = ps2float::mul(lwc1(data + 56), to_radians).pdiv(1.8e+02_f32);
             matrixRotZXY(matrices(), x, y, z);
         } else if kind >= 312 {
             if kind == 312 {
                 let frames = lw(g::gameframe) as f32;
                 let scale = lwc1(0x3ace34);
-                let phase = frames * lwc1(0x3ace30) * scale + 0.5_f32;
-                swc1(data + 104, lwc1(data + 104) + lwc1(g::updateframesf) * 31.0_f32);
+                let phase = ps2float::add(ps2float::mul(ps2float::mul(frames, lwc1(0x3ace30)), scale), 0.5_f32);
+                swc1(data + 104, ps2float::add(lwc1(data + 104), ps2float::mul(lwc1(g::updateframesf), 31.0_f32)));
                 let mut flags = 0;
                 if 0.5_f32 < lwc1(((phase as i32 & 2047) << 2) + g::g_SinTable) {
                     flags = 2;
                 }
                 let mut second = 0;
-                if 0.5_f32 < lwc1((((frames * lwc1(0x3ace38) * scale + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
+                if 0.5_f32 < lwc1(((ps2float::add(ps2float::mul(ps2float::mul(frames, lwc1(0x3ace38)), scale), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
                     second = 4;
                 }
                 let mut third = 0;
-                if 0.5_f32 < lwc1((((frames * lwc1(0x3ace3c) * scale + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
+                if 0.5_f32 < lwc1(((ps2float::add(ps2float::mul(ps2float::mul(frames, lwc1(0x3ace3c)), scale), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
                     third = 8;
                 }
                 let model = lw(a0 + 32);
@@ -98,7 +98,7 @@ pub fn carPropTick(a0: i32) {
                                 let pivot = lw(skeleton_header - lw(skeleton_header) * 80 + 72);
                                 let at = pivot + 12;
                                 matrixTrans(table + 448, lwc1(pivot + 12), lwc1(at + 4), lwc1(at + 8));
-                                matrixRotZXY(sp, (lwc1(data + 104) * lwc1(0x3ace44)).pdiv(1.8e+02_f32), 0.0_f32, 0.0_f32);
+                                matrixRotZXY(sp, ps2float::mul(lwc1(data + 104), lwc1(0x3ace44)).pdiv(1.8e+02_f32), 0.0_f32, 0.0_f32);
                                 let part = lw(lw(a0 + 32) + 4) + 448;
                                 sceVu0MulMatrix(part, part, sp);
                                 matrixTrans(sp, -lwc1(pivot + 12), -lwc1(at + 4), -lwc1(at + 8));
@@ -109,7 +109,7 @@ pub fn carPropTick(a0: i32) {
                                 let part = lw(model + 4) + 384;
                                 let pivot = lw(skeleton_header - lw(skeleton_header) * 80 + 72);
                                 matrixTrans(part, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-                                matrixRotZXY(sp, 0.0_f32, (lwc1(data + 104) * lwc1(0x3ace40)).pdiv(1.8e+02_f32), 0.0_f32);
+                                matrixRotZXY(sp, 0.0_f32, ps2float::mul(lwc1(data + 104), lwc1(0x3ace40)).pdiv(1.8e+02_f32), 0.0_f32);
                                 let part = lw(lw(a0 + 32) + 4) + 384;
                                 sceVu0MulMatrix(part, part, sp);
                                 matrixTrans(sp, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
@@ -120,9 +120,9 @@ pub fn carPropTick(a0: i32) {
                         }
                         let offset = if n == 6 { 384 } else if n == 7 { 448 } else { n << 6 };
                         let to_radians = lwc1(0x3ace48);
-                        let x = (lwc1(data + 52) * to_radians).pdiv(1.8e+02_f32);
-                        let z = ((lwc1(data + 60) + f0) * to_radians).pdiv(1.8e+02_f32);
-                        let y = (lwc1(data + 56) * to_radians).pdiv(1.8e+02_f32);
+                        let x = ps2float::mul(lwc1(data + 52), to_radians).pdiv(1.8e+02_f32);
+                        let z = ps2float::mul(ps2float::add(lwc1(data + 60), f0), to_radians).pdiv(1.8e+02_f32);
+                        let y = ps2float::mul(lwc1(data + 56), to_radians).pdiv(1.8e+02_f32);
                         n += 1;
                         matrixRotZXY(sp, x, y, z);
                         sceVu0CopyMatrix(sp + 224, lw(lw(a0 + 32) + 4) + offset);
@@ -143,15 +143,15 @@ pub fn carPropTick(a0: i32) {
                 let frames = lw(g::gameframe) as f32;
                 let scale = lwc1(0x3ace20);
                 let mut flags = 0;
-                if 0.5_f32 < lwc1((((frames * lwc1(0x3ace1c) * scale + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
+                if 0.5_f32 < lwc1(((ps2float::add(ps2float::mul(ps2float::mul(frames, lwc1(0x3ace1c)), scale), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
                     flags = 2;
                 }
                 let mut second = 0;
-                if 0.5_f32 < lwc1((((frames * lwc1(0x3ace24) * scale + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
+                if 0.5_f32 < lwc1(((ps2float::add(ps2float::mul(ps2float::mul(frames, lwc1(0x3ace24)), scale), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
                     second = 4;
                 }
                 let mut third = 0;
-                if 0.5_f32 < lwc1((((frames * lwc1(0x3ace28) * scale + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
+                if 0.5_f32 < lwc1(((ps2float::add(ps2float::mul(ps2float::mul(frames, lwc1(0x3ace28)), scale), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {
                     third = 8;
                 }
                 let model = lw(a0 + 32);
@@ -166,9 +166,9 @@ pub fn carPropTick(a0: i32) {
                         n += 1;
                         sceVu0UnitMatrix(table + offset);
                         let to_radians = lwc1(0x3ace2c);
-                        let x = (lwc1(data + 52) * to_radians).pdiv(1.8e+02_f32);
-                        let z = ((lwc1(data + 60) + lwc1(data + 96)) * to_radians).pdiv(1.8e+02_f32);
-                        let y = (lwc1(data + 56) * to_radians).pdiv(1.8e+02_f32);
+                        let x = ps2float::mul(lwc1(data + 52), to_radians).pdiv(1.8e+02_f32);
+                        let z = ps2float::mul(ps2float::add(lwc1(data + 60), lwc1(data + 96)), to_radians).pdiv(1.8e+02_f32);
+                        let y = ps2float::mul(lwc1(data + 56), to_radians).pdiv(1.8e+02_f32);
                         matrixRotZXY(sp, x, y, z);
                         sceVu0CopyMatrix(sp + 160, lw(lw(a0 + 32) + 4) + offset);
                         sceVu0MulMatrix(lw(lw(a0 + 32) + 4) + offset, sp, sp + 160);
@@ -201,55 +201,55 @@ pub fn carPropTick(a0: i32) {
                 swc1(target2 + 4, lwc1(arm2 + 4));
                 swc1(target2 + 8, lwc1(arm2 + 8));
                 let y = lwc1(a0 + 52);
-                let dx = lwc1(a0 + 48) - lwc1(arm);
+                let dx = ps2float::sub(lwc1(a0 + 48), lwc1(arm));
                 let z = lwc1(a0 + 56);
                 swc1(sp + 144, dx);
-                let dy = y - lwc1(arm + 4);
+                let dy = ps2float::sub(y, lwc1(arm + 4));
                 swc1(sp + 148, dy);
-                let dz = z - lwc1(arm + 8);
+                let dz = ps2float::sub(z, lwc1(arm + 8));
                 swc1(sp + 152, dz);
                 let ay = lwc1(arm + 4);
                 let az = lwc1(arm + 8);
-                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
-                let k = ((length + lwc1(pivot_a + 8))).pdiv(length);
-                swc1(arm, lwc1(arm) + k * lwc1(sp + 144));
-                let k = ((length + lwc1(pivot_a + 8))).pdiv(length);
-                swc1(arm + 4, ay + k * lwc1(sp + 148));
-                let k = ((length + lwc1(pivot_a + 8))).pdiv(length);
-                swc1(arm + 8, az + k * lwc1(sp + 152));
+                let length = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
+                let k = (ps2float::add(length, lwc1(pivot_a + 8))).pdiv(length);
+                swc1(arm, ps2float::add(lwc1(arm), ps2float::mul(k, lwc1(sp + 144))));
+                let k = (ps2float::add(length, lwc1(pivot_a + 8))).pdiv(length);
+                swc1(arm + 4, ps2float::add(ay, ps2float::mul(k, lwc1(sp + 148))));
+                let k = (ps2float::add(length, lwc1(pivot_a + 8))).pdiv(length);
+                swc1(arm + 8, ps2float::add(az, ps2float::mul(k, lwc1(sp + 152))));
                 sw(a0 + 76, 0);
                 let bearing_a = atan2f(lwc1(sp + 144), lwc1(sp + 152));
-                let dx = lwc1(arm) - lwc1(arm + 12);
+                let dx = ps2float::sub(lwc1(arm), lwc1(arm + 12));
                 swc1(sp + 144, dx);
-                let dy = lwc1(arm + 4) - lwc1(arm2 + 4);
+                let dy = ps2float::sub(lwc1(arm + 4), lwc1(arm2 + 4));
                 swc1(sp + 148, dy);
-                let dz = lwc1(arm + 8) - lwc1(arm2 + 8);
+                let dz = ps2float::sub(lwc1(arm + 8), lwc1(arm2 + 8));
                 swc1(sp + 152, dz);
                 let reach = lwc1(pivot_b + 8);
                 let sx = lwc1(sp + 144);
-                let reach = reach - lwc1(pivot_a + 8);
+                let reach = ps2float::sub(reach, lwc1(pivot_a + 8));
                 sw(sp + 288, a0 + 48);
                 let full = lwc1(0x3ace4c);
-                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
-                swc1(arm + 12, lwc1(arm + 12) + ((length + reach)).pdiv(length) * sx);
+                let length = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
+                swc1(arm + 12, ps2float::add(lwc1(arm + 12), ps2float::mul((ps2float::add(length, reach)).pdiv(length), sx)));
                 let az2 = lwc1(arm2 + 8);
-                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
-                swc1(arm2 + 4, lwc1(arm2 + 4) + ((length + (lwc1(pivot_b + 8) - lwc1(pivot_a + 8)))).pdiv(length) * lwc1(sp + 148));
-                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
-                swc1(arm2 + 8, az2 + ((length + (lwc1(pivot_b + 8) - lwc1(pivot_a + 8)))).pdiv(length) * lwc1(sp + 152));
+                let length = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
+                swc1(arm2 + 4, ps2float::add(lwc1(arm2 + 4), ps2float::mul((ps2float::add(length, ps2float::sub(lwc1(pivot_b + 8), lwc1(pivot_a + 8)))).pdiv(length), lwc1(sp + 148))));
+                let length = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
+                swc1(arm2 + 8, ps2float::add(az2, ps2float::mul((ps2float::add(length, ps2float::sub(lwc1(pivot_b + 8), lwc1(pivot_a + 8)))).pdiv(length), lwc1(sp + 152))));
                 let bearing_b = atan2f(lwc1(sp + 144), lwc1(sp + 152));
                 matrixTrans(matrices(), 0.0_f32, 0.0_f32, 0.0_f32);
                 matrixRotY(matrices() + 64, bearing_a);
-                let speed_step = step * lwc1(0x3ace50);
-                let degrees = (bearing_a * 1.8e+02_f32).pdiv(full);
+                let speed_step = ps2float::mul(step, lwc1(0x3ace50));
+                let degrees = ps2float::mul(bearing_a, 1.8e+02_f32).pdiv(full);
                 let heading = lwc1(data + 56);
                 let base = matrices();
                 let pivot = lw(skeleton + 232);
-                swc1(g::rot_123, lwc1(g::rot_123) + speed_step);
+                swc1(g::rot_123, ps2float::add(lwc1(g::rot_123), speed_step));
                 sceVu0CopyMatrix(base + 128, base + 64);
                 matrixTrans(sp, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
                 sceVu0MulMatrix(matrices() + 128, matrices() + 128, sp);
-                matrixRotY(sp, ((heading - degrees) * full).pdiv(1.8e+02_f32));
+                matrixRotY(sp, ps2float::mul(ps2float::sub(heading, degrees), full).pdiv(1.8e+02_f32));
                 sceVu0MulMatrix(matrices() + 128, matrices() + 128, sp);
                 matrixRotX(sp, lwc1(g::rot_123));
                 sceVu0MulMatrix(matrices() + 128, matrices() + 128, sp);
@@ -257,15 +257,15 @@ pub fn carPropTick(a0: i32) {
                 sceVu0MulMatrix(matrices() + 128, matrices() + 128, sp);
                 let base = matrices();
                 let pivot = lw(skeleton + 312);
-                let heading2 = lwc1(data + 56) - degrees;
-                car_part(sp, base + 192, base + 64, pivot, g::rot_124, speed_step, Some((heading2 * full).pdiv(1.8e+02_f32)));
+                let heading2 = ps2float::sub(lwc1(data + 56), degrees);
+                car_part(sp, base + 192, base + 64, pivot, g::rot_124, speed_step, Some(ps2float::mul(heading2, full).pdiv(1.8e+02_f32)));
                 let base = matrices();
                 let pivot = lw(skeleton + 392);
                 car_part(sp, base + 256, base + 64, pivot, g::rot_125, speed_step, None);
                 let base = matrices();
                 let pivot = lw(skeleton + 472);
                 car_part(sp, base + 320, base + 64, pivot, g::rot_126, speed_step, None);
-                matrixTrans(matrices() + 384, lwc1(arm) - lwc1(a0 + 48), lwc1(arm + 4) - lwc1(a0 + 52), lwc1(arm + 8) - lwc1(a0 + 56));
+                matrixTrans(matrices() + 384, ps2float::sub(lwc1(arm), lwc1(a0 + 48)), ps2float::sub(lwc1(arm + 4), lwc1(a0 + 52)), ps2float::sub(lwc1(arm + 8), lwc1(a0 + 56)));
                 matrixRotY(sp, bearing_b);
                 sceVu0MulMatrix(matrices() + 384, matrices() + 384, sp);
                 matrixTrans(sp, 0.0_f32, 0.0_f32, lwc1(0x3ace54));
@@ -321,16 +321,16 @@ pub fn camTick() {
                 let to_radians = lwc1(0x3acfcc);
                 let full = 1.8e+02_f32;
                 let near = lwc1(g::near_105);
-                let aspect = (lw(window + 12) as f32 * ratio).pdiv(lw(window + 32) as f32);
-                let fov = (lwc1(now + 260) * to_radians).pdiv(full);
+                let aspect = ps2float::mul(lw(window + 12) as f32, ratio).pdiv(lw(window + 32) as f32);
+                let fov = ps2float::mul(lwc1(now + 260), to_radians).pdiv(full);
                 let far = lwc1(g::far_106);
                 matrixPerspective(lw(now + 1760), aspect, fov, near, far);
-                let half = tanf((lwc1(lw(g::currentplayer) + 260) * 0.5_f32 * to_radians).pdiv(full));
+                let half = tanf(ps2float::mul(ps2float::mul(lwc1(lw(g::currentplayer) + 260), 0.5_f32), to_radians).pdiv(full));
                 let height = lw(window + 32) as f32;
                 let now = lw(g::currentplayer);
                 let width = lw(window + 12) as f32;
                 swc1(now + 252, half);
-                swc1(now + 256, half * ratio * ((width).pdiv(height)));
+                swc1(now + 256, ps2float::mul(ps2float::mul(half, ratio), ((width).pdiv(height))));
                 let mode = camGetMode();
                 if (mode as u32) < (10 as u32) {
                     let mut eye = 0;
@@ -375,12 +375,12 @@ pub fn camTick() {
                                             break 'b2;
                                         }
                                         let back = 2.5_f32;
-                                        let dy = lwc1(player + 192) * back;
+                                        let dy = ps2float::mul(lwc1(player + 192), back);
                                         let room = lw(player + 896);
-                                        let dz = lwc1(player + 196) * back;
-                                        swc1(player + 884, lwc1(target + 48) - lwc1(player + 188) * back);
-                                        swc1(player + 888, lwc1(target + 52) - dy);
-                                        swc1(player + 892, lwc1(target + 56) - dz);
+                                        let dz = ps2float::mul(lwc1(player + 196), back);
+                                        swc1(player + 884, ps2float::sub(lwc1(target + 48), ps2float::mul(lwc1(player + 188), back)));
+                                        swc1(player + 888, ps2float::sub(lwc1(target + 52), dy));
+                                        swc1(player + 892, ps2float::sub(lwc1(target + 56), dz));
                                         if room != 0 {
                                             sw(player + 900, room);
                                         }
@@ -442,7 +442,7 @@ pub fn camTick() {
                                         swc1(0x3b0128, 0.5_f32);
                                         swc1(0x3b0124, 3e+01_f32);
                                         let _ = angle;
-                                        let angle = angle + lwc1(0x3acfd4);
+                                        let angle = ps2float::add(angle, lwc1(0x3acfd4));
                                         swc1(0x3b0120, angle);
                                         let size = fptodp(lwc1(player + 116));
                                         let half = dpmul(size, 0x3fe0000000000000_i64);
@@ -470,10 +470,10 @@ pub fn camTick() {
                                         }
                                         let to_radians = lwc1(0x3acfd8);
                                         let full = 1.8e+02_f32;
-                                        let cos_a = cosf((angle * to_radians).pdiv(full));
-                                        let sin_a = sinf((lwc1(0x3b0120) * to_radians).pdiv(full));
-                                        let cos_b = cosf((lwc1(0x3b0124) * to_radians).pdiv(full));
-                                        let sin_b = sinf((lwc1(0x3b0124) * to_radians).pdiv(full));
+                                        let cos_a = cosf(ps2float::mul(angle, to_radians).pdiv(full));
+                                        let sin_a = sinf(ps2float::mul(lwc1(0x3b0120), to_radians).pdiv(full));
+                                        let cos_b = cosf(ps2float::mul(lwc1(0x3b0124), to_radians).pdiv(full));
+                                        let sin_b = sinf(ps2float::mul(lwc1(0x3b0124), to_radians).pdiv(full));
                                         prop_now = lw(player + 896);
                                         let dx = cos_b * sin_a;
                                         swc1(sp + 52, sin_b);
@@ -483,11 +483,11 @@ pub fn camTick() {
                                         let distance = lwc1(0x3b0128);
                                         let x = lwc1(chr + 48);
                                         swc1(sp + 32, x);
-                                        swc1(sp + 36, lwc1(chr + 52) + lift);
+                                        swc1(sp + 36, ps2float::add(lwc1(chr + 52), lift));
                                         swc1(sp + 40, lwc1(chr + 56));
-                                        swc1(player + 884, x + distance * dx);
-                                        swc1(player + 888, lwc1(sp + 36) + distance * lwc1(sp + 52));
-                                        swc1(player + 892, lwc1(sp + 40) + distance * lwc1(sp + 56));
+                                        swc1(player + 884, ps2float::add(x, ps2float::mul(distance, dx)));
+                                        swc1(player + 888, ps2float::add(lwc1(sp + 36), ps2float::mul(distance, lwc1(sp + 52))));
+                                        swc1(player + 892, ps2float::add(lwc1(sp + 40), ps2float::mul(distance, lwc1(sp + 56))));
                                         eye = player + 884;
                                         break 'match_end true;
                                     }
@@ -516,11 +516,11 @@ pub fn camTick() {
                                 'b15: {
                                     let slow = 2e+01_f32;
                                     let zoom = joyGetAxisLOCAL(1, 3);
-                                    swc1(0x3b0128, lwc1(0x3b0128) - (zoom).pdiv(slow));
+                                    swc1(0x3b0128, ps2float::sub(lwc1(0x3b0128), (zoom).pdiv(slow)));
                                     eye = player + 884;
                                     if (joyButLOCAL(1) & 64) == 0 {
                                         let turn = joyGetAxisLOCAL(1, 0);
-                                        let mut yaw = lwc1(0x3b0120) + (turn * 1.8e+02_f32).pdiv(6e+01_f32);
+                                        let mut yaw = ps2float::add(lwc1(0x3b0120), ps2float::mul(turn, 1.8e+02_f32).pdiv(6e+01_f32));
                                         swc1(0x3b0120, yaw);
                                         if 3.6e+02_f32 < yaw {
                                             loop {
@@ -541,7 +541,7 @@ pub fn camTick() {
                                             }
                                         }
                                         let pitch_turn = joyGetAxisLOCAL(1, 1);
-                                        let mut pitch = lwc1(0x3b0124) + (pitch_turn * 1.8e+02_f32).pdiv(6e+01_f32);
+                                        let mut pitch = ps2float::add(lwc1(0x3b0124), ps2float::mul(pitch_turn, 1.8e+02_f32).pdiv(6e+01_f32));
                                         swc1(0x3b0124, pitch);
                                         angle_x = lwc1(0x3b0120);
                                         if 3.6e+02_f32 < pitch {
@@ -564,18 +564,18 @@ pub fn camTick() {
                                         }
                                     } else {
                                         let up = joyGetAxisLOCAL(1, 1);
-                                        swc1(0x3b0130, lwc1(0x3b0130) + (up).pdiv(slow));
+                                        swc1(0x3b0130, ps2float::add(lwc1(0x3b0130), (up).pdiv(slow)));
                                         let side = joyGetAxisLOCAL(1, 0);
                                         angle_x = lwc1(0x3b0120);
-                                        swc1(0x3b012c, lwc1(0x3b012c) + (side).pdiv(slow));
+                                        swc1(0x3b012c, ps2float::add(lwc1(0x3b012c), (side).pdiv(slow)));
                                     }
                                 }
                                 let to_radians = lwc1(0x3acfd0);
                                 let full = 1.8e+02_f32;
-                                let cos_a = cosf((angle_x * to_radians).pdiv(full));
-                                let sin_a = sinf((lwc1(0x3b0120) * to_radians).pdiv(full));
-                                let cos_b = cosf((lwc1(0x3b0124) * to_radians).pdiv(full));
-                                let sin_b = sinf((lwc1(0x3b0124) * to_radians).pdiv(full));
+                                let cos_a = cosf(ps2float::mul(angle_x, to_radians).pdiv(full));
+                                let sin_a = sinf(ps2float::mul(lwc1(0x3b0120), to_radians).pdiv(full));
+                                let cos_b = cosf(ps2float::mul(lwc1(0x3b0124), to_radians).pdiv(full));
+                                let sin_b = sinf(ps2float::mul(lwc1(0x3b0124), to_radians).pdiv(full));
                                 let z_dir = cos_b * cos_a;
                                 let mode_view = lw(g::viewprop_mode);
                                 let x_dir = cos_b * sin_a;
@@ -595,12 +595,12 @@ pub fn camTick() {
                                     let lift = lwc1(0x3b0130);
                                     swc1(sp + 32, x);
                                     let side = lwc1(0x3b012c);
-                                    let y = lwc1(viewed + 52) + lift;
-                                    let nx = x + side * z_dir;
+                                    let y = ps2float::add(lwc1(viewed + 52), lift);
+                                    let nx = ps2float::add(x, ps2float::mul(side, z_dir));
                                     swc1(sp + 36, y);
                                     let z = lwc1(viewed + 56);
                                     swc1(sp + 32, nx);
-                                    let nz = z - side * x_dir;
+                                    let nz = ps2float::sub(z, ps2float::mul(side, x_dir));
                                     swc1(saved + 4, y);
                                     swc1(sp + 40, nz);
                                     swc1(saved + 8, nz);
@@ -608,9 +608,9 @@ pub fn camTick() {
                                     if mode_view == 0 {
                                         let distance = lwc1(0x3b0128);
                                         let place = 0x1fe9930;
-                                        swc1(player + 884, nx + distance * x_dir);
-                                        swc1(player + 888, lwc1(sp + 36) + distance * lwc1(sp + 52));
-                                        swc1(player + 892, lwc1(sp + 40) + distance * lwc1(sp + 56));
+                                        swc1(player + 884, ps2float::add(nx, ps2float::mul(distance, x_dir)));
+                                        swc1(player + 888, ps2float::add(lwc1(sp + 36), ps2float::mul(distance, lwc1(sp + 52))));
+                                        swc1(player + 892, ps2float::add(lwc1(sp + 40), ps2float::mul(distance, lwc1(sp + 56))));
                                         let y = lwc1(sp + 36);
                                         let z = lwc1(sp + 40);
                                         swc1(0x1fe9930, lwc1(sp + 32));
@@ -632,15 +632,15 @@ pub fn camTick() {
                     // modes 1 and 2: behind the player's eyes, pushed in by the walls
                     let distance = lwc1(0x3b0128);
                     let room = lw(player + 896);
-                    let back_x = -(distance * lwc1(player + 188));
+                    let back_x = -ps2float::mul(distance, lwc1(player + 188));
                     swc1(sp + 48, back_x);
-                    swc1(sp + 52, -(distance * lwc1(player + 192)));
-                    swc1(sp + 56, -(distance * lwc1(player + 196)));
+                    swc1(sp + 52, -ps2float::mul(distance, lwc1(player + 192)));
+                    swc1(sp + 56, -ps2float::mul(distance, lwc1(player + 196)));
                     let y = lwc1(player + 156);
                     let z = lwc1(player + 160);
-                    swc1(player + 884, lwc1(player + 152) + back_x);
-                    swc1(player + 888, y + lwc1(sp + 52));
-                    swc1(player + 892, z + lwc1(sp + 56));
+                    swc1(player + 884, ps2float::add(lwc1(player + 152), back_x));
+                    swc1(player + 888, ps2float::add(y, lwc1(sp + 52)));
+                    swc1(player + 892, ps2float::add(z, lwc1(sp + 56)));
                     if room != 0 {
                         sw(player + 900, room);
                     }

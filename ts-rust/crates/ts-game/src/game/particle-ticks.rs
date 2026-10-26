@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from -0.5 up to 0.5.
 fn random_centred() -> f32 {
-    random_as_float() * 2.3283064e-10_f32 - 0.5_f32
+    ps2float::sub(ps2float::mul(random_as_float(), 2.3283064e-10_f32), 0.5_f32)
 }
 
 /// Add new points to a trail group (points of three floats at +928, +932 and +936 with a stride of 12, up to 100; the time of each point from +3728, and its spread at +2128, +2528,
@@ -20,14 +20,14 @@ pub fn particleTrailTick(group: i32) {
             particleFree(group);
             return;
         }
-        if (lwc1(group + 3728) + lwc1(group + 16)) <= lwc1(group + 12) {
+        if ps2float::add(lwc1(group + 3728), lwc1(group + 16)) <= lwc1(group + 12) {
             particleFree(group);
             return;
         }
     }
     if count != 0 {
         if count < 100 {
-            todo = (((lwc1(group + 12) - lwc1(group + 3728))).pdiv(((1.0_f32).pdiv(rate as f32)))) as i32;
+            todo = ((ps2float::sub(lwc1(group + 12), lwc1(group + 3728))).pdiv(((1.0_f32).pdiv(rate as f32)))) as i32;
         }
     } else {
         todo = 1;
@@ -44,23 +44,23 @@ pub fn particleTrailTick(group: i32) {
             let at = group + 2128 + (lw(group + 24) << 2);
             let kind = lw(group + 4);
             let info = g::particleinfos;
-            swc1(at, r * lwc1(info + kind * 104 + 36));
+            swc1(at, ps2float::mul(r, lwc1(info + kind * 104 + 36)));
             let r = random_centred();
             let at = lw(group + 24) * 12 + (group + 2528);
             let spread = lw(group + 4) * 104 + (info + 68);
             let base = lw(group + 4) * 104 + (info + 56);
-            swc1(at, lwc1(base) + lwc1(spread) * r);
+            swc1(at, ps2float::add(lwc1(base), ps2float::mul(lwc1(spread), r)));
             let r = random_centred();
             let kind = lw(group + 4);
             let at = lw(group + 24) * 12 + (group + 2532);
-            swc1(at, lwc1(kind * 104 + (info + 60)) + lwc1(kind * 104 + (info + 72)) * r + lwc1(info + kind * 104 + 52));
+            swc1(at, ps2float::add(ps2float::add(lwc1(kind * 104 + (info + 60)), ps2float::mul(lwc1(kind * 104 + (info + 72)), r)), lwc1(info + kind * 104 + 52)));
             let r = random_centred();
             let at = lw(group + 24) * 12 + (group + 2536);
             let spread = lw(group + 4) * 104 + (info + 76);
             let base = lw(group + 4) * 104 + (info + 64);
             made += 1;
             let more = made < todo;
-            swc1(at, lwc1(base) + lwc1(spread) * r);
+            swc1(at, ps2float::add(lwc1(base), ps2float::mul(lwc1(spread), r)));
             let now = lw(group + 24) + 1;
             sw(group + 24, now);
             if !more || now >= 100 {
@@ -83,13 +83,13 @@ pub fn particleStreamTick(group: i32) {
     let last = if -1 >= before { index + 99 } else { before };
     if rate == 0 {
         let count = lw(group + 24);
-        if count == 0 || (lwc1(group + (last << 2) + 3332) + lwc1(group + 16)) <= lwc1(group + 12) {
+        if count == 0 || ps2float::add(lwc1(group + (last << 2) + 3332), lwc1(group + 16)) <= lwc1(group + 12) {
             particleFree(group);
             return;
         }
     }
     let count = lw(group + 24);
-    let moved = head + rate as f32 * ((lw(g::updateframesi) as f32).pdiv(60.0_f32));
+    let moved = ps2float::add(head, ps2float::mul(rate as f32, ((lw(g::updateframesi) as f32).pdiv(60.0_f32))));
     let whole = moved as i32;
     swc1(group + 928, moved);
     if count < whole {
@@ -98,7 +98,7 @@ pub fn particleStreamTick(group: i32) {
     let mut position = lwc1(group + 928);
     if (position as i32) >= 100 {
         sw(group + 24, 100);
-        let wrapped = position - 100.0_f32;
+        let wrapped = ps2float::sub(position, 100.0_f32);
         swc1(group + 928, wrapped);
         position = wrapped;
     }
@@ -109,18 +109,18 @@ pub fn particleStreamTick(group: i32) {
             swc1(group + 936 + index * 12, lwc1(group + 32));
             swc1(group + 940 + index * 12, lwc1(group + 36));
             let r = random_centred();
-            swc1(group + 2132 + offset, lwc1(info + 56) + lwc1(info + 68) * r);
+            swc1(group + 2132 + offset, ps2float::add(lwc1(info + 56), ps2float::mul(lwc1(info + 68), r)));
             let r = random_centred();
-            swc1(group + 2136 + offset, lwc1(info + 60) + lwc1(info + 72) * r);
+            swc1(group + 2136 + offset, ps2float::add(lwc1(info + 60), ps2float::mul(lwc1(info + 72), r)));
             let r = random_centred();
             let times = group + 3332 + (index << 2);
-            swc1(group + 2140 + offset, lwc1(info + 64) + lwc1(info + 76) * r);
+            swc1(group + 2140 + offset, ps2float::add(lwc1(info + 64), ps2float::mul(lwc1(info + 76), r)));
             swc1(times, lwc1(group + 12));
             let r = random_centred();
             let spreads = group + 3732 + (index << 2);
             let next = index + 1;
             index = if next >= 100 { 0 } else { next };
-            swc1(spreads, r * lwc1(info + 36));
+            swc1(spreads, ps2float::mul(r, lwc1(info + 36)));
             if index == lwc1(group + 928) as i32 {
                 break;
             }
@@ -136,10 +136,10 @@ pub fn particleStreamTick(group: i32) {
             let x_at = group + 932 + offset;
             let y_at = group + 936 + offset;
             let z_at = group + 940 + offset;
-            swc1(y_speed, lwc1(y_speed) + lwc1(info + 52) * step);
-            swc1(x_at, lwc1(x_at) + lwc1(group + 2132 + offset) * step);
-            swc1(y_at, lwc1(y_at) + lwc1(y_speed) * step);
-            swc1(z_at, lwc1(z_at) + lwc1(group + 2140 + offset) * step);
+            swc1(y_speed, ps2float::add(lwc1(y_speed), ps2float::mul(lwc1(info + 52), step)));
+            swc1(x_at, ps2float::add(lwc1(x_at), ps2float::mul(lwc1(group + 2132 + offset), step)));
+            swc1(y_at, ps2float::add(lwc1(y_at), ps2float::mul(lwc1(y_speed), step)));
+            swc1(z_at, ps2float::add(lwc1(z_at), ps2float::mul(lwc1(group + 2140 + offset), step)));
             if k >= lw(group + 24) {
                 break;
             }

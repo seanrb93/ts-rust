@@ -5,18 +5,18 @@ use crate::*;
 /// The tick of the front end's background: the two scroll places in y (`frontbgtranslatey1` and `2`) and the time move by the game's steps, the places going back by 1 once they
 /// reach 1, the place in x is set and the third one in x moves left by a double step, to not less than -1 (@ 0x22b600).
 pub fn frontfxBgTick() {
-    let first = lwc1(g::frontbgtranslatey1) + lwc1(0x3ac938);
+    let first = ps2float::add(lwc1(g::frontbgtranslatey1), lwc1(0x3ac938));
     let one = 1.0_f32;
-    let time = lwc1(g::frontbgtime) + lwc1(0x3ac93c);
+    let time = ps2float::add(lwc1(g::frontbgtime), lwc1(0x3ac93c));
     swc1(g::frontbgtranslatey1, first);
     swc1(g::frontbgtime, time);
     if one <= first {
-        swc1(g::frontbgtranslatey1, first - one);
+        swc1(g::frontbgtranslatey1, ps2float::sub(first, one));
     }
-    let second = lwc1(g::frontbgtranslatey2) + lwc1(0x3ac940);
+    let second = ps2float::add(lwc1(g::frontbgtranslatey2), lwc1(0x3ac940));
     swc1(g::frontbgtranslatey2, second);
     if one <= second {
-        swc1(g::frontbgtranslatey2, second - one);
+        swc1(g::frontbgtranslatey2, ps2float::sub(second, one));
     }
     let third = lwc1(g::frontbgtranslatex3);
     swc1(g::frontbgtranslatex1, lwc1(0x3ac944));
@@ -32,7 +32,7 @@ pub fn frontfxBgTick() {
 /// The tick of the goodies' glow in the front end: the time goes on, the place of the glow (`frontfxlpos`) moves right by 3 and goes back to -64 at 596, and the alpha of each of
 /// the 512 columns is 80 times the square of how close it is to the glow (nothing past 35 away) (@ 0x22be98).
 pub fn frontfxGoodiesTick() {
-    let time = lwc1(g::frontfxgoodiestime) + lwc1(0x3ac968);
+    let time = ps2float::add(lwc1(g::frontfxgoodiestime), lwc1(0x3ac968));
     let mut place = lw(g::frontfxlpos) + 3;
     sw(g::frontfxlpos, place);
     swc1(g::frontfxgoodiestime, time);
@@ -47,10 +47,10 @@ pub fn frontfxGoodiesTick() {
         let glow = if 35.0_f32 < distance {
             0.0_f32
         } else {
-            let t = ((35.0_f32 - distance)).pdiv(35.0_f32);
-            t * t
+            let t = (ps2float::sub(35.0_f32, distance)).pdiv(35.0_f32);
+            ps2float::mul(t, t)
         };
-        sb(column + g::frontfxalpha, (glow * 8e+01_f32 + 0.0_f32) as i32);
+        sb(column + g::frontfxalpha, ps2float::add(ps2float::mul(glow, 8e+01_f32), 0.0_f32) as i32);
         column += 1;
         if column >= 512 {
             break;

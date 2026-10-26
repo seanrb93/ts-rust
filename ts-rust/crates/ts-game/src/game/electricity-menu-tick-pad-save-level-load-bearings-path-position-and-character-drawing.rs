@@ -33,9 +33,9 @@ pub fn electricityPropTick(a0: i32) {
                             let mut coordinate = coordinates;
                             let mut source_uv = lw(entry + 52);
                             let mut source = lw(entry + 48);
-                            let time = lw(g::gameframe) as f32 * 12.0_f32 * lwc1(0x3acef8);
+                            let time = ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, 12.0_f32), lwc1(0x3acef8));
                             if lw(g::updateframesi) != 0 {
-                                swc1(offset + g::electricityTextureOffset, random_as_float() * 2.3283064e-10_f32);
+                                swc1(offset + g::electricityTextureOffset, ps2float::mul(random_as_float(), 2.3283064e-10_f32));
                             }
                             let count = lw(sp);
                             let mut i = 0;
@@ -52,15 +52,15 @@ pub fn electricityPropTick(a0: i32) {
                                 let scale = lwc1(0x3acefc);
                                 let amplitude = lwc1(0x3acf00);
                                 i += 1;
-                                let wave_a = lwc1((((((x * 8.0_f32 + time) * scale + 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable);
-                                let wave_b = lwc1(((((((lwc1(source + 8) * 8.0_f32 + time) * scale + 0.5_f32) as i32) + 512) & 2047) << 2) + g::g_SinTable);
+                                let wave_a = lwc1((((ps2float::add(ps2float::mul(ps2float::add(ps2float::mul(x, 8.0_f32), time), scale), 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable);
+                                let wave_b = lwc1(((((ps2float::add(ps2float::mul(ps2float::add(ps2float::mul(lwc1(source + 8), 8.0_f32), time), scale), 0.5_f32) as i32) + 512) & 2047) << 2) + g::g_SinTable);
                                 swc1(vertex, x);
-                                swc1(vertex + 4, lwc1(source + 4) + wave_a * amplitude + wave_b * amplitude);
+                                swc1(vertex + 4, ps2float::add(ps2float::add(lwc1(source + 4), ps2float::mul(wave_a, amplitude)), ps2float::mul(wave_b, amplitude)));
                                 let z = lwc1(source + 8);
                                 source += 12;
                                 swc1(vertex + 8, z);
                                 vertex += 12;
-                                swc1(coordinate, lwc1(source_uv) + lwc1((line << 2) + g::electricityTextureOffset));
+                                swc1(coordinate, ps2float::add(lwc1(source_uv), lwc1((line << 2) + g::electricityTextureOffset)));
                                 let v = lwc1(source_uv + 4);
                                 swc1(coordinate + 12, 1.0_f32);
                                 source_uv += 16;
@@ -105,11 +105,11 @@ pub fn electricityPropTick(a0: i32) {
             let frames = lw(g::updateframesi);
             sw(sp + 4, lw(sp + 4) + 1);
             sh(model + 292, mask | on << (next & 31));
-            swc1(time, old + step);
+            swc1(time, ps2float::add(old, step));
             if frames != 0 {
-                let random = random_as_float() * 2.3283064e-10_f32;
+                let random = ps2float::mul(random_as_float(), 2.3283064e-10_f32);
                 let at = offset + g::electricityOn;
-                if ((random).pdiv(lwc1(g::updateframesf)) * limit + limit) <= lwc1(time) {
+                if ps2float::add(ps2float::mul((random).pdiv(lwc1(g::updateframesf)), limit), limit) <= lwc1(time) {
                     sw(at, 0);
                 }
             }
@@ -700,10 +700,10 @@ pub fn findbearings(a0: i32) {
                 let current = lw(state + 680);
                 if current >= 0 {
                     let at = current * 28 + lw(g::levelpads);
-                    let dy = lwc1(a0 + 52) - lwc1(at + 16);
-                    let dx = lwc1(a0 + 48) - lwc1(at + 12);
-                    let dz = lwc1(a0 + 56) - lwc1(at + 20);
-                    let distance = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+                    let dy = ps2float::sub(lwc1(a0 + 52), lwc1(at + 16));
+                    let dx = ps2float::sub(lwc1(a0 + 48), lwc1(at + 12));
+                    let dz = ps2float::sub(lwc1(a0 + 56), lwc1(at + 20));
+                    let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
                     pad = closestpad(position, distance);
                     break 'nearest;
                 }
@@ -716,9 +716,9 @@ pub fn findbearings(a0: i32) {
             let z = lwc1(a0 + 56);
             let room = lw(a0 + 12);
             let at = pad * 28 + lw(g::levelpads);
-            swc1(sp + 16, lwc1(at + 12) - lwc1(a0 + 48));
-            swc1(sp + 20, lwc1(at + 16) - y);
-            swc1(sp + 24, lwc1(at + 20) - z);
+            swc1(sp + 16, ps2float::sub(lwc1(at + 12), lwc1(a0 + 48)));
+            swc1(sp + 20, ps2float::sub(lwc1(at + 16), y));
+            swc1(sp + 24, ps2float::sub(lwc1(at + 20), z));
             swc1(sp + 32, lwc1(state + 3008));
             swc1(sp + 36, lwc1(state + 3012));
             let height = lwc1(state + 3016);
@@ -740,10 +740,10 @@ pub fn findbearings(a0: i32) {
                             let mut offset = pad * 28;
                             loop {
                                 let at = offset + lw(g::levelpads);
-                                let dy = lwc1(a0 + 52) - lwc1(at + 16);
-                                let dx = lwc1(a0 + 48) - lwc1(at + 12);
-                                let dz = lwc1(a0 + 56) - lwc1(at + 20);
-                                let distance = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+                                let dy = ps2float::sub(lwc1(a0 + 52), lwc1(at + 16));
+                                let dx = ps2float::sub(lwc1(a0 + 48), lwc1(at + 12));
+                                let dz = ps2float::sub(lwc1(a0 + 56), lwc1(at + 20));
+                                let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
                                 pad = closestpad(position, distance);
                                 let new_offset = pad * 28;
                                 if pad != -1 {
@@ -751,9 +751,9 @@ pub fn findbearings(a0: i32) {
                                     let z = lwc1(a0 + 56);
                                     let at = new_offset + lw(g::levelpads);
                                     let room = lw(a0 + 12);
-                                    swc1(sp + 16, lwc1(at + 12) - lwc1(a0 + 48));
-                                    swc1(sp + 20, lwc1(at + 16) - y);
-                                    swc1(sp + 24, lwc1(at + 20) - z);
+                                    swc1(sp + 16, ps2float::sub(lwc1(at + 12), lwc1(a0 + 48)));
+                                    swc1(sp + 20, ps2float::sub(lwc1(at + 16), y));
+                                    swc1(sp + 24, ps2float::sub(lwc1(at + 20), z));
                                     swc1(sp + 32, lwc1(state + 3008));
                                     swc1(sp + 36, lwc1(state + 3012));
                                     let height = lwc1(state + 3016);
@@ -829,41 +829,41 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                                 let px = lwc1(a0 + 48);
                                 let py = lwc1(a0 + 52);
                                 let pz = lwc1(a0 + 56);
-                                swc1(sp + 32, lwc1(state + 40) + lwc1(step + 4));
-                                swc1(sp + 36, lwc1(state + 44) + lwc1(step + 8));
-                                swc1(sp + 40, lwc1(state + 48) + lwc1(step + 12));
-                                let rx = px - lwc1(state + 40);
+                                swc1(sp + 32, ps2float::add(lwc1(state + 40), lwc1(step + 4)));
+                                swc1(sp + 36, ps2float::add(lwc1(state + 44), lwc1(step + 8)));
+                                swc1(sp + 40, ps2float::add(lwc1(state + 48), lwc1(step + 12)));
+                                let rx = ps2float::sub(px, lwc1(state + 40));
                                 swc1(sp + 16, rx);
-                                let ry = py - lwc1(state + 44);
+                                let ry = ps2float::sub(py, lwc1(state + 44));
                                 swc1(sp + 20, ry);
-                                let rz = pz - lwc1(state + 48);
+                                let rz = ps2float::sub(pz, lwc1(state + 48));
                                 swc1(sp + 24, rz);
-                                let dx = lwc1(step + 4) - rx;
+                                let dx = ps2float::sub(lwc1(step + 4), rx);
                                 swc1(sp, dx);
-                                let dy = lwc1(step + 8) - ry;
+                                let dy = ps2float::sub(lwc1(step + 8), ry);
                                 swc1(sp + 4, dy);
-                                let dz = lwc1(step + 12) - rz;
-                                let length = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+                                let dz = ps2float::sub(lwc1(step + 12), rz);
+                                let length = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
                                 swc1(sp + 8, dz);
                                 let target_x = lwc1(sp + 32);
                                 if !(length < remaining) {
                                     let ratio = (remaining).pdiv(length);
-                                    let mx = lwc1(sp) * ratio;
-                                    let my = lwc1(sp + 4) * ratio;
-                                    let mz = lwc1(sp + 8) * ratio;
+                                    let mx = ps2float::mul(lwc1(sp), ratio);
+                                    let my = ps2float::mul(lwc1(sp + 4), ratio);
+                                    let mz = ps2float::mul(lwc1(sp + 8), ratio);
                                     swc1(sp + 48, mx);
                                     swc1(sp + 52, my);
                                     swc1(sp + 56, mz);
-                                    fraction = ((mx * mx + my * my + mz * mz).abs().psqrt()).pdiv(length);
-                                    let new_y = lwc1(a0 + 52) + lwc1(sp + 52);
+                                    fraction = (ps2float::add(ps2float::add(ps2float::mul(mx, mx), ps2float::mul(my, my)), ps2float::mul(mz, mz)).abs().psqrt()).pdiv(length);
+                                    let new_y = ps2float::add(lwc1(a0 + 52), lwc1(sp + 52));
                                     step = lw(state + 12);
-                                    let new_z = lwc1(a0 + 56) + lwc1(sp + 56);
-                                    swc1(a0 + 48, lwc1(a0 + 48) + lwc1(sp + 48));
+                                    let new_z = ps2float::add(lwc1(a0 + 56), lwc1(sp + 56));
+                                    swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), lwc1(sp + 48)));
                                     swc1(a0 + 52, new_y);
                                     swc1(a0 + 56, new_z);
                                     break 'blend;
                                 }
-                                remaining -= length;
+                                remaining = ps2float::sub(remaining, length);
                                 let target_y = lwc1(sp + 36);
                                 advance = 1;
                                 let target_z = lwc1(sp + 40);
@@ -878,62 +878,62 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                             1 => {
                                 let end = lwc1(step + 16);
                                 let current = lwc1(state + 72);
-                                let mut turn = end - current;
+                                let mut turn = ps2float::sub(end, current);
                                 radius = lwc1(step + 20);
                                 if turn < 0.0_f32 {
-                                    turn += 3.6e+02_f32;
+                                    turn = ps2float::add(turn, 3.6e+02_f32);
                                 }
-                                let arc = radius * lwc1(0x3acdf0) * ((turn).pdiv(3.6e+02_f32));
+                                let arc = ps2float::mul(ps2float::mul(radius, lwc1(0x3acdf0)), ((turn).pdiv(3.6e+02_f32)));
                                 if !(arc < remaining) {
-                                    let part = turn * remaining;
+                                    let part = ps2float::mul(turn, remaining);
                                     fraction = (remaining).pdiv(arc);
-                                    let new_angle = current + (part).pdiv(arc);
+                                    let new_angle = ps2float::add(current, (part).pdiv(arc));
                                     swc1(state + 72, new_angle);
                                     if 3.6e+02_f32 < new_angle {
-                                        swc1(state + 72, new_angle - 3.6e+02_f32);
+                                        swc1(state + 72, ps2float::sub(new_angle, 3.6e+02_f32));
                                     }
                                     remaining = 0.0_f32;
                                 } else {
                                     swc1(state + 72, end);
-                                    remaining -= arc;
+                                    remaining = ps2float::sub(remaining, arc);
                                     fraction = 1.0_f32;
                                     advance = 1;
                                 }
                                 scale = lwc1(0x3acdf4);
-                                let phase = ((lwc1(state + 72) - 9e+01_f32) * scale).pdiv(1.8e+02_f32);
+                                let phase = ps2float::mul(ps2float::sub(lwc1(state + 72), 9e+01_f32), scale).pdiv(1.8e+02_f32);
                                 let sine = sinf(phase);
-                                swc1(a0 + 48, lwc1(state + 28) + radius * sine);
-                                angle = lwc1(state + 72) - 9e+01_f32;
+                                swc1(a0 + 48, ps2float::add(lwc1(state + 28), ps2float::mul(radius, sine)));
+                                angle = ps2float::sub(lwc1(state + 72), 9e+01_f32);
                             }
                             2 => {
                                 let end = lwc1(step + 16);
                                 let current = lwc1(state + 72);
-                                let mut turn = current - end;
+                                let mut turn = ps2float::sub(current, end);
                                 radius = lwc1(step + 20);
                                 if turn < 0.0_f32 {
-                                    turn += 3.6e+02_f32;
+                                    turn = ps2float::add(turn, 3.6e+02_f32);
                                 }
-                                let arc = radius * lwc1(0x3acde8) * ((turn).pdiv(3.6e+02_f32));
+                                let arc = ps2float::mul(ps2float::mul(radius, lwc1(0x3acde8)), ((turn).pdiv(3.6e+02_f32)));
                                 if !(arc < remaining) {
-                                    let part = turn * remaining;
+                                    let part = ps2float::mul(turn, remaining);
                                     let heading = lwc1(state + 56);
                                     fraction = (remaining).pdiv(arc);
-                                    swc1(state + 72, current - (part).pdiv(arc));
+                                    swc1(state + 72, ps2float::sub(current, (part).pdiv(arc)));
                                     if heading < 0.0_f32 {
-                                        swc1(state + 56, heading + 3.6e+02_f32);
+                                        swc1(state + 56, ps2float::add(heading, 3.6e+02_f32));
                                     }
                                     remaining = 0.0_f32;
                                 } else {
                                     swc1(state + 72, end);
-                                    remaining -= arc;
+                                    remaining = ps2float::sub(remaining, arc);
                                     fraction = 1.0_f32;
                                     advance = 1;
                                 }
                                 scale = lwc1(0x3acdec);
-                                let phase = ((lwc1(state + 72) + 9e+01_f32) * scale).pdiv(1.8e+02_f32);
+                                let phase = ps2float::mul(ps2float::add(lwc1(state + 72), 9e+01_f32), scale).pdiv(1.8e+02_f32);
                                 let sine = sinf(phase);
-                                swc1(a0 + 48, lwc1(state + 28) + radius * sine);
-                                angle = lwc1(state + 72) + 9e+01_f32;
+                                swc1(a0 + 48, ps2float::add(lwc1(state + 28), ps2float::mul(radius, sine)));
+                                angle = ps2float::add(lwc1(state + 72), 9e+01_f32);
                             }
                             3 => {
                                 break 'blend;
@@ -941,22 +941,22 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                             _ => {
                                 let wait = lwc1(state + 64);
                                 if !(wait < remaining) {
-                                    let left = wait - remaining;
+                                    let left = ps2float::sub(wait, remaining);
                                     remaining = 0.0_f32;
                                     swc1(state + 64, left);
                                     kind = lw(step);
                                     break 'kind;
                                 }
-                                remaining -= wait;
+                                remaining = ps2float::sub(remaining, wait);
                                 sw(state + 64, 0);
                                 advance = 1;
                                 kind = lw(step);
                                 break 'kind;
                             }
                         }
-                        let cosine = cosf((angle * scale).pdiv(1.8e+02_f32));
+                        let cosine = cosf(ps2float::mul(angle, scale).pdiv(1.8e+02_f32));
                         step = lw(state + 12);
-                        swc1(a0 + 56, lwc1(state + 36) + radius * cosine);
+                        swc1(a0 + 56, ps2float::add(lwc1(state + 36), ps2float::mul(radius, cosine)));
                         kind = lw(step);
                         break 'kind;
                     }
@@ -970,48 +970,48 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
         if kind != 3 {
             let pitch = lwc1(state + 68);
             let mut heading = lwc1(state + 60);
-            swc1(state + 68, pitch + fraction * (lwc1(step + 28) - pitch));
+            swc1(state + 68, ps2float::add(pitch, ps2float::mul(fraction, ps2float::sub(lwc1(step + 28), pitch))));
             if 1.8e+02_f32 <= heading {
-                heading -= 3.6e+02_f32;
+                heading = ps2float::sub(heading, 3.6e+02_f32);
             }
             let heading_end = lwc1(step + 32);
-            let delta = if !(1.8e+02_f32 <= heading_end) { heading_end - heading } else { heading_end - 3.6e+02_f32 - heading };
-            let blended = heading + fraction * delta;
+            let delta = if !(1.8e+02_f32 <= heading_end) { ps2float::sub(heading_end, heading) } else { ps2float::sub(ps2float::sub(heading_end, 3.6e+02_f32), heading) };
+            let blended = ps2float::add(heading, ps2float::mul(fraction, delta));
             swc1(state + 60, blended);
             if blended < 0.0_f32 {
-                swc1(state + 60, blended + 3.6e+02_f32);
+                swc1(state + 60, ps2float::add(blended, 3.6e+02_f32));
             }
             let mut roll = lwc1(state + 52);
             let roll_end = lwc1(step + 36);
             if 1.8e+02_f32 <= roll {
-                roll -= 3.6e+02_f32;
+                roll = ps2float::sub(roll, 3.6e+02_f32);
             }
-            let delta = if !(1.8e+02_f32 <= roll_end) { roll_end - roll } else { roll_end - 3.6e+02_f32 - roll };
-            let blended = roll + fraction * delta;
+            let delta = if !(1.8e+02_f32 <= roll_end) { ps2float::sub(roll_end, roll) } else { ps2float::sub(ps2float::sub(roll_end, 3.6e+02_f32), roll) };
+            let blended = ps2float::add(roll, ps2float::mul(fraction, delta));
             swc1(state + 52, blended);
             if blended < 0.0_f32 {
-                swc1(state + 52, blended + 3.6e+02_f32);
+                swc1(state + 52, ps2float::add(blended, 3.6e+02_f32));
             }
             let mut bank = lwc1(state + 76);
             let bank_end = lwc1(step + 40);
             if 1.8e+02_f32 <= bank {
-                bank -= 3.6e+02_f32;
+                bank = ps2float::sub(bank, 3.6e+02_f32);
             }
-            let delta = if !(1.8e+02_f32 <= bank_end) { bank_end - bank } else { bank_end - 3.6e+02_f32 - bank };
-            let blended = bank + fraction * delta;
+            let delta = if !(1.8e+02_f32 <= bank_end) { ps2float::sub(bank_end, bank) } else { ps2float::sub(ps2float::sub(bank_end, 3.6e+02_f32), bank) };
+            let blended = ps2float::add(bank, ps2float::mul(fraction, delta));
             swc1(state + 76, blended);
             if blended < 0.0_f32 {
-                swc1(state + 76, blended + 3.6e+02_f32);
+                swc1(state + 76, ps2float::add(blended, 3.6e+02_f32));
             }
-            let sum = lwc1(state + 76) + lwc1(state + 72);
+            let sum = ps2float::add(lwc1(state + 76), lwc1(state + 72));
             swc1(state + 56, sum);
             if 3.6e+02_f32 <= sum {
-                swc1(state + 56, sum - 3.6e+02_f32);
+                swc1(state + 56, ps2float::sub(sum, 3.6e+02_f32));
             }
             if lw(a0 + 4) == 311 {
                 swc1(
                     state + 80,
-                    (lwc1(((((lw(state + 84) as f32 * lwc1(0x3acdf8) * lwc1(0x3acdfc) + 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable) * (3e+01_f32 - lwc1(state + 68))).pdiv(3e+01_f32) * lwc1(0x3ace00),
+                    ps2float::mul(ps2float::mul(lwc1((((ps2float::add(ps2float::mul(ps2float::mul(lw(state + 84) as f32, lwc1(0x3acdf8)), lwc1(0x3acdfc)), 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable), ps2float::sub(3e+01_f32, lwc1(state + 68))).pdiv(3e+01_f32), lwc1(0x3ace00)),
                 );
             }
         }
@@ -1034,7 +1034,7 @@ pub fn drawChar(a0: i32) {
     let frame = Frame::new(208);
     let sp = frame.sp();
     let model = lw(a0 + 32);
-    let degrees = lwc1(a0 + 76) * lwc1(0x3ac9c4);
+    let degrees = ps2float::mul(lwc1(a0 + 76), lwc1(0x3ac9c4));
     swc1(sp + 64, lwc1(model + 128));
     let angle = (degrees).pdiv(1.8e+02_f32);
     swc1(sp + 68, lwc1(model + 132));
@@ -1042,7 +1042,7 @@ pub fn drawChar(a0: i32) {
     matrixRotY(sp, angle);
     matrixVecRotAligned(&[sp as i64, (sp + 64) as i64]);
     let data = lw(a0 + 352);
-    swc1(a0 + 48, lwc1(a0 + 48) + lwc1(sp + 64));
+    swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), lwc1(sp + 64)));
     let kind = lh(data + 4);
     if kind == 46 || kind == 60 || kind == 40 {
         rotateChar(a0, 198.0_f32);
@@ -1053,7 +1053,7 @@ pub fn drawChar(a0: i32) {
     let stage_props = g::stageprop;
     let slot = lw(front) << 2;
     let stage_prop = lw(slot + stage_props);
-    swc1(a0 + 56, lwc1(a0 + 56) + lwc1(sp + 72));
+    swc1(a0 + 56, ps2float::add(lwc1(a0 + 56), lwc1(sp + 72)));
     if stage_prop != 0 {
         if lw(slot + g::propdrawflag) != 0 {
             let prop_model = lw(stage_prop + 32);
@@ -1062,17 +1062,17 @@ pub fn drawChar(a0: i32) {
             swc1(sp + 64, lwc1(prop_model + 128));
             swc1(sp + 68, lwc1(prop_model + 132));
             swc1(sp + 72, lwc1(prop_model + 136));
-            let angle = (lwc1(stage_prop + 76) * scale).pdiv(half_turn);
+            let angle = ps2float::mul(lwc1(stage_prop + 76), scale).pdiv(half_turn);
             matrixRotY(sp, angle);
             matrixVecRotAligned(&[sp as i64, (sp + 64) as i64]);
             let front = lw(g::front);
             let prop = lw((lw(front) << 2) + stage_props);
             let z = lwc1(prop + 56);
-            swc1(prop + 48, lwc1(prop + 48) + lwc1(sp + 64));
+            swc1(prop + 48, ps2float::add(lwc1(prop + 48), lwc1(sp + 64)));
             let dz = lwc1(sp + 72);
             swc1(prop + 76, half_turn);
             swc1(prop + 84, half_turn);
-            swc1(prop + 56, z + dz);
+            swc1(prop + 56, ps2float::add(z, dz));
         }
     }
     if (lw(a0 + 16) & 1) != 0 {
@@ -1151,9 +1151,9 @@ pub fn drawChar(a0: i32) {
     let shift = slot + 0x1fc1258;
     let stage = lw(slot + g::stage);
     let prop = lw(slot + g::stageprop);
-    swc1(a0 + 48, lwc1(a0 + 48) + lwc1(shift));
-    swc1(stage + 48, lwc1(stage + 48) + lwc1(shift));
+    swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), lwc1(shift)));
+    swc1(stage + 48, ps2float::add(lwc1(stage + 48), lwc1(shift)));
     if prop != 0 {
-        swc1(prop + 48, lwc1(prop + 48) + lwc1(shift));
+        swc1(prop + 48, ps2float::add(lwc1(prop + 48), lwc1(shift)));
     }
 }

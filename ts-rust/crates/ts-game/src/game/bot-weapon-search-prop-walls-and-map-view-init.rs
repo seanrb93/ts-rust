@@ -78,10 +78,10 @@ pub fn findweapon(enemy: i32) {
                     swc1(record + 2800, py);
                     let pz = lwc1(pad + 20);
                     swc1(record + 2804, pz);
-                    let dx = lwc1(enemy + 48) - px;
-                    let dy = lwc1(enemy + 52) - py;
-                    let dz = lwc1(enemy + 56) - pz;
-                    if (dx * dx + dy * dy + dz * dz) < range {
+                    let dx = ps2float::sub(lwc1(enemy + 48), px);
+                    let dy = ps2float::sub(lwc1(enemy + 52), py);
+                    let dz = ps2float::sub(lwc1(enemy + 56), pz);
+                    if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < range {
                         let count = lw(record + 1688);
                         sw(record + 680, next);
                         sw(record + 1688, count - 1);
@@ -121,7 +121,7 @@ pub fn propCalculateWalls(prop: i32, by_bones: i32) {
     }
     propGetOriginalWalls(lw(prop + 4), sp + 96, sp + 100);
     let mut index = 0;
-    matrixTransRotY(sp, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), (lwc1(prop + 76) * lwc1(0x3acbc4)).pdiv(1.8e+02_f32));
+    matrixTransRotY(sp, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), ps2float::mul(lwc1(prop + 76), lwc1(0x3acbc4)).pdiv(1.8e+02_f32));
     let mut originals = lw(sp + 96);
     let mut original = lw(originals);
     let mut offset = 0;
@@ -158,7 +158,7 @@ pub fn propCalculateWalls(prop: i32, by_bones: i32) {
             swc1(wall + 8, bottom);
             swc1(wall + 12, lwc1(sp + 72));
             swc1(wall + 20, lwc1(sp + 80));
-            let top = lwc1(sp + 84) + (high - low);
+            let top = ps2float::add(lwc1(sp + 84), ps2float::sub(high, low));
             swc1(wall + 32, top);
             swc1(wall + 16, top);
             swc1(wall + 28, lwc1(sp + 88));

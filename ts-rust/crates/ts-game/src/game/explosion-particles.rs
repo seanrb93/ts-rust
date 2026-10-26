@@ -45,14 +45,14 @@ pub fn particleNewExplosion(owner: i32, kind: i32, at: i32, tag: i32, first: i32
     if total.wrapping_div(3) > 0 {
         loop {
             let r = random_as_float();
-            swc1(group + 1796 + (i << 2), r * 2.3283064e-10_f32 * 0.5_f32);
+            swc1(group + 1796 + (i << 2), ps2float::mul(ps2float::mul(r, 2.3283064e-10_f32), 0.5_f32));
             let r = random_as_float();
-            swc1(group + 968 + i * 12, lwc1(at) + (r * 2.3283064e-10_f32 - 0.5_f32) * lwc1(0x3ad4b0) * size);
+            swc1(group + 968 + i * 12, ps2float::add(lwc1(at), ps2float::mul(ps2float::mul(ps2float::sub(ps2float::mul(r, 2.3283064e-10_f32), 0.5_f32), lwc1(0x3ad4b0)), size)));
             let r = random_as_float();
-            swc1(group + 972 + i * 12, lwc1(at + 4) + (r * 2.3283064e-10_f32 - 0.5_f32) * lwc1(0x3ad4b4) * size);
+            swc1(group + 972 + i * 12, ps2float::add(lwc1(at + 4), ps2float::mul(ps2float::mul(ps2float::sub(ps2float::mul(r, 2.3283064e-10_f32), 0.5_f32), lwc1(0x3ad4b4)), size)));
             let r = random_as_float();
             i += 1;
-            swc1(group + 976 + i * 12 - 12, lwc1(at + 8) + (r * 2.3283064e-10_f32 - 0.5_f32) * lwc1(0x3ad4b8) * size);
+            swc1(group + 976 + i * 12 - 12, ps2float::add(lwc1(at + 8), ps2float::mul(ps2float::mul(ps2float::sub(ps2float::mul(r, 2.3283064e-10_f32), 0.5_f32), lwc1(0x3ad4b8)), size)));
             let total_now = lw(group + 24);
             more = i < total_now;
             if i >= total_now.wrapping_div(3) {
@@ -63,15 +63,15 @@ pub fn particleNewExplosion(owner: i32, kind: i32, at: i32, tag: i32, first: i32
     if more {
         loop {
             let r = random_as_float();
-            swc1(group + 1796 + (i << 2), r * 2.3283064e-10_f32);
+            swc1(group + 1796 + (i << 2), ps2float::mul(r, 2.3283064e-10_f32));
             let r = random_as_float();
-            swc1(group + 968 + i * 12, lwc1(at) + (r * 2.3283064e-10_f32 - 0.5_f32) * size);
+            swc1(group + 968 + i * 12, ps2float::add(lwc1(at), ps2float::mul(ps2float::sub(ps2float::mul(r, 2.3283064e-10_f32), 0.5_f32), size)));
             let r = random_as_float();
-            swc1(group + 972 + i * 12, lwc1(at + 4) + (r * 2.3283064e-10_f32 - 0.5_f32) * size);
+            swc1(group + 972 + i * 12, ps2float::add(lwc1(at + 4), ps2float::mul(ps2float::sub(ps2float::mul(r, 2.3283064e-10_f32), 0.5_f32), size)));
             let r = random_as_float();
             let place = i * 12 + (group + 976);
             i += 1;
-            swc1(place, lwc1(at + 8) + (r * 2.3283064e-10_f32 - 0.5_f32) * size);
+            swc1(place, ps2float::add(lwc1(at + 8), ps2float::mul(ps2float::sub(ps2float::mul(r, 2.3283064e-10_f32), 0.5_f32), size)));
             if i >= lw(group + 24) {
                 break;
             }
@@ -80,6 +80,6 @@ pub fn particleNewExplosion(owner: i32, kind: i32, at: i32, tag: i32, first: i32
     let x = lwc1(at);
     let y = lwc1(at + 4);
     let z = lwc1(at + 8);
-    bgCalcRoomArray(group + 72, x + -0.5_f32 - 3.0_f32, x + 0.5_f32 + 3.0_f32, y + -0.5_f32 - 3.0_f32, y + 0.5_f32 + 3.0_f32, z + -0.5_f32 - 3.0_f32, z + 0.5_f32 + 3.0_f32);
+    bgCalcRoomArray(group + 72, ps2float::sub(ps2float::add(x, -0.5_f32), 3.0_f32), ps2float::add(ps2float::add(x, 0.5_f32), 3.0_f32), ps2float::sub(ps2float::add(y, -0.5_f32), 3.0_f32), ps2float::add(ps2float::add(y, 0.5_f32), 3.0_f32), ps2float::sub(ps2float::add(z, -0.5_f32), 3.0_f32), ps2float::add(ps2float::add(z, 0.5_f32), 3.0_f32));
     enemyAddToExplosionList();
 }

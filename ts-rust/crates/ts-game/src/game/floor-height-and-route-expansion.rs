@@ -40,7 +40,7 @@ pub fn moveFindFloorHeight(list: i32, mask: i32, point: i32, out: i32) -> f32 {
                             k += 1;
                         } else {
                             let vx = lwc1(vertex);
-                            let crossing = (((vx - lwc1(point)) * (lwc1(last + 8) - vz)) <= (lwc1(last) - vx) * (vz - z)) as i32;
+                            let crossing = (ps2float::mul(ps2float::sub(vx, lwc1(point)), ps2float::sub(lwc1(last + 8), vz)) <= ps2float::mul(ps2float::sub(lwc1(last), vx), ps2float::sub(vz, z))) as i32;
                             k += 1;
                             if crossing == above {
                                 inside = 1 - inside;
@@ -114,10 +114,10 @@ pub fn r_addnewroutes(routes: i32, pad: i32, cost: f32) -> i32 {
                         return link_number;
                     }
                     let link_cost = r_calclinkcost(link);
-                    let total = cost + link_cost;
+                    let total = ps2float::add(cost, link_cost);
                     let goal = lw(0x3b00e4);
                     let estimate = r_calcestcost(other, goal);
-                    let with_estimate = total + estimate;
+                    let with_estimate = ps2float::add(total, estimate);
                     let mut entry = r_findroute(0x3b00d0, link_number);
                     let mut replace_in = 0;
                     if entry < 0 {
@@ -183,9 +183,9 @@ pub fn hr_addnewroutes(routes: i32, pad: i32, cost: f32) -> i32 {
                     let estimate = hr_calcestcost(pad, estimate_from);
                     let link_cost = hr_calclinkcost(link);
                     let goal = lw(0x3b00c4);
-                    let total = cost + estimate + link_cost;
+                    let total = ps2float::add(ps2float::add(cost, estimate), link_cost);
                     let remaining = hr_calcestcost(to, goal);
-                    let with_estimate = total + remaining;
+                    let with_estimate = ps2float::add(total, remaining);
                     let mut entry = hr_findroute(0x3b00b0, link_number);
                     let mut replace_in = 0;
                     if entry >= 0 {

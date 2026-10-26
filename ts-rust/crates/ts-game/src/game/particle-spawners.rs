@@ -35,7 +35,7 @@ pub fn particleNewTrail(owner: i32, kind: i32, at: i32, count_kind: i32) -> i32 
     let info = kind * 104 + g::particleinfos;
     sw(group + 8, 0);
     swc1(group + 52, lwc1(info + 100));
-    swc1(group + 16, lwc1(info + 12) + lwc1(info + 28));
+    swc1(group + 16, ps2float::add(lwc1(info + 12), lwc1(info + 28)));
     let count = particleGetNum(count_kind);
     let x = lwc1(at);
     sw(group + 44, count);
@@ -123,7 +123,7 @@ pub(super) fn random_as_float() -> f32 {
     let r = newrnd();
     if r < 0 {
         let half = (r & 1 | ((r as i32 as u32) >> 1) as i32 as i64) as i32 as f32;
-        half + half
+        ps2float::add(half, half)
     } else {
         r as i32 as f32
     }
@@ -155,9 +155,9 @@ pub fn particleNewPulse(owner: i32, number: i32, point: i32, direction: i32, tag
     swc1(group + 952, lwc1(direction + 8));
     let mut i = 0;
     loop {
-        let angle = random_as_float() * scale;
+        let angle = ps2float::mul(random_as_float(), scale);
         i += 1;
-        swc1(angles, angle * 360.0_f32);
+        swc1(angles, ps2float::mul(angle, 360.0_f32));
         angles += 4;
         if i >= lw(group + 24) {
             break;
@@ -189,7 +189,7 @@ pub fn particleNewSmoke(owner: i32, at: i32) {
             let speeds = group + 948 + (i << 2);
             let r = random_as_float();
             i += 1;
-            swc1(speeds, (r * 2.3283064e-10_f32 - 0.5_f32) * 180.0_f32);
+            swc1(speeds, ps2float::mul(ps2float::sub(ps2float::mul(r, 2.3283064e-10_f32), 0.5_f32), 180.0_f32));
             if i >= lw(group + 24) {
                 break;
             }
@@ -198,7 +198,7 @@ pub fn particleNewSmoke(owner: i32, at: i32) {
     let y = lwc1(at + 4);
     let two = 2.0_f32;
     let z = lwc1(at + 8);
-    let top = y + 1.5_f32;
+    let top = ps2float::add(y, 1.5_f32);
     let x = lwc1(at);
-    bgCalcRoomArray(group + 72, x - two, x + two, y - two, top + two, z - two, z + two);
+    bgCalcRoomArray(group + 72, ps2float::sub(x, two), ps2float::add(x, two), ps2float::sub(y, two), ps2float::add(top, two), ps2float::sub(z, two), ps2float::add(z, two));
 }

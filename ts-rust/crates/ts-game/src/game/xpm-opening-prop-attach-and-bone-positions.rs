@@ -255,7 +255,7 @@ pub fn propAttachUpdate(prop: i32) {
                     matrixTrans(sp + 128, lwc1(place), lwc1(place + 4), lwc1(place + 8));
                     sceVu0MulMatrix(matrix, matrix, sp + 128);
                     let r = random_as_float();
-                    let angle = (r * 2.3283064e-10_f32 * 3.6e+02_f32 * lwc1(0x3acd0c)).pdiv(1.8e+02_f32);
+                    let angle = ps2float::mul(ps2float::mul(ps2float::mul(r, 2.3283064e-10_f32), 3.6e+02_f32), lwc1(0x3acd0c)).pdiv(1.8e+02_f32);
                     matrixRotZXY(sp + 128, 0.0_f32, 0.0_f32, angle);
                     sceVu0MulMatrix(matrix, matrix, sp + 128);
                     matrixTrans(sp + 128, -lwc1(place), -lwc1(place + 4), -lwc1(place + 8));
@@ -288,7 +288,7 @@ pub fn propAttachUpdate(prop: i32) {
     let word = lw(source + 12);
     swc1(prop + 48, x);
     sw(prop + 12, word);
-    let y = lwc1(source + 52) + 0.75_f32;
+    let y = ps2float::add(lwc1(source + 52), 0.75_f32);
     swc1(prop + 52, y);
     let z = lwc1(source + 56);
     swc1(prop + 564, x);
@@ -347,10 +347,10 @@ pub fn FindBestBonePos(model: i32, bone: i32, from: i32, to: i32, front: i32, ba
         sw(sp + 292, sp + 96);
         low_x = lwc1(sp);
     } else {
-        let dz = lwc1(to + 8) - lwc1(from + 8);
-        let dy = lwc1(to + 4) - lwc1(from + 4);
+        let dz = ps2float::sub(lwc1(to + 8), lwc1(from + 8));
+        let dy = ps2float::sub(lwc1(to + 4), lwc1(from + 4));
         let high = lwc1(g::s_PossibleLastHitPart_3afa30 + 4);
-        let dx = lwc1(to) - lwc1(from);
+        let dx = ps2float::sub(lwc1(to), lwc1(from));
         let low = lwc1(0x3afa38);
         swc1(sp, high);
         swc1(sp + 16, low);
@@ -442,19 +442,19 @@ pub fn FindBestBonePos(model: i32, bone: i32, from: i32, to: i32, front: i32, ba
     let low_z = lwc1(sp + 8);
     let low_y = lwc1(sp + 4);
     let inverse_a = lw(sp + 292);
-    let middle_x = low_x + (lwc1(sp + 16) - low_x) * half;
-    let half_z = (lwc1(sp + 24) - low_z) * half;
-    let half_y = (lwc1(sp + 20) - low_y) * half;
+    let middle_x = ps2float::add(low_x, ps2float::mul(ps2float::sub(lwc1(sp + 16), low_x), half));
+    let half_z = ps2float::mul(ps2float::sub(lwc1(sp + 24), low_z), half);
+    let half_y = ps2float::mul(ps2float::sub(lwc1(sp + 20), low_y), half);
     swc1(lw(sp + 276), middle_x);
     let front_at = lw(sp + 272);
-    let middle_z = low_z + half_z;
+    let middle_z = ps2float::add(low_z, half_z);
     swc1(front_at, middle_x);
     sw(front_at + 4, 0);
     let back_at = lw(sp + 276);
     swc1(back_at + 4, 1.0_f32);
     swc1(back_at + 8, middle_z);
     let front_at = lw(sp + 272);
-    swc1(sp + 164, low_y + half_y);
+    swc1(sp + 164, ps2float::add(low_y, half_y));
     swc1(front_at + 8, middle_z);
     swc1(sp + 160, middle_x);
     swc1(sp + 168, middle_z);

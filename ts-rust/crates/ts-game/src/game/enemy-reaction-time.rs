@@ -19,8 +19,8 @@ pub fn enemyReactTime(chr: i32) -> f32 {
             } else {
                 lwc1(0x3ad8c4)
             };
-            let unit = r * 2.3283064e-10_f32;
-            return unit * base + base;
+            let unit = ps2float::mul(r, 2.3283064e-10_f32);
+            return ps2float::add(ps2float::mul(unit, base), base);
         }
     }
     let state = lw(chr + 352);
@@ -29,13 +29,13 @@ pub fn enemyReactTime(chr: i32) -> f32 {
         return 0.0_f32;
     }
     let r = random_as_float();
-    let unit = r * 2.3283064e-10_f32;
+    let unit = ps2float::mul(r, 2.3283064e-10_f32);
     match skill {
-        0 => unit + 1.75_f32,
-        1 => unit * lwc1(0x3ad8c8) + lwc1(0x3ad8cc),
-        2 => unit * lwc1(0x3ad8d0) + lwc1(0x3ad8d4),
-        3 => unit * lwc1(0x3ad8d8) + lwc1(0x3ad8dc),
-        4 => unit * lwc1(0x3ad8e0) + lwc1(0x3ad8e4),
+        0 => ps2float::add(unit, 1.75_f32),
+        1 => ps2float::add(ps2float::mul(unit, lwc1(0x3ad8c8)), lwc1(0x3ad8cc)),
+        2 => ps2float::add(ps2float::mul(unit, lwc1(0x3ad8d0)), lwc1(0x3ad8d4)),
+        3 => ps2float::add(ps2float::mul(unit, lwc1(0x3ad8d8)), lwc1(0x3ad8dc)),
+        4 => ps2float::add(ps2float::mul(unit, lwc1(0x3ad8e0)), lwc1(0x3ad8e4)),
         _ => unreachable!(),
     }
 }

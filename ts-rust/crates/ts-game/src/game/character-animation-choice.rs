@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// Whether the character plays any of the animations.
@@ -246,7 +246,7 @@ pub fn setAnimation(a0: i32) {
                     if playing_any(a0, &[12, 13, 122, 123]) {
                         break 'standing;
                     }
-                    if !(lwc1(mind + 2876) <= lwc1(lw(a0 + 32) + 140) * 0.25_f32 * 6e+01_f32 * lwc1(mind + 2868)) {
+                    if !(lwc1(mind + 2876) <= ps2float::mul(ps2float::mul(ps2float::mul(lwc1(lw(a0 + 32) + 140), 0.25_f32), 6e+01_f32), lwc1(mind + 2868))) {
                         break 'standing;
                     }
                     idle_animation(a0, mind, blend, lwc1(0x3ad830), lwc1(0x3ad82c));
@@ -273,7 +273,7 @@ pub fn setAnimation(a0: i32) {
             }
             if curAnimSlot2(a0, 12) == 0 && curAnimSlot2(a0, 122) == 0 && curAnimSlot2(a0, 13) == 0 && curAnimSlot2(a0, 123) == 0 {
                 let state = lw(a0 + 32);
-                if !(lwc1(mind + 2876) <= lwc1(state + 140) * 0.25_f32 * 6e+01_f32 * lwc1(mind + 2868)) {
+                if !(lwc1(mind + 2876) <= ps2float::mul(ps2float::mul(ps2float::mul(lwc1(state + 140), 0.25_f32), 6e+01_f32), lwc1(mind + 2868))) {
                     anim_now = Some(lw(state + 96));
                     break 'second;
                 }
@@ -320,7 +320,7 @@ pub fn setAnimation(a0: i32) {
         let scaled = dpmul(ratio, ld(0x3a9ce8));
         dptofp(dpsub(0x3ff0000000000000_i64, scaled))
     };
-    let mut travelled = fptodp(lwc1(sp + 4) - lwc1(sp));
+    let mut travelled = fptodp(ps2float::sub(lwc1(sp + 4), lwc1(sp)));
     if dpcmp(travelled, 0_i64) < 0 {
         travelled = dpsub(0_i64, travelled);
     }
@@ -333,7 +333,7 @@ pub fn setAnimation(a0: i32) {
         }
         let step = fptodp(lwc1(sp + 8));
         let moved = dpmul(speed, step);
-        let per_frame = fptodp(distance * 6e+01_f32);
+        let per_frame = fptodp(ps2float::mul(distance, 6e+01_f32));
         let ratio = dpdiv(moved, per_frame);
         let result = dpdiv(dpmul(factor, ratio), ld(0x3a9cf0));
         curAnimSpeed(lw(a0 + 32), dptofp(result));

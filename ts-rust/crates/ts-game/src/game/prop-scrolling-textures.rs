@@ -8,7 +8,7 @@ fn copy_scrolled(source: i32, mut out: i32, mut count: i32, scroll_state: i32) {
     loop {
         count -= 1;
         swc1(out, lwc1(source));
-        swc1(out + 4, lwc1(source + 4) + lwc1(scroll_state + 40));
+        swc1(out + 4, ps2float::add(lwc1(source + 4), lwc1(scroll_state + 40)));
         swc1(out + 8, lwc1(source + 8));
         let w = lwc1(source + 12);
         source += 16;
@@ -39,12 +39,12 @@ pub fn tombtorchPropTick(prop: i32) {
             step = lwc1(g::updateframesf);
         }
     }
-    let scroll = lwc1(state + 40) - step * lwc1(0x3acf9c);
+    let scroll = ps2float::sub(lwc1(state + 40), ps2float::mul(step, lwc1(0x3acf9c)));
     swc1(state + 40, scroll);
     if scroll < 0.0_f32 {
-        swc1(state + 40, scroll + 1.0_f32);
+        swc1(state + 40, ps2float::add(scroll, 1.0_f32));
     }
-    swc1(prop + 76, lwc1(prop + 76) + 0.5_f32);
+    swc1(prop + 76, ps2float::add(lwc1(prop + 76), 0.5_f32));
 }
 
 /// The waterfall: the same for the first bone; the scroll value rises with the frame time (at one of two speeds by `slow`) and wraps by 1 (@ 0x27b0d0).
@@ -69,9 +69,9 @@ pub fn waterfallPropTick(prop: i32, slow: i32) {
         speed = lwc1(0x3acf7c);
     }
     let one = 1.0_f32;
-    let scroll = lwc1(state + 40) + step * speed;
+    let scroll = ps2float::add(lwc1(state + 40), ps2float::mul(step, speed));
     swc1(state + 40, scroll);
     if one < scroll {
-        swc1(state + 40, scroll - one);
+        swc1(state + 40, ps2float::sub(scroll, one));
     }
 }

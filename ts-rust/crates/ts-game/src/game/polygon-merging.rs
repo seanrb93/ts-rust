@@ -33,11 +33,11 @@ fn polygon_normal(poly: i32, scale: f32) -> [f32; 3] {
 
 /// The unit vector of the direction from the point `from` to the point `to`.
 fn direction(from: i32, to: i32) -> [f32; 3] {
-    let x = lwc1(to) - lwc1(from);
-    let y = lwc1(to + 4) - lwc1(from + 4);
-    let z = lwc1(to + 8) - lwc1(from + 8);
-    let length = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
-    [x * length, y * length, z * length]
+    let x = ps2float::sub(lwc1(to), lwc1(from));
+    let y = ps2float::sub(lwc1(to + 4), lwc1(from + 4));
+    let z = ps2float::sub(lwc1(to + 8), lwc1(from + 8));
+    let length = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)).abs().psqrt());
+    [ps2float::mul(x, length), ps2float::mul(y, length), ps2float::mul(z, length)]
 }
 
 /// Look at the corner at the point `corner` of the polygon that would be made, between the edges to `before` and `after`: gives whether the edges go in opposite directions (a vertex that is on a straight line, whose cosine is at most the constant at 0x3acb50) and whether the corner is not a concave one for the polygon with the normal `normal`.
@@ -51,10 +51,10 @@ fn corner_is_good(corner: i32, after: i32, before: i32, normal: [f32; 3]) -> (bo
     let cross_y = toward_after[2] * toward_before[0] - toward_after[0] * toward_before[2];
     let cross_z = toward_after[0] * toward_before[1] - toward_after[1] * toward_before[0];
     let length = (1.0_f32).pdiv((cross_x * cross_x + cross_y * cross_y + cross_z * cross_z).abs().psqrt());
-    let unit_x = cross_x * length;
-    let unit_y = cross_y * length;
-    let unit_z = cross_z * length;
-    let turn = normal[0] * unit_x + normal[1] * unit_y + normal[2] * unit_z;
+    let unit_x = ps2float::mul(cross_x, length);
+    let unit_y = ps2float::mul(cross_y, length);
+    let unit_z = ps2float::mul(cross_z, length);
+    let turn = ps2float::add(ps2float::add(ps2float::mul(normal[0], unit_x), ps2float::mul(normal[1], unit_y)), ps2float::mul(normal[2], unit_z));
     (straight, 0.0_f32 <= turn)
 }
 

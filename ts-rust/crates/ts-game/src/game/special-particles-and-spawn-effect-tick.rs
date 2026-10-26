@@ -30,25 +30,25 @@ pub fn specialParticlesGfx(points: i32, colours: i32, count: i32, shift_a: i32, 
         let centre_x = lw(window + 8) as f32;
         let centre_y = lw(window + 28) as f32;
         let down = (0 - lw(window + 36)) as f32;
-        let screen_x = x * inverse;
-        let screen_y = y * inverse;
-        let size = ((zoom * 5e+02_f32).pdiv(z)) as i32;
-        let depth = z * inverse;
+        let screen_x = ps2float::mul(x, inverse);
+        let screen_y = ps2float::mul(y, inverse);
+        let size = (ps2float::mul(zoom, 5e+02_f32).pdiv(z)) as i32;
+        let depth = ps2float::mul(z, inverse);
         swc1(sp + 80, screen_x);
         swc1(sp + 84, screen_y);
         swc1(sp + 88, depth);
-        let px = centre_x + across * screen_x;
-        let py = centre_y + down * screen_y;
+        let px = ps2float::add(centre_x, ps2float::mul(across, screen_x));
+        let py = ps2float::add(centre_y, ps2float::mul(down, screen_y));
         let half = ((size + ((size as u32) >> 31) as i32) >> 1) as f32;
         let full = size as f32;
         swc1(sp + 64, px);
         swc1(sp + 68, py);
-        let z_out = depth * scale + 32768.0_f32;
-        let bottom = py + half;
-        let right = px + full;
-        let left = px - full;
+        let z_out = ps2float::add(ps2float::mul(depth, scale), 32768.0_f32);
+        let bottom = ps2float::add(py, half);
+        let right = ps2float::add(px, full);
+        let left = ps2float::sub(px, full);
         swc1(sp + 152, z_out);
-        let top = py - half;
+        let top = ps2float::sub(py, half);
         swc1(sp + 148, bottom);
         swc1(sp + 144, right);
         swc1(sp + 128, left);
@@ -150,12 +150,12 @@ pub fn spawnfxTick() {
             }
             let mut fade_out = lwc1((kind << 2) + g::spawnfadeouttime);
             if !(lw(groups + offset + 24) == 0 && lw(g::lvnumplayers) < 3) {
-                fade_out *= lwc1(0x3ad6d0);
+                fade_out = ps2float::mul(fade_out, lwc1(0x3ad6d0));
             }
             let groups = g::spawngroups;
             let fade_in;
             if !(lw(groups + group + 24) == 0 && lw(g::lvnumplayers) < 3) && lw(offset + groups) == 6 {
-                fade_in = lwc1(g::spawnfadeintime + 24) * lwc1(0x3ad6d4);
+                fade_in = ps2float::mul(lwc1(g::spawnfadeintime + 24), lwc1(0x3ad6d4));
             } else {
                 fade_in = lwc1((lw(group + groups) << 2) + g::spawnfadeintime);
             }
@@ -163,13 +163,13 @@ pub fn spawnfxTick() {
             let record = group + groups;
             let mut locked = lwc1((lw(record) << 2) + g::spawnlockedtime);
             if ((lw(g::curgameparms + 72) - 6) as u32) < 2 {
-                locked *= 0.5_f32;
+                locked = ps2float::mul(locked, 0.5_f32);
             }
             let time_at = offset + (groups + 16);
             let flag_at = offset + (groups + 8);
             let time = lwc1(time_at);
             let still_locked = (time < locked) as i32;
-            let now = time + step;
+            let now = ps2float::add(time, step);
             sw(flag_at, still_locked);
             swc1(time_at, now);
             if now < fade_out {
@@ -184,7 +184,7 @@ pub fn spawnfxTick() {
                     let ratio = (now).pdiv(fade_out);
                     let mut mode = -1;
                     if ratio <= 1.0_f32 {
-                        let opacity = (127.0_f32 - ratio * 127.0_f32) as i32 & 255;
+                        let opacity = ps2float::sub(127.0_f32, ps2float::mul(ratio, 127.0_f32)) as i32 & 255;
                         let rec = groups + offset;
                         if (opacity as u32) < 44 {
                             mode = if lw(rec + 24) != 0 { 2 } else { mode };
@@ -209,11 +209,11 @@ pub fn spawnfxTick() {
                 let ratio = (now).pdiv(fade_in);
                 let mut mode = -1;
                 let value = if (kind as u32) >= 5 {
-                    ratio * ratio * ratio * 127.0_f32
+                    ps2float::mul(ps2float::mul(ps2float::mul(ratio, ratio), ratio), 127.0_f32)
                 } else {
                     match kind {
-                        0 | 3 | 4 => ratio * 97.0_f32 + 3e+01_f32,
-                        _ => ratio * ratio * 127.0_f32,
+                        0 | 3 | 4 => ps2float::add(ps2float::mul(ratio, 97.0_f32), 3e+01_f32),
+                        _ => ps2float::mul(ps2float::mul(ratio, ratio), 127.0_f32),
                     }
                 };
                 let opacity = value as i32 & 255;

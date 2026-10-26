@@ -5,7 +5,7 @@ use crate::*;
 /// A random number from 0 up to 1 (the 32 bits of `newrnd` as an unsigned number times 2^-32).
 fn random_unit() -> f32 {
     let r = newrnd();
-    (r as i32 as u32) as f32 * 2.3283064e-10_f32
+    ps2float::mul((r as i32 as u32) as f32, 2.3283064e-10_f32)
 }
 
 /// Whether an enemy goes for a health pickup, and which: when its health fraction (+520, times its value at +12 plus 1) is below a limit, a random number is below its
@@ -14,7 +14,7 @@ fn random_unit() -> f32 {
 pub fn enemyCheckHealth(enemy: i32) -> i32 {
     let data = lw(enemy + 352);
     let mut best = 0.0_f32;
-    let need = lwc1(enemy + 520) * (lwc1(data + 12) + 1.0);
+    let need = ps2float::mul(lwc1(enemy + 520), ps2float::add(lwc1(data + 12), 1.0));
     let mut chosen = -1;
     if !(lwc1(0x3ad96c) < need) {
         let r = random_unit();
@@ -26,15 +26,15 @@ pub fn enemyCheckHealth(enemy: i32) -> i32 {
                 if lw(pickup + 16) & 1 == 0 {
                     continue;
                 }
-                let dx = lwc1(enemy + 48) - lwc1(pickup + 48);
-                let dy = lwc1(enemy + 52) - lwc1(pickup + 52);
-                let dz = lwc1(enemy + 56) - lwc1(pickup + 56);
+                let dx = ps2float::sub(lwc1(enemy + 48), lwc1(pickup + 48));
+                let dy = ps2float::sub(lwc1(enemy + 52), lwc1(pickup + 52));
+                let dz = ps2float::sub(lwc1(enemy + 56), lwc1(pickup + 56));
                 let kind = lw(lw(pickup + 352));
-                let mut nearness = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+                let mut nearness = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
                 let health = lwc1(enemy + 520);
                 let wants = if kind != 4 { lwc1(0x3ad974) <= health } else { health <= lwc1(0x3ad970) };
                 if wants {
-                    nearness += nearness;
+                    nearness = ps2float::add(nearness, nearness);
                 }
                 if best < nearness {
                     best = nearness;
@@ -45,7 +45,7 @@ pub fn enemyCheckHealth(enemy: i32) -> i32 {
             if chosen == -1 {
                 return -1;
             }
-            if lwc1(0x3ad978) < (1.0 - need) * best {
+            if lwc1(0x3ad978) < ps2float::mul(ps2float::sub(1.0, need), best) {
                 return chosen;
             }
         }
@@ -60,14 +60,14 @@ pub fn lvGetRandomPadExtref(flags: i32, pos: i32) -> i32 {
     let mut greatest2 = 0.0_f32;
     let mut found = 0;
     let mut pad = 0;
-    let tries = (lw(g::numpads) as f32 * 0.5_f32) as i32;
+    let tries = ps2float::mul(lw(g::numpads) as f32, 0.5_f32) as i32;
     if flags & 0x40000000 != 0 {
         let d = (flags & 255) as f32;
-        least2 = d * d;
+        least2 = ps2float::mul(d, d);
     }
     if flags & 0x20000000 != 0 {
         let d = ((flags & 0xff00) >> 8) as f32;
-        greatest2 = d * d;
+        greatest2 = ps2float::mul(d, d);
     }
     let mut tried = 0;
     if tries > 0 {
@@ -76,11 +76,11 @@ pub fn lvGetRandomPadExtref(flags: i32, pos: i32) -> i32 {
             let count = lw(g::numpads) as f32;
             let mut ok = 1;
             let (py, pz) = (lwc1(pos + 4), lwc1(pos + 8));
-            pad = lw(g::levelpads) + (count * r) as i32 * 28;
-            let dx = lwc1(pad + 12) - lwc1(pos);
-            let dy = lwc1(pad + 16) - py;
-            let dz = lwc1(pad + 20) - pz;
-            let d2 = dx * dx + dy * dy + dz * dz;
+            pad = lw(g::levelpads) + ps2float::mul(count, r) as i32 * 28;
+            let dx = ps2float::sub(lwc1(pad + 12), lwc1(pos));
+            let dy = ps2float::sub(lwc1(pad + 16), py);
+            let dz = ps2float::sub(lwc1(pad + 20), pz);
+            let d2 = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
             if greatest2 < d2 {
                 ok = 0;
             }

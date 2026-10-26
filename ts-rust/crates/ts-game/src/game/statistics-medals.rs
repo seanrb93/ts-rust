@@ -39,7 +39,7 @@ fn matchstat(player: i32, at: i32) -> f32 {
 pub fn StatsCalcMedals() {
     let frame = Frame::new(3056);
     let sp = frame.sp();
-    let mut seconds = lw(g::gameframe) as f32 * lwc1(0x3ac87c);
+    let mut seconds = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ac87c));
     let mut total_use = 0.0_f32;
     if seconds == total_use {
         seconds = lwc1(0x3ac880);
@@ -82,13 +82,13 @@ pub fn StatsCalcMedals() {
         loop {
             let used = StatsGetGun(3, p, gun);
             let combo = lh(g::guncombos + gun * 8);
-            swc1(at, lwc1(at) + (used).pdiv(seconds) * (1.0_f32 - (combo as f32).pdiv(1e+02_f32)));
+            swc1(at, ps2float::add(lwc1(at), ps2float::mul((used).pdiv(seconds), ps2float::sub(1.0_f32, (combo as f32).pdiv(1e+02_f32)))));
             gun += 1;
             if gun >= 33 {
                 break;
             }
         }
-        total_use = total_use + lwc1(sp + (p << 2));
+        total_use = ps2float::add(total_use, lwc1(sp + (p << 2)));
         p += 1;
     }
     let mut p = 0;
@@ -97,9 +97,9 @@ pub fn StatsCalcMedals() {
         if !(total_use == rate) {
             let own = lwc1(sp + (p << 2));
             let share = if ((lw(g::curgameparms + 72) - 6) as u32) < (2 as u32) {
-                total_use * 0.25_f32
+                ps2float::mul(total_use, 0.25_f32)
             } else if (lw(g::curgameparms + 80) & 32) != 0 {
-                total_use * 0.25_f32
+                ps2float::mul(total_use, 0.25_f32)
             } else {
                 (total_use).pdiv((lw(g::lvnumplayers) + lw(g::numactivechars)) as f32)
             };
@@ -228,7 +228,7 @@ pub fn StatsCalcMedals() {
                 if count > 0 {
                     let scale = lwc1(scale_at);
                     loop {
-                        if 1.2e+02_f32 < lw(g::gameframe) as f32 * scale {
+                        if 1.2e+02_f32 < ps2float::mul(lw(g::gameframe) as f32, scale) {
                             if StatsGet(stat, q) < 1.0_f32 {
                                 swc1(flag(sp, q, late_medal), 1.0_f32);
                             }
@@ -252,7 +252,7 @@ pub fn StatsCalcMedals() {
             part = (value).pdiv(average);
         }
         if 0.0_f32 < part {
-            swc1(flag(sp, p, 21), (1.0_f32).pdiv(part) * 0.5_f32);
+            swc1(flag(sp, p, 21), ps2float::mul((1.0_f32).pdiv(part), 0.5_f32));
         }
         p += 1;
     }
@@ -269,7 +269,7 @@ pub fn StatsCalcMedals() {
             if 0.0_f32 < part {
                 let bonus = StatsGet(59, p);
                 count = lw(g::lvnumplayers);
-                swc1(flag(sp, p, 20), (1.0_f32).pdiv(part) * 65.0_f32 * bonus);
+                swc1(flag(sp, p, 20), ps2float::mul(ps2float::mul((1.0_f32).pdiv(part), 65.0_f32), bonus));
             }
             p += 1;
             if p >= count {
@@ -281,13 +281,13 @@ pub fn StatsCalcMedals() {
     let mut sum = StatsGetAverage(46, count_limit());
     let mut p = 0;
     while p < count_limit() {
-        sum = sum + lwc1(p * 1368 + (g::matchstats + 184));
+        sum = ps2float::add(sum, lwc1(p * 1368 + (g::matchstats + 184)));
         p += 1;
     }
     let mean = if ((lw(g::curgameparms + 72) - 6) as u32) >= (2 as u32) && (lw(g::curgameparms + 80) & 32) == 0 {
         (sum).pdiv((count + lw(g::numactivechars)) as f32)
     } else {
-        sum * 0.25_f32
+        ps2float::mul(sum, 0.25_f32)
     };
     let scale = lwc1(0x3ac8a0);
     let mut p = 0;
@@ -297,7 +297,7 @@ pub fn StatsCalcMedals() {
         if part < mean {
             part = (value).pdiv(mean);
         }
-        let result = part * scale;
+        let result = ps2float::mul(part, scale);
         swc1(flag(sp, p, 42), result);
         swc1(flag(sp, p, 22), result);
         p += 1;
@@ -306,13 +306,13 @@ pub fn StatsCalcMedals() {
     let mut p = 0;
     while p < count_limit() {
         let value = matchstat(p, 196);
-        swc1(flag(sp, p, 23), value * scale);
+        swc1(flag(sp, p, 23), ps2float::mul(value, scale));
         p += 1;
     }
     if count > 0 {
         let mut p = 0;
         loop {
-            swc1(flag(sp, p, 24), lwc1(p * 1368 + (g::matchstats + 204)) * lwc1(0x3ac8a8));
+            swc1(flag(sp, p, 24), ps2float::mul(lwc1(p * 1368 + (g::matchstats + 204)), lwc1(0x3ac8a8)));
             p += 1;
             if p >= count {
                 break;
@@ -334,7 +334,7 @@ pub fn StatsCalcMedals() {
     if count >= 2 {
         let mut p = 0;
         loop {
-            swc1(flag(sp, p, 27), (1.0_f32 - lwc1(p * 1368 + (g::matchstats + 232))) * lwc1(0x3ac8b0));
+            swc1(flag(sp, p, 27), ps2float::mul(ps2float::sub(1.0_f32, lwc1(p * 1368 + (g::matchstats + 232))), lwc1(0x3ac8b0)));
             p += 1;
             if p >= count {
                 break;
@@ -362,7 +362,7 @@ pub fn StatsCalcMedals() {
     if count > 0 {
         let mut p = 0;
         loop {
-            swc1(flag(sp, p, 28), lwc1(p * 1368 + (g::matchstats + 220)) * 15.0_f32);
+            swc1(flag(sp, p, 28), ps2float::mul(lwc1(p * 1368 + (g::matchstats + 220)), 15.0_f32));
             p += 1;
             if p >= count {
                 break;
@@ -373,7 +373,7 @@ pub fn StatsCalcMedals() {
     let mut p = 0;
     while p < count_limit() {
         let rank = matchstat(p, 168);
-        let result = (1.0_f32).pdiv(rank) - 1.0_f32 + scale;
+        let result = ps2float::add(ps2float::sub((1.0_f32).pdiv(rank), 1.0_f32), scale);
         swc1(flag(sp, p, 37), result);
         swc1(flag(sp, p, 29), result);
         p += 1;
@@ -382,7 +382,7 @@ pub fn StatsCalcMedals() {
     let mut p = 0;
     while p < count_limit() {
         let rank = matchstat(p, 168);
-        swc1(flag(sp, p, 30), (rank - 1.0_f32) * 0.5_f32 + scale);
+        swc1(flag(sp, p, 30), ps2float::add(ps2float::mul(ps2float::sub(rank, 1.0_f32), 0.5_f32), scale));
         p += 1;
     }
     let mut players = lw(g::lvnumplayers);
@@ -490,7 +490,7 @@ pub fn StatsCalcMedals() {
             while q < count_limit() {
                 let value = StatsGetChar(0, p, q);
                 q += 1;
-                sum = (sum as f32 + value) as i32;
+                sum = ps2float::add(sum as f32, value) as i32;
             }
             let mean;
             if ((lw(g::curgameparms + 72) - 6) as u32) >= (2 as u32) && (lw(g::curgameparms + 80) & 32) == 0 {
@@ -570,7 +570,7 @@ pub fn StatsCalcMedals() {
             let mut p = 0;
             loop {
                 sw(p * 12 + (pass << 2) + g::medals, -1);
-                if 6e+01_f32 < lw(g::gameframe) as f32 * lwc1(0x3ac8c0) {
+                if 6e+01_f32 < ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ac8c0)) {
                     let slot = p * 12 + (pass << 2) + g::medals;
                     let mut tries = 0;
                     loop {

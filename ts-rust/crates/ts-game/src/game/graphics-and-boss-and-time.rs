@@ -155,7 +155,7 @@ pub fn gsMain() {
         let start_time = lwc1(0x3afe04);
         swc1(0x3afe08, end);
         while end < start_time {
-            end += 128.0_f32;
+            end = ps2float::add(end, 128.0_f32);
             swc1(0x3afe08, end);
         }
         sw(0x10000810, 131);

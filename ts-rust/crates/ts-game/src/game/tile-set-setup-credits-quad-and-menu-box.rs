@@ -210,7 +210,7 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
     let factor = lwc1(0x3ad774);
     let half_turn = 1.8e+02_f32;
     let limit = ld(0x3a98a8);
-    let mut angle = (((step_f + one)).pdiv(twelve) * full * factor).pdiv(half_turn);
+    let mut angle = ps2float::mul(ps2float::mul((ps2float::add(step_f, one)).pdiv(twelve), full), factor).pdiv(half_turn);
     if dpcmp(fptodp(angle), limit) >= 0 {
         angle = dptofp(dpsub(fptodp(angle), limit));
     }
@@ -244,19 +244,19 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
     sw(sp + 272, record + 2360);
     sw(sp + 284, record + 2364);
     sw(sp + 268, record + 0x1200);
-    let y_b = section_b as f32 * five;
+    let y_b = ps2float::mul(section_b as f32, five);
     sw(sp + 236, sp + 20);
-    let y_a = section_a as f32 * five;
+    let y_a = ps2float::mul(section_a as f32, five);
     sw(sp + 216, sp + 12);
     sw(sp + 224, sp + 16);
     sw(sp + 280, record + 0x1204);
     let z_b = lwc1(sp + 56);
-    let index_b = (angle * scale + half) as i32;
+    let index_b = ps2float::add(ps2float::mul(angle, scale), half) as i32;
     sw(sp + 288, record + 0x1208);
     sw(sp + 260, sp + 60);
     sw(sp + 276, sp + 68);
     sw(sp + 264, sp + 64);
-    let index_a = (((step_f).pdiv(twelve) * full * factor).pdiv(half_turn) * scale + half) as i32;
+    let index_a = ps2float::add(ps2float::mul(ps2float::mul(ps2float::mul((step_f).pdiv(twelve), full), factor).pdiv(half_turn), scale), half) as i32;
     sw(sp + 292, record + 0x120c);
     let table = g::g_SinTable;
     let x_a = lwc1(sp);
@@ -280,10 +280,10 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
     loop {
         let layer = lwc1(lw(sp + 304));
         let pass = lw(sp + 128);
-        let a = z_a * layer;
-        let b = z_b * layer;
+        let a = ps2float::mul(z_a, layer);
+        let b = ps2float::mul(z_b, layer);
         let offset = lw(sp + 320) + pass * 768;
-        let cos_a = lwc1(lw(sp + 132)) * a;
+        let cos_a = ps2float::mul(lwc1(lw(sp + 132)), a);
         sw(sp + 304, lw(sp + 304) + 4);
         let list_a = lw(sp + 172) + offset;
         let list_b = lw(sp + 176) + offset;
@@ -292,7 +292,7 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
         let list_e = lw(sp + 188);
         let list_f = lw(sp + 192);
         let list_g = lw(sp + 196);
-        swc1(record + offset, x_a + cos_a);
+        swc1(record + offset, ps2float::add(x_a, cos_a));
         let list_h = lw(sp + 204) + offset;
         let list_i = lw(sp + 208) + offset;
         let list_j = lw(sp + 200) + offset;
@@ -312,7 +312,7 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
         let list_q = lw(sp + 252) + offset;
         let colours = lw(sp + 216);
         let green = lw(lw(sp + 236) + pass * 12) << 16;
-        swc1(lw(sp + 296) + offset, y0 + sin_a * a);
+        swc1(lw(sp + 296) + offset, ps2float::add(y0, ps2float::mul(sin_a, a)));
         let rows = lw(sp + 168);
         let red = lw(colours + pass * 12);
         let pass_now = lw(sp + 128);
@@ -324,7 +324,7 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
         let colour_a = red | 0x7f000000 | (green | blue << 8);
         let colour_ptr_a = lw(sp + 268) + (rows + pass_now * 192);
         let u0 = lw(sp + 264) + pass * 12;
-        let cos_b = x_a + lwc1(lw(sp + 140)) * a;
+        let cos_b = ps2float::add(x_a, ps2float::mul(lwc1(lw(sp + 140)), a));
         let u1 = lw(sp + 276) + pass * 12;
         let u2 = lw(sp + 260) + pass * 12;
         let colour_ptr_b = lw(sp + 280) + (rows + pass_now * 192);
@@ -333,15 +333,15 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
         sw(sp + 128, lw(sp + 128) + 1);
         swc1(list_b, cos_b);
         let more = (lw(sp + 128) < 3) as i32;
-        swc1(list_c, y0 + lwc1(lw(sp + 144)) * a);
+        swc1(list_c, ps2float::add(y0, ps2float::mul(lwc1(lw(sp + 144)), a)));
         swc1(list_d, y_a);
         swc1(list_e + offset, one);
-        swc1(list_f + offset, x_b + lwc1(lw(sp + 132)) * b);
-        swc1(list_g + offset, y1 + lwc1(lw(sp + 136)) * b);
+        swc1(list_f + offset, ps2float::add(x_b, ps2float::mul(lwc1(lw(sp + 132)), b)));
+        swc1(list_g + offset, ps2float::add(y1, ps2float::mul(lwc1(lw(sp + 136)), b)));
         swc1(list_j, y_b);
         swc1(list_h, one);
-        swc1(list_i, x_b + lwc1(lw(sp + 140)) * b);
-        swc1(lw(sp + 148), y1 + lwc1(lw(sp + 144)) * b);
+        swc1(list_i, ps2float::add(x_b, ps2float::mul(lwc1(lw(sp + 140)), b)));
+        swc1(lw(sp + 148), ps2float::add(y1, ps2float::mul(lwc1(lw(sp + 144)), b)));
         swc1(lw(sp + 152), y_b);
         swc1(lw(sp + 156), one);
         swc1(list_o + offset, one);
@@ -377,8 +377,8 @@ pub fn menuGfx() {
         let window = g::window;
         let height = lw(window + 36);
         let width = lw(window + 16);
-        let y = lw(window + 20) + height + (lwc1(player + 816) * (height as f32 * scale) as i32 as f32) as i32;
-        let x = lw(g::window) + width + (lwc1(player + 812) * (width as f32 * scale) as i32 as f32) as i32;
+        let y = lw(window + 20) + height + ps2float::mul(lwc1(player + 816), ps2float::mul(height as f32, scale) as i32 as f32) as i32;
+        let x = lw(g::window) + width + ps2float::mul(lwc1(player + 812), ps2float::mul(width as f32, scale) as i32 as f32) as i32;
         dlFillRectangle(x, y - 8, x, y - 3, 0xff0080);
         dlFillRectangle(x, y + 3, x, y + 8, 0xff0080);
         dlFillRectangle(x - 15, y, x - 5, y, 0xff0080);

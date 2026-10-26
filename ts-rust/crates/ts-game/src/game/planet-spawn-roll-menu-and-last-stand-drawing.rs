@@ -10,7 +10,7 @@ pub fn specialfxPlanetSpawnTick(group: i32) {
     let groups = g::fxgroups;
     let slot = group * 92 + (groups + 56);
     let prop = lw(slot);
-    let step = lwc1(g::updateframesf) * lwc1(0x3ad6dc);
+    let step = ps2float::mul(lwc1(g::updateframesf), lwc1(0x3ad6dc));
     if prop != 0 {
         let limit = lwc1(0x3ad6e0);
         let time_at = group * 92 + (groups + 48);
@@ -22,14 +22,14 @@ pub fn specialfxPlanetSpawnTick(group: i32) {
         let amplitude = lwc1(0x3ad6e4);
         let state = lw(prop + 352);
         let first = dptoli(dpadd(dpmul(dpadd(dpmul(fptodp(fraction), scale), scale), scale_two), half));
-        swc1(state + 44, lwc1(((first & 2047) << 2) + table) * lwc1(0x3ad6e8) + lwc1(0x3ad6ec));
+        swc1(state + 44, ps2float::add(ps2float::mul(lwc1(((first & 2047) << 2) + table), lwc1(0x3ad6e8)), lwc1(0x3ad6ec)));
         let fraction = (lwc1(time_at)).pdiv(limit);
         let second = dptoli(dpadd(dpmul(dpmul(fptodp(fraction), scale), scale_two), half));
         let shift = lwc1(0x3ad6f0);
-        swc1(state + 52, lwc1(((second & 2047) << 2) + table) * amplitude);
-        let later = lwc1(time_at) + shift;
+        swc1(state + 52, ps2float::mul(lwc1(((second & 2047) << 2) + table), amplitude));
+        let later = ps2float::add(lwc1(time_at), shift);
         let third = dptoli(dpadd(dpmul(dpmul(fptodp(later), scale), scale_two), half));
-        swc1(state + 56, lwc1(((third & 2047) << 2) + table) * amplitude);
+        swc1(state + 56, ps2float::mul(lwc1(((third & 2047) << 2) + table), amplitude));
         let mut now = lwc1(time_at);
         if now < 0.0_f32 {
             swc1(state + 44, 0.0_f32);
@@ -43,10 +43,10 @@ pub fn specialfxPlanetSpawnTick(group: i32) {
     let groups = g::fxgroups;
     let particles = group * 92 + (groups + 72);
     if lw(particles) != 0 {
-        matrixRotY(sp, (step * 3.6e+02_f32 * lwc1(0x3ad6f4)).pdiv(1.8e+02_f32) * lw(groups + group * 92 + 4) as f32);
+        matrixRotY(sp, ps2float::mul(ps2float::mul(ps2float::mul(step, 3.6e+02_f32), lwc1(0x3ad6f4)).pdiv(1.8e+02_f32), lw(groups + group * 92 + 4) as f32));
         let one = 1.0_f32;
-        let shrink = one - step * lwc1(0x3ad6f8);
-        let shrink_y = one - step * lwc1(0x3ad6fc);
+        let shrink = ps2float::sub(one, ps2float::mul(step, lwc1(0x3ad6f8)));
+        let shrink_y = ps2float::sub(one, ps2float::mul(step, lwc1(0x3ad6fc)));
         matrixScaleSet(sp + 64, shrink, shrink_y, shrink);
         let matrix = lw(particles) + 928;
         sceVu0MulMatrix(matrix, matrix, sp + 64);

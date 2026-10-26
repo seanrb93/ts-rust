@@ -16,12 +16,12 @@ fn spark_rooms(out: i32, at: i32, spread: i32, scale: f32, lift: f32) {
     let y = lwc1(at + 4);
     let z = lwc1(at + 8);
     let x = lwc1(at);
-    let max_z = z + ((sz + one) * three - one_and_half) * scale + one;
-    let min_x = x + ((sx + 0.0_f32) * three - one_and_half) * scale - one;
-    let max_x = x + ((sx + one) * three - one_and_half) * scale + one;
-    let min_y = y + ((sy + 0.0_f32) * three - half) * scale + lift - one;
-    let max_y = y + ((sy + one) * three - half) * scale + one;
-    let min_z = z + ((sz + 0.0_f32) * three - one_and_half) * scale - one;
+    let max_z = ps2float::add(ps2float::add(z, ps2float::mul(ps2float::sub(ps2float::mul(ps2float::add(sz, one), three), one_and_half), scale)), one);
+    let min_x = ps2float::sub(ps2float::add(x, ps2float::mul(ps2float::sub(ps2float::mul(ps2float::add(sx, 0.0_f32), three), one_and_half), scale)), one);
+    let max_x = ps2float::add(ps2float::add(x, ps2float::mul(ps2float::sub(ps2float::mul(ps2float::add(sx, one), three), one_and_half), scale)), one);
+    let min_y = ps2float::sub(ps2float::add(ps2float::add(y, ps2float::mul(ps2float::sub(ps2float::mul(ps2float::add(sy, 0.0_f32), three), half), scale)), lift), one);
+    let max_y = ps2float::add(ps2float::add(y, ps2float::mul(ps2float::sub(ps2float::mul(ps2float::add(sy, one), three), half), scale)), one);
+    let min_z = ps2float::sub(ps2float::add(z, ps2float::mul(ps2float::sub(ps2float::mul(ps2float::add(sz, 0.0_f32), three), one_and_half), scale)), one);
     bgCalcRoomArray(out, min_x, max_x, min_y, max_y, min_z, max_z);
 }
 
@@ -31,14 +31,14 @@ fn spark_speeds(group: i32, speeds: i32, spread: i32) {
     loop {
         let at = i * 12 + speeds;
         let r = random_as_float();
-        swc1(at, (r * 2.3283064e-10_f32 + lwc1(spread)) * 3.0_f32 - 1.5_f32);
+        swc1(at, ps2float::sub(ps2float::mul(ps2float::add(ps2float::mul(r, 2.3283064e-10_f32), lwc1(spread)), 3.0_f32), 1.5_f32));
         let at = i * 12 + (speeds + 4);
         let r = random_as_float();
-        swc1(at, (r * 2.3283064e-10_f32 + lwc1(spread + 4)) * 3.0_f32 - 0.5_f32);
+        swc1(at, ps2float::sub(ps2float::mul(ps2float::add(ps2float::mul(r, 2.3283064e-10_f32), lwc1(spread + 4)), 3.0_f32), 0.5_f32));
         let at = i * 12 + (speeds + 8);
         let r = random_as_float();
         i += 1;
-        swc1(at, (r * 2.3283064e-10_f32 + lwc1(spread + 8)) * 3.0_f32 - 1.5_f32);
+        swc1(at, ps2float::sub(ps2float::mul(ps2float::add(ps2float::mul(r, 2.3283064e-10_f32), lwc1(spread + 8)), 3.0_f32), 1.5_f32));
         if i >= lw(group + 24) {
             break;
         }

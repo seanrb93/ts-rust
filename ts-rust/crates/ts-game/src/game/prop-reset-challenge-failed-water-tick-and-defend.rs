@@ -242,10 +242,10 @@ pub fn enemyDefend(enemy: i32) {
         swc1(record + 2800, py);
         let pz = lwc1(at + 20);
         swc1(record + 2804, pz);
-        let dx = lwc1(enemy + 48) - px;
-        let dy = lwc1(enemy + 52) - py;
-        let dz = lwc1(enemy + 56) - pz;
-        if (dx * dx + dy * dy + dz * dz) < range {
+        let dx = ps2float::sub(lwc1(enemy + 48), px);
+        let dy = ps2float::sub(lwc1(enemy + 52), py);
+        let dz = ps2float::sub(lwc1(enemy + 56), pz);
+        if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < range {
             let count = lw(record + 1688);
             sw(record + 680, next);
             sw(record + 1688, count - 1);

@@ -15,10 +15,10 @@ pub fn animTick(a0: i32) {
     let a1_1 = v0_1 + 0x1fc1258;
     let stage = lw(v0_1 + g::stage);
     let stageprop = lw(v0_1 + g::stageprop);
-    swc1(chr + 48, f1_1 - lwc1(a1_1));
-    swc1(stage + 48, lwc1(stage + 48) - lwc1(a1_1));
+    swc1(chr + 48, ps2float::sub(f1_1, lwc1(a1_1)));
+    swc1(stage + 48, ps2float::sub(lwc1(stage + 48), lwc1(a1_1)));
     if stageprop != 0 {
-        swc1(stageprop + 48, lwc1(stageprop + 48) - lwc1(a1_1));
+        swc1(stageprop + 48, ps2float::sub(lwc1(stageprop + 48), lwc1(a1_1)));
     }
     if idx == 29 {
         let v1_1 = lw(front) << 2;
@@ -267,9 +267,9 @@ pub fn animTick(a0: i32) {
                             'b20: {
                                 'b21: {
                                     let v1_2 = lw((a2_1 << 2) + g::stage);
-                                    let f1_2 = lwc1(chr + 48) - lwc1(v1_2 + 48);
-                                    let f2_1 = lwc1(chr + 52) - lwc1(v1_2 + 52);
-                                    let f0_1 = lwc1(chr + 56) - lwc1(v1_2 + 56);
+                                    let f1_2 = ps2float::sub(lwc1(chr + 48), lwc1(v1_2 + 48));
+                                    let f2_1 = ps2float::sub(lwc1(chr + 52), lwc1(v1_2 + 52));
+                                    let f0_1 = ps2float::sub(lwc1(chr + 56), lwc1(v1_2 + 56));
                                     let s0_1 = idx * 20 + fal;
                                     let a1_2 = lw(s0_1);
                                     let v0_4 = curAnim(chr, a1_2);
@@ -290,7 +290,7 @@ pub fn animTick(a0: i32) {
                                         if a1_3 != lw(v0_5 + 8) {
                                             break 'b20;
                                         }
-                                        if !(0.5_f32 < (f1_2 * f1_2 + f2_1 * f2_1 + f0_1 * f0_1).abs().psqrt()) {
+                                        if !(0.5_f32 < ps2float::add(ps2float::add(ps2float::mul(f1_2, f1_2), ps2float::mul(f2_1, f2_1)), ps2float::mul(f0_1, f0_1)).abs().psqrt()) {
                                             break 'b20;
                                         }
                                     }

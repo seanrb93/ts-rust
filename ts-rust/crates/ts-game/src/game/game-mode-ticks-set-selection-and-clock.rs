@@ -76,9 +76,9 @@ pub fn calculateClockTime() {
     sw(0x3b0104, hours);
     sw(0x3b0108, minutes);
     sw(0x3b010c, seconds);
-    swc1(0x3b00f8, ((hours as f32).pdiv(12.0_f32) * turn * pi).pdiv(half_turn));
-    swc1(0x3b0100, ((seconds as f32).pdiv(sixty) * turn * pi).pdiv(half_turn));
-    swc1(0x3b00fc, ((minutes as f32).pdiv(sixty) * turn * pi).pdiv(half_turn));
+    swc1(0x3b00f8, ps2float::mul(ps2float::mul((hours as f32).pdiv(12.0_f32), turn), pi).pdiv(half_turn));
+    swc1(0x3b0100, ps2float::mul(ps2float::mul((seconds as f32).pdiv(sixty), turn), pi).pdiv(half_turn));
+    swc1(0x3b00fc, ps2float::mul(ps2float::mul((minutes as f32).pdiv(sixty), turn), pi).pdiv(half_turn));
 }
 
 /// Step the character set setting down (wrapping from 0 to 10) until one that is available is found (sets 8 and above always are), with the sound 141 (@ 0x234510).

@@ -13,7 +13,7 @@ pub fn hudRadarGfx() -> i32 {
     let mut count = 0;
     let mut players = lw(g::lvnumplayers);
     let mut characters = lw(g::numactivechars);
-    let facing = (lwc1(player + 276) * lwc1(0x3ad79c)).pdiv(1.8e+02_f32);
+    let facing = ps2float::mul(lwc1(player + 276), lwc1(0x3ad79c)).pdiv(1.8e+02_f32);
     let mut strip = sp + 16;
     if players + characters > 0 {
         loop {
@@ -24,13 +24,13 @@ pub fn hudRadarGfx() -> i32 {
             if count != lw(player) && lw(character + 2716) != 0 {
                 let back = lwc1(player + 148);
                 let slot = count * 12;
-                let dx = lwc1(thing + 48) - lwc1(player + 140);
-                let dz = -(lwc1(thing + 56) - back);
+                let dx = ps2float::sub(lwc1(thing + 48), lwc1(player + 140));
+                let dz = -ps2float::sub(lwc1(thing + 56), back);
                 let entry = count * 12 + 0x1fea944;
-                swc1(entry, ((dx * dx + dz * dz).abs().psqrt()).pdiv(5e+01_f32));
+                swc1(entry, (ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz)).abs().psqrt()).pdiv(5e+01_f32));
                 let angle = atan2f(dz, dx);
                 let team_game = lw(g::curgameparms + 80) & 1;
-                swc1(slot + 0x1fea940, angle - facing);
+                swc1(slot + 0x1fea940, ps2float::sub(angle, facing));
                 if team_game == 0 {
                     players = lw(g::lvnumplayers);
                     sw(slot + 0x1fea948, lw(g::teamdata + 4));
@@ -63,14 +63,14 @@ pub fn hudRadarGfx() -> i32 {
                 let player = lw(g::currentplayer);
                 if (lw(bag + 16) & 1) != 0 {
                     let slot = count * 12;
-                    let dx = lwc1(bag + 48) - lwc1(player + 140);
-                    let dz = -(lwc1(bag + 56) - lwc1(player + 148));
+                    let dx = ps2float::sub(lwc1(bag + 48), lwc1(player + 140));
+                    let dz = -ps2float::sub(lwc1(bag + 56), lwc1(player + 148));
                     let entry = count * 12 + 0x1fea944;
                     count += 1;
-                    swc1(entry, ((dx * dx + dz * dz).abs().psqrt()).pdiv(5e+01_f32));
+                    swc1(entry, (ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz)).abs().psqrt()).pdiv(5e+01_f32));
                     let angle = atan2f(dz, dx);
                     sw(slot + 0x1fea948, if (lw(g::tickframenum) & 16) == 0 { 0 } else { 0x7f7f7f80 });
-                    swc1(slot + 0x1fea940, angle - facing);
+                    swc1(slot + 0x1fea940, ps2float::sub(angle, facing));
                     bags = lw(g::numPickupBags);
                 }
                 i += 1;
@@ -86,14 +86,14 @@ pub fn hudRadarGfx() -> i32 {
         let player = lw(g::currentplayer);
         if escort != 0 {
             let slot = count * 12;
-            let dx = lwc1(escort + 48) - lwc1(player + 140);
-            let dz = -(lwc1(escort + 56) - lwc1(player + 148));
+            let dx = ps2float::sub(lwc1(escort + 48), lwc1(player + 140));
+            let dz = -ps2float::sub(lwc1(escort + 56), lwc1(player + 148));
             let entry = count * 12 + 0x1fea944;
             count += 1;
-            swc1(entry, ((dx * dx + dz * dz).abs().psqrt()).pdiv(5e+01_f32));
+            swc1(entry, (ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz)).abs().psqrt()).pdiv(5e+01_f32));
             let angle = atan2f(dz, dx);
             let colour = if (lw(g::tickframenum) & 16) == 0 { 0 } else { 0x7f7f7f80 };
-            swc1(slot + 0x1fea940, angle - facing);
+            swc1(slot + 0x1fea940, ps2float::sub(angle, facing));
             sw(slot + 0x1fea948, colour);
         }
     }
@@ -102,15 +102,15 @@ pub fn hudRadarGfx() -> i32 {
     if lw(g::window + 88) != 0 {
         size = 4e+01_f32;
     }
-    let half_size = size * 0.5_f32;
+    let half_size = ps2float::mul(size, 0.5_f32);
     let degrees = lwc1(0x3ad7a0);
     let mut turn = 0.0_f32;
-    let centre_y = (top + 4) as f32 + half_size;
-    let centre_x = (lw(g::window + 4) - 8) as f32 - size;
+    let centre_y = ps2float::add((top + 4) as f32, half_size);
+    let centre_x = ps2float::sub((lw(g::window + 4) - 8) as f32, size);
     let factor = lwc1(0x3ad7a4);
     let mut point = 0;
     loop {
-        let index = ((turn * degrees).pdiv(1.8e+02_f32) * factor + 0.5_f32) as i32;
+        let index = ps2float::add(ps2float::mul(ps2float::mul(turn, degrees).pdiv(1.8e+02_f32), factor), 0.5_f32) as i32;
         let sine = lwc1(((index & 2047) << 2) + g::g_SinTable);
         let cosine = lwc1((((index + 512) & 2047) << 2) + g::g_SinTable);
         if point != 16 {
@@ -118,8 +118,8 @@ pub fn hudRadarGfx() -> i32 {
             sw(strip + 4, centre_x as i32);
             sw(strip + 8, centre_y as i32);
             sw(strip + 12, 0x640000);
-            swc1(strip + 16, f32::from_bits((centre_x + cosine * size) as i32 as u32));
-            swc1(strip + 20, f32::from_bits((centre_y - sine * half_size) as i32 as u32));
+            swc1(strip + 16, f32::from_bits(ps2float::add(centre_x, ps2float::mul(cosine, size)) as i32 as u32));
+            swc1(strip + 20, f32::from_bits(ps2float::sub(centre_y, ps2float::mul(sine, half_size)) as i32 as u32));
             strip += 24;
             point += 1;
         } else {
@@ -130,7 +130,7 @@ pub fn hudRadarGfx() -> i32 {
             sd(strip + 16, third);
             point += 1;
         }
-        turn += 22.5_f32;
+        turn = ps2float::add(turn, 22.5_f32);
         if point >= 17 {
             break;
         }
@@ -139,10 +139,10 @@ pub fn hudRadarGfx() -> i32 {
     dlSelectTextureKick(lw(0x3b0194));
     sw(sp, 0x7f7f7f80);
     dlTextureRectangle(
-        (centre_x - 2.0_f32) as i32,
-        (centre_y - 1.0_f32) as i32,
-        (centre_x + 2.0_f32) as i32,
-        (centre_y + 1.0_f32) as i32,
+        ps2float::sub(centre_x, 2.0_f32) as i32,
+        ps2float::sub(centre_y, 1.0_f32) as i32,
+        ps2float::add(centre_x, 2.0_f32) as i32,
+        ps2float::add(centre_y, 1.0_f32) as i32,
         0,
         0,
         80,
@@ -161,10 +161,10 @@ pub fn hudRadarGfx() -> i32 {
                     colour = 0x5050507f;
                     distance = 1.0_f32;
                 }
-                let angle = (lwc1(slot + 0x1fea940) * lwc1(0x3ad7a8) + 0.5_f32) as i32;
-                let y = centre_y + lwc1(((angle & 2047) << 2) + g::g_SinTable) * distance * half_size;
-                let x = centre_x - lwc1((((angle + 512) & 2047) << 2) + g::g_SinTable) * distance * size;
-                dlTextureRectangleFloat(0, 0, 80, 80, colour, x - 2.0_f32, y - 1.0_f32, x + 2.0_f32, y + 1.0_f32);
+                let angle = ps2float::add(ps2float::mul(lwc1(slot + 0x1fea940), lwc1(0x3ad7a8)), 0.5_f32) as i32;
+                let y = ps2float::add(centre_y, ps2float::mul(ps2float::mul(lwc1(((angle & 2047) << 2) + g::g_SinTable), distance), half_size));
+                let x = ps2float::sub(centre_x, ps2float::mul(ps2float::mul(lwc1((((angle + 512) & 2047) << 2) + g::g_SinTable), distance), size));
+                dlTextureRectangleFloat(0, 0, 80, 80, colour, ps2float::sub(x, 2.0_f32), ps2float::sub(y, 1.0_f32), ps2float::add(x, 2.0_f32), ps2float::add(y, 1.0_f32));
             }
             i += 1;
             if i >= count {
@@ -172,7 +172,7 @@ pub fn hudRadarGfx() -> i32 {
             }
         }
     }
-    (half_size + half_size) as i32
+    ps2float::add(half_size, half_size) as i32
 }
 
 /// The sine (or with `quarter` the cosine) of the wind phase for the time `time` in the table of sines: the time times the constant at 0x3a95c8, doubled, times `rate` and the
@@ -193,8 +193,8 @@ pub fn weatherCalcWindAtTime(wind: i32, time: f32) {
     let scale = lwc1(0x3ad628);
     let first = wind_sine(time, ld(0x3a95d0), false);
     sw(wind + 4, 0);
-    swc1(wind, first * scale);
-    swc1(wind + 8, wind_sine(time, ld(0x3a95d0), true) * scale);
+    swc1(wind, ps2float::mul(first, scale));
+    swc1(wind + 8, ps2float::mul(wind_sine(time, ld(0x3a95d0), true), scale));
     sw(sp + 4, 0);
     swc1(sp, wind_sine(time, ld(0x3a95e0), false));
     swc1(sp + 8, wind_sine(time, 0x3fd0000000000000_i64, true));
@@ -203,16 +203,16 @@ pub fn weatherCalcWindAtTime(wind: i32, time: f32) {
     swc1(sp + 24, wind_sine(time, ld(0x3a95f0), true));
     let gust_a = lwc1(sp);
     let x = lwc1(wind);
-    let x = if !(0.0_f32 < gust_a) { x * 0.0_f32 } else { x * gust_a };
+    let x = if !(0.0_f32 < gust_a) { ps2float::mul(x, 0.0_f32) } else { ps2float::mul(x, gust_a) };
     let gust_b = lwc1(sp + 16);
     swc1(wind, x);
-    let x = if !(0.0_f32 < gust_b) { x * 0.0_f32 } else { x * gust_b };
+    let x = if !(0.0_f32 < gust_b) { ps2float::mul(x, 0.0_f32) } else { ps2float::mul(x, gust_b) };
     let gust_c = lwc1(sp + 8);
     swc1(wind, x);
     let z = lwc1(wind + 8);
-    let z = if !(0.0_f32 < gust_c) { z * 0.0_f32 } else { z * gust_c };
+    let z = if !(0.0_f32 < gust_c) { ps2float::mul(z, 0.0_f32) } else { ps2float::mul(z, gust_c) };
     let gust_d = lwc1(sp + 24);
     swc1(wind + 8, z);
-    let z = if !(0.0_f32 < gust_d) { z * 0.0_f32 } else { z * gust_d };
+    let z = if !(0.0_f32 < gust_d) { ps2float::mul(z, 0.0_f32) } else { ps2float::mul(z, gust_d) };
     swc1(wind + 8, z);
 }

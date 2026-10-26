@@ -33,10 +33,10 @@ pub fn frontfxTick(mode: i32) {
     }
     let rate = lwc1(0x3ac8e4);
     let wrap = 3.0_f32;
-    let time = time + rate;
+    let time = ps2float::add(time, rate);
     swc1(g::frontfxtime, time);
     if wrap <= time {
-        swc1(g::frontfxtime, time - wrap);
+        swc1(g::frontfxtime, ps2float::sub(time, wrap));
     }
     if mode != 1 {
         let scale_y = lwc1(0x3ac910);
@@ -54,7 +54,7 @@ pub fn frontfxTick(mode: i32) {
         return;
     }
     let first_end = lwc1(0x3ac8e8);
-    let page_time = lwc1(g::fronttime) + rate;
+    let page_time = ps2float::add(lwc1(g::fronttime), rate);
     sw(g::logoposx, 320);
     sw(g::logoposy, 89);
     swc1(g::fronttime, page_time);
@@ -64,13 +64,13 @@ pub fn frontfxTick(mode: i32) {
         let scale_x = lwc1(g::globalscalex);
         if !(page_time < second_start) {
             if page_time < lwc1(0x3ac904) {
-                let past = page_time - second_start;
+                let past = ps2float::sub(page_time, second_start);
                 let radians = ld(0x3a1890);
                 let factor = ld(0x3a1898);
-                let fade = 1.0_f32 - past * 0.5_f32;
+                let fade = ps2float::sub(1.0_f32, ps2float::mul(past, 0.5_f32));
                 let angle = fptodp(past);
                 let value = sine_of(dpadd(dpmul(dpadd(dpmul(dpmul(angle, radians), half), ld(0x3a18a0)), factor), half));
-                swc1(g::flarescalarx, value * lwc1(0x3ac908));
+                swc1(g::flarescalarx, ps2float::mul(value, lwc1(0x3ac908)));
                 let angle = fptodp(past);
                 let second = sine_of(dpadd(dpmul(dpadd(dpmul(dpmul(angle, radians), half), radians), factor), half));
                 let tall = lwc1(0x3ac90c);
@@ -79,23 +79,23 @@ pub fn frontfxTick(mode: i32) {
                 swc1(g::flareintensity, fade);
                 swc1(flare + 4, fade);
                 swc1(flare + 12, fade);
-                swc1(g::flarescalary, second * tall);
+                swc1(g::flarescalary, ps2float::mul(second, tall));
                 swc1(flare + 16, fade);
             }
         } else {
-            let past = page_time - first_end;
-            let one_less = 1.0_f32 - past;
+            let past = ps2float::sub(page_time, first_end);
+            let one_less = ps2float::sub(1.0_f32, past);
             let radians = ld(0x3a1878);
             let factor = ld(0x3a1880);
-            swc1(g::globalscaley, one_less + lwc1(0x3ac8f8));
-            swc1(g::globalscalex, scale_x + one_less * wrap * rate);
+            swc1(g::globalscaley, ps2float::add(one_less, lwc1(0x3ac8f8)));
+            swc1(g::globalscalex, ps2float::add(scale_x, ps2float::mul(ps2float::mul(one_less, wrap), rate)));
             let angle = fptodp(past);
             let value = sine_of(dpadd(dpmul(dpmul(dpmul(angle, radians), half), factor), half));
-            swc1(g::flarescalarx, value * lwc1(0x3ac8fc));
+            swc1(g::flarescalarx, ps2float::mul(value, lwc1(0x3ac8fc)));
             let angle = fptodp(past);
             let value = sine_of(dpadd(dpmul(dpadd(dpmul(dpmul(angle, radians), half), radians), factor), half));
             let tall = lwc1(0x3ac900);
-            swc1(g::flarescalary, value * tall + tall);
+            swc1(g::flarescalary, ps2float::add(ps2float::mul(value, tall), tall));
             let angle = fptodp(past);
             let value = sine_of(dpadd(dpmul(dpadd(dpmul(dpmul(angle, radians), half), ld(0x3a1888)), factor), half));
             swc1(g::flareintensity + 8, value);
@@ -120,6 +120,6 @@ pub fn frontfxTick(mode: i32) {
         swc1(flare + 20, one);
         let angle = fptodp(progress);
         let value = sine_of(dpadd(dpmul(dpadd(dpmul(dpmul(angle, radians), half), shift), factor), half));
-        swc1(flare + 8, value + one);
+        swc1(flare + 8, ps2float::add(value, one));
     }
 }

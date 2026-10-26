@@ -30,11 +30,11 @@ pub fn draw_colourslide(slide: i32) {
     let left_f = x0 as f32;
     let right_f = (x0 + lhu(slide + 4)) as f32;
     let one = 1.0_f32;
-    let level = lhu(slide + 2) as f32 + (one - lwc1(g::lightvolume)) * lhu(slide + 6) as f32 - one;
-    let level_bottom = level + 2.5_f32;
+    let level = ps2float::sub(ps2float::add(lhu(slide + 2) as f32, ps2float::mul(ps2float::sub(one, lwc1(g::lightvolume)), lhu(slide + 6) as f32)), one);
+    let level_bottom = ps2float::add(level, 2.5_f32);
     dlFillRectangleFloat(128, left_f, level, right_f, level_bottom);
     let half = 0.5_f32;
-    dlFillRectangleFloat(0x7f7f7f80, left_f + one, level + half, right_f - one, level_bottom - half);
+    dlFillRectangleFloat(0x7f7f7f80, ps2float::add(left_f, one), ps2float::add(level, half), ps2float::sub(right_f, one), ps2float::sub(level_bottom, half));
 }
 
 /// Draw a popup of the map maker: a zoom box from (`x`, `y`) to (`right`, `bottom`), the text `text` at its top left and, when `button_text` is not 0, that text at the right with

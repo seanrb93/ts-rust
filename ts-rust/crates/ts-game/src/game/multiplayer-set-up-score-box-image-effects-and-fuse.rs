@@ -117,8 +117,8 @@ pub fn ipGfx() {
     if lw((number << 2) + g::ipfisheye) != 0 {
         let to_radians = lwc1(0x3ad484);
         let half_turn = 1.8e+02_f32;
-        let strength = sinf((lw(g::gameframe) as f32 * to_radians).pdiv(half_turn));
-        let slow = sinf((lw(g::gameframe) as f32 * 0.5_f32 * to_radians).pdiv(half_turn));
+        let strength = sinf(ps2float::mul(lw(g::gameframe) as f32, to_radians).pdiv(half_turn));
+        let slow = sinf(ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, 0.5_f32), to_radians).pdiv(half_turn));
         let mut ratio = fptodp(slow);
         if dpcmp(ratio, 0_i64) < 0 {
             ratio = dpsub(0_i64, ratio);
@@ -142,10 +142,10 @@ pub fn updateFuse(fuse: i32, amount: f32) {
     let model = lw(fuse + 12);
     let skeleton = lw(lw(model + 32));
     let z = lwc1(model + 56);
-    let roll = (lwc1(model + 72) * to_radians).pdiv(1.8e+02_f32);
-    let pitch = (lwc1(model + 76) * to_radians).pdiv(1.8e+02_f32);
+    let roll = ps2float::mul(lwc1(model + 72), to_radians).pdiv(1.8e+02_f32);
+    let pitch = ps2float::mul(lwc1(model + 76), to_radians).pdiv(1.8e+02_f32);
     let y = lwc1(model + 52);
-    let yaw = (lwc1(model + 88) * to_radians).pdiv(1.8e+02_f32);
+    let yaw = ps2float::mul(lwc1(model + 88), to_radians).pdiv(1.8e+02_f32);
     let x = lwc1(model + 48);
     let bones = skeleton - lw(skeleton) * 80;
     matrixTransRotZXY(sp, x, y, z, roll, pitch, yaw);
@@ -159,19 +159,19 @@ pub fn updateFuse(fuse: i32, amount: f32) {
     swc1(sp + 72, z0);
     let x1 = lwc1(end);
     swc1(sp + 80, x1);
-    let dx = x1 - x0;
+    let dx = ps2float::sub(x1, x0);
     let y1 = lwc1(end + 4);
     swc1(sp + 84, y1);
-    let dy = y1 - y0;
+    let dy = ps2float::sub(y1, y0);
     let z1 = lwc1(end + 8);
     swc1(sp + 96, dx);
-    let dz = z1 - z0;
+    let dz = ps2float::sub(z1, z0);
     swc1(sp + 88, z1);
     swc1(sp + 100, dy);
-    swc1(sp + 112, x0 + dx * amount);
+    swc1(sp + 112, ps2float::add(x0, ps2float::mul(dx, amount)));
     swc1(sp + 104, dz);
-    swc1(sp + 116, y0 + dy * amount);
-    swc1(sp + 120, z0 + dz * amount);
+    swc1(sp + 116, ps2float::add(y0, ps2float::mul(dy, amount)));
+    swc1(sp + 120, ps2float::add(z0, ps2float::mul(dz, amount)));
     matrixVecMulAligned(&[sp as i64, (sp + 112) as i64]);
     matrixVecMulAligned(&[lw(lw(g::currentplayer) + 1772) as i64, (sp + 112) as i64]);
     if lw(g::gameframe).wrapping_rem(3) != 0 {

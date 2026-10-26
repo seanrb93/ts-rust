@@ -88,10 +88,10 @@ pub fn crateDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
         if (lhu(lw(a0 + 32) + 292) & 2) != 0 {
             let z = lwc1(a0 + 516);
             let base_z = lwc1(a0 + 56);
-            let y = lwc1(a0 + 512) + lwc1(a0 + 52);
-            swc1(sp, lwc1(a0 + 508) + lwc1(a0 + 48));
+            let y = ps2float::add(lwc1(a0 + 512), lwc1(a0 + 52));
+            swc1(sp, ps2float::add(lwc1(a0 + 508), lwc1(a0 + 48)));
             swc1(sp + 4, y);
-            swc1(sp + 8, z + base_z);
+            swc1(sp + 8, ps2float::add(z, base_z));
             particleNewExplosion(0, 0, sp, a3, a4, a5, a1, 0);
             particleNewBurst(0, 15, sp, 0, 0.0_f32);
             let model = lw(a0 + 32);
@@ -106,10 +106,10 @@ pub fn crateDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
         if (lhu(lw(a0 + 32) + 292) & 4) != 0 {
             let z = lwc1(a0 + 516);
             let base_z = lwc1(a0 + 56);
-            let y = lwc1(a0 + 512) + lwc1(a0 + 52);
-            swc1(sp + 16, lwc1(a0 + 508) + lwc1(a0 + 48));
+            let y = ps2float::add(lwc1(a0 + 512), lwc1(a0 + 52));
+            swc1(sp + 16, ps2float::add(lwc1(a0 + 508), lwc1(a0 + 48)));
             swc1(sp + 20, y);
-            swc1(sp + 24, z + base_z);
+            swc1(sp + 24, ps2float::add(z, base_z));
             particleNewExplosion(0, 0, sp + 16, a3, a4, a5, a1, 0);
             particleNewBurst(0, 15, sp + 16, 0, 0.0_f32);
             let model = lw(a0 + 32);
@@ -339,24 +339,24 @@ pub fn roomlightTick() {
                 'b4: {
                     if kind == 1 {
                         let one = 1.0_f32;
-                        let phase = lwc1(light + 8) + (lwc1(g::updateframesf) * lwc1(light + 4)).pdiv(sixty);
+                        let phase = ps2float::add(lwc1(light + 8), ps2float::mul(lwc1(g::updateframesf), lwc1(light + 4)).pdiv(sixty));
                         swc1(light + 8, phase);
                         if one <= phase {
-                            swc1(light + 8, phase - one);
+                            swc1(light + 8, ps2float::sub(phase, one));
                         }
-                        let angle = lwc1(light + 8) * lwc1(0x3ad624);
+                        let angle = ps2float::mul(lwc1(light + 8), lwc1(0x3ad624));
                         let wave = sinf(angle);
-                        strength = wave * half + half;
+                        strength = ps2float::add(ps2float::mul(wave, half), half);
                     } else {
                         'b6: {
                             if kind >= 2 {
                                 let past;
                                 if kind == 2 {
                                     let one = 1.0_f32;
-                                    let phase = lwc1(light + 8) + (lwc1(g::updateframesf) * lwc1(light + 4)).pdiv(sixty);
+                                    let phase = ps2float::add(lwc1(light + 8), ps2float::mul(lwc1(g::updateframesf), lwc1(light + 4)).pdiv(sixty));
                                     swc1(light + 8, phase);
                                     if one <= phase {
-                                        swc1(light + 8, phase - one);
+                                        swc1(light + 8, ps2float::sub(phase, one));
                                     }
                                     strength = 0.0_f32;
                                     past = half <= lwc1(light + 8);
@@ -371,7 +371,7 @@ pub fn roomlightTick() {
                                     }
                                     let roll = random_as_float();
                                     strength = 0.0_f32;
-                                    past = (roll * 2.3283064e-10_f32) < lwc1(light + 8);
+                                    past = ps2float::mul(roll, 2.3283064e-10_f32) < lwc1(light + 8);
                                 }
                                 if !past {
                                     first = lw(light + 16);
@@ -392,10 +392,10 @@ pub fn roomlightTick() {
             let a5_1 = ((first as u32) >> 16) as i32 & 255;
             let a2_1 = ((first as u32) >> 8) as i32 & 255;
             let a4_2 = first & 255;
-            let colour = (a0_1 + (strength * (((second as u32) >> 24) as i32 - a0_1) as f32) as i32) << 24
-                | a4_2 + (strength * ((second & 255) - a4_2) as f32) as i32
-                | ((a2_1 + (strength * ((((second as u32) >> 8) as i32 & 255) - a2_1) as f32) as i32) << 8
-                    | (a5_1 + (strength * ((((second as u32) >> 16) as i32 & 255) - a5_1) as f32) as i32) << 16);
+            let colour = (a0_1 + ps2float::mul(strength, (((second as u32) >> 24) as i32 - a0_1) as f32) as i32) << 24
+                | a4_2 + ps2float::mul(strength, ((second & 255) - a4_2) as f32) as i32
+                | ((a2_1 + ps2float::mul(strength, ((((second as u32) >> 8) as i32 & 255) - a2_1) as f32) as i32) << 8
+                    | (a5_1 + ps2float::mul(strength, ((((second as u32) >> 16) as i32 & 255) - a5_1) as f32) as i32) << 16);
             sw(light + 24, colour);
             if colour != -1 {
                 obInstLight(lw(prop + 32), light);
@@ -532,11 +532,11 @@ pub fn bgProcessGlasshits(a0: i32, a1: i32, a2: i32, f12: f32) {
             let slot = lw(record + 40) << 2;
             let list = lw(lw(record + 36) * 44 + lw(g::levelrooms) + 16);
             let glass = lw(slot + list);
-            swc1(glass, lwc1(glass) + f12);
+            swc1(glass, ps2float::add(lwc1(glass), f12));
             let roll = random_as_float();
             let at = slot + list;
             let next;
-            if !(lwc1(glass) < 0.5_f32 - roll * 2.3283064e-10_f32 * lwc1(0x3acacc)) {
+            if !(lwc1(glass) < ps2float::sub(0.5_f32, ps2float::mul(ps2float::mul(roll, 2.3283064e-10_f32), lwc1(0x3acacc)))) {
                 let base = 0x1fc4748;
                 next = i + 1;
                 bgSmashGlass(lw(at), i * 44 + base, i * 44 + (base + 24), i * 44 + (base + 12), a2, f12);

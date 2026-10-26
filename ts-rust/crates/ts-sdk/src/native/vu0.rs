@@ -3,6 +3,7 @@
 //! Accumulation order matches the VU0 multiply-accumulate sequences (no fused multiply-add).
 #![allow(non_snake_case)]
 
+use ts_rt::ps2float::{add, mul, sub};
 use ts_rt::*;
 
 type V4 = [f32; 4];
@@ -29,10 +30,10 @@ fn wm(a: i32, m: M4) {
 fn row_times(v: V4, m: &M4) -> V4 {
     let mut o = [0.0f32; 4];
     for j in 0..4 {
-        o[j] = v[0] * m[0][j];
-        o[j] = o[j] + v[1] * m[1][j];
-        o[j] = o[j] + v[2] * m[2][j];
-        o[j] = o[j] + v[3] * m[3][j];
+        o[j] = mul(v[0], m[0][j]);
+        o[j] = add(o[j], mul(v[1], m[1][j]));
+        o[j] = add(o[j], mul(v[2], m[2][j]));
+        o[j] = add(o[j], mul(v[3], m[3][j]));
     }
     o
 }
@@ -80,10 +81,10 @@ pub fn sceVu0InversMatrix(a0: i32, a1: i32) -> i32 {
     }
     let t = [m[3][0], m[3][1], m[3][2]];
     for j in 0..3 {
-        let mut acc = t[0] * o[0][j];
-        acc = acc + t[1] * o[1][j];
-        acc = acc + t[2] * o[2][j];
-        o[3][j] = 0.0 - acc;
+        let mut acc = mul(t[0], o[0][j]);
+        acc = add(acc, mul(t[1], o[1][j]));
+        acc = add(acc, mul(t[2], o[2][j]));
+        o[3][j] = sub(0.0, acc);
     }
     o[3][3] = m[3][3];
     wm(a0, o);
@@ -95,11 +96,11 @@ pub fn sceVu0InversMatrix(a0: i32, a1: i32) -> i32 {
 // ---------------------------------------------------------------------------------------------------------------
 
 fn dot4(a: V4, b: V4) -> f32 {
-    let x = a[0] * b[0];
-    let y = a[1] * b[1];
-    let z = a[2] * b[2];
-    let w = a[3] * b[3];
-    ((x + y) + z) + w
+    let x = mul(a[0], b[0]);
+    let y = mul(a[1], b[1]);
+    let z = mul(a[2], b[2]);
+    let w = mul(a[3], b[3]);
+    add(add(add(x, y), z), w)
 }
 
 /// Shared body of `quaternionSlerp` / `quaternionSlerp2`: spherical interpolation q0 -> q1 by `t`.
@@ -117,33 +118,33 @@ fn quat_slerp(q0a: i32, q1a: i32, outa: i32, t: f32, t1_copies_q1: bool) {
         wv(outa, q1);
         return;
     }
-    let sq = |v: V4| v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3];
-    let diff = sq([q0[0] - q1[0], q0[1] - q1[1], q0[2] - q1[2], q0[3] - q1[3]]);
-    let sum = sq([q0[0] + q1[0], q0[1] + q1[1], q0[2] + q1[2], q0[3] + q1[3]]);
+    let sq = |v: V4| add(add(add(mul(v[0], v[0]), mul(v[1], v[1])), mul(v[2], v[2])), mul(v[3], v[3]));
+    let diff = sq([sub(q0[0], q1[0]), sub(q0[1], q1[1]), sub(q0[2], q1[2]), sub(q0[3], q1[3])]);
+    let sum = sq([add(q0[0], q1[0]), add(q0[1], q1[1]), add(q0[2], q1[2]), add(q0[3], q1[3])]);
     // take the shorter arc
-    let qn: V4 = if sum < diff { [0.0 - q1[0], 0.0 - q1[1], 0.0 - q1[2], 0.0 - q1[3]] } else { q1 };
+    let qn: V4 = if sum < diff { [sub(0.0, q1[0]), sub(0.0, q1[1]), sub(0.0, q1[2]), sub(0.0, q1[3])] } else { q1 };
     let cos = dot4(q0, qn);
     let eps = f32::from_bits(0x3400_0000);
     let (w0, w1): (f32, f32);
-    if !(eps < cos + 1.0) {
+    if !(eps < add(cos, 1.0)) {
         // nearly opposite: quarter-turn blend
         let k = std::f32::consts::FRAC_PI_2;
-        w0 = crate::native::math::sinf((1.0 - t) * k);
-        w1 = crate::native::math::sinf(t * k);
-        wv(outa, [w0 * q0[0] - w1 * qn[0], w0 * q0[1] - w1 * qn[1], w0 * q0[2] - w1 * qn[2], w0 * q0[3] - w1 * qn[3]]);
+        w0 = crate::native::math::sinf(mul(sub(1.0, t), k));
+        w1 = crate::native::math::sinf(mul(t, k));
+        wv(outa, [sub(mul(w0, q0[0]), mul(w1, qn[0])), sub(mul(w0, q0[1]), mul(w1, qn[1])), sub(mul(w0, q0[2]), mul(w1, qn[2])), sub(mul(w0, q0[3]), mul(w1, qn[3]))]);
         return;
     }
-    if !(eps < 1.0 - cos) {
+    if !(eps < sub(1.0, cos)) {
         // nearly identical: linear blend
-        w0 = 1.0 - t;
+        w0 = sub(1.0, t);
         w1 = t;
     } else {
         let theta = crate::native::math::acosf(cos);
         let s = crate::native::math::sinf(theta);
-        w0 = crate::native::math::sinf(((1.0 - t) * theta) / s);
-        w1 = crate::native::math::sinf(t * theta) / s;
+        w0 = crate::native::math::sinf(mul(sub(1.0, t), theta).pdiv(s));
+        w1 = crate::native::math::sinf(mul(t, theta)).pdiv(s);
     }
-    wv(outa, [w0 * q0[0] + w1 * qn[0], w0 * q0[1] + w1 * qn[1], w0 * q0[2] + w1 * qn[2], w0 * q0[3] + w1 * qn[3]]);
+    wv(outa, [add(mul(w0, q0[0]), mul(w1, qn[0])), add(mul(w0, q0[1]), mul(w1, qn[1])), add(mul(w0, q0[2]), mul(w1, qn[2])), add(mul(w0, q0[3]), mul(w1, qn[3]))]);
 }
 
 /// quaternionSlerp(q0, q1, out, t)
@@ -167,10 +168,10 @@ pub fn quaternionSlerp2(args: &[i64]) -> i32 {
 fn acc3(m: &M4, v: V4, with_z: bool) -> V4 {
     let mut acc = [0.0f32; 4];
     for j in 0..4 {
-        acc[j] = m[0][j] * v[0];
-        acc[j] = acc[j] + m[1][j] * v[1];
+        acc[j] = mul(m[0][j], v[0]);
+        acc[j] = add(acc[j], mul(m[1][j], v[1]));
         if with_z {
-            acc[j] = acc[j] + m[2][j] * v[2];
+            acc[j] = add(acc[j], mul(m[2][j], v[2]));
         }
     }
     acc
@@ -184,7 +185,7 @@ pub fn matrixVecMulAligned(args: &[i64]) -> i32 {
     let m = rm(ma);
     let v = rv(va);
     let acc = acc3(&m, v, true);
-    let o = [acc[0] + m[3][0] * 1.0, acc[1] + m[3][1] * 1.0, acc[2] + m[3][2] * 1.0, v[3]];
+    let o = [add(acc[0], mul(m[3][0], 1.0)), add(acc[1], mul(m[3][1], 1.0)), add(acc[2], mul(m[3][2], 1.0)), v[3]];
     wv(va, o);
     0
 }
@@ -197,7 +198,7 @@ pub fn matrixVec3Mul4Aligned(args: &[i64]) -> i32 {
     let m = rm(ma);
     let v = rv(va);
     let acc = acc3(&m, v, true);
-    wv(oa, [acc[0] + m[3][0] * 1.0, acc[1] + m[3][1] * 1.0, acc[2] + m[3][2] * 1.0, acc[3] + m[3][3] * 1.0]);
+    wv(oa, [add(acc[0], mul(m[3][0], 1.0)), add(acc[1], mul(m[3][1], 1.0)), add(acc[2], mul(m[3][2], 1.0)), add(acc[3], mul(m[3][3], 1.0))]);
     0
 }
 
@@ -209,7 +210,7 @@ pub fn matrixVecRotAligned(args: &[i64]) -> i32 {
     let m = rm(ma);
     let v = rv(va);
     let acc = acc3(&m, v, false);
-    wv(va, [acc[0] + m[2][0] * v[2], acc[1] + m[2][1] * v[2], acc[2] + m[2][2] * v[2], v[3]]);
+    wv(va, [add(acc[0], mul(m[2][0], v[2])), add(acc[1], mul(m[2][1], v[2])), add(acc[2], mul(m[2][2], v[2])), v[3]]);
     0
 }
 
@@ -219,16 +220,16 @@ pub fn matrixToQuaternionNew(args: &[i64]) -> i32 {
     let _sh = shadow_args(0x2b5970, "matrixToQuaternionNew", args);
     let (qa, ma) = (args[0] as i32, args[1] as i32);
     let m = rm(ma);
-    let sqrt = |x: f32| x.abs().sqrt();
+    let sqrt = |x: f32| ts_rt::ps2float::sqrt(x);
     let mut q = [0.0f32; 4];
-    let tr = (m[0][0] + m[1][1]) + m[2][2];
+    let tr = add(add(m[0][0], m[1][1]), m[2][2]);
     if tr > 0.0 {
-        let s = sqrt(tr + 1.0);
-        q[3] = s * 0.5;
-        let s = 0.5 / s;
-        q[0] = (m[1][2] - m[2][1]) * s;
-        q[1] = (m[2][0] - m[0][2]) * s;
-        q[2] = (m[0][1] - m[1][0]) * s;
+        let s = sqrt(add(tr, 1.0));
+        q[3] = mul(s, 0.5);
+        let s = 0.5_f32.pdiv(s);
+        q[0] = mul(sub(m[1][2], m[2][1]), s);
+        q[1] = mul(sub(m[2][0], m[0][2]), s);
+        q[2] = mul(sub(m[0][1], m[1][0]), s);
     } else {
         let nxt = [lw(0x3a9a80) as usize, lw(0x3a9a84) as usize, lw(0x3a9a88) as usize];
         let mut i = if m[0][0] < m[1][1] { 1 } else { 0 };
@@ -237,12 +238,12 @@ pub fn matrixToQuaternionNew(args: &[i64]) -> i32 {
         }
         let j = nxt[i] % 3;
         let k = nxt[j] % 3;
-        let s = sqrt((m[i][i] - (m[j][j] + m[k][k])) + 1.0);
-        q[i] = s * 0.5;
-        let s = 0.5 / s;
-        q[3] = (m[j][k] - m[k][j]) * s;
-        q[j] = (m[i][j] + m[j][i]) * s;
-        q[k] = (m[i][k] + m[k][i]) * s;
+        let s = sqrt(add(sub(m[i][i], add(m[j][j], m[k][k])), 1.0));
+        q[i] = mul(s, 0.5);
+        let s = 0.5_f32.pdiv(s);
+        q[3] = mul(sub(m[j][k], m[k][j]), s);
+        q[j] = mul(add(m[i][j], m[j][i]), s);
+        q[k] = mul(add(m[i][k], m[k][i]), s);
     }
     wv(qa, q);
     0

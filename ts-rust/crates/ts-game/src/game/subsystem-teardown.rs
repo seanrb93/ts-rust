@@ -314,7 +314,7 @@ pub fn signonDeleteStart() {
 /// Time at a position for the weather: the position divided by the weather's scale on each axis, summed (@ 0x2a8078).
 pub fn weatherCalcPositionalTime(pos: i32) -> f32 {
     let w = g::weather;
-    (lwc1(pos)).pdiv(lwc1(w + 48)) + (lwc1(pos + 4)).pdiv(lwc1(w + 52)) + (lwc1(pos + 8)).pdiv(lwc1(w + 56))
+    ps2float::add(ps2float::add((lwc1(pos)).pdiv(lwc1(w + 48)), (lwc1(pos + 4)).pdiv(lwc1(w + 52))), (lwc1(pos + 8)).pdiv(lwc1(w + 56)))
 }
 
 /// Turn a character to the angle `angle`: the angle and its record's copy at +2972, and no turn speed (@ 0x236988).
@@ -361,10 +361,10 @@ pub fn dlSetClipTag(n: i32) {
 
 /// Turn a fan prop's angle (at +`at`) by `speed` degrees a tick, wrapped; `inclusive` is whether an angle of exactly 0 wraps too.
 fn spin(prop: i32, at: i32, speed: f32, inclusive: bool) {
-    let angle = lwc1(prop + at) - lwc1(g::updateframesf) * speed;
+    let angle = ps2float::sub(lwc1(prop + at), ps2float::mul(lwc1(g::updateframesf), speed));
     swc1(prop + at, angle);
     if angle < 0.0 || (inclusive && angle == 0.0) {
-        swc1(prop + at, angle + 360.0);
+        swc1(prop + at, ps2float::add(angle, 360.0));
     }
 }
 

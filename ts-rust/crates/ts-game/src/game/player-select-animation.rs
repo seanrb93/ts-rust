@@ -35,7 +35,7 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
         return;
     }
     if mode == 7 {
-        let mut speed = f14 * 2.5_f32;
+        let mut speed = ps2float::mul(f14, 2.5_f32);
         if !(0.0_f32 <= speed) {
             speed = -speed;
         }
@@ -119,7 +119,7 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
         return;
     }
     if mode == 2 {
-        if 1.0_f32 < lwc1(player + 144) - lwc1(s0 + 0x1198) {
+        if 1.0_f32 < ps2float::sub(lwc1(player + 144), lwc1(s0 + 0x1198)) {
             if curAnim(s1, 469) != 0 {
                 if curAnimSlot1(s1, 469) == 0 {
                     return;
@@ -135,21 +135,21 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
             return;
         }
     }
-    let strength = (f12 * 8.0_f32 * f12 * 8.0_f32 + f13 * 7.0_f32 * f13 * 7.0_f32).abs().psqrt();
+    let strength = ps2float::add(ps2float::mul(ps2float::mul(ps2float::mul(f12, 8.0_f32), f12), 8.0_f32), ps2float::mul(ps2float::mul(ps2float::mul(f13, 7.0_f32), f13), 7.0_f32)).abs().psqrt();
     let unit = 113.0_f32.abs().psqrt();
-    if !((unit * 0.5_f32) < strength) {
+    if !(ps2float::mul(unit, 0.5_f32) < strength) {
         let rate = lwc1(s0 + 2960);
-        swc1(s0 + 2960, rate + ((strength - unit * 0.5_f32)).pdiv(unit) * lwc1(0x3ad118) * rate);
+        swc1(s0 + 2960, ps2float::add(rate, ps2float::mul(ps2float::mul((ps2float::sub(strength, ps2float::mul(unit, 0.5_f32))).pdiv(unit), lwc1(0x3ad118)), rate)));
     } else {
         let rate = lwc1(s0 + 2960);
-        swc1(s0 + 2960, rate + ((strength - unit * 0.5_f32)).pdiv(unit) * lwc1(0x3ad114) * (1.0_f32 - rate));
+        swc1(s0 + 2960, ps2float::add(rate, ps2float::mul(ps2float::mul((ps2float::sub(strength, ps2float::mul(unit, 0.5_f32))).pdiv(unit), lwc1(0x3ad114)), ps2float::sub(1.0_f32, rate))));
     }
     if !(strength < lwc1(0x3ad11c)) {
         let mut side = fptodp(f12);
         if dpcmp(side, 0_i64) < 0 {
             side = dpsub(0_i64, side);
         }
-        let mut forward = fptodp(f13 * lwc1(0x3ad150));
+        let mut forward = fptodp(ps2float::mul(f13, lwc1(0x3ad150)));
         if dpcmp(forward, 0_i64) < 0 {
             forward = dpsub(0_i64, forward);
         }
@@ -173,15 +173,15 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
                         } else if 0.0_f32 < f13 {
                             break 'b9;
                         }
-                        swc1(player_now + 224, degrees + 9e+01_f32);
+                        swc1(player_now + 224, ps2float::add(degrees, 9e+01_f32));
                         break 'b8;
                     }
                     let degrees = lwc1(player_now + 224);
-                    swc1(player_now + 224, degrees - 9e+01_f32);
+                    swc1(player_now + 224, ps2float::sub(degrees, 9e+01_f32));
                 }
             }
             swc1(s1 + 80, lwc1(player_now + 276));
-            swc1(s1 + 84, lwc1(player_now + 276) + lwc1(player_now + 224));
+            swc1(s1 + 84, ps2float::add(lwc1(player_now + 276), lwc1(player_now + 224)));
             let flags = lw(player_now + 20);
             let fast = 3.0_f32 < strength;
             let (plain, armed, plain_blend, armed_blend) = if !(0.0_f32 < f13) {
@@ -208,7 +208,7 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
             let degrees = dptofp(dpdiv(dpmul(arc, ld(0x3a8830)), ld(0x3a8838)));
             swc1(player_now + 224, degrees);
             swc1(s1 + 80, lwc1(player_now + 276));
-            swc1(s1 + 84, lwc1(player_now + 276) + lwc1(player_now + 224));
+            swc1(s1 + 84, ps2float::add(lwc1(player_now + 276), lwc1(player_now + 224)));
             let flags = lw(player_now + 20);
             let fast = 4.0_f32 < strength;
             let (plain, armed, plain_blend, armed_blend) = if !(0.0_f32 < f12) {
@@ -230,16 +230,16 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
             root_axis = 2;
         }
         extractAnimRoot(s1, sp, sp | 4, sp | 8, root_axis);
-        let moved = lwc1(sp + 4) - lwc1(sp);
+        let moved = ps2float::sub(lwc1(sp + 4), lwc1(sp));
         let mut size = fptodp(moved);
         if dpcmp(size, 0_i64) < 0 {
             size = dpsub(0_i64, size);
         }
         let distance = dptofp(size);
         if distance == 0.0_f32 {
-            curAnimSpeed(lw(s1 + 32), strength + 0.75_f32);
+            curAnimSpeed(lw(s1 + 32), ps2float::add(strength, 0.75_f32));
         } else {
-            let speed = ((strength * lwc1(sp + 8)).pdiv((distance * 6e+01_f32))).pdiv(lwc1(0x3ad194));
+            let speed = (ps2float::mul(strength, lwc1(sp + 8)).pdiv(ps2float::mul(distance, 6e+01_f32))).pdiv(lwc1(0x3ad194));
             curAnimSpeed(lw(s1 + 32), speed);
         }
         return;
@@ -347,5 +347,5 @@ pub fn playerselectanim(f12: f32, f13: f32, f14: f32) {
         }
         rate = lwc1(s0 + 2960);
     }
-    curAnimSpeed(lw(s1 + 32), rate + rate + 1.0_f32);
+    curAnimSpeed(lw(s1 + 32), ps2float::add(ps2float::add(rate, rate), 1.0_f32));
 }

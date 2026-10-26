@@ -96,10 +96,10 @@ pub fn findTwinPlugPad(pos: i32, flags: i32, hall: i32) -> i32 {
         if lw(pad + 4) & flags == 0 || lh(pad + 8) == hall {
             continue;
         }
-        let dx = lwc1(pad + 12) - lwc1(pos);
-        let dy = lwc1(pad + 16) - lwc1(pos + 4);
-        let dz = lwc1(pad + 20) - lwc1(pos + 8);
-        let dist = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+        let dx = ps2float::sub(lwc1(pad + 12), lwc1(pos));
+        let dy = ps2float::sub(lwc1(pad + 16), lwc1(pos + 4));
+        let dz = ps2float::sub(lwc1(pad + 20), lwc1(pos + 8));
+        let dist = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
         if dist < best_dist && dist < 3.5 {
             best_dist = dist;
             best = i;

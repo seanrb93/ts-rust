@@ -201,16 +201,16 @@ pub fn starfieldGfx() {
             let phase = lwc1(phase_at);
             let step = lwc1(g::updateframesf);
             let rgb = lw(star + 24);
-            let y = lwc1(star + 4) * lwc1(star + 12) * reach * phase + 0.0_f32;
-            swc1(sp + i * 12, lwc1(base) * lwc1(star + 8) * reach * phase + 0.0_f32);
+            let y = ps2float::add(ps2float::mul(ps2float::mul(ps2float::mul(lwc1(star + 4), lwc1(star + 12)), reach), phase), 0.0_f32);
+            swc1(sp + i * 12, ps2float::add(ps2float::mul(ps2float::mul(ps2float::mul(lwc1(base), lwc1(star + 8)), reach), phase), 0.0_f32));
             swc1(sp + 4 + i * 12, y);
-            swc1(sp + 8 + i * 12, 88.0_f32 * phase + -1e+02_f32);
-            let moved = step * lwc1(speed);
-            sw(colour, rgb & 0xffffff | ((phase * 127.0_f32) as i32) << 24);
-            let next = phase + moved;
+            swc1(sp + 8 + i * 12, ps2float::add(ps2float::mul(88.0_f32, phase), -1e+02_f32));
+            let moved = ps2float::mul(step, lwc1(speed));
+            sw(colour, rgb & 0xffffff | (ps2float::mul(phase, 127.0_f32) as i32) << 24);
+            let next = ps2float::add(phase, moved);
             swc1(phase_at, next);
             if one <= next {
-                swc1(phase_at, next - one);
+                swc1(phase_at, ps2float::sub(next, one));
                 setStar(i);
             }
             i += 1;
@@ -240,18 +240,18 @@ pub fn starfieldGfx() {
             let phase_at = i * 28 + (stars + 16);
             let star = stars + i * 28;
             let phase = lwc1(phase_at);
-            let inverse = one - phase;
+            let inverse = ps2float::sub(one, phase);
             let rgb = lw(stars + i * 28 + 24) & 0xffffff;
-            let y = lwc1(star + 4) * lwc1(star + 12) * reach * inverse + 0.0_f32;
-            swc1(sp + i * 12, lwc1(i * 28 + stars) * lwc1(star + 8) * reach * inverse + 0.0_f32);
+            let y = ps2float::add(ps2float::mul(ps2float::mul(ps2float::mul(lwc1(star + 4), lwc1(star + 12)), reach), inverse), 0.0_f32);
+            swc1(sp + i * 12, ps2float::add(ps2float::mul(ps2float::mul(ps2float::mul(lwc1(i * 28 + stars), lwc1(star + 8)), reach), inverse), 0.0_f32));
             swc1(sp + 4 + i * 12, y);
-            swc1(sp + 8 + i * 12, 1e+02_f32 * phase + 4e+01_f32);
-            let moved = step * lwc1(i * 28 + (g::stars + 20));
-            sw(colour, rgb | ((inverse * scale) as i32) << 24);
-            let next = phase + moved;
+            swc1(sp + 8 + i * 12, ps2float::add(ps2float::mul(1e+02_f32, phase), 4e+01_f32));
+            let moved = ps2float::mul(step, lwc1(i * 28 + (g::stars + 20)));
+            sw(colour, rgb | (ps2float::mul(inverse, scale) as i32) << 24);
+            let next = ps2float::add(phase, moved);
             swc1(phase_at, next);
             if one <= next {
-                swc1(phase_at, next - one);
+                swc1(phase_at, ps2float::sub(next, one));
                 setStar(i);
                 step = lwc1(g::updateframesf);
             }
@@ -272,12 +272,12 @@ pub fn starfieldGfx() {
         loop {
             let z = lwc1(fire - 4);
             let phase = lwc1(fire);
-            let inverse = 1.0_f32 - phase;
-            let y = lwc1(fire - 8) * inverse;
-            swc1(position, lwc1(fire - 12) * inverse);
+            let inverse = ps2float::sub(1.0_f32, phase);
+            let y = ps2float::mul(lwc1(fire - 8), inverse);
+            swc1(position, ps2float::mul(lwc1(fire - 12), inverse));
             swc1(x_at, y);
-            let alpha = (inverse * scale) as i32;
-            swc1(y_at, z + (1.3e+02_f32 - z) * phase);
+            let alpha = ps2float::mul(inverse, scale) as i32;
+            swc1(y_at, ps2float::add(z, ps2float::mul(ps2float::sub(1.3e+02_f32, z), phase)));
             let value;
             if !(phase < limit) {
                 value = lw(fire + 8) & 0xffffff | alpha << 24;
@@ -286,10 +286,10 @@ pub fn starfieldGfx() {
             }
             sw(colours, value);
             let one = 1.0_f32;
-            let next = lwc1(fire) + step * lwc1(fire + 4);
+            let next = ps2float::add(lwc1(fire), ps2float::mul(step, lwc1(fire + 4)));
             swc1(fire, next);
             if one <= next {
-                swc1(fire, next - one);
+                swc1(fire, ps2float::sub(next, one));
             }
             fire += 24;
             colours += 4;
@@ -315,23 +315,23 @@ pub fn starfieldGfx() {
             let offset = i * 28;
             let phase_at = i * 28 + (stars + 16);
             let phase = lwc1(phase_at);
-            let centred = phase - 0.5_f32;
-            let mut distance = centred + centred;
+            let centred = ps2float::sub(phase, 0.5_f32);
+            let mut distance = ps2float::add(centred, centred);
             if distance < 0.0_f32 {
                 distance = -distance;
             }
             let x = lwc1(offset + stars);
             let one = 1.0_f32;
             let top = lwc1(0x3ad64c);
-            let y = lwc1(stars + offset + 4) * 1.5e+02_f32 + 0.0_f32;
-            swc1(sp + i * 12, x * 2e+02_f32 + 35.0_f32);
+            let y = ps2float::add(ps2float::mul(lwc1(stars + offset + 4), 1.5e+02_f32), 0.0_f32);
+            swc1(sp + i * 12, ps2float::add(ps2float::mul(x, 2e+02_f32), 35.0_f32));
             swc1(sp + 4 + i * 12, y);
-            swc1(sp + 8 + i * 12, 3e+02_f32 * phase + -1.5e+02_f32);
-            let next = phase + lwc1(g::updateframesf) * lwc1(offset + (stars + 20));
-            sw(colour, lw(stars + offset + 24) & 0xffffff | (((top - x) * (one - distance) * 127.0_f32) as i32) << 24);
+            swc1(sp + 8 + i * 12, ps2float::add(ps2float::mul(3e+02_f32, phase), -1.5e+02_f32));
+            let next = ps2float::add(phase, ps2float::mul(lwc1(g::updateframesf), lwc1(offset + (stars + 20))));
+            sw(colour, lw(stars + offset + 24) & 0xffffff | (ps2float::mul(ps2float::mul(ps2float::sub(top, x), ps2float::sub(one, distance)), 127.0_f32) as i32) << 24);
             swc1(phase_at, next);
             if one <= next {
-                swc1(phase_at, next - one);
+                swc1(phase_at, ps2float::sub(next, one));
                 setStar(i);
             }
             i += 1;
@@ -413,10 +413,10 @@ pub fn bulletStraightLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) -> i3
                         swc1(sp + 24, lwc1(chr + 160));
                     }
                 }
-                let dy = lwc1(a0 + 28) - lwc1(sp + 20);
+                let dy = ps2float::sub(lwc1(a0 + 28), lwc1(sp + 20));
                 let flags = lw(owner + 16);
-                let dz = lwc1(a0 + 32) - lwc1(sp + 24);
-                swc1(sp + 32, lwc1(a0 + 24) - lwc1(sp + 16));
+                let dz = ps2float::sub(lwc1(a0 + 32), lwc1(sp + 24));
+                swc1(sp + 32, ps2float::sub(lwc1(a0 + 24), lwc1(sp + 16)));
                 swc1(sp + 36, dy);
                 sw(owner + 16, flags & -33);
                 swc1(sp + 40, dz);
@@ -457,26 +457,26 @@ pub fn bulletStraightLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) -> i3
                     let dz = lwc1(a1 + 8);
                     let hx = lwc1(a0 + 160);
                     let hy = lwc1(a0 + 164);
-                    let ax = hx - (lwc1(a0 + 24) + dx);
-                    let ay = hy - (lwc1(a0 + 28) + dy);
+                    let ax = ps2float::sub(hx, ps2float::add(lwc1(a0 + 24), dx));
+                    let ay = ps2float::sub(hy, ps2float::add(lwc1(a0 + 28), dy));
                     let hz = lwc1(a0 + 168);
-                    let bz = lwc1(a0 + 32) + dz;
+                    let bz = ps2float::add(lwc1(a0 + 32), dz);
                     swc1(sp + 48, ax);
                     swc1(sp + 52, ay);
-                    let az = hz - bz;
+                    let az = ps2float::sub(hz, bz);
                     swc1(sp + 56, az);
-                    if (dx * ax + dy * ay + dz * az) <= 0.0_f32 {
+                    if ps2float::add(ps2float::add(ps2float::mul(dx, ax), ps2float::mul(dy, ay)), ps2float::mul(dz, az)) <= 0.0_f32 {
                         let hit_inst;
                         if line_result == 0 {
                             hit_inst = lw(a0 + 188);
                         } else {
-                            let bx = lwc1(a2) - hx;
-                            let by = lwc1(a2 + 4) - hy;
-                            let bz = lwc1(a2 + 8) - hz;
+                            let bx = ps2float::sub(lwc1(a2), hx);
+                            let by = ps2float::sub(lwc1(a2 + 4), hy);
+                            let bz = ps2float::sub(lwc1(a2 + 8), hz);
                             swc1(sp + 48, bx);
                             swc1(sp + 52, by);
                             swc1(sp + 56, bz);
-                            if (dx * bx + dy * by + dz * bz) <= 0.0_f32 {
+                            if ps2float::add(ps2float::add(ps2float::mul(dx, bx), ps2float::mul(dy, by)), ps2float::mul(dz, bz)) <= 0.0_f32 {
                                 break 'second;
                             }
                             hit_inst = lw(a0 + 188);
@@ -509,26 +509,26 @@ pub fn bulletStraightLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) -> i3
                 let dz = lwc1(a1 + 8);
                 let hx = lwc1(a0 + 160);
                 let hy = lwc1(a0 + 164);
-                let ax = hx - (lwc1(a0 + 24) + dx);
-                let ay = hy - (lwc1(a0 + 28) + dy);
+                let ax = ps2float::sub(hx, ps2float::add(lwc1(a0 + 24), dx));
+                let ay = ps2float::sub(hy, ps2float::add(lwc1(a0 + 28), dy));
                 let hz = lwc1(a0 + 168);
-                let bz = lwc1(a0 + 32) + dz;
+                let bz = ps2float::add(lwc1(a0 + 32), dz);
                 swc1(sp + 48, ax);
                 swc1(sp + 52, ay);
-                let az = hz - bz;
+                let az = ps2float::sub(hz, bz);
                 swc1(sp + 56, az);
-                if (dx * ax + dy * ay + dz * az) <= 0.0_f32 {
+                if ps2float::add(ps2float::add(ps2float::mul(dx, ax), ps2float::mul(dy, ay)), ps2float::mul(dz, az)) <= 0.0_f32 {
                     let hit_inst;
                     if line_result == 0 {
                         hit_inst = lw(a0 + 188);
                     } else {
-                        let bx = lwc1(a2) - hx;
-                        let by = lwc1(a2 + 4) - hy;
-                        let bz = lwc1(a2 + 8) - hz;
+                        let bx = ps2float::sub(lwc1(a2), hx);
+                        let by = ps2float::sub(lwc1(a2 + 4), hy);
+                        let bz = ps2float::sub(lwc1(a2 + 8), hz);
                         swc1(sp + 48, bx);
                         swc1(sp + 52, by);
                         swc1(sp + 56, bz);
-                        if (dx * bx + dy * by + dz * bz) <= 0.0_f32 {
+                        if ps2float::add(ps2float::add(ps2float::mul(dx, bx), ps2float::mul(dy, by)), ps2float::mul(dz, bz)) <= 0.0_f32 {
                             break 'second;
                         }
                         hit_inst = lw(a0 + 188);
@@ -571,9 +571,9 @@ pub fn moveTestDoSlide(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32, f1
     let target_x = lwc1(a2);
     let target_z = lwc1(a2 + 8);
     let chr = lw(g::chrinfo) + a0 * 0x1210;
-    let dx = target_x - lwc1(a1);
+    let dx = ps2float::sub(target_x, lwc1(a1));
     let target_y = lwc1(a2 + 4);
-    let dz = target_z - lwc1(a1 + 8);
+    let dz = ps2float::sub(target_z, lwc1(a1 + 8));
     let floor_y = lwc1(chr + 0x1198);
     sw(sp + 128, lw(chr + 0x119c));
     swc1(sp + 48, dx);
@@ -619,13 +619,13 @@ pub fn moveTestDoSlide(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32, f1
                     swc1(sp + 32, wall_x);
                     swc1(sp + 36, wall_z);
                 }
-                let ox = sx - tx;
+                let ox = ps2float::sub(sx, tx);
                 let oz = sz - tz;
                 let ny = lwc1(sp + 52);
-                let along = lwc1(sp + 48) * ox;
+                let along = ps2float::mul(lwc1(sp + 48), ox);
                 swc1(sp + 80, ox);
                 swc1(sp + 84, oz);
-                if !(0.0_f32 < along + ny * oz) {
+                if !(0.0_f32 < ps2float::add(along, ps2float::mul(ny, oz))) {
                     break 'slide;
                 }
                 result = moveTest(a0, a2, sp, sp + 16, a3, a4, f12, f13);
@@ -639,7 +639,7 @@ pub fn moveTestDoSlide(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32, f1
                     if !(x == slide_x) {
                         sz2 = lwc1(sp + 8);
                         slide_z = lwc1(sp + 24);
-                        delta_x = slide_x - sx;
+                        delta_x = ps2float::sub(slide_x, sx);
                     } else {
                         sz2 = lwc1(sp + 8);
                         slide_z = lwc1(sp + 24);
@@ -648,31 +648,31 @@ pub fn moveTestDoSlide(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32, f1
                             z = sz2;
                             break 'slide;
                         }
-                        delta_x = slide_x - sx;
+                        delta_x = ps2float::sub(slide_x, sx);
                     }
                     let delta_z = slide_z - sz2;
                     let nz = lwc1(sp + 52);
-                    let along = lwc1(sp + 48) * delta_x;
+                    let along = ps2float::mul(lwc1(sp + 48), delta_x);
                     swc1(sp + 96, delta_x);
                     swc1(sp + 100, delta_z);
-                    if 0.0_f32 < along + nz * delta_z {
+                    if 0.0_f32 < ps2float::add(along, ps2float::mul(nz, delta_z)) {
                         let length = (delta_x * delta_x + delta_z * delta_z).abs().psqrt();
                         let inverse = (1.0_f32).pdiv(length);
                         let ux = lwc1(sp + 96);
-                        let rx = lwc1(sp + 64) - x;
+                        let rx = ps2float::sub(lwc1(sp + 64), x);
                         let uz = lwc1(sp + 100);
-                        let rz = lwc1(sp + 72) - sz2;
+                        let rz = ps2float::sub(lwc1(sp + 72), sz2);
                         swc1(sp + 112, rx);
-                        let nx = ux * inverse;
+                        let nx = ps2float::mul(ux, inverse);
                         swc1(sp + 116, rz);
-                        let nzv = uz * inverse;
+                        let nzv = ps2float::mul(uz, inverse);
                         swc1(sp + 96, nx);
-                        let dot = rx * nx + rz * nzv;
+                        let dot = ps2float::add(ps2float::mul(rx, nx), ps2float::mul(rz, nzv));
                         swc1(sp + 100, nzv);
                         if 0.0_f32 < dot {
-                            swc1(sp + 24, sz2 + dot * nzv);
+                            swc1(sp + 24, ps2float::add(sz2, ps2float::mul(dot, nzv)));
                             sw(sp + 140, 1);
-                            swc1(sp + 16, x + dot * nx);
+                            swc1(sp + 16, ps2float::add(x, ps2float::mul(dot, nx)));
                             result = moveTest(a0, sp, sp + 16, 0, a3, a4, f12, f13);
                             let new_x = lwc1(sp + 16);
                             let new_z = lwc1(sp + 24);
@@ -700,8 +700,8 @@ pub fn moveTestDoSlide(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32, f1
         swc1(a2 + 8, z);
         swc1(a2 + 4, y);
         let start_x = lwc1(a1);
-        let moved_x = start_x - x;
-        let moved_z = lwc1(a1 + 8) - z;
+        let moved_x = ps2float::sub(start_x, x);
+        let moved_z = ps2float::sub(lwc1(a1 + 8), z);
         let limit;
         let squared;
         'limit: {
@@ -709,21 +709,21 @@ pub fn moveTestDoSlide(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32, f1
                 let wall_x = lwc1(0x3b0118);
                 if lw(sp + 132) != 0 {
                     let tight = lwc1(0x3acfb8);
-                    if (lwc1(sp + 32) * wall_x + lwc1(sp + 36) * lwc1(0x3b011c)) < lwc1(0x3acfb4) {
+                    if ps2float::add(ps2float::mul(lwc1(sp + 32), wall_x), ps2float::mul(lwc1(sp + 36), lwc1(0x3b011c))) < lwc1(0x3acfb4) {
                         limit = tight;
-                        squared = moved_x * moved_x;
+                        squared = ps2float::mul(moved_x, moved_x);
                         break 'limit;
                     }
                 }
             }
             let mut loose = lwc1(0x3acfbc);
-            squared = moved_x * moved_x;
+            squared = ps2float::mul(moved_x, moved_x);
             if lw(sp + 140) != 0 {
                 loose = lwc1(0x3acfc0);
             }
             limit = loose;
         }
-        if (squared + moved_z * moved_z) < limit {
+        if ps2float::add(squared, ps2float::mul(moved_z, moved_z)) < limit {
             swc1(a2, start_x);
             swc1(a2 + 4, lwc1(a1 + 4));
             swc1(a2 + 8, lwc1(a1 + 8));
@@ -948,7 +948,7 @@ pub fn propNewPickup(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i
     let sp = frame.sp();
     let mut spin = f18;
     let extra = pickupGetExtraHeight(a0, a1);
-    let prop = propNew(a0, f13, f14 + f19 + extra, f15, 0.0_f32);
+    let prop = propNew(a0, f13, ps2float::add(ps2float::add(f14, f19), extra), f15, 0.0_f32);
     let data;
     let mut slot = 0;
     'made: {
@@ -1078,7 +1078,7 @@ pub fn propNewPickup(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i
     let random = random_as_float();
     sw(data + 96, -1);
     let mode = lw(g::curgameparms + 72);
-    swc1(data + 104, random * 2.3283064e-10_f32);
+    swc1(data + 104, ps2float::mul(random, 2.3283064e-10_f32));
     let offset = a0 - 342;
     'speed: {
         'on_pad: {
@@ -1291,9 +1291,9 @@ pub fn propDrop(a0: i32, a1: i32, a2: i32) {
         if (flags & 0xf000000) != 0 {
             let y = lwc1(prop + 568);
             let z = lwc1(prop + 572);
-            swc1(prop + 48, lwc1(holder_prop + 48) + lwc1(prop + 564));
-            swc1(prop + 52, lwc1(holder_prop + 52) + y);
-            swc1(prop + 56, lwc1(holder_prop + 56) + z);
+            swc1(prop + 48, ps2float::add(lwc1(holder_prop + 48), lwc1(prop + 564)));
+            swc1(prop + 52, ps2float::add(lwc1(holder_prop + 52), y));
+            swc1(prop + 56, ps2float::add(lwc1(holder_prop + 56), z));
         }
     }
     if a2 == 0 {
@@ -1365,7 +1365,7 @@ pub fn propDrop(a0: i32, a1: i32, a2: i32) {
             loop {
                 let at = sp + 16 + offset;
                 let pad = lw(at) * 28 + pads;
-                if !((lwc1(pad + 16) - lwc1(prop + 52)) <= lwc1(0x3accc4)) {
+                if !(ps2float::sub(lwc1(pad + 16), lwc1(prop + 52)) <= lwc1(0x3accc4)) {
                     i += 1;
                 } else {
                     let in_front = checkInFront(lw(a1 + 3020), pad + 12, 0.0_f32);
@@ -1400,10 +1400,10 @@ pub fn propDrop(a0: i32, a1: i32, a2: i32) {
                 'candidate: {
                     let number = lw(sp + 96 + offset);
                     let pad = number * 28 + pads;
-                    let dx = lwc1(pad + 12) - x;
-                    let dy = lwc1(pad + 16) - y;
-                    let dz = lwc1(pad + 20) - z;
-                    let distance = dx * dx + dy * dy + dz * dz;
+                    let dx = ps2float::sub(lwc1(pad + 12), x);
+                    let dy = ps2float::sub(lwc1(pad + 16), y);
+                    let dz = ps2float::sub(lwc1(pad + 20), z);
+                    let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                     if !(distance < best) {
                         j += 1;
                     } else {
@@ -1437,10 +1437,10 @@ pub fn propDrop(a0: i32, a1: i32, a2: i32) {
                 loop {
                     let number = lw(sp + 16 + offset);
                     let pad = number * 28 + pads;
-                    let dx = lwc1(pad + 12) - x;
-                    let dy = lwc1(pad + 16) - y;
-                    let dz = lwc1(pad + 20) - z;
-                    let distance = dx * dx + dy * dy + dz * dz;
+                    let dx = ps2float::sub(lwc1(pad + 12), x);
+                    let dy = ps2float::sub(lwc1(pad + 16), y);
+                    let dz = ps2float::sub(lwc1(pad + 20), z);
+                    let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                     j += 1;
                     if distance < nearest {
                         sw(data + 64, number);
@@ -1475,11 +1475,11 @@ pub fn propDrop(a0: i32, a1: i32, a2: i32) {
         let pad = lw(data + 64) * 28 + pads;
         let x = lwc1(pad + 12);
         swc1(data + 52, x);
-        swc1(data + 56, lwc1(pad + 16) + height);
+        swc1(data + 56, ps2float::add(lwc1(pad + 16), height));
         swc1(data + 60, lwc1(pad + 20));
-        swc1(sp, x - lwc1(prop + 48));
-        swc1(sp + 4, lwc1(data + 56) - lwc1(prop + 52));
-        swc1(sp + 8, lwc1(data + 60) - lwc1(prop + 56));
+        swc1(sp, ps2float::sub(x, lwc1(prop + 48)));
+        swc1(sp + 4, ps2float::sub(lwc1(data + 56), lwc1(prop + 52)));
+        swc1(sp + 8, ps2float::sub(lwc1(data + 60), lwc1(prop + 56)));
         let frames = if a2 == 0 { 10 } else { 20 };
         sw(data + 76, frames);
         let count = lw(data + 76) as f32;
@@ -1488,8 +1488,8 @@ pub fn propDrop(a0: i32, a1: i32, a2: i32) {
         swc1(prop + 60, step_x);
         swc1(prop + 68, (lwc1(sp + 8)).pdiv(count));
         swc1(prop + 64, (lwc1(sp + 4)).pdiv(count));
-        swc1(data + 80, step_x * scale);
-        swc1(data + 84, lwc1(prop + 64) * scale);
-        swc1(data + 88, lwc1(prop + 68) * scale);
+        swc1(data + 80, ps2float::mul(step_x, scale));
+        swc1(data + 84, ps2float::mul(lwc1(prop + 64), scale));
+        swc1(data + 88, ps2float::mul(lwc1(prop + 68), scale));
     }
 }

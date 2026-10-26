@@ -5,7 +5,7 @@ use crate::*;
 
 /// Start the plain walk (anim 518, or 519 when the zombie carries the weapon flag at +440) when the speed at +2876 is no more than the animation's own speed for this frame.
 fn start_plain_walk(chr: i32, record: i32, blend: f32) {
-    if lwc1(record + 2876) <= lwc1(lw(chr + 32) + 140) * blend * 6e+01_f32 * lwc1(record + 2868) {
+    if lwc1(record + 2876) <= ps2float::mul(ps2float::mul(ps2float::mul(lwc1(lw(chr + 32) + 140), blend), 6e+01_f32), lwc1(record + 2868)) {
         if lw(record + 440) == 0 {
             if curAnim(chr, 518) == 0 {
                 setAnim(chr, 518, blend, 2.0_f32);
@@ -55,7 +55,7 @@ pub fn setZombieAnimation(a0: i32) {
                 if (flags & 8) == 0 {
                     if lw(s3 + 440) == 0 {
                         if curAnim(a0, 513) == 0 && curAnim(a0, 514) == 0 && curAnim(a0, 515) == 0 {
-                            let roll = random_as_float() * 2.3283064e-10_f32;
+                            let roll = ps2float::mul(random_as_float(), 2.3283064e-10_f32);
                             if !(roll < lwc1(0x3ad868)) {
                                 if roll < lwc1(0x3ad86c) {
                                     setAnim(a0, 514, 0.25_f32, 2.0_f32);
@@ -69,7 +69,7 @@ pub fn setZombieAnimation(a0: i32) {
                             if curAnimComplete(lw(a0 + 32)) == 0 {
                                 break 'chosen;
                             }
-                            let roll = random_as_float() * 2.3283064e-10_f32;
+                            let roll = ps2float::mul(random_as_float(), 2.3283064e-10_f32);
                             if !(roll < lwc1(0x3ad870)) {
                                 if !(roll < lwc1(0x3ad874)) {
                                     setAnim(a0, 515, 0.0_f32, 2.0_f32);
@@ -82,7 +82,7 @@ pub fn setZombieAnimation(a0: i32) {
                         }
                     } else if curAnim(a0, 516) == 0 && curAnim(a0, 517) == 0 {
                         let roll = random_as_float();
-                        if (roll * 2.3283064e-10_f32) < 0.5_f32 {
+                        if ps2float::mul(roll, 2.3283064e-10_f32) < 0.5_f32 {
                             setAnim(a0, 516, 0.25_f32, 2.0_f32);
                         } else {
                             setAnim(a0, 517, 0.25_f32, 2.0_f32);
@@ -92,7 +92,7 @@ pub fn setZombieAnimation(a0: i32) {
                             break 'chosen;
                         }
                         let roll = random_as_float();
-                        if !((roll * 2.3283064e-10_f32) < 0.5_f32) {
+                        if !(ps2float::mul(roll, 2.3283064e-10_f32) < 0.5_f32) {
                             setAnim(a0, 517, 0.0_f32, 2.0_f32);
                         } else {
                             setAnim(a0, 516, 0.0_f32, 2.0_f32);
@@ -185,7 +185,7 @@ pub fn setZombieAnimation(a0: i32) {
                     }
                     if curAnimSlot2(a0, 520) == 0 && curAnimSlot2(a0, 522) == 0 && curAnimSlot2(a0, 521) == 0 && curAnimSlot2(a0, 523) == 0 {
                         let blend = 0.25_f32;
-                        if !(lwc1(s3 + 2876) <= lwc1(lw(a0 + 32) + 140) * blend * 6e+01_f32 * lwc1(s3 + 2868)) {
+                        if !(lwc1(s3 + 2876) <= ps2float::mul(ps2float::mul(ps2float::mul(lwc1(lw(a0 + 32) + 140), blend), 6e+01_f32), lwc1(s3 + 2868))) {
                             break 'chosen;
                         }
                         if lw(s3 + 440) == 0 {
@@ -199,7 +199,7 @@ pub fn setZombieAnimation(a0: i32) {
                 }
             }
             extractAnimRoot(a0, sp, sp | 4, sp | 8, 2);
-            let moved = lwc1(sp + 4) - lwc1(sp);
+            let moved = ps2float::sub(lwc1(sp + 4), lwc1(sp));
             let mut size = fptodp(moved);
             if dpcmp(size, 0_i64) < 0 {
                 size = dpsub(0_i64, size);
@@ -216,7 +216,7 @@ pub fn setZombieAnimation(a0: i32) {
                         }
                         let step = fptodp(lwc1(sp + 8));
                         let product = dpmul(walk_size, step);
-                        let per_second = fptodp(distance * 6e+01_f32);
+                        let per_second = fptodp(ps2float::mul(distance, 6e+01_f32));
                         let quotient = dpdiv(product, per_second);
                         let speed = dptofp(dpdiv(quotient, ld(0x3a9cf8)));
                         curAnimSpeed(lw(a0 + 32), speed);

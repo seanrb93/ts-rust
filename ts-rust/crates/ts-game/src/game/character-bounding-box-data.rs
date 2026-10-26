@@ -363,14 +363,14 @@ pub fn InitialiseChrBoundingBoxData(a0: i32) {
                                                         let a2_4 = lw(sp + 492);
                                                         let a5_4 = lw(sp + 528) + lo_3;
                                                         let a3_6 = lw(sp + 496);
-                                                        swc1(sp + 304, lwc1(lw(sp + 536) + lo_3) - lwc1(a1_11));
+                                                        swc1(sp + 304, ps2float::sub(lwc1(lw(sp + 536) + lo_3), lwc1(a1_11)));
                                                         let v1_17 = lw(sp + 544) + lo_3;
-                                                        swc1(sp + 308, lwc1(a4_4) - lwc1(v0_16));
+                                                        swc1(sp + 308, ps2float::sub(lwc1(a4_4), lwc1(v0_16)));
                                                         let f2_3 = lwc1(v1_17);
                                                         let f0_3 = lwc1(a5_4);
                                                         sq(sp + 624, a6_4);
                                                         sq(sp + 640, a7_1);
-                                                        swc1(sp + 312, f2_3 - f0_3);
+                                                        swc1(sp + 312, ps2float::sub(f2_3, f0_3));
                                                         let f0_4 = HitTestDistancePointToLineSquared(a0_15, a1_11, a2_4, a3_6);
                                                         let mut f3_1 = 0.0_f32;
                                                         let mut a1_12 = lw(sp + 496);
@@ -386,7 +386,7 @@ pub fn InitialiseChrBoundingBoxData(a0: i32) {
                                                                 if f2_4 == f4_1 {
                                                                     v0_17 += 4;
                                                                 } else {
-                                                                    let f1_4 = ((lwc1(a1_12) - lwc1(v0_17))).pdiv(f2_4);
+                                                                    let f1_4 = (ps2float::sub(lwc1(a1_12), lwc1(v0_17))).pdiv(f2_4);
                                                                     let mut f2_5 = f1_4;
                                                                     if !(f4_1 <= f1_4) {
                                                                         f2_5 = -f1_4;
@@ -451,10 +451,10 @@ pub fn InitialiseChrBoundingBoxData(a0: i32) {
                                             }
                                         }
                                     } else {
-                                        let f0_2 = lwc1(sp + 128) - lwc1(sp + 288);
-                                        let f2_2 = lwc1(sp + 132) - lwc1(sp + 292);
-                                        let f1_3 = lwc1(sp + 136) - lwc1(sp + 296);
-                                        let f5_1 = f0_2 * f0_2 + f2_2 * f2_2 + f1_3 * f1_3;
+                                        let f0_2 = ps2float::sub(lwc1(sp + 128), lwc1(sp + 288));
+                                        let f2_2 = ps2float::sub(lwc1(sp + 132), lwc1(sp + 292));
+                                        let f1_3 = ps2float::sub(lwc1(sp + 136), lwc1(sp + 296));
+                                        let f5_1 = ps2float::add(ps2float::add(ps2float::mul(f0_2, f0_2), ps2float::mul(f2_2, f2_2)), ps2float::mul(f1_3, f1_3));
                                         if lwc1(sp + 144) < f5_1 {
                                             swc1(sp + 144, f5_1);
                                         }
@@ -583,8 +583,8 @@ pub fn InitialiseChrBoundingBoxData(a0: i32) {
     let mut v1_21 = lw(sp + 508);
     loop {
         let f1_6 = lwc1(v0_26);
-        let f0_7 = (lwc1(a0_24) - f1_6) * 0.5_f32;
-        swc1(v1_21, f1_6 + f0_7);
+        let f0_7 = ps2float::mul(ps2float::sub(lwc1(a0_24), f1_6), 0.5_f32);
+        swc1(v1_21, ps2float::add(f1_6, f0_7));
         if f20 < f0_7 {
             f20 = f0_7;
         }
@@ -598,15 +598,15 @@ pub fn InitialiseChrBoundingBoxData(a0: i32) {
     }
     let mut s0_8 = 2;
     let mut a0_25 = lw(sp + 556);
-    let f20_2 = f20 + lwc1(0x3ad19c);
+    let f20_2 = ps2float::add(f20, lwc1(0x3ad19c));
     let mut v1_22 = lw(sp + 548);
     let mut v0_27 = lw(sp + 508);
     loop {
         let f0_8 = lwc1(v0_27);
         s0_8 -= 1;
         v0_27 += 4;
-        swc1(v1_22, f0_8 - f20_2);
-        swc1(a0_25, f0_8 + f20_2);
+        swc1(v1_22, ps2float::sub(f0_8, f20_2));
+        swc1(a0_25, ps2float::add(f0_8, f20_2));
         v1_22 += 4;
         a0_25 += 4;
         if s0_8 < 0 {

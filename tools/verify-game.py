@@ -28,8 +28,6 @@ def arg(name, default):
 
 
 def main():
-    # random memory is full of huge numbers: the interpreter keeps the host's overflows there (the hand-written code only clamps where a game needs it; see the docs)
-    os.environ.setdefault('TS_VERIFY_CLAMP', '0')
     elf = os.path.abspath(arg('--elf', os.path.join(WS, 'target', 'release', 'SLUS_200.90')))
     n = arg('--n', '500')
     if '--regen' in sys.argv:

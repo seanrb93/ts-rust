@@ -192,15 +192,15 @@ pub fn mmPushCursorPos() {
 /// Work out the aim from the direction `aim` (unit vector) to a target at `to`: the distance goes to +8 of `out`, the cosine of the angle to +4 (@ 0x280780).
 pub fn playerAutoAimCalc(aim: i32, to: i32, out: i32) {
     let (x, y, z) = (lwc1(to), lwc1(to + 4), lwc1(to + 8));
-    let dist = (x * x + y * y + z * z).abs().psqrt();
+    let dist = ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)).abs().psqrt();
     swc1(out + 8, dist);
     let inv = (1.0_f32).pdiv(dist);
     let (ay, az) = (lwc1(aim + 4), lwc1(aim + 8));
-    let dx = lwc1(to) * inv;
-    let dy = lwc1(to + 4) * inv;
-    let dz = lwc1(to + 8) * inv;
-    let ax = lwc1(aim) * dx;
-    swc1(out + 4, ax + ay * dy + az * dz);
+    let dx = ps2float::mul(lwc1(to), inv);
+    let dy = ps2float::mul(lwc1(to + 4), inv);
+    let dz = ps2float::mul(lwc1(to + 8), inv);
+    let ax = ps2float::mul(lwc1(aim), dx);
+    swc1(out + 4, ps2float::add(ps2float::add(ax, ps2float::mul(ay, dy)), ps2float::mul(az, dz)));
 }
 
 /// How many barrels (prop type 202) are not blown up (value at +532 below 1) (@ 0x275648).
@@ -238,7 +238,7 @@ pub fn specialfxUpdatePos(fx: i32, a: i32, b: i32, c: i32) {
 pub fn matrixVec3Mul4(m: i32, v: i32, out: i32) {
     for i in 0..4 {
         let (c0, c1, c2, c3) = (lwc1(m + 4 * i), lwc1(m + 16 + 4 * i), lwc1(m + 32 + 4 * i), lwc1(m + 48 + 4 * i));
-        swc1(out + 4 * i, lwc1(v) * c0 + lwc1(v + 4) * c1 + lwc1(v + 8) * c2 + c3);
+        swc1(out + 4 * i, ps2float::add(ps2float::add(ps2float::add(ps2float::mul(lwc1(v), c0), ps2float::mul(lwc1(v + 4), c1)), ps2float::mul(lwc1(v + 8), c2)), c3));
     }
 }
 
@@ -332,7 +332,7 @@ pub fn frontMouseTick() {
         speed_x = 4.0;
         swc1(0x3aff10, speed_x);
     } else if speed_x < 8.0 {
-        speed_x += lwc1(0x3ac974);
+        speed_x = ps2float::add(speed_x, lwc1(0x3ac974));
         swc1(0x3aff10, speed_x);
     }
     let mut speed_y = lwc1(0x3aff14);
@@ -341,12 +341,12 @@ pub fn frontMouseTick() {
         speed_y = 4.0;
         swc1(0x3aff14, speed_y);
     } else if speed_y < 8.0 {
-        speed_y += lwc1(0x3ac980);
+        speed_y = ps2float::add(speed_y, lwc1(0x3ac980));
         swc1(0x3aff14, speed_y);
     }
-    let move_x = stick_x * speed_x;
+    let move_x = ps2float::mul(stick_x, speed_x);
     let front = lw(g::front);
-    let y = lw(front + 36) - (stick_y * speed_y * 32768.0_f32) as i32;
-    sw(front + 32, lw(front + 32) + (move_x * 65536.0_f32) as i32);
+    let y = lw(front + 36) - ps2float::mul(ps2float::mul(stick_y, speed_y), 32768.0_f32) as i32;
+    sw(front + 32, lw(front + 32) + ps2float::mul(move_x, 65536.0_f32) as i32);
     sw(front + 36, y);
 }

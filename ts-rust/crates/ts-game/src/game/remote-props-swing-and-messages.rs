@@ -73,7 +73,7 @@ pub fn remoteGetPivotePos(prop: i32, out: i32) {
     let frame = Frame::new(144);
     let sp = frame.sp();
     let offset = remoteGetPivoteOffset(prop);
-    let angle = (lwc1(prop + 76) * lwc1(0x3acbd0)).pdiv(180.0_f32);
+    let angle = ps2float::mul(lwc1(prop + 76), lwc1(0x3acbd0)).pdiv(180.0_f32);
     swc1(sp, lwc1(offset));
     swc1(sp + 4, lwc1(offset + 4));
     swc1(sp + 8, lwc1(offset + 8));
@@ -81,9 +81,9 @@ pub fn remoteGetPivotePos(prop: i32, out: i32) {
     matrixVecRotAligned(&[(sp + 16) as i64, sp as i64]);
     let y = lwc1(sp + 4);
     let z = lwc1(sp + 8);
-    swc1(out, lwc1(sp) + lwc1(prop + 48));
-    swc1(out + 4, y + lwc1(prop + 52));
-    swc1(out + 8, z + lwc1(prop + 56));
+    swc1(out, ps2float::add(lwc1(sp), lwc1(prop + 48)));
+    swc1(out + 4, ps2float::add(y, lwc1(prop + 52)));
+    swc1(out + 8, ps2float::add(z, lwc1(prop + 56)));
 }
 
 /// The angle (0 to 360 degrees) from the point `from` to the pivot of the remote prop (@ 0x26c318).
@@ -93,30 +93,30 @@ pub fn remoteGetStandAngle(prop: i32, from: i32) -> f32 {
     let offset = remoteGetPivoteOffset(prop);
     let scale = lwc1(0x3acc38);
     let to_degrees = 180.0_f32;
-    let angle = lwc1(prop + 76) * scale;
+    let angle = ps2float::mul(lwc1(prop + 76), scale);
     swc1(sp, lwc1(offset));
     swc1(sp + 4, lwc1(offset + 4));
     swc1(sp + 8, lwc1(offset + 8));
     matrixRotY(sp + 16, (angle).pdiv(to_degrees));
     matrixVecRotAligned(&[(sp + 16) as i64, sp as i64]);
-    let x = lwc1(sp) + lwc1(prop + 48);
-    let z = lwc1(sp + 8) + lwc1(prop + 56);
+    let x = ps2float::add(lwc1(sp), lwc1(prop + 48));
+    let z = ps2float::add(lwc1(sp + 8), lwc1(prop + 56));
     let from_z = lwc1(from + 8);
     let from_x = lwc1(from);
-    let y = lwc1(sp + 4) + lwc1(prop + 52);
+    let y = ps2float::add(lwc1(sp + 4), lwc1(prop + 52));
     swc1(sp, x);
-    let dz = z - from_z;
+    let dz = ps2float::sub(z, from_z);
     swc1(sp + 8, z);
-    let dx = x - from_x;
+    let dx = ps2float::sub(x, from_x);
     swc1(sp + 4, y);
-    let mut degrees = (atan2f(dx, dz) * to_degrees).pdiv(scale);
+    let mut degrees = ps2float::mul(atan2f(dx, dz), to_degrees).pdiv(scale);
     if !(degrees < 0.0_f32) {
         let full = 360.0_f32;
         if full <= degrees {
-            degrees -= full;
+            degrees = ps2float::sub(degrees, full);
         }
     } else {
-        degrees += 360.0_f32;
+        degrees = ps2float::add(degrees, 360.0_f32);
     }
     degrees
 }
@@ -128,21 +128,21 @@ pub fn remoteGetStandPos(prop: i32, out: i32, angle: f32) {
     let offset = remoteGetPivoteOffset(prop);
     let scale = lwc1(0x3acc34);
     let to_degrees = 180.0_f32;
-    let turn = lwc1(prop + 76) * scale;
+    let turn = ps2float::mul(lwc1(prop + 76), scale);
     swc1(sp + 16, lwc1(offset));
     swc1(sp + 20, lwc1(offset + 4));
     swc1(sp + 24, lwc1(offset + 8));
     matrixRotY(sp + 32, (turn).pdiv(to_degrees));
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
     let z = lwc1(prop + 56);
-    let stand_turn = (angle * scale).pdiv(to_degrees);
+    let stand_turn = ps2float::mul(angle, scale).pdiv(to_degrees);
     let pz = lwc1(sp + 24);
-    let px = lwc1(sp + 16) + lwc1(prop + 48);
-    let py = lwc1(sp + 20) + lwc1(prop + 52);
+    let px = ps2float::add(lwc1(sp + 16), lwc1(prop + 48));
+    let py = ps2float::add(lwc1(sp + 20), lwc1(prop + 52));
     sw(sp, 0);
     swc1(sp + 16, px);
     swc1(sp + 20, py);
-    swc1(sp + 24, pz + z);
+    swc1(sp + 24, ps2float::add(pz, z));
     let height = lwc1(offset + 4);
     swc1(sp + 8, 0.75_f32);
     swc1(sp + 4, height);
@@ -150,10 +150,10 @@ pub fn remoteGetStandPos(prop: i32, out: i32, angle: f32) {
     matrixVecRotAligned(&[(sp + 32) as i64, sp as i64]);
     let ez = lwc1(sp + 24);
     let sz = lwc1(sp + 8);
-    let dy = lwc1(sp + 20) - lwc1(sp + 4);
-    swc1(out, lwc1(sp + 16) - lwc1(sp));
+    let dy = ps2float::sub(lwc1(sp + 20), lwc1(sp + 4));
+    swc1(out, ps2float::sub(lwc1(sp + 16), lwc1(sp)));
     swc1(out + 4, dy);
-    swc1(out + 8, ez - sz);
+    swc1(out + 8, ps2float::sub(ez, sz));
 }
 
 /// How the direction of a swing compares with a way: -1 to 1 by the angle (0 to 360) between the unit vector of `swing` and the vector `way` turned by the three angles at `angles`
@@ -165,37 +165,37 @@ pub fn getSwingDirectionMultiplier(swing: i32, way: i32, angles: i32) -> f32 {
     let x = lwc1(swing);
     let y = lwc1(swing + 4);
     let z = lwc1(swing + 8);
-    let length = (x * x + y * y + z * z).abs().psqrt();
+    let length = ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)).abs().psqrt();
     let angle_y = lwc1(angles + 4);
     let scale = lwc1(0x3aceb4);
-    let c = lwc1(angles + 8) * scale;
-    let a = lwc1(angles) * scale;
+    let c = ps2float::mul(lwc1(angles + 8), scale);
+    let a = ps2float::mul(lwc1(angles), scale);
     swc1(sp + 72, (z).pdiv(length));
     swc1(sp + 64, (x).pdiv(length));
     let c = (c).pdiv(180.0_f32);
     let a = (a).pdiv(180.0_f32);
-    let b = (angle_y * scale).pdiv(180.0_f32);
+    let b = ps2float::mul(angle_y, scale).pdiv(180.0_f32);
     swc1(sp + 68, (y).pdiv(length));
     matrixRotZXY(sp, a, b, c);
     matrixVecRot(sp, sp + 64);
-    let dot = lwc1(way) * lwc1(sp + 64) + lwc1(way + 4) * lwc1(sp + 68) + lwc1(way + 8) * lwc1(sp + 72);
-    let mut degrees = (acosf(dot) * 180.0_f32).pdiv(scale);
+    let dot = ps2float::add(ps2float::add(ps2float::mul(lwc1(way), lwc1(sp + 64)), ps2float::mul(lwc1(way + 4), lwc1(sp + 68))), ps2float::mul(lwc1(way + 8), lwc1(sp + 72)));
+    let mut degrees = ps2float::mul(acosf(dot), 180.0_f32).pdiv(scale);
     if degrees < result {
-        degrees += 360.0_f32;
+        degrees = ps2float::add(degrees, 360.0_f32);
     }
     if degrees < 90.0_f32 {
-        result = -(((90.0_f32 - degrees)).pdiv(90.0_f32));
+        result = -((ps2float::sub(90.0_f32, degrees)).pdiv(90.0_f32));
     }
     if 90.0_f32 <= degrees && degrees < 180.0_f32 {
-        result = ((degrees - 90.0_f32)).pdiv(90.0_f32);
+        result = (ps2float::sub(degrees, 90.0_f32)).pdiv(90.0_f32);
     }
     if 180.0_f32 <= degrees && degrees < 270.0_f32 {
-        result = ((90.0_f32 - (degrees - 180.0_f32))).pdiv(90.0_f32);
+        result = (ps2float::sub(90.0_f32, ps2float::sub(degrees, 180.0_f32))).pdiv(90.0_f32);
     }
     if !(270.0_f32 <= degrees) {
         result
     } else {
-        -(((degrees - 270.0_f32)).pdiv(90.0_f32))
+        -((ps2float::sub(degrees, 270.0_f32)).pdiv(90.0_f32))
     }
 }
 

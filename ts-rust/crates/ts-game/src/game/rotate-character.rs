@@ -9,11 +9,11 @@ fn turn_step(current: f32, diff: f32, limit: f32) -> f32 {
         size = dpsub(0_i64, size);
     }
     if dpcmp(size, fptodp(limit)) <= 0 {
-        current + diff
+        ps2float::add(current, diff)
     } else if !(0.0_f32 < diff) {
-        current - limit
+        ps2float::sub(current, limit)
     } else {
-        current + limit
+        ps2float::add(current, limit)
     }
 }
 
@@ -30,12 +30,12 @@ fn angle_size(diff: f32) -> i64 {
 fn wrap_angle(at: i32) {
     let mut angle = lwc1(at);
     if 3.6e+02_f32 < angle {
-        let wrapped = angle - 3.6e+02_f32;
+        let wrapped = ps2float::sub(angle, 3.6e+02_f32);
         swc1(at, wrapped);
         angle = wrapped;
     }
     if angle < 0.0_f32 {
-        swc1(at, angle + 3.6e+02_f32);
+        swc1(at, ps2float::add(angle, 3.6e+02_f32));
     }
 }
 
@@ -61,7 +61,7 @@ pub fn rotateChr(a0: i32) {
     let mut flags = lw(s2 + 2708);
     if facing < 0.0_f32 {
         loop {
-            let next = facing + 3.6e+02_f32;
+            let next = ps2float::add(facing, 3.6e+02_f32);
             facing = next;
             swc1(a0 + 76, next);
             if !(facing < 0.0_f32) {
@@ -76,8 +76,8 @@ pub fn rotateChr(a0: i32) {
     if target == 0 {
         swc1(s2 + 2780, lwc1(0x3ad81c));
     } else {
-        let dx = lwc1(target + 48) - lwc1(a0 + 48);
-        let dz = lwc1(target + 56) - lwc1(a0 + 56);
+        let dx = ps2float::sub(lwc1(target + 48), lwc1(a0 + 48));
+        let dz = ps2float::sub(lwc1(target + 56), lwc1(a0 + 56));
         let (first, second);
         if (lw(s2 + 2716) & 0x600000) == 0 {
             first = fptodp(dx);
@@ -90,13 +90,13 @@ pub fn rotateChr(a0: i32) {
         wanted = heading(first, second, 0x3a9cc0, 0x3a9cc8);
         let facing_now = lwc1(a0 + 80);
         if wanted < 0.0_f32 {
-            wanted = wanted + 3.6e+02_f32;
+            wanted = ps2float::add(wanted, 3.6e+02_f32);
         }
         swc1(s2 + 2780, anglediff(facing_now, wanted));
         flags = lw(s2 + 2708);
     }
-    let dx = lwc1(s2 + 2796) - lwc1(a0 + 48);
-    let dz = lwc1(s2 + 2804) - lwc1(a0 + 56);
+    let dx = ps2float::sub(lwc1(s2 + 2796), lwc1(a0 + 48));
+    let dz = ps2float::sub(lwc1(s2 + 2804), lwc1(a0 + 56));
     let (first, second);
     if (flags & 128) == 0 {
         first = fptodp(dx);
@@ -108,7 +108,7 @@ pub fn rotateChr(a0: i32) {
     let second = fptodp(second);
     let mut walk = heading(first, second, 0x3a9cd0, 0x3a9cd8);
     if walk < 0.0_f32 {
-        walk = walk + 3.6e+02_f32;
+        walk = ps2float::add(walk, 3.6e+02_f32);
     }
     let facing_now = lwc1(a0 + 76);
     swc1(s2 + 2784, anglediff(facing_now, walk));
@@ -187,7 +187,7 @@ pub fn rotateChr(a0: i32) {
     }
     if turn {
         let aim_diff = lwc1(s2 + 2784);
-        let limit = lwc1(s2 + 2880) * lwc1(g::updateframesf);
+        let limit = ps2float::mul(lwc1(s2 + 2880), lwc1(g::updateframesf));
         let current = lwc1(a0 + 84);
         swc1(a0 + 84, turn_step(current, aim_diff, limit));
         wrap_angle(a0 + 84);
@@ -201,20 +201,20 @@ pub fn rotateChr(a0: i32) {
         if dpcmp(angle_size(diff), 0x4047000000000000_i64) > 0 {
             let current = lwc1(a0 + 76);
             if !(0.0_f32 < diff) {
-                face_wanted = current - 46.0_f32;
+                face_wanted = ps2float::sub(current, 46.0_f32);
                 if face_wanted < 0.0_f32 {
-                    face_wanted = face_wanted + 3.6e+02_f32;
+                    face_wanted = ps2float::add(face_wanted, 3.6e+02_f32);
                 }
             } else {
-                face_wanted = current + 46.0_f32;
+                face_wanted = ps2float::add(current, 46.0_f32);
                 if 3.6e+02_f32 < face_wanted {
-                    face_wanted = face_wanted - 3.6e+02_f32;
+                    face_wanted = ps2float::sub(face_wanted, 3.6e+02_f32);
                 }
             }
         }
     }
     let diff = anglediff(lwc1(a0 + 80), face_wanted);
-    let limit = lwc1(s2 + 2880) * lwc1(g::updateframesf);
+    let limit = ps2float::mul(lwc1(s2 + 2880), lwc1(g::updateframesf));
     let current = lwc1(a0 + 80);
     swc1(a0 + 80, turn_step(current, diff, limit));
     wrap_angle(a0 + 80);
@@ -228,28 +228,28 @@ pub fn rotateChr(a0: i32) {
         if kind == 8 {
             let state = lw(s2 + 376);
             let near = state == 8 || state == 11 || state == 13 || state == 25 || ((state - 14) as u32) < 5;
-            if near && lwc1(target + 52) < lwc1(a0 + 52) - lwc1(0x3ad820) {
-                swc1(sp, lwc1(target + 48) - lwc1(s2 + 3008));
-                swc1(sp + 4, lwc1(target + 52) - lwc1(s2 + 3012));
-                swc1(sp + 8, lwc1(target + 56) - lwc1(s2 + 3016));
+            if near && lwc1(target + 52) < ps2float::sub(lwc1(a0 + 52), lwc1(0x3ad820)) {
+                swc1(sp, ps2float::sub(lwc1(target + 48), lwc1(s2 + 3008)));
+                swc1(sp + 4, ps2float::sub(lwc1(target + 52), lwc1(s2 + 3012)));
+                swc1(sp + 8, ps2float::sub(lwc1(target + 56), lwc1(s2 + 3016)));
             } else {
                 let from_x = lwc1(s2 + 3008);
                 let record = lw(target + 352);
-                swc1(sp, lwc1(target + 48) - from_x);
+                swc1(sp, ps2float::sub(lwc1(target + 48), from_x));
                 let eye = lwc1(s2 + 3012);
                 let point = lwc1(record + 3012);
-                swc1(sp + 4, point - eye);
-                swc1(sp + 8, lwc1(target + 56) - lwc1(s2 + 3016));
+                swc1(sp + 4, ps2float::sub(point, eye));
+                swc1(sp + 8, ps2float::sub(lwc1(target + 56), lwc1(s2 + 3016)));
             }
             x = lwc1(sp);
             y = lwc1(sp + 4);
         } else if kind >= 9 && kind != 64 {
             if kind == 256 {
-                swc1(sp, lwc1(target + 48) - lwc1(s2 + 3008));
+                swc1(sp, ps2float::sub(lwc1(target + 48), lwc1(s2 + 3008)));
                 let eye = lwc1(s2 + 3012);
-                let point = lwc1(target + 52) + 0.5_f32;
-                swc1(sp + 4, point - eye);
-                swc1(sp + 8, lwc1(target + 56) - lwc1(s2 + 3016));
+                let point = ps2float::add(lwc1(target + 52), 0.5_f32);
+                swc1(sp + 4, ps2float::sub(point, eye));
+                swc1(sp + 8, ps2float::sub(lwc1(target + 56), lwc1(s2 + 3016)));
             }
             x = lwc1(sp);
             y = lwc1(sp + 4);
@@ -259,35 +259,35 @@ pub fn rotateChr(a0: i32) {
         } else {
             if ((lw(target + 4) - 201) as u32) >= 2 {
                 let half = lwc1(target + 508);
-                swc1(sp, lwc1(target + 48) + half - lwc1(s2 + 3008));
-                swc1(sp + 4, lwc1(target + 52) + lwc1(target + 512) - lwc1(s2 + 3012));
+                swc1(sp, ps2float::sub(ps2float::add(lwc1(target + 48), half), lwc1(s2 + 3008)));
+                swc1(sp + 4, ps2float::sub(ps2float::add(lwc1(target + 52), lwc1(target + 512)), lwc1(s2 + 3012)));
             } else {
-                swc1(sp, lwc1(target + 48) + lwc1(target + 508) - lwc1(s2 + 3008));
-                swc1(sp + 4, lwc1(target + 52) - lwc1(s2 + 3012));
+                swc1(sp, ps2float::sub(ps2float::add(lwc1(target + 48), lwc1(target + 508)), lwc1(s2 + 3008)));
+                swc1(sp + 4, ps2float::sub(lwc1(target + 52), lwc1(s2 + 3012)));
             }
             let eye = lwc1(s2 + 3016);
-            let point = lwc1(target + 56) + lwc1(target + 516);
-            swc1(sp + 8, point - eye);
+            let point = ps2float::add(lwc1(target + 56), lwc1(target + 516));
+            swc1(sp + 8, ps2float::sub(point, eye));
             x = lwc1(sp);
             y = lwc1(sp + 4);
         }
         let z = lwc1(sp + 8);
-        let length = (x * x + y * y + z * z).abs().psqrt();
+        let length = ps2float::add(x * x + y * y, ps2float::mul(z, z)).abs().psqrt();
         let inverse = (1.0_f32).pdiv(length);
-        let z_unit = z * inverse;
-        let x_unit = x * inverse;
+        let z_unit = ps2float::mul(z, inverse);
+        let x_unit = ps2float::mul(x, inverse);
         swc1(sp + 8, z_unit);
         swc1(sp, x_unit);
-        swc1(sp + 4, y * inverse);
+        swc1(sp + 4, ps2float::mul(y, inverse));
         let rise = lwc1(sp + 4);
-        let run = (x_unit * x_unit + z_unit * z_unit).abs().psqrt();
-        pitch_wanted = (atan2f(rise, run) * 1.8e+02_f32).pdiv(lwc1(0x3ad824));
+        let run = ps2float::add(ps2float::mul(x_unit, x_unit), ps2float::mul(z_unit, z_unit)).abs().psqrt();
+        pitch_wanted = ps2float::mul(atan2f(rise, run), 1.8e+02_f32).pdiv(lwc1(0x3ad824));
     } else {
         pitch_wanted = 0.0_f32;
     }
     let pitch_now = lwc1(s2 + 2968);
     let diff = anglediff(pitch_now, pitch_wanted);
-    let limit = lwc1(s2 + 2880) * 0.25_f32 * lwc1(g::updateframesf);
+    let limit = ps2float::mul(ps2float::mul(lwc1(s2 + 2880), 0.25_f32), lwc1(g::updateframesf));
     let current = lwc1(s2 + 2968);
     swc1(s2 + 2968, turn_step(current, diff, limit));
     let floor = lwc1(0x3ad828);

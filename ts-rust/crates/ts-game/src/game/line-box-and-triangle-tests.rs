@@ -41,7 +41,7 @@ pub fn HitTestLineBox(start: i32, direction: i32, min: i32, max: i32, out: i32, 
             if d == 0.0_f32 {
                 swc1(sp + 16 + 4 * k, -1.0_f32);
             } else {
-                swc1(sp + 16 + 4 * k, ((lwc1(sp + 32 + 4 * k) - lwc1(start + 4 * k))).pdiv(d));
+                swc1(sp + 16 + 4 * k, (ps2float::sub(lwc1(sp + 32 + 4 * k), lwc1(start + 4 * k))).pdiv(d));
             }
         }
     }
@@ -72,7 +72,7 @@ pub fn HitTestLineBox(start: i32, direction: i32, min: i32, max: i32, out: i32, 
                 }
             }
         } else {
-            let v = lwc1(start + 4 * k) + lwc1(t) * lwc1(direction + 4 * k);
+            let v = ps2float::add(lwc1(start + 4 * k), ps2float::mul(lwc1(t), lwc1(direction + 4 * k)));
             swc1(out + 4 * k, v);
             if v < lwc1(min + 4 * k) {
                 return 0;
@@ -97,62 +97,62 @@ pub fn hittestLineTri(start: i32, direction: i32, a: i32, b: i32, c: i32, hit: i
     let cz = lwc1(c + 8);
     let cx = lwc1(c);
     let cy = lwc1(c + 4);
-    let abx = bx - ax;
-    let aby = by - ay;
-    let abz = bz - az;
-    let acz = cz - az;
-    let acx = cx - ax;
-    let acy = cy - ay;
+    let abx = ps2float::sub(bx, ax);
+    let aby = ps2float::sub(by, ay);
+    let abz = ps2float::sub(bz, az);
+    let acz = ps2float::sub(cz, az);
+    let acx = ps2float::sub(cx, ax);
+    let acy = ps2float::sub(cy, ay);
     let dz = lwc1(direction + 8);
     let dy = lwc1(direction + 4);
     let dx = lwc1(direction);
-    let ny = abz * acx - abx * acz;
-    let nx = aby * acz - abz * acy;
-    let nz = abx * acy - aby * acx;
-    let facing = nx * dx + ny * dy + nz * dz;
+    let ny = ps2float::sub(ps2float::mul(abz, acx), ps2float::mul(abx, acz));
+    let nx = ps2float::sub(ps2float::mul(aby, acz), ps2float::mul(abz, acy));
+    let nz = ps2float::sub(ps2float::mul(abx, acy), ps2float::mul(aby, acx));
+    let facing = ps2float::add(ps2float::add(ps2float::mul(nx, dx), ps2float::mul(ny, dy)), ps2float::mul(nz, dz));
     if facing == 0.0_f32 {
         return 0;
     }
     let sx = lwc1(start);
     let sy = lwc1(start + 4);
     let sz = lwc1(start + 8);
-    let t = ((nx * ax + ny * ay + nz * az - (nx * sx + ny * sy + nz * sz))).pdiv(facing);
+    let t = (ps2float::sub(ps2float::add(ps2float::add(ps2float::mul(nx, ax), ps2float::mul(ny, ay)), ps2float::mul(nz, az)), ps2float::add(ps2float::add(ps2float::mul(nx, sx), ps2float::mul(ny, sy)), ps2float::mul(nz, sz)))).pdiv(facing);
     if t < 0.0_f32 {
         return 0;
     }
-    let hz = sz + t * dz;
-    let hx = sx + t * dx;
-    let hy = sy + t * dy;
+    let hz = ps2float::add(sz, ps2float::mul(t, dz));
+    let hx = ps2float::add(sx, ps2float::mul(t, dx));
+    let hy = ps2float::add(sy, ps2float::mul(t, dy));
     // the edge from b to c
-    let bcx = cx - bx;
-    let bcz = cz - bz;
-    let chx = cx - hx;
-    let chz = cz - hz;
-    let bcy = cy - by;
-    let chy = cy - hy;
-    let bhz = bz - hz;
-    let bhx = bx - hx;
-    let bhy = by - hy;
-    let e1_y = abz * bhx - abx * bhz;
-    let e1_z_part = bcz * chx - bcx * chz;
-    let e1_x_part = bcy * chz - bcz * chy;
-    let e1_x = aby * bhz - abz * bhy;
-    let e2_y = abx * bhy - aby * bhx;
-    let e2_z = bcx * chy - bcy * chx;
-    if (e1_x * e1_x_part + e1_y * e1_z_part + e2_y * e2_z) < 0.0_f32 {
+    let bcx = ps2float::sub(cx, bx);
+    let bcz = ps2float::sub(cz, bz);
+    let chx = ps2float::sub(cx, hx);
+    let chz = ps2float::sub(cz, hz);
+    let bcy = ps2float::sub(cy, by);
+    let chy = ps2float::sub(cy, hy);
+    let bhz = ps2float::sub(bz, hz);
+    let bhx = ps2float::sub(bx, hx);
+    let bhy = ps2float::sub(by, hy);
+    let e1_y = ps2float::sub(ps2float::mul(abz, bhx), ps2float::mul(abx, bhz));
+    let e1_z_part = ps2float::sub(ps2float::mul(bcz, chx), ps2float::mul(bcx, chz));
+    let e1_x_part = ps2float::sub(ps2float::mul(bcy, chz), ps2float::mul(bcz, chy));
+    let e1_x = ps2float::sub(ps2float::mul(aby, bhz), ps2float::mul(abz, bhy));
+    let e2_y = ps2float::sub(ps2float::mul(abx, bhy), ps2float::mul(aby, bhx));
+    let e2_z = ps2float::sub(ps2float::mul(bcx, chy), ps2float::mul(bcy, chx));
+    if ps2float::add(ps2float::add(ps2float::mul(e1_x, e1_x_part), ps2float::mul(e1_y, e1_z_part)), ps2float::mul(e2_y, e2_z)) < 0.0_f32 {
         return 0;
     }
     // the edge from c to a
-    let cax = ax - cx;
-    let caz = az - cz;
-    let ahx = ax - hx;
-    let ahz = az - hz;
-    let ahy = ay - hy;
-    let cay = ay - cy;
-    let f_z = caz * ahx - cax * ahz;
-    let f_x = cay * ahz - caz * ahy;
-    let f_y = cax * ahy - cay * ahx;
-    if !((e1_x * f_x + e1_y * f_z + e2_y * f_y) < 0.0_f32) {
+    let cax = ps2float::sub(ax, cx);
+    let caz = ps2float::sub(az, cz);
+    let ahx = ps2float::sub(ax, hx);
+    let ahz = ps2float::sub(az, hz);
+    let ahy = ps2float::sub(ay, hy);
+    let cay = ps2float::sub(ay, cy);
+    let f_z = ps2float::sub(ps2float::mul(caz, ahx), ps2float::mul(cax, ahz));
+    let f_x = ps2float::sub(ps2float::mul(cay, ahz), ps2float::mul(caz, ahy));
+    let f_y = ps2float::sub(ps2float::mul(cax, ahy), ps2float::mul(cay, ahx));
+    if !(ps2float::add(ps2float::add(ps2float::mul(e1_x, f_x), ps2float::mul(e1_y, f_z)), ps2float::mul(e2_y, f_y)) < 0.0_f32) {
         if hit != 0 {
             swc1(hit + 8, hz);
             swc1(hit, hx);

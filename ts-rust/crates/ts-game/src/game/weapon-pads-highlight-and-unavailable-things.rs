@@ -111,8 +111,8 @@ pub fn findHighlightPad() {
             let w = lwc1(sp + 28);
             let window = g::window;
             let depth = ((lwc1(sp + 24)).pdiv(w)) as i32;
-            let x_screen = (lw(window + 8) as f32 + lw(window + 16) as f32 * ((lwc1(sp + 16)).pdiv(w))) as i32;
-            let y_screen = (lw(window + 28) as f32 - lw(window + 36) as f32 * ((lwc1(sp + 20)).pdiv(w))) as i32;
+            let x_screen = ps2float::add(lw(window + 8) as f32, ps2float::mul(lw(window + 16) as f32, ((lwc1(sp + 16)).pdiv(w)))) as i32;
+            let y_screen = ps2float::sub(lw(window + 28) as f32, ps2float::mul(lw(window + 36) as f32, ((lwc1(sp + 20)).pdiv(w)))) as i32;
             count = lw(0x3b0078);
             if lw(g::window) < x_screen && x_screen < lw(window + 4) && lw(window + 20) < y_screen && y_screen < lw(window + 24) {
                 count = lw(0x3b0078);

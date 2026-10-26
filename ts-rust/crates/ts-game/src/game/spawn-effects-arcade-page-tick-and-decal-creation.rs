@@ -52,12 +52,12 @@ pub fn specialfxNewSpawn(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) -> i32 {
         let prop = lw(offset + (g::spawngroups + 12));
         if prop != 0 {
             let radius = lwc1(0x3ad730);
-            swc1(sp, lwc1(prop + 48) - radius);
-            swc1(sp + 12, lwc1(prop + 48) + radius);
+            swc1(sp, ps2float::sub(lwc1(prop + 48), radius));
+            swc1(sp + 12, ps2float::add(lwc1(prop + 48), radius));
             swc1(sp + 4, lwc1(prop + 52));
-            swc1(sp + 16, lwc1(prop + 52) + radius);
-            swc1(sp + 8, lwc1(prop + 56) - radius);
-            swc1(sp + 20, lwc1(prop + 56) + radius);
+            swc1(sp + 16, ps2float::add(lwc1(prop + 52), radius));
+            swc1(sp + 8, ps2float::sub(lwc1(prop + 56), radius));
+            swc1(sp + 20, ps2float::add(lwc1(prop + 56), radius));
             if bgRoomBBIntersectionNumRooms(sp) >= 2 {
                 sw(offset + (g::spawngroups + 24), 1);
             }
@@ -465,7 +465,7 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     let offset = lw(sp + 216) * 240;
     sw(sp + 212, a4);
     let decals = lw(g::s_Decals);
-    let scale = scale_base * f12;
+    let scale = ps2float::mul(scale_base, f12);
     sw(sp + 208, a2);
     let decal = decals + offset;
     let word = lw(0x3a9310);
@@ -497,7 +497,7 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     let texture = lw(a0 * 12 + g::s_DecalTextures);
     sw(decal + 228, a3);
     sw(decal + 204, texture);
-    let mut alignment = ux * nx + uy * ny + uz * nz;
+    let mut alignment = ps2float::add(ps2float::add(ps2float::mul(ux, nx), ps2float::mul(uy, ny)), ps2float::mul(uz, nz));
     sw(decal + 208, a6);
     if !(0.0_f32 <= alignment) {
         alignment = -alignment;
@@ -508,77 +508,77 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         swc1(sp + 4, 0.0_f32);
         uy = 0.0_f32;
     }
-    let cx = ny * uz - nz * uy;
-    let cy = nz * ux - nx * uz;
+    let cx = ps2float::sub(ps2float::mul(ny, uz), ps2float::mul(nz, uy));
+    let cy = ps2float::sub(ps2float::mul(nz, ux), ps2float::mul(nx, uz));
     swc1(sp + 32, cx);
     swc1(sp + 36, cy);
-    let cz = nx * uy - ny * ux;
+    let cz = ps2float::sub(ps2float::mul(nx, uy), ps2float::mul(ny, ux));
     swc1(sp + 40, cz);
-    let inverse = (1.0_f32).pdiv((cx * cx + cy * cy + cz * cz).abs().psqrt());
-    let rz = lwc1(sp + 40) * inverse;
-    let rx = lwc1(sp + 32) * inverse;
-    let ry = lwc1(sp + 36) * inverse;
+    let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(cx, cx), ps2float::mul(cy, cy)), ps2float::mul(cz, cz)).abs().psqrt());
+    let rz = ps2float::mul(lwc1(sp + 40), inverse);
+    let rx = ps2float::mul(lwc1(sp + 32), inverse);
+    let ry = ps2float::mul(lwc1(sp + 36), inverse);
     swc1(sp + 40, rz);
     swc1(sp + 32, rx);
     swc1(sp + 36, ry);
-    let fx = nz * rx - nx * rz;
-    let fy = ny * rz - nz * ry;
+    let fx = ps2float::sub(ps2float::mul(nz, rx), ps2float::mul(nx, rz));
+    let fy = ps2float::sub(ps2float::mul(ny, rz), ps2float::mul(nz, ry));
     swc1(sp + 68, fx);
     swc1(sp + 64, fy);
-    let fz = nx * ry - ny * rx;
+    let fz = ps2float::sub(ps2float::mul(nx, ry), ps2float::mul(ny, rx));
     swc1(sp + 72, fz);
-    let inverse = (1.0_f32).pdiv((fy * fy + fx * fx + fz * fz).abs().psqrt());
+    let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(fy, fy), ps2float::mul(fx, fx)), ps2float::mul(fz, fz)).abs().psqrt());
     let rx = lwc1(sp + 32);
     let ry = lwc1(sp + 36);
     let rz = lwc1(sp + 40);
-    let fy = lwc1(sp + 64) * inverse;
-    let fx = lwc1(sp + 68) * inverse;
-    let fz = lwc1(sp + 72) * inverse;
-    let sum_x = rx + fy;
+    let fy = ps2float::mul(lwc1(sp + 64), inverse);
+    let fx = ps2float::mul(lwc1(sp + 68), inverse);
+    let fz = ps2float::mul(lwc1(sp + 72), inverse);
+    let sum_x = ps2float::add(rx, fy);
     swc1(sp + 64, fy);
-    let sum_y = ry + fx;
+    let sum_y = ps2float::add(ry, fx);
     swc1(sp + 68, fx);
-    let sum_z = rz + fz;
+    let sum_z = ps2float::add(rz, fz);
     swc1(sp + 72, fz);
     swc1(sp + 16, sum_x);
     swc1(sp + 20, sum_y);
     swc1(sp + 24, sum_z);
-    let inverse = (1.0_f32).pdiv((sum_x * sum_x + sum_y * sum_y + sum_z * sum_z).abs().psqrt());
-    let dx = rx - lwc1(sp + 64);
-    let dy = ry - lwc1(sp + 68);
+    let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(sum_x, sum_x), ps2float::mul(sum_y, sum_y)), ps2float::mul(sum_z, sum_z)).abs().psqrt());
+    let dx = ps2float::sub(rx, lwc1(sp + 64));
+    let dy = ps2float::sub(ry, lwc1(sp + 68));
     let px = lwc1(sp + 16);
-    let dz = rz - lwc1(sp + 72);
+    let dz = ps2float::sub(rz, lwc1(sp + 72));
     let py = lwc1(sp + 20);
     swc1(sp + 48, dx);
     let pz = lwc1(sp + 24);
     swc1(sp + 52, dy);
     swc1(sp + 56, dz);
-    swc1(sp + 24, pz * inverse);
-    swc1(sp + 16, px * inverse);
-    swc1(sp + 20, py * inverse);
-    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+    swc1(sp + 24, ps2float::mul(pz, inverse));
+    swc1(sp + 16, ps2float::mul(px, inverse));
+    swc1(sp + 20, ps2float::mul(py, inverse));
+    let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
     let by = lwc1(sp + 52);
     let qy = lwc1(sp + 20);
     let qz = lwc1(sp + 24);
-    let qx = lwc1(sp + 16) * scale;
-    let bx = lwc1(sp + 48) * inverse;
+    let qx = ps2float::mul(lwc1(sp + 16), scale);
+    let bx = ps2float::mul(lwc1(sp + 48), inverse);
     let hit_x = lwc1(a7);
-    let bz = lwc1(sp + 56) * inverse;
+    let bz = ps2float::mul(lwc1(sp + 56), inverse);
     sw(decal + 200, 4);
     swc1(sp + 16, qx);
-    let bx_scaled = bx * scale;
+    let bx_scaled = ps2float::mul(bx, scale);
     swc1(sp + 48, bx_scaled);
-    swc1(sp + 56, bz * scale);
-    let corner_x = hit_x - bx_scaled;
-    swc1(sp + 20, qy * scale);
-    swc1(sp + 24, qz * scale);
-    swc1(sp + 52, by * inverse * scale);
+    swc1(sp + 56, ps2float::mul(bz, scale));
+    let corner_x = ps2float::sub(hit_x, bx_scaled);
+    swc1(sp + 20, ps2float::mul(qy, scale));
+    swc1(sp + 24, ps2float::mul(qz, scale));
+    swc1(sp + 52, ps2float::mul(ps2float::mul(by, inverse), scale));
     swc1(decal, corner_x);
     swc1(sp + 80, corner_x);
-    let corner_y = lwc1(a7 + 4) - lwc1(sp + 52);
+    let corner_y = ps2float::sub(lwc1(a7 + 4), lwc1(sp + 52));
     swc1(decal + 4, corner_y);
     swc1(sp + 84, corner_y);
-    let corner_z = lwc1(a7 + 8) - lwc1(sp + 56);
+    let corner_z = ps2float::sub(lwc1(a7 + 8), lwc1(sp + 56));
     swc1(decal + 8, corner_z);
     swc1(sp + 88, corner_z);
     if (a1 as u32) >= (2 as u32) {
@@ -594,13 +594,13 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         sw(decal + 132, 0);
     }
     swc1(sp + 132, lwc1(decal + 132));
-    let x = lwc1(a7) - lwc1(sp + 16);
+    let x = ps2float::sub(lwc1(a7), lwc1(sp + 16));
     swc1(decal + 16, x);
     swc1(sp + 92, x);
-    let y = lwc1(a7 + 4) - lwc1(sp + 20);
+    let y = ps2float::sub(lwc1(a7 + 4), lwc1(sp + 20));
     swc1(decal + 20, y);
     swc1(sp + 96, y);
-    let z = lwc1(a7 + 8) - lwc1(sp + 24);
+    let z = ps2float::sub(lwc1(a7 + 8), lwc1(sp + 24));
     swc1(decal + 24, z);
     swc1(sp + 100, z);
     if ((a1 - 1) as u32) >= (2 as u32) {
@@ -616,13 +616,13 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         sw(decal + 140, 0);
     }
     swc1(sp + 140, lwc1(decal + 140));
-    let x = lwc1(a7) + lwc1(sp + 48);
+    let x = ps2float::add(lwc1(a7), lwc1(sp + 48));
     swc1(decal + 32, x);
     swc1(sp + 104, x);
-    let y = lwc1(a7 + 4) + lwc1(sp + 52);
+    let y = ps2float::add(lwc1(a7 + 4), lwc1(sp + 52));
     swc1(decal + 36, y);
     swc1(sp + 108, y);
-    let z = lwc1(a7 + 8) + lwc1(sp + 56);
+    let z = ps2float::add(lwc1(a7 + 8), lwc1(sp + 56));
     swc1(decal + 40, z);
     swc1(sp + 112, z);
     if ((a1 - 2) as u32) >= (2 as u32) {
@@ -639,13 +639,13 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
     }
     'high: {
         swc1(sp + 148, lwc1(decal + 148));
-        let x = lwc1(a7) + lwc1(sp + 16);
+        let x = ps2float::add(lwc1(a7), lwc1(sp + 16));
         swc1(decal + 48, x);
         swc1(sp + 116, x);
-        let y = lwc1(a7 + 4) + lwc1(sp + 20);
+        let y = ps2float::add(lwc1(a7 + 4), lwc1(sp + 20));
         swc1(decal + 52, y);
         swc1(sp + 120, y);
-        let z = lwc1(a7 + 8) + lwc1(sp + 24);
+        let z = ps2float::add(lwc1(a7 + 8), lwc1(sp + 24));
         swc1(decal + 56, z);
         swc1(sp + 124, z);
         if a1 != 0 {
@@ -686,16 +686,16 @@ pub fn decalAddNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                     let factor = lwc1(0x3ad5c0);
                     let mut i = 0;
                     sw(sp + 224, sp + 160);
-                    swc1(sp + 176, -vx * factor);
-                    swc1(sp + 180, -vy * factor);
-                    swc1(sp + 184, -vz * factor);
+                    swc1(sp + 176, ps2float::mul(-vx, factor));
+                    swc1(sp + 180, ps2float::mul(-vy, factor));
+                    swc1(sp + 184, ps2float::mul(-vz, factor));
                     loop {
                         let step = lwc1(0x3ad5c4);
                         let origin = lw(sp + 224);
                         let object = lw(lw(sp + 212) + 32);
-                        swc1(sp + 160, lwc1(sp + 80 + i * 12) + vx * step);
-                        swc1(sp + 164, lwc1(sp + 84 + i * 12) + vy * step);
-                        swc1(sp + 168, lwc1(sp + 88 + i * 12) + vz * step);
+                        swc1(sp + 160, ps2float::add(lwc1(sp + 80 + i * 12), ps2float::mul(vx, step)));
+                        swc1(sp + 164, ps2float::add(lwc1(sp + 84 + i * 12), ps2float::mul(vy, step)));
+                        swc1(sp + 168, ps2float::add(lwc1(sp + 88 + i * 12), ps2float::mul(vz, step)));
                         let hit = obInstLineTest(object, origin, sp + 176, 0, 0, 0);
                         all = if hit == 0 { 0 } else { all };
                         let at = sp + 192 + (i << 2);

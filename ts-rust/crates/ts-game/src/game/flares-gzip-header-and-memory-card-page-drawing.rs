@@ -23,9 +23,9 @@ pub fn flareGfx(flare: i32) {
     let mut visible = false;
     let depth = lwc1(sp + 8);
     let inverse = (1.0_f32).pdiv(lwc1(sp + 12));
-    let screen_z = depth * inverse;
-    let screen_x = lwc1(sp) * inverse;
-    let screen_y = lwc1(sp + 4) * inverse;
+    let screen_z = ps2float::mul(depth, inverse);
+    let screen_x = ps2float::mul(lwc1(sp), inverse);
+    let screen_y = ps2float::mul(lwc1(sp + 4), inverse);
     swc1(sp + 24, screen_z);
     swc1(sp + 16, screen_x);
     swc1(sp + 20, screen_y);
@@ -43,17 +43,17 @@ pub fn flareGfx(flare: i32) {
     }
     let x = lwc1(sp + 16);
     let y = lwc1(sp + 20);
-    let fade = lwc1(0x3ad614) - (x * x + y * y).abs().psqrt();
+    let fade = ps2float::sub(lwc1(0x3ad614), ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)).abs().psqrt());
     let mut brightness = scale;
     if !(1.0_f32 < fade) {
-        brightness = fade * brightness;
+        brightness = ps2float::mul(fade, brightness);
     }
     let intensity = lw(flare + 20);
     let brightness = if intensity < 0 {
         let half = (intensity & 1 | ((intensity as u32) >> 1) as i32) as f32;
-        brightness * (half + half)
+        ps2float::mul(brightness, ps2float::add(half, half))
     } else {
-        brightness * intensity as f32
+        ps2float::mul(brightness, intensity as f32)
     };
     let alpha = fptoui(brightness);
     sw(sp + 96, alpha);
@@ -65,30 +65,30 @@ pub fn flareGfx(flare: i32) {
             let start = base - 0x5d50;
             let word = i << 2;
             let part = start + (i * 12 + kind * 244);
-            let red = lwc1(part + 124) * 127.0_f32;
-            let blue = lwc1(part + 132) * 127.0_f32;
-            let green = lwc1(part + 128) * 127.0_f32;
+            let red = ps2float::mul(lwc1(part + 124), 127.0_f32);
+            let blue = ps2float::mul(lwc1(part + 132), 127.0_f32);
+            let green = ps2float::mul(lwc1(part + 128), 127.0_f32);
             let top = fptoui(red);
             let colour_high = top << 24 | lw(sp + 96);
             let low = fptoui(blue);
             let mid = fptoui(green);
             let entry = start + (word + kind * 244);
             let along = lwc1(entry + 4);
-            let centre_x = lw(g::window + 8) as f32 + lw(g::window + 16) as f32 * lwc1(sp + 16) * along;
-            let size = lwc1(entry + 44) * 256.0_f32 * ((6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260)));
-            let centre_y = lw(g::window + 28) as f32 + lw(g::window + 36) as f32 * -lwc1(sp + 20) * along;
+            let centre_x = ps2float::add(lw(g::window + 8) as f32, ps2float::mul(ps2float::mul(lw(g::window + 16) as f32, lwc1(sp + 16)), along));
+            let size = ps2float::mul(ps2float::mul(lwc1(entry + 44), 256.0_f32), ((6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260))));
+            let centre_y = ps2float::add(lw(g::window + 28) as f32, ps2float::mul(ps2float::mul(lw(g::window + 36) as f32, -lwc1(sp + 20)), along));
             let players = ilinkGetNumLocalPlayers();
             let mut wide = size;
             if players >= 2 {
-                wide = size * 0.5_f32;
+                wide = ps2float::mul(size, 0.5_f32);
             }
             let table = records - 0x5d50;
             i += 1;
-            let high = wide * lwc1(0x3ad618);
+            let high = ps2float::mul(wide, lwc1(0x3ad618));
             let texture = lw((lw(table + (word + kind * 244) + 84) << 2) + g::flareTextureNum);
             dlSelectTextureKick(texture);
             let colour = colour_high | (low << 8 | mid << 16);
-            dlTextureRectangleFloat(0, 0, 1024, 1024, colour, centre_x - wide, centre_y - high, centre_x + wide, centre_y + high);
+            dlTextureRectangleFloat(0, 0, 1024, 1024, colour, ps2float::sub(centre_x, wide), ps2float::sub(centre_y, high), ps2float::add(centre_x, wide), ps2float::add(centre_y, high));
             if i >= lw(kind * 244 + table) {
                 break;
             }

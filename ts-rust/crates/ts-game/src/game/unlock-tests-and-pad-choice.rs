@@ -143,10 +143,10 @@ fn try_pad(flags: i32, own_pad: i32, step: i32, player: i32, facing: f32, min2: 
     let wrapped = if moved >= pads { moved - pads } else { moved };
     let pad = lw(g::levelpads) + (if -1 >= wrapped { wrapped + pads } else { wrapped }) * 28;
     let mut ok = true;
-    let x = lwc1(pad + 12) - lwc1(player + 140);
-    let y = lwc1(pad + 16) - lwc1(player + 144);
-    let z = lwc1(pad + 20) - lwc1(player + 148);
-    let d2 = x * x + y * y + z * z;
+    let x = ps2float::sub(lwc1(pad + 12), lwc1(player + 140));
+    let y = ps2float::sub(lwc1(pad + 16), lwc1(player + 144));
+    let z = ps2float::sub(lwc1(pad + 20), lwc1(player + 148));
+    let d2 = ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z));
     if max2 < d2 {
         ok = false;
     }
@@ -157,15 +157,15 @@ fn try_pad(flags: i32, own_pad: i32, step: i32, player: i32, facing: f32, min2: 
         if ok {
             if flags & 0x1c000000 != 0 {
                 let inv = (1.0_f32).pdiv(d2.abs().psqrt());
-                let (nx, nz, ny) = (x * inv, z * inv, y * inv);
-                if (nx * lwc1(player + 188) + ny * lwc1(player + 192) + nz * lwc1(player + 196)) < facing {
+                let (nx, nz, ny) = (ps2float::mul(x, inv), ps2float::mul(z, inv), ps2float::mul(y, inv));
+                if ps2float::add(ps2float::add(ps2float::mul(nx, lwc1(player + 188)), ps2float::mul(ny, lwc1(player + 192))), ps2float::mul(nz, lwc1(player + 196))) < facing {
                     ok = false;
                 }
             }
             if ok && flags & 0x2000000 != 0 {
-                let inv = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
-                let (nz, nx, ny) = (z * inv, x * inv, y * inv);
-                if facing < nx * lwc1(player + 188) + ny * lwc1(player + 192) + nz * lwc1(player + 196) {
+                let inv = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)).abs().psqrt());
+                let (nz, nx, ny) = (ps2float::mul(z, inv), ps2float::mul(x, inv), ps2float::mul(y, inv));
+                if facing < ps2float::add(ps2float::add(ps2float::mul(nx, lwc1(player + 188)), ps2float::mul(ny, lwc1(player + 192))), ps2float::mul(nz, lwc1(player + 196))) {
                     ok = false;
                 }
             }
@@ -180,18 +180,18 @@ fn try_pad(flags: i32, own_pad: i32, step: i32, player: i32, facing: f32, min2: 
 /// of the pad chosen or 0 (@ 0x228590).
 pub fn lvGetPseudoRandomPadExtref(flags: i32) -> i32 {
     let mut min2 = 0.0_f32;
-    let half_pads = (lw(g::numpads) as f32 * 0.5_f32) as i32;
+    let half_pads = ps2float::mul(lw(g::numpads) as f32, 0.5_f32) as i32;
     let mut pad = 0;
     let mut accepted = false;
     let mut max2 = min2;
     let mut facing = min2;
     if flags & 0x40000000 != 0 {
         let least = (flags & 255) as f32;
-        min2 = least * least;
+        min2 = ps2float::mul(least, least);
     }
     if flags & 0x20000000 != 0 {
         let greatest = ((flags & 0xff00) >> 8) as f32;
-        max2 = greatest * greatest;
+        max2 = ps2float::mul(greatest, greatest);
     }
     if flags & 0x10000000 != 0 {
         facing = lwc1(0x3ac8d0);
@@ -209,7 +209,7 @@ pub fn lvGetPseudoRandomPadExtref(flags: i32) -> i32 {
     let mut result_known = false;
     let mut result = false;
     if players != 1 {
-        let unit = random_as_float() * 2.3283064e-10_f32;
+        let unit = ps2float::mul(random_as_float(), 2.3283064e-10_f32);
         if !(0.5_f32 < unit) {
             result_known = true;
             if half_pads > 0 {

@@ -54,7 +54,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
             text = language_text(1164);
         } else {
             let ratio = (lw(a3 + 32) as f32).pdiv(count as f32);
-            let percent = (ratio * 1e+02_f32) as i32;
+            let percent = ps2float::mul(ratio, 1e+02_f32) as i32;
             if percent != 0 {
                 text = vafmt(&[0x3ae860_i64, percent as i64, ratio.to_bits() as i64]);
             } else {
@@ -68,7 +68,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
         if count <= 0 {
             text = language_text(1172);
         } else {
-            let percent = ((lwc1(a3 + 36)).pdiv(count as f32) * 1e+02_f32) as i32;
+            let percent = ps2float::mul((lwc1(a3 + 36)).pdiv(count as f32), 1e+02_f32) as i32;
             text = vafmt(&[0x3ae860_i64, percent as i64]);
         }
         print_value(sp, text, a2);
@@ -90,7 +90,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
         }
         print_value(sp, text, a2);
         print_label(sp, 1220, a2);
-        let hours = lw(a3 + 4) as f32 * lwc1(0x3ac9ec);
+        let hours = ps2float::mul(lw(a3 + 4) as f32, lwc1(0x3ac9ec));
         let text;
         if !(0.0_f32 < hours) {
             text = language_text(1440);
@@ -130,7 +130,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
         let seconds_f = lw(a3 + 4) as f32;
         let scale = lwc1(0x3ac9e4);
         sb(sp, 0);
-        let total = (seconds_f * scale) as i32;
+        let total = ps2float::mul(seconds_f, scale) as i32;
         sw(sp + 280, total.wrapping_rem(60));
         sw(sp + 284, total.wrapping_div(60).wrapping_rem(60));
         let days = total.wrapping_div(60).wrapping_div(60).wrapping_div(24);
@@ -185,7 +185,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
             if shots <= 0 {
                 text = language_text(1124);
             } else {
-                let percent = ((lw(a3 + 340) as f32).pdiv(shots as f32) * 1e+02_f32) as i32;
+                let percent = ps2float::mul((lw(a3 + 340) as f32).pdiv(shots as f32), 1e+02_f32) as i32;
                 text = vafmt(&[0x3ae860_i64, percent as i64]);
             }
         }

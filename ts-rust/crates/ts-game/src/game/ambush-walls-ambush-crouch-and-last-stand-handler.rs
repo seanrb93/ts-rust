@@ -5,22 +5,22 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// Turn the character `a0` (angles at +76, +80, +84) half a turn and bring them to the range of one turn.
 fn ambush_half_turn(a0: i32) {
-    let turn = lwc1(a0 + 76) + 1.8e+02_f32;
-    let other = lwc1(a0 + 80) + 1.8e+02_f32;
+    let turn = ps2float::add(lwc1(a0 + 76), 1.8e+02_f32);
+    let other = ps2float::add(lwc1(a0 + 80), 1.8e+02_f32);
     swc1(a0 + 76, turn);
     swc1(a0 + 80, other);
     swc1(a0 + 84, turn);
     if 3.6e+02_f32 < turn {
-        swc1(a0 + 76, turn - 3.6e+02_f32);
+        swc1(a0 + 76, ps2float::sub(turn, 3.6e+02_f32));
     }
     let other = lwc1(a0 + 80);
     if 3.6e+02_f32 < other {
-        swc1(a0 + 80, other - 3.6e+02_f32);
+        swc1(a0 + 80, ps2float::sub(other, 3.6e+02_f32));
     }
 }
 
@@ -80,7 +80,7 @@ fn ambush_wall(a0: i32, idle: i32, rise: i32, constants: [i32; 3], leaves: bool)
             }
             1 => {
                 let target = lw(mind + 2788);
-                let difference = lwc1(a0 + 52) - lwc1(target + 52);
+                let difference = ps2float::sub(lwc1(a0 + 52), lwc1(target + 52));
                 let mut height = fptodp(difference);
                 if dpcmp(height, 0_i64) < 0 {
                     height = dpsub(0_i64, height);
@@ -92,14 +92,14 @@ fn ambush_wall(a0: i32, idle: i32, rise: i32, constants: [i32; 3], leaves: bool)
                     let target = lw(mind + 2788);
                     sw(mind + 2728, 2);
                     let pad = pad_offset + pads;
-                    let z = lwc1(pad + 20) - lwc1(target + 56);
-                    let x = lwc1(pad + 12) - lwc1(target + 48);
-                    let mut angle = (atan2f(x, z) * 1.8e+02_f32).pdiv(lwc1(constants[0]));
+                    let z = ps2float::sub(lwc1(pad + 20), lwc1(target + 56));
+                    let x = ps2float::sub(lwc1(pad + 12), lwc1(target + 48));
+                    let mut angle = ps2float::mul(atan2f(x, z), 1.8e+02_f32).pdiv(lwc1(constants[0]));
                     while angle < 0.0_f32 {
-                        angle = angle + 3.6e+02_f32;
+                        angle = ps2float::add(angle, 3.6e+02_f32);
                     }
                     while 3.6e+02_f32 <= angle {
-                        angle = angle - 3.6e+02_f32;
+                        angle = ps2float::sub(angle, 3.6e+02_f32);
                     }
                     swc1(a0 + 84, angle);
                     swc1(mind + 2972, angle);
@@ -124,13 +124,13 @@ fn ambush_wall(a0: i32, idle: i32, rise: i32, constants: [i32; 3], leaves: bool)
                     return;
                 }
                 let target = lw(mind + 2788);
-                let dx = lwc1(a0 + 48) - lwc1(target + 48);
-                let dy = lwc1(a0 + 52) - lwc1(target + 52);
-                let dz = lwc1(a0 + 56) - lwc1(target + 56);
+                let dx = ps2float::sub(lwc1(a0 + 48), lwc1(target + 48));
+                let dy = ps2float::sub(lwc1(a0 + 52), lwc1(target + 52));
+                let dz = ps2float::sub(lwc1(a0 + 56), lwc1(target + 56));
                 if checkInFrontOfPad(lw(mind + 680), target + 48, 0.0_f32) == 0 {
                     let random = random_unit();
                     if !(random < lwc1(constants[2])) {
-                        if !(6.0_f32 < (dx * dx + dy * dy + dz * dz).abs().psqrt()) {
+                        if !(6.0_f32 < ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt()) {
                             ambush_half_turn(a0);
                             ambush_come_out(a0, mind);
                             return;
@@ -161,10 +161,10 @@ fn ambush_wall(a0: i32, idle: i32, rise: i32, constants: [i32; 3], leaves: bool)
                 let wait;
                 if !(0.25_f32 < random) {
                     let random = random_unit();
-                    wait = (random + random) + 2.0_f32;
+                    wait = ps2float::add(ps2float::add(random, random), 2.0_f32);
                 } else {
                     let random = random_unit();
-                    wait = random + 1.0_f32;
+                    wait = ps2float::add(random, 1.0_f32);
                 }
                 swc1(mind + 2732, wait);
                 sw(mind + 2728, 4);
@@ -243,10 +243,10 @@ pub fn enemyAmbushCrouch(a0: i32) {
     }
     let mut target = lw(mind + 2788);
     let target_x = lwc1(target + 48);
-    let dx = target_x - lwc1(a0 + 48);
-    let dy = lwc1(target + 52) - lwc1(a0 + 52);
-    let dz = lwc1(target + 56) - lwc1(a0 + 56);
-    let distance = dx * dx + dy * dy + dz * dz;
+    let dx = ps2float::sub(target_x, lwc1(a0 + 48));
+    let dy = ps2float::sub(lwc1(target + 52), lwc1(a0 + 52));
+    let dz = ps2float::sub(lwc1(target + 56), lwc1(a0 + 56));
+    let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
     if lw(mind + 2772) != 0 {
         if (lw(mind + 2704) & 0x4000) != 0 {
             swc1(mind + 2796, target_x);
@@ -273,7 +273,7 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                 let random = random_unit();
                                 sw(mind + 2892, 0);
                                 target = lw(mind + 2788);
-                                swc1(mind + 2732, random + random + 0.5_f32);
+                                swc1(mind + 2732, ps2float::add(ps2float::add(random, random), 0.5_f32));
                                 swc1(mind + 2820, lwc1(a0 + 80));
                                 break 'tail;
                             }
@@ -293,7 +293,7 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                 sw(mind + 2892, 0);
                                 timer_base = lwc1(0x3ad9fc);
                                 target = lw(mind + 2788);
-                                timer_random = random * range;
+                                timer_random = ps2float::mul(random, range);
                                 break 'wait;
                             }
                             2 => {
@@ -328,7 +328,7 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                 sw(mind + 2892, 0);
                                 timer_base = lwc1(0x3ada08);
                                 target = lw(mind + 2788);
-                                timer_random = random * range;
+                                timer_random = ps2float::mul(random, range);
                                 break 'wait;
                             }
                             3 => {
@@ -347,11 +347,11 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                     }
                                     let y = lwc1(sp + 4);
                                     let z = lwc1(sp + 8);
-                                    let scale = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
-                                    let angle = (lwc1(a0 + 80) * lwc1(0x3ada14)).pdiv(1.8e+02_f32);
-                                    swc1(sp + 8, z * scale);
-                                    swc1(sp, x * scale);
-                                    swc1(sp + 4, y * scale);
+                                    let scale = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)).abs().psqrt());
+                                    let angle = ps2float::mul(lwc1(a0 + 80), lwc1(0x3ada14)).pdiv(1.8e+02_f32);
+                                    swc1(sp + 8, ps2float::mul(z, scale));
+                                    swc1(sp, ps2float::mul(x, scale));
+                                    swc1(sp + 4, ps2float::mul(y, scale));
                                     matrixRotY(sp + 16, angle);
                                     matrixVecRotAligned(&[(sp + 16) as i64, sp as i64]);
                                     npcThrowGrenade(a0, sp, lw(mind + 2788));
@@ -369,7 +369,7 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                 let random = random_unit();
                                 timer_base = 3.0_f32;
                                 target = lw(mind + 2788);
-                                timer_random = random * timer_base;
+                                timer_random = ps2float::mul(random, timer_base);
                                 break 'wait;
                             }
                             5 => {
@@ -388,7 +388,7 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                                 sw(mind + 2728, 1);
                                                 let random = random_unit();
                                                 sw(mind + 2892, 0);
-                                                swc1(mind + 2732, random + random + 0.5_f32);
+                                                swc1(mind + 2732, ps2float::add(ps2float::add(random, random), 0.5_f32));
                                                 break 'settled;
                                             }
                                             let wait = lwc1(0x3ada18);
@@ -411,7 +411,7 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                 let flags = lw(mind + 2704);
                                 sw(mind + 2892, 0);
                                 target = lw(mind + 2788);
-                                timer_random = random + random;
+                                timer_random = ps2float::add(random, random);
                                 sw(mind + 2704, flags & -3);
                                 break 'wait;
                             }
@@ -469,7 +469,7 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                 sw(mind + 2892, 0);
                                 let base = lwc1(0x3ada30);
                                 sw(mind + 2728, 2);
-                                swc1(mind + 2732, random * scale + base);
+                                swc1(mind + 2732, ps2float::add(ps2float::mul(random, scale), base));
                                 anim = 113;
                                 blend = 0.25_f32;
                                 extra = 1.0_f32;
@@ -549,14 +549,14 @@ pub fn enemyAIFutureLastStandHandler() {
     let mut frames = lwc1(g::updateframesf);
     if lwc1(0x3b01cc) == lwc1(0x3ada80) {
         let spawn = lw(0x3b01e4);
-        let range = lwc1(spawn + 8) - lwc1(spawn + 4);
+        let range = ps2float::sub(lwc1(spawn + 8), lwc1(spawn + 4));
         let random = random_unit();
-        swc1(0x3b01cc, range * random + lwc1(spawn + 4));
+        swc1(0x3b01cc, ps2float::add(ps2float::mul(range, random), lwc1(spawn + 4)));
         frames = lwc1(g::updateframesf);
     }
     let step = (frames).pdiv(6e+01_f32);
     let active = lw(g::numactivechars);
-    swc1(0x3b01c4, lwc1(0x3b01c4) + step);
+    swc1(0x3b01c4, ps2float::add(lwc1(0x3b01c4), step));
     let mut alive = 0;
     let wave_count = lw(0x3b01b0);
     if active > 0 {
@@ -577,8 +577,8 @@ pub fn enemyAIFutureLastStandHandler() {
         if wave_count > 0 {
             let time = lwc1(0x3b01c0);
             if alive < limit {
-                let time_left = time - step;
-                let gap = lwc1(0x3b01c8) - step;
+                let time_left = ps2float::sub(time, step);
+                let gap = ps2float::sub(lwc1(0x3b01c8), step);
                 swc1(0x3b01c0, time_left);
                 swc1(0x3b01c8, gap);
                 if time_left <= 0.0_f32 {
@@ -690,7 +690,7 @@ pub fn enemyAIFutureLastStandHandler() {
                             let elapsed = lwc1(0x3b01c4);
                             language = lw(g::cur_language);
                             if 0.0_f32 < record && 0.0_f32 < elapsed {
-                                let seconds = ((record).pdiv(elapsed) * 1e+03_f32) as i32;
+                                let seconds = ps2float::mul((record).pdiv(elapsed), 1e+03_f32) as i32;
                                 let number = lw(0x3b01d8);
                                 bonus = if seconds <= 0 { 0 } else { seconds * number };
                             } else {
@@ -704,7 +704,7 @@ pub fn enemyAIFutureLastStandHandler() {
                             loop {
                                 let base = lw((n << 3) + (g::bases + 4));
                                 n += 1;
-                                score_base = score_base + ((1.0_f32 - lwc1(base + 532)) * 1e+03_f32) as i32;
+                                score_base = score_base + ps2float::mul(ps2float::sub(1.0_f32, lwc1(base + 532)), 1e+03_f32) as i32;
                                 if n >= bases {
                                     break;
                                 }
@@ -778,7 +778,7 @@ pub fn enemyAIFutureLastStandHandler() {
                 }
                 timer = lwc1(0x3b01cc);
             }
-            timer = timer - step;
+            timer = ps2float::sub(timer, step);
             swc1(0x3b01cc, timer);
             if timer < 0.0_f32 {
                 timer = 0.0_f32;

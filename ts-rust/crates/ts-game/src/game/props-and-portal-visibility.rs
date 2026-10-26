@@ -131,17 +131,17 @@ pub fn StatsGetChar(stat: i32, slot: i32, other: i32) -> f32 {
 pub fn closestpad(pos: i32, radius: f32) -> i32 {
     let mut best_dist = lwc1(0x3aeb30);
     let mut best = -1;
-    let limit = if !(radius <= 0.0) { radius * radius + lwc1(0x3acbc0) } else { 0.0 };
+    let limit = if !(radius <= 0.0) { ps2float::add(ps2float::mul(radius, radius), lwc1(0x3acbc0)) } else { 0.0 };
     let count = lw(g::numpads);
     if count > 0 {
         let (z, x, y) = (lwc1(pos + 8), lwc1(pos), lwc1(pos + 4));
         let pads = lw(g::levelpads);
         for i in 0..count {
             let pad = i * 28 + pads;
-            let dx = lwc1(pad + 12) - x;
-            let dy = lwc1(pad + 16) - y;
-            let dz = lwc1(pad + 20) - z;
-            let d2 = dx * dx + dy * dy + dz * dz;
+            let dx = ps2float::sub(lwc1(pad + 12), x);
+            let dy = ps2float::sub(lwc1(pad + 16), y);
+            let dz = ps2float::sub(lwc1(pad + 20), z);
+            let d2 = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
             if d2 < best_dist && limit <= d2 {
                 best_dist = d2;
                 best = i;
@@ -156,19 +156,19 @@ pub fn editRotate(angle: i32) {
     let held = joyNewBut(0) != 0 || joyBut(0) & 8 != 0;
     if held {
         if joyBut(0) & 0x2000 != 0 {
-            swc1(angle, lwc1(angle) + 1.0);
+            swc1(angle, ps2float::add(lwc1(angle), 1.0));
         }
         if joyBut(0) & 0x8000 != 0 {
-            swc1(angle, lwc1(angle) - 1.0);
+            swc1(angle, ps2float::sub(lwc1(angle), 1.0));
         }
     }
     let mut a = lwc1(angle);
     if a < 0.0 {
-        a += 360.0;
+        a = ps2float::add(a, 360.0);
         swc1(angle, a);
     }
     if 360.0 <= a {
-        swc1(angle, a - 360.0);
+        swc1(angle, ps2float::sub(a, 360.0));
     }
 }
 
@@ -203,28 +203,28 @@ pub fn quaternionToMatrix(m: i32, q: i32) {
     for at in [48, 44, 28, 12, 56, 52] {
         swc1(m + at, 0.0);
     }
-    let s = (2.0_f32).pdiv((x * x + y * y + z * z + w * w));
-    let zs = z * s;
-    let ys = y * s;
-    let xs = x * s;
-    let zz = z * zs;
-    let yy = y * ys;
-    let xx = x * xs;
-    let wz = w * zs;
-    let xz = x * zs;
-    let wx = w * xs;
-    let yz = y * zs;
-    let wy = w * ys;
-    let xy = x * ys;
-    swc1(m + 32, xz + wy);
-    swc1(m + 16, xy - wz);
-    swc1(m + 36, yz - wx);
-    swc1(m, one - (yy + zz));
-    swc1(m + 20, one - (xx + zz));
-    swc1(m + 40, one - (xx + yy));
-    swc1(m + 4, xy + wz);
-    swc1(m + 8, xz - wy);
-    swc1(m + 24, yz + wx);
+    let s = (2.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)), ps2float::mul(w, w)));
+    let zs = ps2float::mul(z, s);
+    let ys = ps2float::mul(y, s);
+    let xs = ps2float::mul(x, s);
+    let zz = ps2float::mul(z, zs);
+    let yy = ps2float::mul(y, ys);
+    let xx = ps2float::mul(x, xs);
+    let wz = ps2float::mul(w, zs);
+    let xz = ps2float::mul(x, zs);
+    let wx = ps2float::mul(w, xs);
+    let yz = ps2float::mul(y, zs);
+    let wy = ps2float::mul(w, ys);
+    let xy = ps2float::mul(x, ys);
+    swc1(m + 32, ps2float::add(xz, wy));
+    swc1(m + 16, ps2float::sub(xy, wz));
+    swc1(m + 36, ps2float::sub(yz, wx));
+    swc1(m, ps2float::sub(one, ps2float::add(yy, zz)));
+    swc1(m + 20, ps2float::sub(one, ps2float::add(xx, zz)));
+    swc1(m + 40, ps2float::sub(one, ps2float::add(xx, yy)));
+    swc1(m + 4, ps2float::add(xy, wz));
+    swc1(m + 8, ps2float::sub(xz, wy));
+    swc1(m + 24, ps2float::add(yz, wx));
 }
 
 /// Work out the back face test of the portals of `room` and, through the ones that face the player and are open, of the rooms beyond them (once a room) (@ 0x2578f0).

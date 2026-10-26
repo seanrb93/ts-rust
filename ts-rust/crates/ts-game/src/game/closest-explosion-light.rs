@@ -10,18 +10,18 @@ fn explosion_glow(group: i32) -> f32 {
     let mut at = group + 1796;
     let mut left = 68;
     loop {
-        let age = time - lwc1(at);
-        let age = age + age;
+        let age = ps2float::sub(time, lwc1(at));
+        let age = ps2float::add(age, age);
         if !(0.0_f32 < age) {
             left -= 1;
         } else if !(age <= 1.0_f32) {
             left -= 1;
         } else {
             if !(0.5_f32 < age) {
-                sum += 1.0_f32;
+                sum = ps2float::add(sum, 1.0_f32);
             } else {
-                let rest = 1.0_f32 - age;
-                sum += rest + rest;
+                let rest = ps2float::sub(1.0_f32, age);
+                sum = ps2float::add(sum, ps2float::add(rest, rest));
             }
             left -= 1;
         }
@@ -37,11 +37,11 @@ fn explosion_glow(group: i32) -> f32 {
 /// game constants at `scales`.
 fn explosion_colour(colour: i32, kind: i32, strength: f32, scales: i32) {
     let word = lw((kind << 3) + g::explosiondefs);
-    swc1(colour, strength * lwc1(scales) * (word & 255) as f32);
+    swc1(colour, ps2float::mul(ps2float::mul(strength, lwc1(scales)), (word & 255) as f32));
     let word = lw((kind << 3) + g::explosiondefs);
-    swc1(colour + 4, strength * lwc1(scales + 4) * ((word as u32 >> 8) & 255) as f32);
+    swc1(colour + 4, ps2float::mul(ps2float::mul(strength, lwc1(scales + 4)), ((word as u32 >> 8) & 255) as f32));
     let third = lhu((kind << 3) + (g::explosiondefs + 2));
-    let value = strength * lwc1(scales + 8) * (third & 255) as f32;
+    let value = ps2float::mul(ps2float::mul(strength, lwc1(scales + 8)), (third & 255) as f32);
     swc1(colour + 8, value);
 }
 
@@ -58,10 +58,10 @@ pub fn particleGetClosestExplosion(point: i32, position: i32, distance: i32, col
         let px = lwc1(point);
         let py = lwc1(point + 4);
         loop {
-            let dx = px - lwc1(group + 28);
-            let dy = py - lwc1(group + 32);
-            let dz = pz - lwc1(group + 36);
-            let d2 = dx * dx + dy * dy + dz * dz;
+            let dx = ps2float::sub(px, lwc1(group + 28));
+            let dy = ps2float::sub(py, lwc1(group + 32));
+            let dz = ps2float::sub(pz, lwc1(group + 36));
+            let d2 = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
             if !(d2 < nearest_d2) {
                 if d2 < second_d2 {
                     second_d2 = d2;
@@ -96,22 +96,22 @@ pub fn particleGetClosestExplosion(point: i32, position: i32, distance: i32, col
     // `a` is the nearest, `b` the second
     if nearest_d2 < limit {
         let d = nearest_d2.abs().psqrt();
-        glow_a = explosion_glow(nearest) * lwc1(0x3ad59c);
+        glow_a = ps2float::mul(explosion_glow(nearest), lwc1(0x3ad59c));
         dist_a = d;
-        let half = d * 0.5_f32;
+        let half = ps2float::mul(d, 0.5_f32);
         falloff_a = 1.0_f32;
         if !(half <= 2.0_f32) {
-            falloff_a = (falloff_a).pdiv((half - falloff_a));
+            falloff_a = (falloff_a).pdiv(ps2float::sub(half, falloff_a));
         }
     }
     if second_d2 < lwc1(g::pgroups + 4) {
         let d = second_d2.abs().psqrt();
-        glow_b = explosion_glow(second) * lwc1(0x3ad5a0);
+        glow_b = ps2float::mul(explosion_glow(second), lwc1(0x3ad5a0));
         dist_b = d;
-        let half = d * 0.5_f32;
+        let half = ps2float::mul(d, 0.5_f32);
         falloff_b = 1.0_f32;
         if !(half <= 2.0_f32) {
-            falloff_b = (falloff_b).pdiv((half - falloff_b));
+            falloff_b = (falloff_b).pdiv(ps2float::sub(half, falloff_b));
         }
     }
     let limit = lwc1(g::pgroups + 4);
@@ -119,7 +119,7 @@ pub fn particleGetClosestExplosion(point: i32, position: i32, distance: i32, col
     if !(second_d2 < limit) {
         from_second = false;
     } else {
-        from_second = (glow_a * falloff_a) < glow_b * falloff_b;
+        from_second = ps2float::mul(glow_a, falloff_a) < ps2float::mul(glow_b, falloff_b);
     }
     if from_second {
         swc1(position, lwc1(second + 28));

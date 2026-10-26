@@ -13,7 +13,7 @@ pub fn mmDrawItems(view: i32) {
     let tile = lw(view + 36);
     let turn = lw(view + 24);
     let pads = lw(((((tile - g::tileset1).wrapping_mul(0x4f72c235)) >> 2) << 2) + g::tilepaddata);
-    let level = (lw(g::editlevel) - lw(view + 20)) as f32 * 4.0_f32 - 0.5_f32;
+    let level = ps2float::sub(ps2float::mul((lw(g::editlevel) - lw(view + 20)) as f32, 4.0_f32), 0.5_f32);
     let records = pads + 12;
     let count = lw(pads + 4);
     let mut item = lw(view + 52);
@@ -52,7 +52,7 @@ pub fn mmDrawItems(view: i32) {
             let height = lwc1(record + 16);
             swc1(sp + 4, height);
             swc1(sp + 8, lwc1(record + 20));
-            if !(height < level) && !((level + 4.0_f32) < height) {
+            if !(height < level) && !(ps2float::add(level, 4.0_f32) < height) {
                 let defs = g::itemdefs + 8;
                 let picture = lw((lhu(item + 2) << 4) + defs);
                 if lw(view + 24) != 0 {
@@ -61,8 +61,8 @@ pub fn mmDrawItems(view: i32) {
                 }
                 let scale_y = lw(g::scale_mtowy);
                 let scale_x = lw(g::scale_mtowx);
-                let x = lw(view + 12) + (lwc1(sp) * scale) as i32 + across - lw(g::m_x);
-                let y = lw(view + 16) + (lwc1(sp + 8) * scale) as i32 + down - lw(g::m_y);
+                let x = lw(view + 12) + ps2float::mul(lwc1(sp), scale) as i32 + across - lw(g::m_x);
+                let y = lw(view + 16) + ps2float::mul(lwc1(sp + 8), scale) as i32 + down - lw(g::m_y);
                 let screen_x = (lw(g::window) + (lw(g::w_x) + ((FMul(x, scale_x) as i32) >> 16)) - 2) as f32;
                 let screen_y = (lw(g::window + 20) + (lw(g::w_y) + ((FMul(y, scale_y) as i32) >> 16)) - 1) as f32;
                 guiDrawImage(14, picture, screen_x, screen_y);

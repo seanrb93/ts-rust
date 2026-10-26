@@ -92,7 +92,7 @@ pub fn enemyGunUpdate(a0: i32) {
                         return;
                     }
                     let random = random_as_float();
-                    if !(lwc1(0x3ad890) < random * 2.3283064e-10_f32) {
+                    if !(lwc1(0x3ad890) < ps2float::mul(random, 2.3283064e-10_f32)) {
                         gunChrFire(a0, state + 376, 1);
                         return;
                     }
@@ -147,7 +147,7 @@ pub fn enemyGunUpdate(a0: i32) {
                         }
                         if lw(state + 444) >= lw(lw(state + 376) * 400 + (g::guns + 60)) {
                             let random = random_as_float();
-                            if !(lwc1(0x3ad894) < random * 2.3283064e-10_f32) {
+                            if !(lwc1(0x3ad894) < ps2float::mul(random, 2.3283064e-10_f32)) {
                                 gunChrFire(a0, state + 376, 1);
                             } else {
                                 gunChrFire(a0, state + 376, 0);
@@ -166,7 +166,7 @@ pub fn enemyGunUpdate(a0: i32) {
                             break 'second;
                         }
                         let random = random_as_float();
-                        if !(lwc1(0x3ad898) < random * 2.3283064e-10_f32) {
+                        if !(lwc1(0x3ad898) < ps2float::mul(random, 2.3283064e-10_f32)) {
                             gunChrFire(a0, state + 376, 1);
                         } else {
                             gunChrFire(a0, state + 376, 0);
@@ -198,7 +198,7 @@ pub fn enemyGunUpdate(a0: i32) {
                 return;
             }
             let random = random_as_float();
-            if !(lwc1(0x3ad89c) < random * 2.3283064e-10_f32) {
+            if !(lwc1(0x3ad89c) < ps2float::mul(random, 2.3283064e-10_f32)) {
                 gunChrFire(a0, state + 268, 1);
                 return;
             }
@@ -1524,19 +1524,19 @@ pub fn playerDeathView() {
     let mut turned = 0;
     let rest = lwc1(player + 112);
     let target_y = lwc1(player + 104);
-    let top = target_y + lwc1(player + 124);
+    let top = ps2float::add(target_y, lwc1(player + 124));
     let floor = lwc1(player + 108);
     let body = lw(player + 384);
     let data = lw(body + 352);
     sw((lw(player) << 2) + g::ipblur, 0);
-    let eye = rest + ((target_y - rest)).pdiv(35.0_f32);
+    let eye = ps2float::add(rest, (ps2float::sub(target_y, rest)).pdiv(35.0_f32));
     swc1(player + 112, eye);
-    if (top - eye) < floor {
-        swc1(player + 112, top - floor);
+    if ps2float::sub(top, eye) < floor {
+        swc1(player + 112, ps2float::sub(top, floor));
     }
     let z = lwc1(player + 148);
     let looking = lw(player + 1808);
-    let height = lwc1(player + 144) + lwc1(player + 116) + lwc1(player + 124);
+    let height = ps2float::add(ps2float::add(lwc1(player + 144), lwc1(player + 116)), lwc1(player + 124));
     swc1(player + 152, lwc1(player + 140));
     swc1(player + 160, z);
     swc1(player + 156, height);
@@ -1550,11 +1550,11 @@ pub fn playerDeathView() {
                 let to_x;
                 'direction: {
                     let eye_x = lwc1(player + 152);
-                    let dx = lwc1(killer + 48) - eye_x;
+                    let dx = ps2float::sub(lwc1(killer + 48), eye_x);
                     swc1(sp + 32, dx);
-                    let dy = lwc1(killer + 52) + 1.5_f32 - lwc1(player + 156);
+                    let dy = ps2float::sub(ps2float::add(lwc1(killer + 52), 1.5_f32), lwc1(player + 156));
                     swc1(sp + 36, dy);
-                    let dz = lwc1(killer + 56) - lwc1(player + 160);
+                    let dz = ps2float::sub(lwc1(killer + 56), lwc1(player + 160));
                     swc1(sp + 40, dz);
                     if dx == 0.0_f32 {
                         if !(dy == 0.0_f32) {
@@ -1626,23 +1626,23 @@ pub fn playerDeathView() {
                             } else {
                                 'candidate: {
                                     let prop = lw(chr + 3020);
-                                    let dx = lwc1(prop + 48) - lwc1(player + 152);
+                                    let dx = ps2float::sub(lwc1(prop + 48), lwc1(player + 152));
                                     swc1(sp + 32, dx);
                                     swc1(sp + 48, dx);
-                                    let dy = lwc1(prop + 52) + 1.5_f32 - lwc1(player + 156);
+                                    let dy = ps2float::sub(ps2float::add(lwc1(prop + 52), 1.5_f32), lwc1(player + 156));
                                     swc1(sp + 36, dy);
                                     swc1(sp + 52, dy);
-                                    let dz = lwc1(prop + 56) - lwc1(player + 160);
+                                    let dz = ps2float::sub(lwc1(prop + 56), lwc1(player + 160));
                                     swc1(sp + 40, dz);
                                     swc1(sp + 56, dz);
-                                    let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
-                                    let ux = lwc1(sp + 48) * inverse;
-                                    let uz = lwc1(sp + 56) * inverse;
-                                    let uy = lwc1(sp + 52) * inverse;
+                                    let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
+                                    let ux = ps2float::mul(lwc1(sp + 48), inverse);
+                                    let uz = ps2float::mul(lwc1(sp + 56), inverse);
+                                    let uy = ps2float::mul(lwc1(sp + 52), inverse);
                                     swc1(sp + 48, ux);
                                     swc1(sp + 56, uz);
                                     swc1(sp + 52, uy);
-                                    let facing = lwc1(player + 1796) * ux + lwc1(player + 1800) * uy + lwc1(player + 1804) * uz;
+                                    let facing = ps2float::add(ps2float::add(ps2float::mul(lwc1(player + 1796), ux), ps2float::mul(lwc1(player + 1800), uy)), ps2float::mul(lwc1(player + 1804), uz));
                                     if lwc1(player + 1816) < facing {
                                         sw(sp, 0);
                                         sw(sp + 8, 0);
@@ -1691,44 +1691,44 @@ pub fn playerDeathView() {
                 loop {
                     let ty = lwc1(sp + 20);
                     let tz = lwc1(sp + 24);
-                    let length = (tx * tx + ty * ty + tz * tz).abs().psqrt();
+                    let length = ps2float::add(ps2float::add(ps2float::mul(tx, tx), ps2float::mul(ty, ty)), ps2float::mul(tz, tz)).abs().psqrt();
                     let inverse = (1.0_f32).pdiv(length);
-                    let nz = tz * inverse;
-                    let ny = ty * inverse;
-                    let nx = tx * inverse;
+                    let nz = ps2float::mul(tz, inverse);
+                    let ny = ps2float::mul(ty, inverse);
+                    let nx = ps2float::mul(tx, inverse);
                     swc1(sp + 24, nz);
                     swc1(sp + 20, ny);
                     swc1(sp + 16, nx);
-                    let mut ax = nx - lwc1(player + 1796);
+                    let mut ax = ps2float::sub(nx, lwc1(player + 1796));
                     if !(0.0_f32 <= ax) {
                         ax = -ax;
                     }
-                    let mut ay = ny - lwc1(player + 1800);
+                    let mut ay = ps2float::sub(ny, lwc1(player + 1800));
                     if !(0.0_f32 <= ay) {
                         ay = -ay;
                     }
-                    let mut az = nz - lwc1(player + 1804);
+                    let mut az = ps2float::sub(nz, lwc1(player + 1804));
                     if !(0.0_f32 <= az) {
                         az = -az;
                     }
                     let rate;
                     if ay < ax && az < ax {
                         let limit = lwc1(0x3acff0);
-                        if limit < ax * speed {
+                        if limit < ps2float::mul(ax, speed) {
                             rate = (limit).pdiv(ax);
                         } else {
                             rate = lwc1(0x3acff4);
                         }
                     } else if ax < ay && az < ay {
                         let limit = lwc1(0x3acff8);
-                        if limit < ay * speed {
+                        if limit < ps2float::mul(ay, speed) {
                             rate = (limit).pdiv(ay);
                         } else {
                             rate = lwc1(0x3acffc);
                         }
                     } else {
                         let limit = lwc1(0x3ad000);
-                        if limit < az * speed {
+                        if limit < ps2float::mul(az, speed) {
                             rate = (limit).pdiv(az);
                         } else {
                             rate = lwc1(0x3ad004);
@@ -1737,11 +1737,11 @@ pub fn playerDeathView() {
                     let current_x = lwc1(player + 1796);
                     let current_y = lwc1(player + 1800);
                     let current_z = lwc1(player + 1804);
-                    let new_x = current_x + rate * (lwc1(sp + 16) - current_x);
+                    let new_x = ps2float::add(current_x, ps2float::mul(rate, ps2float::sub(lwc1(sp + 16), current_x)));
                     swc1(player + 1796, new_x);
-                    let new_y = current_y + rate * (lwc1(sp + 20) - current_y);
+                    let new_y = ps2float::add(current_y, ps2float::mul(rate, ps2float::sub(lwc1(sp + 20), current_y)));
                     swc1(player + 1800, new_y);
-                    let new_z = current_z + rate * (lwc1(sp + 24) - current_z);
+                    let new_z = ps2float::add(current_z, ps2float::mul(rate, ps2float::sub(lwc1(sp + 24), current_z)));
                     swc1(player + 1804, new_z);
                     'normalise: {
                         if new_x == 0.0_f32 {
@@ -1753,10 +1753,10 @@ pub fn playerDeathView() {
                         let x = lwc1(player + 1796);
                         let y = lwc1(player + 1800);
                         let z = lwc1(player + 1804);
-                        let inverse = (1.0_f32).pdiv((x * x + y * y + z * z).abs().psqrt());
-                        let nz = lwc1(player + 1804) * inverse;
-                        let ny = lwc1(player + 1800) * inverse;
-                        swc1(player + 1796, lwc1(player + 1796) * inverse);
+                        let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)).abs().psqrt());
+                        let nz = ps2float::mul(lwc1(player + 1804), inverse);
+                        let ny = ps2float::mul(lwc1(player + 1800), inverse);
+                        swc1(player + 1796, ps2float::mul(lwc1(player + 1796), inverse));
                         swc1(player + 1804, nz);
                         swc1(player + 1800, ny);
                         frames = lw(g::updateframesi);

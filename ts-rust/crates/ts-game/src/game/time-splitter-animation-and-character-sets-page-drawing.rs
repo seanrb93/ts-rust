@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// Set the animation `anim` of the character `chr` with the usual blend (0.25) when none of the animations in `playing` is on.
@@ -179,7 +179,7 @@ pub fn setTimeSplitterAnimation(a0: i32) {
         }
     }
     extractAnimRoot(a0, sp, sp | 4, sp | 8, 2);
-    let mut distance = fptodp(lwc1(sp + 4) - lwc1(sp));
+    let mut distance = fptodp(ps2float::sub(lwc1(sp + 4), lwc1(sp)));
     if dpcmp(distance, 0_i64) < 0 {
         distance = dpsub(0_i64, distance);
     }
@@ -197,7 +197,7 @@ pub fn setTimeSplitterAnimation(a0: i32) {
                                 magnitude = dpsub(0_i64, magnitude);
                             }
                             let scaled = dpmul(magnitude, fptodp(lwc1(sp + 8)));
-                            let per_frame = fptodp(travelled * 6e+01_f32);
+                            let per_frame = fptodp(ps2float::mul(travelled, 6e+01_f32));
                             let ratio = dpdiv(scaled, per_frame);
                             let ratio = dpdiv(ratio, ld(0x3a9d00));
                             curAnimSpeed(lw(a0 + 32), dptofp(ratio));

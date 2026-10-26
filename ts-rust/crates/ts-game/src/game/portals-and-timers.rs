@@ -27,10 +27,10 @@ pub fn timerNew(kind: i32, a: i32, b: i32, minutes: f32) {
         sw(rec + 8, lw(g::gameframe));
         sw(rec + 20, b);
         if kind == 0 {
-            sw(rec + 4, (minutes * 60.0) as i32);
+            sw(rec + 4, ps2float::mul(minutes, 60.0) as i32);
         } else if kind == 1 {
             sw(rec + 4, 0);
-            swc1(rec + 12, minutes * 60.0);
+            swc1(rec + 12, ps2float::mul(minutes, 60.0));
         }
         sw(g::numtimers, n + 1);
     }
@@ -67,11 +67,11 @@ pub fn getpropview() -> i32 {
 pub fn playerCampingDetection() {
     for i in 0..lw(g::lvnumplayers) {
         let player = i * 1820 + lw(g::players);
-        let dx = lwc1(player + 140) - lwc1(player + 868);
-        let dy = lwc1(player + 144) - lwc1(player + 872);
-        let dz = lwc1(player + 148) - lwc1(player + 876);
+        let dx = ps2float::sub(lwc1(player + 140), lwc1(player + 868));
+        let dy = ps2float::sub(lwc1(player + 144), lwc1(player + 872));
+        let dz = ps2float::sub(lwc1(player + 148), lwc1(player + 876));
         sw(player + 880, 0);
-        if 36.0_f32 < dx * dx + dy * dy + dz * dz {
+        if 36.0_f32 < ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) {
             let chr_info = lw(g::chrinfo);
             let pads = lw(g::levelpads);
             sw(player + 880, 0);

@@ -46,7 +46,7 @@ pub fn pickupPropTick(a0: i32) {
         sw(a0 + 492, left);
         'b2: {
             if left_f <= 9e+01_f32 {
-                obInstSetOverrideStates(lw(a0 + 32), 3, -1, -1, ((left_f * 127.0_f32).pdiv(9e+01_f32)) as i32 & 255);
+                obInstSetOverrideStates(lw(a0 + 32), 3, -1, -1, (ps2float::mul(left_f, 127.0_f32).pdiv(9e+01_f32)) as i32 & 255);
                 if lw(data) != 2 {
                     break 'b2;
                 }
@@ -74,10 +74,10 @@ pub fn pickupPropTick(a0: i32) {
                 }
                 let frames = lwc1(g::updateframesf);
                 if mode_kind != 325 {
-                    let turn = lwc1(a0 + 76) + (frames + frames);
+                    let turn = ps2float::add(lwc1(a0 + 76), ps2float::add(frames, frames));
                     swc1(a0 + 76, turn);
                     if 3.6e+02_f32 <= turn {
-                        swc1(a0 + 76, turn - 3.6e+02_f32);
+                        swc1(a0 + 76, ps2float::sub(turn, 3.6e+02_f32));
                     }
                 } else {
                     lobsterPropTick(a0);
@@ -91,7 +91,7 @@ pub fn pickupPropTick(a0: i32) {
                         } else if ((lw(a0 + 4) - 342) as u32) < (11 as u32) {
                             flags = lw(a0 + 16);
                         } else {
-                            let time = lw(g::gameframe) as f32 * lwc1(0x3acc00);
+                            let time = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3acc00));
                             let a = fptodp(time);
                             let b = fptodp(lwc1(data + 104));
                             let c = dpmul(b, ld(0x3a7dd8));
@@ -99,7 +99,7 @@ pub fn pickupPropTick(a0: i32) {
                             let e = dpmul(d, ld(0x3a7de0));
                             let f = dpadd(e, 0x3fe0000000000000_i64);
                             let index = dptoli(f);
-                            swc1(a0 + 52, lwc1(data + 28) + lwc1((((index as i32) & 2047) << 2) + g::g_SinTable) * lwc1(0x3acc04));
+                            swc1(a0 + 52, ps2float::add(lwc1(data + 28), ps2float::mul(lwc1((((index as i32) & 2047) << 2) + g::g_SinTable), lwc1(0x3acc04))));
                             flags = lw(a0 + 16);
                         }
                         if (flags & 1) == 0 {
@@ -164,23 +164,23 @@ pub fn pickupPropTick(a0: i32) {
                                         } else if index < players {
                                             ground = lwc1(prop + 52);
                                         } else {
-                                            ground = lwc1(prop + 52) - lwc1(0x3acc08);
+                                            ground = ps2float::sub(lwc1(prop + 52), lwc1(0x3acc08));
                                         }
-                                        let dx = lwc1(a0 + 48) - lwc1(prop + 48);
+                                        let dx = ps2float::sub(lwc1(a0 + 48), lwc1(prop + 48));
                                         let eye = lwc1(lw(a0 + 352) + 20);
-                                        let dz = lwc1(a0 + 56) - lwc1(prop + 56);
+                                        let dz = ps2float::sub(lwc1(a0 + 56), lwc1(prop + 56));
                                         let base = if lw(data + 96) != -1 { lwc1(data + 28) } else { lwc1(a0 + 52) };
-                                        let mut top = base + lwc1(a0 + 512) - eye;
+                                        let mut top = ps2float::sub(ps2float::add(base, lwc1(a0 + 512)), eye);
                                         if lw(data + 92) == -1 {
                                             let extra = pickupGetExtraHeight(lw(a0 + 4), lw(data));
-                                            top = top - extra;
+                                            top = ps2float::sub(top, extra);
                                         }
-                                        let reach = lwc1(a0 + 524) + lwc1(0x3acc0c);
-                                        if !((top - reach) <= ground) {
+                                        let reach = ps2float::add(lwc1(a0 + 524), lwc1(0x3acc0c));
+                                        if !(ps2float::sub(top, reach) <= ground) {
                                             index += 1;
-                                        } else if !(ground <= top + reach) {
+                                        } else if !(ground <= ps2float::add(top, reach)) {
                                             index += 1;
-                                        } else if !((dx * dx + dz * dz).abs().psqrt() < 1.0_f32) {
+                                        } else if !(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz)).abs().psqrt() < 1.0_f32) {
                                             index += 1;
                                         } else {
                                             let mut allowed = 1;
@@ -309,7 +309,7 @@ pub fn pickupPropTick(a0: i32) {
                             break 'b12;
                         }
                         // health
-                        let health = lwc1(chr + 12) + lwc1(data + 8);
+                        let health = ps2float::add(lwc1(chr + 12), lwc1(data + 8));
                         swc1(chr + 12, health);
                         if 1.0_f32 < health {
                             swc1(chr + 12, 1.0_f32);
@@ -321,7 +321,7 @@ pub fn pickupPropTick(a0: i32) {
                         break 'b12;
                     }
                     // armour
-                    let armour = lwc1(prop + 520) + lwc1(data + 8);
+                    let armour = ps2float::add(lwc1(prop + 520), lwc1(data + 8));
                     swc1(prop + 520, armour);
                     if 1.0_f32 < armour {
                         swc1(prop + 520, 1.0_f32);

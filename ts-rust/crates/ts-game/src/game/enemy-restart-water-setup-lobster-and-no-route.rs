@@ -148,10 +148,10 @@ pub fn vtxlistWaterxyzPre(part: i32, prop: i32) {
     let period_z = lwc1(row + 16);
     let low = lwc1(row + 128);
     let high = lwc1(row + 144);
-    let width = lwc1(row + 112) - lwc1(row + 96);
+    let width = ps2float::sub(lwc1(row + 112), lwc1(row + 96));
     let speed_x = lwc1(row + 32);
     swc1(g::waterperiodx, lwc1(row));
-    let height = high - low;
+    let height = ps2float::sub(high, low);
     swc1(g::waterperiodz, period_z);
     swc1(g::waterspeedx, speed_x);
     let reduction = lwc1(row + 80);
@@ -212,25 +212,25 @@ pub fn vtxlistWaterxyzPre(part: i32, prop: i32) {
             let z = lwc1(points + 8);
             if index == 1 {
                 let at = (i << 2) + lw(slot);
-                swc1(at, 1.0_f32 - ((x * x + z * z).abs().psqrt()).pdiv(8e+01_f32));
+                swc1(at, ps2float::sub(1.0_f32, (ps2float::add(ps2float::mul(x, x), ps2float::mul(z, z)).abs().psqrt()).pdiv(8e+01_f32)));
             } else if index >= 2 {
                 if index == 2 {
                     swc1((i << 2) + lw(slot), 1.0_f32);
                 }
             } else if index == 0 {
                 let low_z = lwc1(sp + 128);
-                let along = z - low_z;
+                let along = ps2float::sub(z, low_z);
                 let mut ramp_up = 1.0_f32;
                 let share = (along).pdiv(height);
                 if share < 0.5_f32 {
-                    ramp_up = (along).pdiv((height * 0.5_f32));
+                    ramp_up = (along).pdiv(ps2float::mul(height, 0.5_f32));
                 }
                 let mut ramp_down = 1.0_f32;
                 let top = lwc1(sp + 144);
                 if 0.5_f32 < share {
-                    ramp_down = ((top - z)).pdiv((height * 0.5_f32));
+                    ramp_down = (ps2float::sub(top, z)).pdiv(ps2float::mul(height, 0.5_f32));
                 }
-                swc1((i << 2) + lw(slot), ramp_up * ramp_down * (((x - lwc1(sp + 96))).pdiv(width)));
+                swc1((i << 2) + lw(slot), ps2float::mul(ps2float::mul(ramp_up, ramp_down), ((ps2float::sub(x, lwc1(sp + 96))).pdiv(width))));
             }
             i += 1;
             points += 12;
@@ -254,10 +254,10 @@ pub fn lobsterPropTick(prop: i32) {
     let scale = lwc1(0x3acbf8);
     let half = 0.5_f32;
     let model = lw(prop + 32);
-    let pincer = ((((phase + time * lwc1(0x3acbf4)) * scale + half) as i32 & 2047) << 2) + table;
-    swc1(state + 108, (lwc1(((((phase + time * lwc1(0x3acbf0)) * scale + half) as i32 & 2047) << 2) + table) * half + half) * 45.0_f32);
-    swc1(state + 112, lwc1(pincer) * 35.0_f32);
-    swc1(state + 116, lwc1(pincer) * -35.0_f32);
+    let pincer = ((ps2float::add(ps2float::mul(ps2float::add(phase, ps2float::mul(time, lwc1(0x3acbf4))), scale), half) as i32 & 2047) << 2) + table;
+    swc1(state + 108, ps2float::mul(ps2float::add(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::add(phase, ps2float::mul(time, lwc1(0x3acbf0))), scale), half) as i32 & 2047) << 2) + table), half), half), 45.0_f32));
+    swc1(state + 112, ps2float::mul(lwc1(pincer), 35.0_f32));
+    swc1(state + 116, ps2float::mul(lwc1(pincer), -35.0_f32));
     obInstSetAnim(model, 1, 0.0_f32);
     if (lw(prop + 16) & 256) != 0 {
         return;
@@ -283,7 +283,7 @@ pub fn lobsterPropTick(prop: i32) {
     let bones = skeleton - lw(skeleton) * 80;
     let centre = lw(bones + 72);
     matrixTrans(first, lwc1(centre), lwc1(centre + 4), lwc1(centre + 8));
-    matrixRotZXY(sp, (lwc1(state + 108) * to_radians).pdiv(half_turn), 0.0_f32, 0.0_f32);
+    matrixRotZXY(sp, ps2float::mul(lwc1(state + 108), to_radians).pdiv(half_turn), 0.0_f32, 0.0_f32);
     sceVu0MulMatrix(first, first, sp);
     matrixTrans(sp, -lwc1(centre), -lwc1(centre + 4), -lwc1(centre + 8));
     sceVu0MulMatrix(first, first, sp);
@@ -291,7 +291,7 @@ pub fn lobsterPropTick(prop: i32) {
     let second_centre = centre + 60;
     let second = lw(lw(prop + 32) + 4) + 320;
     matrixTrans(second, lwc1(centre + 60), lwc1(second_centre + 4), lwc1(second_centre + 8));
-    matrixRotZXY(sp, 0.0_f32, (lwc1(state + 112) * to_radians).pdiv(half_turn), 0.0_f32);
+    matrixRotZXY(sp, 0.0_f32, ps2float::mul(lwc1(state + 112), to_radians).pdiv(half_turn), 0.0_f32);
     sceVu0MulMatrix(second, second, sp);
     matrixTrans(sp, -lwc1(centre + 60), -lwc1(second_centre + 4), -lwc1(second_centre + 8));
     sceVu0MulMatrix(second, second, sp);
@@ -299,7 +299,7 @@ pub fn lobsterPropTick(prop: i32) {
     let third_centre = centre + 48;
     let third = lw(lw(prop + 32) + 4) + 512;
     matrixTrans(third, lwc1(centre + 48), lwc1(third_centre + 4), lwc1(third_centre + 8));
-    matrixRotZXY(sp, 0.0_f32, (lwc1(state + 116) * to_radians).pdiv(half_turn), 0.0_f32);
+    matrixRotZXY(sp, 0.0_f32, ps2float::mul(lwc1(state + 116), to_radians).pdiv(half_turn), 0.0_f32);
     sceVu0MulMatrix(third, third, sp);
     matrixTrans(sp, -lwc1(centre + 48), -lwc1(third_centre + 4), -lwc1(third_centre + 8));
     sceVu0MulMatrix(third, third, sp);
@@ -329,10 +329,10 @@ pub fn enemyNoRoute(enemy: i32) {
     match state {
         0 => {
             sw(record + 2728, 3);
-            let unit = random_as_float() * scale;
+            let unit = ps2float::mul(random_as_float(), scale);
             sw(record + 2892, 0);
             let time = lwc1(record + 2892);
-            swc1(record + 2732, unit + unit + 0.5_f32);
+            swc1(record + 2732, ps2float::add(ps2float::add(unit, unit), 0.5_f32));
             let pad = closestpad(enemy + 48, time);
             sw(record + 680, pad);
             return;
@@ -419,9 +419,9 @@ pub fn enemyNoRoute(enemy: i32) {
                 return;
             }
             sw(record + 2728, 3);
-            let unit = random_as_float() * scale;
+            let unit = ps2float::mul(random_as_float(), scale);
             sw(record + 2892, 0);
-            swc1(record + 2732, unit * 0.5_f32 + lwc1(0x3ada48));
+            swc1(record + 2732, ps2float::add(ps2float::mul(unit, 0.5_f32), lwc1(0x3ada48)));
             return;
         }
     }

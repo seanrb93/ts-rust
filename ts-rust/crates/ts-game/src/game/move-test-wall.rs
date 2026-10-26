@@ -11,7 +11,7 @@ use crate::*;
 pub fn MoveTestWall(walls: i32, mask: i32, swept: i32, pos: i32, motion: i32, out_part: i32, out_normal: i32, out_distance: i32, radius: f32, height: f32) {
     let frame = Frame::new(352);
     let sp = frame.sp();
-    let mut nearest2 = radius * radius;
+    let mut nearest2 = ps2float::mul(radius, radius);
     let mut wall = lw(walls);
     let out_wall_normal = lw(sp + 352);
     let mut best_part = 1.0_f32;
@@ -36,12 +36,12 @@ pub fn MoveTestWall(walls: i32, mask: i32, swept: i32, pos: i32, motion: i32, ou
                     let x = lwc1(pos);
                     let y = lwc1(pos + 4);
                     let z = lwc1(pos + 8);
-                    if x_min < x + radius
-                        && (x - radius) < x_max
-                        && y_min < y + height
+                    if x_min < ps2float::add(x, radius)
+                        && ps2float::sub(x, radius) < x_max
+                        && y_min < ps2float::add(y, height)
                         && y < y_max
-                        && z_min < z + radius
-                        && (z - radius) < z_max
+                        && z_min < ps2float::add(z, radius)
+                        && ps2float::sub(z, radius) < z_max
                     {
                         let d2 = DistFromWallSq(pos, wall, sp + 80, height, nearest2);
                         let nx = lwc1(sp + 80);

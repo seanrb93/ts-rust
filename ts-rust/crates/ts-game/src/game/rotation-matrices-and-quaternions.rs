@@ -51,7 +51,7 @@ pub fn matrixTransRotY(m: i32, x: f32, y: f32, z: f32, angle: f32) {
 
 /// Make the quaternion `q` (w first) of a turn by `angle` about the x axis (@ 0x2b3d80).
 pub fn rotx2fquat(q: i32, angle: f32) {
-    let half = angle * 0.5_f32;
+    let half = ps2float::mul(angle, 0.5_f32);
     swc1(q, cosf(half));
     swc1(q + 4, sinf(half));
     sw(q + 12, 0);
@@ -60,7 +60,7 @@ pub fn rotx2fquat(q: i32, angle: f32) {
 
 /// The same about the y axis (@ 0x2b3dd8).
 pub fn roty2fquat(q: i32, angle: f32) {
-    let half = angle * 0.5_f32;
+    let half = ps2float::mul(angle, 0.5_f32);
     let c = cosf(half);
     sw(q + 4, 0);
     swc1(q, c);
@@ -70,7 +70,7 @@ pub fn roty2fquat(q: i32, angle: f32) {
 
 /// The same about the z axis (@ 0x2b3e30).
 pub fn rotz2fquat(q: i32, angle: f32) {
-    let half = angle * 0.5_f32;
+    let half = ps2float::mul(angle, 0.5_f32);
     let c = cosf(half);
     sw(q + 4, 0);
     sw(q + 8, 0);

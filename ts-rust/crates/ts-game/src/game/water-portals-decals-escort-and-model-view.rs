@@ -10,18 +10,18 @@ pub fn vtxlistWaterst(source: i32, out: i32, count: i32) {
     let mut to = out;
     let mut left = count;
     let mut offset_s = lwc1(g::waterOffsets);
-    let wave = offset_s + lwc1(((((lw(g::gameframe) as f32 * lwc1(0x3ace70) * lwc1(0x3ace74) + 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable) * lwc1(0x3ace78);
+    let wave = ps2float::add(offset_s, ps2float::mul(lwc1((((ps2float::add(ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ace70)), lwc1(0x3ace74)), 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable), lwc1(0x3ace78)));
     if left > 0 {
         let one = 1.0_f32;
         loop {
             left -= 1;
-            swc1(to, lwc1(from) + wave);
+            swc1(to, ps2float::add(lwc1(from), wave));
             let v = lwc1(from + 4);
             let offset_t = lwc1(g::waterOffsett);
             from += 16;
             swc1(to + 8, one);
             swc1(to + 12, one);
-            swc1(to + 4, v + offset_t);
+            swc1(to + 4, ps2float::add(v, offset_t));
             to += 16;
             if left == 0 {
                 break;
@@ -31,15 +31,15 @@ pub fn vtxlistWaterst(source: i32, out: i32, count: i32) {
     }
     let frame_time = lwc1(g::updateframesf);
     let limit = -1.0_f32;
-    let next_s = offset_s - frame_time * lwc1(0x3ace7c);
-    let next_t = lwc1(g::waterOffsett) - frame_time * lwc1(0x3ace80);
+    let next_s = ps2float::sub(offset_s, ps2float::mul(frame_time, lwc1(0x3ace7c)));
+    let next_t = ps2float::sub(lwc1(g::waterOffsett), ps2float::mul(frame_time, lwc1(0x3ace80)));
     swc1(g::waterOffsets, next_s);
     swc1(g::waterOffsett, next_t);
     if next_s <= limit {
-        swc1(g::waterOffsets, next_s + 1.0_f32);
+        swc1(g::waterOffsets, ps2float::add(next_s, 1.0_f32));
     }
     if next_t <= limit {
-        swc1(g::waterOffsett, next_t + 1.0_f32);
+        swc1(g::waterOffsett, ps2float::add(next_t, 1.0_f32));
     }
 }
 
@@ -52,17 +52,17 @@ pub fn bgPortalCalcOutCode(point: i32) {
     }
     let depth = lwc1(point + 12);
     let x = lwc1(point);
-    if x < depth * lwc1(0x3b0088) {
+    if x < ps2float::mul(depth, lwc1(0x3b0088)) {
         sw(point + 16, lw(point + 16) | 4);
     }
-    if (depth * lwc1(0x3b008c)) < x {
+    if ps2float::mul(depth, lwc1(0x3b008c)) < x {
         sw(point + 16, lw(point + 16) | 8);
     }
     let y = -lwc1(point + 4);
-    if y < depth * lwc1(0x3b0090) {
+    if y < ps2float::mul(depth, lwc1(0x3b0090)) {
         sw(point + 16, lw(point + 16) | 1);
     }
-    if (depth * lwc1(0x3b0094)) < y {
+    if ps2float::mul(depth, lwc1(0x3b0094)) < y {
         sw(point + 16, lw(point + 16) | 2);
     }
 }
@@ -90,7 +90,7 @@ pub fn decalAddToDrawList(decal: i32, slot: i32) {
                 trap("break");
             }
             let place = (size + i - lw((group << 2) + 0x1fe9cd8)).wrapping_rem(size);
-            let fade = if place >= 11 { 1.0_f32 } else { place as f32 * lwc1(0x3ad5bc) };
+            let fade = if place >= 11 { 1.0_f32 } else { ps2float::mul(place as f32, lwc1(0x3ad5bc)) };
             swc1(at + 224, fade);
             i += 1;
             at += 240;
@@ -135,11 +135,11 @@ pub fn specialfxPickupSpawnTick(group: i32) {
     let sp = frame.sp();
     let groups = g::fxgroups;
     let slot = group * 92 + (groups + 72);
-    let step = lwc1(g::updateframesf) * lwc1(0x3ad724);
+    let step = ps2float::mul(lwc1(g::updateframesf), lwc1(0x3ad724));
     if lw(slot) != 0 {
-        matrixRotY(sp, (step * 6e+02_f32 * lwc1(0x3ad728)).pdiv(1.8e+02_f32));
+        matrixRotY(sp, ps2float::mul(ps2float::mul(step, 6e+02_f32), lwc1(0x3ad728)).pdiv(1.8e+02_f32));
         let one = 1.0_f32;
-        let scale = step * lwc1(0x3ad72c) + one;
+        let scale = ps2float::add(ps2float::mul(step, lwc1(0x3ad72c)), one);
         matrixScaleSet(sp + 64, scale, one, scale);
         let matrix = lw(slot) + 928;
         sceVu0MulMatrix(matrix, matrix, sp + 64);
@@ -159,20 +159,20 @@ pub fn getCreditTunnelPos(x: i32, y: i32, distance: f32) {
     let points = (distance).pdiv(5e+01_f32);
     let two_pi = ld(0x3a9898);
     let whole = points as i32;
-    let fraction = points - whole as f32;
+    let fraction = ps2float::sub(points, whole as f32);
     let angle = dptofp(dpadd(dpmul(fptodp(fraction), two_pi), two_pi));
-    let ease = cosf(angle) * 0.5_f32 + 0.5_f32;
+    let ease = ps2float::add(ps2float::mul(cosf(angle), 0.5_f32), 0.5_f32);
     let y_base = g::tunnel + 4;
     let point = whole.wrapping_rem(54);
     let point_x = lwc1(point * 48 + g::tunnel);
     let point_y = point * 48 + y_base;
     let next = (point + 1).wrapping_rem(54);
-    let dx = lwc1(next * 48 + g::tunnel) - point_x;
-    let dy = lwc1(next * 48 + y_base) - lwc1(point_y);
+    let dx = ps2float::sub(lwc1(next * 48 + g::tunnel), point_x);
+    let dy = ps2float::sub(lwc1(next * 48 + y_base), lwc1(point_y));
     swc1(sp, dx);
     swc1(sp + 4, dy);
-    swc1(x, point_x + ease * dx);
-    swc1(y, lwc1(point_y) + ease * dy);
+    swc1(x, ps2float::add(point_x, ps2float::mul(ease, dx)));
+    swc1(y, ps2float::add(lwc1(point_y), ps2float::mul(ease, dy)));
 }
 
 /// Set the model view of the animation matrices from the matrix `matrix` by `flags`: without flag 2 it is copied to the matrix at the stack position (flag 1: in the second stack at

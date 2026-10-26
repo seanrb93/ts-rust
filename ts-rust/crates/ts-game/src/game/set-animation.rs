@@ -177,7 +177,7 @@ pub fn setAnim(chr: i32, anim: i32, blend: f32, extra: f32) {
         let y = lwc1(sp + 4);
         let old_y = lwc1(state_now + 120);
         sw(state_now + 160, 0);
-        swc1(state_now + 132, y - old_y);
+        swc1(state_now + 132, ps2float::sub(y, old_y));
         let x = lwc1(sp);
         swc1(state_now + 104, x);
         swc1(state_now + 116, x);
@@ -188,7 +188,7 @@ pub fn setAnim(chr: i32, anim: i32, blend: f32, extra: f32) {
         swc1(state_now + 112, z);
         swc1(state_now + 124, z);
     }
-    swc1(chr + 52, lwc1(chr + 52) - lwc1(state_now + 132));
+    swc1(chr + 52, ps2float::sub(lwc1(chr + 52), lwc1(state_now + 132)));
     let f2 = lwc1(state_now + 108);
     let f3 = lwc1(state_now + 112);
     let f4 = lwc1(state_now + 168);

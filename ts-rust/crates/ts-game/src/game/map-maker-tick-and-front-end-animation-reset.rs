@@ -464,19 +464,19 @@ pub fn mapmakerTick() {
                             let first = joyGetAxis(0, 2);
                             let second = joyGetAxis(0, 3);
                             joySetCentreZone(0, 0.25_f32);
-                            stick_x = first + first;
-                            stick_y = second + second;
+                            stick_x = ps2float::add(first, first);
+                            stick_y = ps2float::add(second, second);
                             break 'b36;
                         }
                     }
                 }
             }
-            stick_x = joyGetAxis(0, 0) * 1.5_f32;
-            stick_y = joyGetAxis(0, 1) * 1.5_f32;
+            stick_x = ps2float::mul(joyGetAxis(0, 0), 1.5_f32);
+            stick_y = ps2float::mul(joyGetAxis(0, 1), 1.5_f32);
         }
         let pan_scale = lwc1(0x3aca54);
-        let pan_x = (stick_x * pan_scale) as i32;
-        let pan_y = (stick_y * pan_scale) as i32;
+        let pan_x = ps2float::mul(stick_x, pan_scale) as i32;
+        let pan_y = ps2float::mul(stick_y, pan_scale) as i32;
         let page_now;
         'b38: {
             if pan_x == 0 {
@@ -600,9 +600,9 @@ pub fn mapmakerTick() {
         let highlighted = lw(g::highlightobj);
         if highlighted != 0 {
             if lw(highlighted) == 1 {
-                let mut angle = 0.0_f32 - lwc1((lw(highlighted + 24) << 2) + g::tilerotang);
+                let mut angle = ps2float::sub(0.0_f32, lwc1((lw(highlighted + 24) << 2) + g::tilerotang));
                 if angle < 0.0_f32 {
-                    angle = angle + 3.6e+02_f32;
+                    angle = ps2float::add(angle, 3.6e+02_f32);
                 }
                 zoomtileWindow(544, 190, 172);
                 let number = ((lw(lw(g::highlightobj) + 36) - g::tileset1).wrapping_mul(0x4f72c235)) >> 2;
@@ -610,7 +610,7 @@ pub fn mapmakerTick() {
                 let distance = zoomtileSizeToDist(number);
                 let object = lw(g::highlightobj);
                 swc1(g::zoomtileroty, angle);
-                swc1(g::zoomtiledist, distance + 0.0_f32);
+                swc1(g::zoomtiledist, ps2float::add(distance, 0.0_f32));
                 swc1(g::zoomtiletilt, 47.0_f32);
                 sw(g::zoomtileflags, 8);
                 sw(g::zoomtileobj, object);

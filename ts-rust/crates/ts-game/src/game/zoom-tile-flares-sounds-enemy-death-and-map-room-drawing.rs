@@ -84,26 +84,26 @@ pub fn frontfxGfx(a0: i32) {
                     let index = i << 2;
                     let flare = i * 12 + g::flares;
                     i += 1;
-                    let intensity = lwc1(index + g::flareintensity) * 127.0_f32;
-                    let green = lwc1(flare + 76) * 127.0_f32;
-                    let blue = lwc1(flare + 80) * 127.0_f32;
-                    let red = lwc1(flare + 84) * 127.0_f32;
+                    let intensity = ps2float::mul(lwc1(index + g::flareintensity), 127.0_f32);
+                    let green = ps2float::mul(lwc1(flare + 76), 127.0_f32);
+                    let blue = ps2float::mul(lwc1(flare + 80), 127.0_f32);
+                    let red = ps2float::mul(lwc1(flare + 84), 127.0_f32);
                     let c0 = fptoui(intensity);
                     let c1 = fptoui(green);
                     let c2 = fptoui(red);
                     let c3 = fptoui(blue);
                     let other = index + g::flares;
                     let scale = lwc1(other + 4);
-                    let width = lwc1(other + 28) * 256.0_f32;
-                    let half = width * 0.5_f32;
-                    let x = lw(g::logoposx) as f32 + lw(g::window + 16) as f32 * lwc1(g::flarescalarx) * scale;
+                    let width = ps2float::mul(lwc1(other + 28), 256.0_f32);
+                    let half = ps2float::mul(width, 0.5_f32);
+                    let x = ps2float::add(lw(g::logoposx) as f32, ps2float::mul(ps2float::mul(lw(g::window + 16) as f32, lwc1(g::flarescalarx)), scale));
                     let texture = lw((lw(other + 52) << 2) + 0x1fbd1b8);
-                    let y = lw(g::logoposy) as f32 + lw(g::window + 36) as f32 * -lwc1(g::flarescalary) * scale;
+                    let y = ps2float::add(lw(g::logoposy) as f32, ps2float::mul(ps2float::mul(lw(g::window + 36) as f32, -lwc1(g::flarescalary)), scale));
                     dlSelectTextureKick(texture);
-                    let right = x + width;
+                    let right = ps2float::add(x, width);
                     let colour = c1 << 24 | c0 | (c2 << 8 | c3 << 16);
-                    let bottom = y + half;
-                    dlTextureRectangleFloat(0, 0, 1024, 1024, colour, x - width, y - half, right, bottom);
+                    let bottom = ps2float::add(y, half);
+                    dlTextureRectangleFloat(0, 0, 1024, 1024, colour, ps2float::sub(x, width), ps2float::sub(y, half), right, bottom);
                     if i >= lw(g::flares) {
                         break;
                     }
@@ -448,15 +448,15 @@ pub fn remotePropNew(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: 
         swc1(sp, lwc1(offset));
         swc1(sp + 4, lwc1(offset + 4));
         swc1(sp + 8, lwc1(offset + 8));
-        matrixRotY(sp + 16, (lwc1(prop + 76) * degrees).pdiv(1.8e+02_f32));
+        matrixRotY(sp + 16, ps2float::mul(lwc1(prop + 76), degrees).pdiv(1.8e+02_f32));
         matrixVecRotAligned(&[(sp + 16) as i64, sp as i64]);
-        let dx = lwc1(a1) + lwc1(sp) - lwc1(record + 68);
-        let dy = lwc1(a1 + 4) + lwc1(sp + 4) - lwc1(record + 72);
-        let dz = lwc1(a1 + 8) + lwc1(sp + 8) - lwc1(record + 76);
-        let sine = (dy).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+        let dx = ps2float::sub(ps2float::add(lwc1(a1), lwc1(sp)), lwc1(record + 68));
+        let dy = ps2float::sub(ps2float::add(lwc1(a1 + 4), lwc1(sp + 4)), lwc1(record + 72));
+        let dz = ps2float::sub(ps2float::add(lwc1(a1 + 8), lwc1(sp + 8)), lwc1(record + 76));
+        let sine = (dy).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
         let angle = asinf(sine);
         swc1(record + 24, lwc1(record + 20));
-        let result = (angle * 1.8e+02_f32).pdiv(degrees);
+        let result = ps2float::mul(angle, 1.8e+02_f32).pdiv(degrees);
         swc1(record + 16, result);
         swc1(record + 12, result);
     }
@@ -531,7 +531,7 @@ pub fn enemyDie(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32) {
     if held != 0 {
         let roll = newrnd();
         let gun = lw(record + 376) * 400 + g::guns;
-        let amount = (lw(gun + 24) as f32 * lwc1(0x3ad990)) as i32;
+        let amount = ps2float::mul(lw(gun + 24) as f32, lwc1(0x3ad990)) as i32;
         if amount == 0 {
             trap("break");
         }

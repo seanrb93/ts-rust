@@ -37,14 +37,14 @@ pub fn goodieMessageGfx(time: i32, colour: i32) {
             let fraction = (past as f32).pdiv(6e+01_f32);
             let turned = dpmul(dpmul(fptodp(fraction), ld(0x3a1e60)), half);
             let index = dptoli(dpadd(dpmul(turned, ld(0x3a1e68)), half));
-            offset = (-((1.0_f32 - lwc1((((index + 512) & 2047) << 2) + g::g_SinTable)) * lw(g::window + 12) as f32)) as i32;
+            offset = (-ps2float::mul(ps2float::sub(1.0_f32, lwc1((((index + 512) & 2047) << 2) + g::g_SinTable)), lw(g::window + 12) as f32)) as i32;
         }
     } else {
         let half = 0x3fe0000000000000_i64;
         let fraction = (time as f32).pdiv(6e+01_f32);
         let turned = dpmul(dpmul(fptodp(fraction), ld(0x3a1e50)), half);
         let index = dptoli(dpadd(dpmul(turned, ld(0x3a1e58)), half));
-        offset = ((1.0_f32 - lwc1(((index & 2047) << 2) + g::g_SinTable)) * lw(g::window + 12) as f32) as i32;
+        offset = ps2float::mul(ps2float::sub(1.0_f32, lwc1(((index & 2047) << 2) + g::g_SinTable)), lw(g::window + 12) as f32) as i32;
     }
     let mut at = 0;
     loop {
@@ -127,7 +127,7 @@ pub fn bgGlassGfxRoom(room: i32) {
             }
             let value = lwc1(glass);
             let colour = if !(0.0_f32 <= value) {
-                let alpha = (value + 2.0_f32) * 0.5_f32 * 127.0_f32;
+                let alpha = ps2float::mul(ps2float::mul(ps2float::add(value, 2.0_f32), 0.5_f32), 127.0_f32);
                 fptoui(alpha) << 24 | 0x7f7f7f
             } else {
                 0x7f7f7f7f

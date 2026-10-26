@@ -26,7 +26,7 @@ fn frames() -> f32 {
 
 /// A random number from 0 to 1.
 fn uniform() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// The number of one of the 6 sounds of an explosion.
@@ -56,19 +56,19 @@ fn reflect_velocity(sp: i32, b: i32) -> f32 {
     let nx = lwc1(sp + 64);
     let ny = lwc1(sp + 68);
     let nz = lwc1(sp + 72);
-    let speed_squared = vx * vx + vy * vy + vz * vz;
+    let speed_squared = ps2float::add(ps2float::add(ps2float::mul(vx, vx), ps2float::mul(vy, vy)), ps2float::mul(vz, vz));
     let inverse = (1.0_f32).pdiv(speed_squared);
-    let dx = vx * inverse;
+    let dx = ps2float::mul(vx, inverse);
     swc1(sp + 16, dx);
-    let dy = lwc1(b + 52) * inverse;
+    let dy = ps2float::mul(lwc1(b + 52), inverse);
     swc1(sp + 20, dy);
-    let dz = lwc1(b + 56) * inverse;
+    let dz = ps2float::mul(lwc1(b + 56), inverse);
     swc1(sp + 24, dz);
-    let dot = dx * nx + dy * ny + dz * nz;
-    let twice = dot + dot;
-    swc1(sp + 40, dz - twice * nz);
-    swc1(sp + 32, dx - twice * nx);
-    swc1(sp + 36, dy - twice * ny);
+    let dot = ps2float::add(ps2float::add(ps2float::mul(dx, nx), ps2float::mul(dy, ny)), ps2float::mul(dz, nz));
+    let twice = ps2float::add(dot, dot);
+    swc1(sp + 40, ps2float::sub(dz, ps2float::mul(twice, nz)));
+    swc1(sp + 32, ps2float::sub(dx, ps2float::mul(twice, nx)));
+    swc1(sp + 36, ps2float::sub(dy, ps2float::mul(twice, ny)));
     speed_squared
 }
 
@@ -125,14 +125,14 @@ fn tracer_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
     if !(chance < uniform()) && hit_kind != 8 {
         // It bounces: the bullet goes on from the wall, and the chance of the next bounce is smaller.
         sw(b + 156, 1);
-        swc1(b + 152, chance * chance);
+        swc1(b + 152, ps2float::mul(chance, chance));
         let away = lwc1(0x3ad1f4);
-        swc1(b + 24, lwc1(sp + 48) + lwc1(sp + 64) * away);
-        swc1(b + 28, lwc1(sp + 52) + lwc1(sp + 68) * away);
-        swc1(b + 32, lwc1(sp + 56) + lwc1(sp + 72) * away);
-        swc1(b + 48, lwc1(sp + 32) * speed_squared);
-        swc1(b + 52, lwc1(sp + 36) * speed_squared);
-        swc1(b + 56, lwc1(sp + 40) * speed_squared);
+        swc1(b + 24, ps2float::add(lwc1(sp + 48), ps2float::mul(lwc1(sp + 64), away)));
+        swc1(b + 28, ps2float::add(lwc1(sp + 52), ps2float::mul(lwc1(sp + 68), away)));
+        swc1(b + 32, ps2float::add(lwc1(sp + 56), ps2float::mul(lwc1(sp + 72), away)));
+        swc1(b + 48, ps2float::mul(lwc1(sp + 32), speed_squared));
+        swc1(b + 52, ps2float::mul(lwc1(sp + 36), speed_squared));
+        swc1(b + 56, ps2float::mul(lwc1(sp + 40), speed_squared));
         let tracer = particleNewTracer(b + 112, b + 24, b + 48, 15);
         sw(b + 112, tracer);
         bulletInitialiseStraightLineTest(b);
@@ -188,12 +188,12 @@ fn spark_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
         let random = uniform();
         if !(lwc1(b + 152) < random) && hit_kind != 8 {
             let away = lwc1(0x3ad1fc);
-            swc1(b + 24, lwc1(sp + 48) + lwc1(sp + 64) * away);
-            swc1(b + 28, lwc1(sp + 52) + lwc1(sp + 68) * away);
-            swc1(b + 32, lwc1(sp + 56) + lwc1(sp + 72) * away);
-            swc1(b + 48, lwc1(sp + 32) * speed_squared);
-            swc1(b + 52, lwc1(sp + 36) * speed_squared);
-            swc1(b + 56, lwc1(sp + 40) * speed_squared);
+            swc1(b + 24, ps2float::add(lwc1(sp + 48), ps2float::mul(lwc1(sp + 64), away)));
+            swc1(b + 28, ps2float::add(lwc1(sp + 52), ps2float::mul(lwc1(sp + 68), away)));
+            swc1(b + 32, ps2float::add(lwc1(sp + 56), ps2float::mul(lwc1(sp + 72), away)));
+            swc1(b + 48, ps2float::mul(lwc1(sp + 32), speed_squared));
+            swc1(b + 52, ps2float::mul(lwc1(sp + 36), speed_squared));
+            swc1(b + 56, ps2float::mul(lwc1(sp + 40), speed_squared));
             if sparks >= 0 {
                 let pulse = particleNewPulse(b + 112, sparks, b + 24, b + 48, 15);
                 sw(b + 112, pulse);
@@ -221,12 +221,12 @@ fn rocket_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
     if hit == 0 {
         let step_x = lwc1(sp);
         let y = lwc1(b + 28);
-        let x = lwc1(b + 24) + step_x;
+        let x = ps2float::add(lwc1(b + 24), step_x);
         let z = lwc1(b + 32);
         let ticks = lw(g::updateframesi);
         swc1(b + 24, x);
-        swc1(b + 28, y + lwc1(sp + 4));
-        swc1(b + 32, z + lwc1(sp + 8));
+        swc1(b + 28, ps2float::add(y, lwc1(sp + 4)));
+        swc1(b + 32, ps2float::add(z, lwc1(sp + 8)));
         let trail = lw(b + 204);
         let prop = lw(b + 96);
         if ticks > 0 {
@@ -234,9 +234,9 @@ fn rocket_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
             let mut count = 0;
             loop {
                 count += 1;
-                let vz = lwc1(b + 56) * drag;
-                let vy = lwc1(b + 52) * drag + lwc1(0x3ad204);
-                swc1(b + 48, lwc1(b + 48) * drag);
+                let vz = ps2float::mul(lwc1(b + 56), drag);
+                let vy = ps2float::add(ps2float::mul(lwc1(b + 52), drag), lwc1(0x3ad204));
+                swc1(b + 48, ps2float::mul(lwc1(b + 48), drag));
                 swc1(b + 56, vz);
                 swc1(b + 52, vy);
                 if count >= ticks {
@@ -281,7 +281,7 @@ fn point_prop_along(prop: i32, x: f32, y: f32, z: f32, scale_at: i32, divisor_at
         None => round,
     };
     swc1(prop + 72, dptofp(round));
-    let across = (y * y + z * z).abs().psqrt();
+    let across = ps2float::add(ps2float::mul(y, y), ps2float::mul(z, z)).abs().psqrt();
     let up = dpdiv(dpmul(atan2(fptodp(x), fptodp(across)), scale), divisor);
     swc1(prop + 88, dptofp(dpsub(0, up)));
     sw(prop + 76, 0);
@@ -330,20 +330,20 @@ fn grenade_trail_kind(kind: i32) -> i32 {
 /// The spin of the prop about a random axis: three random numbers (of 0 to 1) make the axis at +100 of the prop, which is then made a unit vector in doubles.
 fn spin_prop_randomly(b: i32) {
     let x = random_as_float();
-    swc1(lw(b + 96) + 100, x * 2.3283064e-10_f32);
+    swc1(lw(b + 96) + 100, ps2float::mul(x, 2.3283064e-10_f32));
     let y = random_as_float();
-    swc1(lw(b + 96) + 104, y * 2.3283064e-10_f32);
+    swc1(lw(b + 96) + 104, ps2float::mul(y, 2.3283064e-10_f32));
     let z = random_as_float();
     let axis = lw(b + 96);
     let axis_y = lwc1(axis + 104);
     let axis_x = lwc1(axis + 100);
-    let axis_z = z * 2.3283064e-10_f32;
+    let axis_z = ps2float::mul(z, 2.3283064e-10_f32);
     swc1(axis + 108, axis_z);
-    let length = dptofp(dpdiv(0x3ff0000000000000_i64, sqrt(fptodp(axis_x * axis_x + axis_y * axis_y + axis_z * axis_z))));
+    let length = dptofp(dpdiv(0x3ff0000000000000_i64, sqrt(fptodp(ps2float::add(ps2float::add(ps2float::mul(axis_x, axis_x), ps2float::mul(axis_y, axis_y)), ps2float::mul(axis_z, axis_z))))));
     let prop = lw(b + 96);
-    let new_y = lwc1(prop + 104) * length;
-    let new_z = lwc1(prop + 108) * length;
-    swc1(prop + 100, lwc1(prop + 100) * length);
+    let new_y = ps2float::mul(lwc1(prop + 104), length);
+    let new_z = ps2float::mul(lwc1(prop + 108), length);
+    swc1(prop + 100, ps2float::mul(lwc1(prop + 100), length));
     swc1(prop + 104, new_y);
     swc1(prop + 108, new_z);
 }
@@ -354,7 +354,7 @@ fn grenade_moves(sp: i32, b: i32) -> i32 {
     let normal_x = lwc1(sp + 64);
     if bounce_hit == 0 {
         let dt = frames();
-        let x = lwc1(b + 24) + lwc1(sp);
+        let x = ps2float::add(lwc1(b + 24), lwc1(sp));
         let y = lwc1(b + 28);
         let gravity = lwc1(0x3ad218);
         let vy = lwc1(b + 52);
@@ -364,12 +364,12 @@ fn grenade_moves(sp: i32, b: i32) -> i32 {
         let vz = lwc1(b + 56);
         let drag = lwc1(0x3ad21c);
         let body = lw(b + 96);
-        swc1(b + 28, y + lwc1(sp + 4));
+        swc1(b + 28, ps2float::add(y, lwc1(sp + 4)));
         let step_z = lwc1(sp + 8);
-        swc1(b + 56, vz * drag);
-        swc1(b + 48, vx * drag);
-        swc1(b + 52, (vy + dt * gravity) * drag);
-        swc1(b + 32, z + step_z);
+        swc1(b + 56, ps2float::mul(vz, drag));
+        swc1(b + 48, ps2float::mul(vx, drag));
+        swc1(b + 52, ps2float::mul(ps2float::add(vy, ps2float::mul(dt, gravity)), drag));
+        swc1(b + 32, ps2float::add(z, step_z));
         swc1(body + 48, x);
         swc1(body + 52, lwc1(b + 28));
         swc1(body + 56, lwc1(b + 32));
@@ -381,24 +381,24 @@ fn grenade_moves(sp: i32, b: i32) -> i32 {
         let vz = lwc1(b + 56);
         let keep = lwc1(0x3ad20c);
         let slow = lwc1(0x3ad210);
-        swc1(b + 24, lwc1(sp + 48) + normal_x * away);
-        swc1(b + 28, lwc1(sp + 52) + lwc1(sp + 68) * away);
-        swc1(b + 32, lwc1(sp + 56) + lwc1(sp + 72) * away);
+        swc1(b + 24, ps2float::add(lwc1(sp + 48), ps2float::mul(normal_x, away)));
+        swc1(b + 28, ps2float::add(lwc1(sp + 52), ps2float::mul(lwc1(sp + 68), away)));
+        swc1(b + 32, ps2float::add(lwc1(sp + 56), ps2float::mul(lwc1(sp + 72), away)));
         let nx = lwc1(sp + 64);
-        let twice = (vx * nx + vy * lwc1(sp + 68) + vz * lwc1(sp + 72)) * -2.0_f32;
-        let new_x = (vx + nx * twice) * keep;
+        let twice = ps2float::mul(ps2float::add(ps2float::add(ps2float::mul(vx, nx), ps2float::mul(vy, lwc1(sp + 68))), ps2float::mul(vz, lwc1(sp + 72))), -2.0_f32);
+        let new_x = ps2float::mul(ps2float::add(vx, ps2float::mul(nx, twice)), keep);
         swc1(b + 48, new_x);
-        let new_y = (vy + lwc1(sp + 68) * twice) * keep;
+        let new_y = ps2float::mul(ps2float::add(vy, ps2float::mul(lwc1(sp + 68), twice)), keep);
         swc1(b + 52, new_y);
-        let new_z = (vz + lwc1(sp + 72) * twice) * keep;
+        let new_z = ps2float::mul(ps2float::add(vz, ps2float::mul(lwc1(sp + 72), twice)), keep);
         swc1(b + 56, new_z);
-        if !((new_x * new_x + new_y * new_y + new_z * new_z) < slow) {
+        if !(ps2float::add(ps2float::add(ps2float::mul(new_x, new_x), ps2float::mul(new_y, new_y)), ps2float::mul(new_z, new_z)) < slow) {
             let dt = frames();
             if lw(g::updateframesi) > 0 {
-                let lift = dt * lwc1(0x3ad214);
+                let lift = ps2float::mul(dt, lwc1(0x3ad214));
                 let bounces = lw(b + 212) + 1;
                 sw(b + 212, bounces);
-                swc1(b + 52, new_y + lift);
+                swc1(b + 52, ps2float::add(new_y, lift));
                 bounce_sound(b, bounces);
             }
         } else {
@@ -466,13 +466,13 @@ fn grenade_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
         if prop != 0 {
             let spin = lwc1(prop + 96);
             if 0.0_f32 < spin {
-                let slowed = spin * lwc1(0x3ad220);
-                let angle = lwc1(prop + 92) + slowed;
+                let slowed = ps2float::mul(spin, lwc1(0x3ad220));
+                let angle = ps2float::add(lwc1(prop + 92), slowed);
                 swc1(prop + 96, slowed);
                 swc1(prop + 92, angle);
                 if 360.0_f32 < angle {
                     loop {
-                        let wrapped = lwc1(prop + 92) - 360.0_f32;
+                        let wrapped = ps2float::sub(lwc1(prop + 92), 360.0_f32);
                         swc1(prop + 92, wrapped);
                         if !(360.0_f32 < wrapped) {
                             break;
@@ -510,13 +510,13 @@ fn mine_follows(sp: i32, b: i32, stuck: i32) {
         matrixVecMulAligned(&[(sp + 80) as i64, (sp + 160) as i64]);
     }
     if lw(stuck + 140) != 2 {
-        let angle = (lwc1(stuck + 76) * lwc1(0x3ad290)).pdiv(1.8e+02_f32);
+        let angle = ps2float::mul(lwc1(stuck + 76), lwc1(0x3ad290)).pdiv(1.8e+02_f32);
         matrixTransRotY(sp + 80, lwc1(stuck + 48), lwc1(stuck + 52), lwc1(stuck + 56), angle);
     } else {
         let scale = lwc1(0x3ad28c);
-        let a = (lwc1(stuck + 72) * scale).pdiv(1.8e+02_f32);
-        let b2 = (lwc1(stuck + 76) * scale).pdiv(1.8e+02_f32);
-        let c = (lwc1(stuck + 88) * scale).pdiv(1.8e+02_f32);
+        let a = ps2float::mul(lwc1(stuck + 72), scale).pdiv(1.8e+02_f32);
+        let b2 = ps2float::mul(lwc1(stuck + 76), scale).pdiv(1.8e+02_f32);
+        let c = ps2float::mul(lwc1(stuck + 88), scale).pdiv(1.8e+02_f32);
         matrixTransRotZXY(sp + 80, lwc1(stuck + 48), lwc1(stuck + 52), lwc1(stuck + 56), a, b2, c);
     }
     matrixVecMulAligned(&[(sp + 80) as i64, (sp + 144) as i64]);
@@ -562,10 +562,10 @@ fn mine_sticks(sp: i32, b: i32, hit: i32) {
             let vx = lwc1(sp);
             let vy = lwc1(sp + 4);
             let vz = lwc1(sp + 8);
-            let length = (1.0_f32).pdiv((vx * vx + vy * vy + vz * vz).abs().psqrt());
-            swc1(sp + 8, vz * length);
-            swc1(sp, vx * length);
-            swc1(sp + 4, vy * length);
+            let length = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(vx, vx), ps2float::mul(vy, vy)), ps2float::mul(vz, vz)).abs().psqrt());
+            swc1(sp + 8, ps2float::mul(vz, length));
+            swc1(sp, ps2float::mul(vx, length));
+            swc1(sp + 4, ps2float::mul(vy, length));
             chrLineTestChr(hit, b + 24, sp, 0, 1, sp + 48, sp + 64, 2);
             sw(b + 224, hit);
             let first = chrGetLastHitPart();
@@ -609,26 +609,26 @@ fn mine_sticks(sp: i32, b: i32, hit: i32) {
     if lw(b + 224) != 0 {
         // The place is made one on the character it is stuck to.
         if lw(hit + 140) != 2 {
-            matrixRotY(sp + 80, (lwc1(hit + 76) * lwc1(0x3ad27c)).pdiv(1.8e+02_f32));
+            matrixRotY(sp + 80, ps2float::mul(lwc1(hit + 76), lwc1(0x3ad27c)).pdiv(1.8e+02_f32));
         } else {
             let scale = lwc1(0x3ad278);
-            matrixRotZXY(sp + 80, (lwc1(hit + 72) * scale).pdiv(1.8e+02_f32), (lwc1(hit + 76) * scale).pdiv(1.8e+02_f32), (lwc1(hit + 88) * scale).pdiv(1.8e+02_f32));
+            matrixRotZXY(sp + 80, ps2float::mul(lwc1(hit + 72), scale).pdiv(1.8e+02_f32), ps2float::mul(lwc1(hit + 76), scale).pdiv(1.8e+02_f32), ps2float::mul(lwc1(hit + 88), scale).pdiv(1.8e+02_f32));
         }
         let x0 = lwc1(hit + 48);
         let y1 = lwc1(sp + 52);
         let z1 = lwc1(sp + 56);
-        swc1(sp + 48, lwc1(sp + 48) - x0);
-        swc1(sp + 52, y1 - lwc1(hit + 52));
-        swc1(sp + 56, z1 - lwc1(hit + 56));
+        swc1(sp + 48, ps2float::sub(lwc1(sp + 48), x0));
+        swc1(sp + 52, ps2float::sub(y1, lwc1(hit + 52)));
+        swc1(sp + 56, ps2float::sub(z1, lwc1(hit + 56)));
         sceVu0InversMatrix(sp + 144, sp + 80);
         matrixVecMul(sp + 144, sp + 48);
         matrixVecMul(sp + 144, sp + 64);
         let part = lw(b + 228);
         if part >= 0 {
             sceVu0CopyMatrix(sp + 80, lw(lw(hit + 32) + 4) + (part << 6));
-            let y = lwc1(sp + 52) - lwc1(sp + 132);
-            let z = lwc1(sp + 56) - lwc1(sp + 136);
-            swc1(sp + 48, lwc1(sp + 48) - lwc1(sp + 128));
+            let y = ps2float::sub(lwc1(sp + 52), lwc1(sp + 132));
+            let z = ps2float::sub(lwc1(sp + 56), lwc1(sp + 136));
+            swc1(sp + 48, ps2float::sub(lwc1(sp + 48), lwc1(sp + 128)));
             sw(sp + 128, 0);
             swc1(sp + 52, y);
             sw(sp + 132, 0);
@@ -642,10 +642,10 @@ fn mine_sticks(sp: i32, b: i32, hit: i32) {
         let ny = lwc1(sp + 68);
         let nz = lwc1(sp + 72);
         let x = lwc1(sp + 48);
-        let length = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
-        swc1(sp + 72, nz * length);
-        swc1(sp + 64, nx * length);
-        swc1(sp + 68, ny * length);
+        let length = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(nx, nx), ps2float::mul(ny, ny)), ps2float::mul(nz, nz)).abs().psqrt());
+        swc1(sp + 72, ps2float::mul(nz, length));
+        swc1(sp + 64, ps2float::mul(nx, length));
+        swc1(sp + 68, ps2float::mul(ny, length));
         swc1(b + 232, x);
         swc1(b + 236, lwc1(sp + 52));
         swc1(b + 240, lwc1(sp + 56));
@@ -654,10 +654,10 @@ fn mine_sticks(sp: i32, b: i32, hit: i32) {
         swc1(b + 252, lwc1(sp + 72));
     }
     let away = lwc1(0x3ad280);
-    let x = lwc1(sp + 48) + lwc1(sp + 64) * away;
+    let x = ps2float::add(lwc1(sp + 48), ps2float::mul(lwc1(sp + 64), away));
     swc1(b + 24, x);
-    swc1(b + 28, lwc1(sp + 52) + lwc1(sp + 68) * away);
-    swc1(b + 32, lwc1(sp + 56) + lwc1(sp + 72) * away);
+    swc1(b + 28, ps2float::add(lwc1(sp + 52), ps2float::mul(lwc1(sp + 68), away)));
+    swc1(b + 32, ps2float::add(lwc1(sp + 56), ps2float::mul(lwc1(sp + 72), away)));
     swc1(b + 128, lwc1(sp + 64));
     swc1(b + 132, lwc1(sp + 68));
     let z = lwc1(sp + 72);
@@ -695,7 +695,7 @@ fn mine_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
                     // The character is hidden: the mine drops.
                     let dt = frames();
                     sw(b + 224, 0);
-                    swc1(b + 52, dt * lwc1(0x3ad288));
+                    swc1(b + 52, ps2float::mul(dt, lwc1(0x3ad288)));
                     break 'work;
                 }
                 mine_follows(sp, b, stuck);
@@ -709,7 +709,7 @@ fn mine_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
             }
             if hit == 0 {
                 let dt = frames();
-                let x = lwc1(b + 24) + lwc1(sp);
+                let x = ps2float::add(lwc1(b + 24), lwc1(sp));
                 let y = lwc1(b + 28);
                 let gravity = lwc1(0x3ad284);
                 let vy = lwc1(b + 52);
@@ -717,12 +717,12 @@ fn mine_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
                 let z = lwc1(b + 32);
                 let prop = lw(b + 96);
                 kind = lw(b);
-                swc1(b + 28, y + lwc1(sp + 4));
+                swc1(b + 28, ps2float::add(y, lwc1(sp + 4)));
                 let step_z = lwc1(sp + 8);
-                swc1(b + 52, vy + dt * gravity);
-                swc1(b + 32, z + step_z);
+                swc1(b + 52, ps2float::add(vy, ps2float::mul(dt, gravity)));
+                swc1(b + 32, ps2float::add(z, step_z));
                 swc1(prop + 48, x);
-                let spin = lwc1(prop + 76) + 12.0_f32;
+                let spin = ps2float::add(lwc1(prop + 76), 12.0_f32);
                 swc1(prop + 52, lwc1(b + 28));
                 let z = lwc1(b + 32);
                 swc1(prop + 76, spin);
@@ -742,12 +742,12 @@ fn mine_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
         // The mine turns, and its prop with it, and it makes a sound for each tick of its time.
         let dt = frames();
         let angle = lwc1(b + 124);
-        let speed = lwc1(b + 64) + dt * lwc1(0x3ad294);
+        let speed = ps2float::add(lwc1(b + 64), ps2float::mul(dt, lwc1(0x3ad294)));
         swc1(b + 64, speed);
-        let turned = angle + speed * dt;
+        let turned = ps2float::add(angle, ps2float::mul(speed, dt));
         swc1(b + 124, turned);
         if 360.0_f32 < turned {
-            swc1(b + 124, turned - 360.0_f32);
+            swc1(b + 124, ps2float::sub(turned, 360.0_f32));
         }
         obInstSetAnim(lw(lw(b + 96) + 32), 1, 0.0_f32);
         let prop = lw(b + 96);
@@ -757,13 +757,13 @@ fn mine_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
         } else {
             sceVu0UnitMatrix(lw(lw(prop + 32) + 4));
             sceVu0UnitMatrix(lw(lw(lw(b + 96) + 32) + 4) + 128);
-            let rotation = (lwc1(b + 124) * lwc1(0x3ad298)).pdiv(1.8e+02_f32);
+            let rotation = ps2float::mul(lwc1(b + 124), lwc1(0x3ad298)).pdiv(1.8e+02_f32);
             matrixRotY(lw(lw(lw(b + 96) + 32) + 4) + 64, rotation);
             age = lwc1(b + 72);
         }
         let ticks = lw(b + 260);
         let next = ticks + 1;
-        if ticks < (age + age - 1.0_f32) as i32 {
+        if ticks < ps2float::sub(age + age, 1.0_f32) as i32 {
             sw(b + 260, next);
             if next < 10 {
                 soundStart(191, b + 24);
@@ -775,7 +775,7 @@ fn mine_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
         kind = lw(b);
     }
     if kind == 16 {
-        if lw(b + 260) < (lwc1(b + 72) * 0.5_f32) as i32 {
+        if lw(b + 260) < ps2float::mul(lwc1(b + 72), 0.5_f32) as i32 {
             soundStart(193, b + 24);
             sw(b + 260, lw(b + 260) + 1);
         }
@@ -786,14 +786,14 @@ fn mine_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
 /// Turn the prop `prop` by the spin of the bullet `b` (+60 to +68), each angle kept from 0 to 360.
 fn spin_prop(prop: i32, b: i32) {
     for (at, spin) in [(72, 60), (76, 64), (88, 68)] {
-        let angle = lwc1(prop + at) + lwc1(b + spin);
+        let angle = ps2float::add(lwc1(prop + at), lwc1(b + spin));
         swc1(prop + at, angle);
         if angle < 0.0_f32 {
-            swc1(prop + at, angle + 360.0_f32);
+            swc1(prop + at, ps2float::add(angle, 360.0_f32));
         }
         let angle = lwc1(prop + at);
         if 360.0_f32 <= angle {
-            swc1(prop + at, angle - 360.0_f32);
+            swc1(prop + at, ps2float::sub(angle, 360.0_f32));
         }
     }
 }
@@ -811,12 +811,12 @@ fn thrown_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
         if at_rest {
             let prop = lw(b + 96);
             let rest = lwc1(0x3ad248);
-            swc1(prop + 72, lwc1(b + 60) + 90.0_f32);
+            swc1(prop + 72, ps2float::add(lwc1(b + 60), 90.0_f32));
             swc1(prop + 76, lwc1(b + 64));
             swc1(prop + 88, lwc1(b + 68));
-            let spin_y = lwc1(b + 64) * rest;
-            let spin_z = lwc1(b + 68) * rest;
-            swc1(b + 60, lwc1(b + 60) * rest);
+            let spin_y = ps2float::mul(lwc1(b + 64), rest);
+            let spin_z = ps2float::mul(lwc1(b + 68), rest);
+            swc1(b + 60, ps2float::mul(lwc1(b + 60), rest));
             swc1(b + 64, spin_y);
             swc1(b + 68, spin_z);
             first_trail = false;
@@ -831,7 +831,7 @@ fn thrown_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
             let prop;
             if hit == 0 {
                 let dt = frames();
-                let x = lwc1(b + 24) + lwc1(sp);
+                let x = ps2float::add(lwc1(b + 24), lwc1(sp));
                 let y = lwc1(b + 28);
                 let gravity = lwc1(0x3ad240);
                 let vy = lwc1(b + 52);
@@ -841,12 +841,12 @@ fn thrown_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
                 let vz = lwc1(b + 56);
                 let drag = lwc1(0x3ad244);
                 prop = lw(b + 96);
-                swc1(b + 28, y + lwc1(sp + 4));
+                swc1(b + 28, ps2float::add(y, lwc1(sp + 4)));
                 let step_z = lwc1(sp + 8);
-                swc1(b + 56, vz * drag);
-                swc1(b + 48, vx * drag);
-                swc1(b + 52, (vy + dt * gravity) * drag);
-                swc1(b + 32, z + step_z);
+                swc1(b + 56, ps2float::mul(vz, drag));
+                swc1(b + 48, ps2float::mul(vx, drag));
+                swc1(b + 52, ps2float::mul(ps2float::add(vy, ps2float::mul(dt, gravity)), drag));
+                swc1(b + 32, ps2float::add(z, step_z));
                 swc1(prop + 48, x);
                 swc1(prop + 52, lwc1(b + 28));
                 swc1(prop + 56, lwc1(b + 32));
@@ -858,23 +858,23 @@ fn thrown_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
                 let vz = lwc1(b + 56);
                 let keep = lwc1(0x3ad22c);
                 let slow = lwc1(0x3ad230);
-                swc1(b + 24, lwc1(sp + 48) + normal_x * away);
-                swc1(b + 28, lwc1(sp + 52) + lwc1(sp + 68) * away);
-                swc1(b + 32, lwc1(sp + 56) + lwc1(sp + 72) * away);
+                swc1(b + 24, ps2float::add(lwc1(sp + 48), ps2float::mul(normal_x, away)));
+                swc1(b + 28, ps2float::add(lwc1(sp + 52), ps2float::mul(lwc1(sp + 68), away)));
+                swc1(b + 32, ps2float::add(lwc1(sp + 56), ps2float::mul(lwc1(sp + 72), away)));
                 let nx = lwc1(sp + 64);
-                let twice = (vx * nx + vy * lwc1(sp + 68) + vz * lwc1(sp + 72)) * -2.0_f32;
-                let new_x = (vx + nx * twice) * keep;
+                let twice = ps2float::mul(ps2float::add(ps2float::add(ps2float::mul(vx, nx), ps2float::mul(vy, lwc1(sp + 68))), ps2float::mul(vz, lwc1(sp + 72))), -2.0_f32);
+                let new_x = ps2float::mul(ps2float::add(vx, ps2float::mul(nx, twice)), keep);
                 swc1(b + 48, new_x);
-                let new_y = (vy + lwc1(sp + 68) * twice) * keep;
+                let new_y = ps2float::mul(ps2float::add(vy, ps2float::mul(lwc1(sp + 68), twice)), keep);
                 swc1(b + 52, new_y);
-                let new_z = (vz + lwc1(sp + 72) * twice) * keep;
+                let new_z = ps2float::mul(ps2float::add(vz, ps2float::mul(lwc1(sp + 72), twice)), keep);
                 swc1(b + 56, new_z);
-                if !((new_x * new_x + new_y * new_y + new_z * new_z) < slow) {
-                    let spin_z = lwc1(b + 68) * lwc1(0x3ad238);
-                    let spin_x = lwc1(b + 60) * lwc1(0x3ad23c);
-                    let spin_y = lwc1(b + 64) * lwc1(0x3ad238);
+                if !(ps2float::add(ps2float::add(ps2float::mul(new_x, new_x), ps2float::mul(new_y, new_y)), ps2float::mul(new_z, new_z)) < slow) {
+                    let spin_z = ps2float::mul(lwc1(b + 68), lwc1(0x3ad238));
+                    let spin_x = ps2float::mul(lwc1(b + 60), lwc1(0x3ad23c));
+                    let spin_y = ps2float::mul(lwc1(b + 64), lwc1(0x3ad238));
                     let bounces = lw(b + 212) + 1;
-                    swc1(b + 52, new_y + frames() * lwc1(0x3ad234));
+                    swc1(b + 52, ps2float::add(new_y, ps2float::mul(frames(), lwc1(0x3ad234))));
                     swc1(b + 60, spin_x);
                     swc1(b + 64, spin_y);
                     swc1(b + 68, spin_z);
@@ -948,9 +948,9 @@ fn sitting_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
         let step_x = lwc1(sp);
         let at_rest = step_x == 0.0_f32 && lwc1(sp + 4) == 0.0_f32 && lwc1(sp + 8) == 0.0_f32;
         if at_rest {
-            let fade = (lwc1(b + 264) * 127.0_f32) as i32 & 255;
+            let fade = ps2float::mul(lwc1(b + 264), 127.0_f32) as i32 & 255;
             obInstSetOverrideStates(lw(lw(b + 96) + 32), 3, -1, -1, fade);
-            let left = lwc1(b + 264) - frames() * lwc1(0x3ad274);
+            let left = ps2float::sub(lwc1(b + 264), ps2float::mul(frames(), lwc1(0x3ad274)));
             swc1(b + 264, left);
             if left <= 0.0_f32 {
                 bulletFree(b);
@@ -975,19 +975,19 @@ fn sitting_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
                 let vz = lwc1(b + 56);
                 let keep = lwc1(0x3ad254);
                 let slow = lwc1(0x3ad258);
-                swc1(b + 24, lwc1(sp + 48) + normal_x * away);
-                swc1(b + 28, lwc1(sp + 52) + lwc1(sp + 68) * away + lift);
-                swc1(b + 32, lwc1(sp + 56) + lwc1(sp + 72) * away);
+                swc1(b + 24, ps2float::add(lwc1(sp + 48), ps2float::mul(normal_x, away)));
+                swc1(b + 28, ps2float::add(ps2float::add(lwc1(sp + 52), ps2float::mul(lwc1(sp + 68), away)), lift));
+                swc1(b + 32, ps2float::add(lwc1(sp + 56), ps2float::mul(lwc1(sp + 72), away)));
                 let nx = lwc1(sp + 64);
-                let twice = (vx * nx + vy * lwc1(sp + 68) + vz * lwc1(sp + 72)) * -2.0_f32;
-                let new_x = (vx + nx * twice) * keep;
+                let twice = ps2float::mul(ps2float::add(ps2float::add(ps2float::mul(vx, nx), ps2float::mul(vy, lwc1(sp + 68))), ps2float::mul(vz, lwc1(sp + 72))), -2.0_f32);
+                let new_x = ps2float::mul(ps2float::add(vx, ps2float::mul(nx, twice)), keep);
                 swc1(b + 48, new_x);
-                let new_y = (vy + lwc1(sp + 68) * twice) * 0.5_f32;
+                let new_y = ps2float::mul(ps2float::add(vy, ps2float::mul(lwc1(sp + 68), twice)), 0.5_f32);
                 swc1(b + 52, new_y);
-                let new_z = (vz + lwc1(sp + 72) * twice) * keep;
+                let new_z = ps2float::mul(ps2float::add(vz, ps2float::mul(lwc1(sp + 72), twice)), keep);
                 swc1(b + 56, new_z);
                 let mut bounce = true;
-                if (new_x * new_x + new_y * new_y + new_z * new_z) < slow {
+                if ps2float::add(ps2float::add(ps2float::mul(new_x, new_x), ps2float::mul(new_y, new_y)), ps2float::mul(new_z, new_z)) < slow {
                     let up = lwc1(sp + 68);
                     if lw(hit + 8) != 8 && lwc1(0x3ad25c) < up {
                         // It lies down on the floor.
@@ -1004,12 +1004,12 @@ fn sitting_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
                     let spin_y = lwc1(b + 64);
                     let damping = lwc1(0x3ad264);
                     let bounces = lw(b + 212);
-                    let spin_z = lwc1(b + 68) * damping;
-                    let spin_x = lwc1(b + 60) * lwc1(0x3ad268);
-                    swc1(b + 52, lwc1(b + 52) + dt * lwc1(0x3ad260));
+                    let spin_z = ps2float::mul(lwc1(b + 68), damping);
+                    let spin_x = ps2float::mul(lwc1(b + 60), lwc1(0x3ad268));
+                    swc1(b + 52, ps2float::add(lwc1(b + 52), ps2float::mul(dt, lwc1(0x3ad260))));
                     swc1(b + 68, spin_z);
                     swc1(b + 60, spin_x);
-                    swc1(b + 64, spin_y * damping);
+                    swc1(b + 64, ps2float::mul(spin_y, damping));
                     sw(b + 212, bounces + 1);
                     soundStart(136, b + 24);
                 }
@@ -1019,7 +1019,7 @@ fn sitting_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
                 swc1(prop + 56, lwc1(b + 32));
             } else {
                 let dt = frames();
-                let x = lwc1(b + 24) + lwc1(sp);
+                let x = ps2float::add(lwc1(b + 24), lwc1(sp));
                 let y = lwc1(b + 28);
                 let gravity = lwc1(0x3ad26c);
                 let vy = lwc1(b + 52);
@@ -1029,12 +1029,12 @@ fn sitting_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
                 let vz = lwc1(b + 56);
                 let drag = lwc1(0x3ad270);
                 let prop = lw(b + 96);
-                swc1(b + 28, y + lwc1(sp + 4));
+                swc1(b + 28, ps2float::add(y, lwc1(sp + 4)));
                 let step_z = lwc1(sp + 8);
-                swc1(b + 56, vz * drag);
-                swc1(b + 48, vx * drag);
-                swc1(b + 52, (vy + dt * gravity) * drag);
-                swc1(b + 32, z + step_z);
+                swc1(b + 56, ps2float::mul(vz, drag));
+                swc1(b + 48, ps2float::mul(vx, drag));
+                swc1(b + 52, ps2float::mul(ps2float::add(vy, ps2float::mul(dt, gravity)), drag));
+                swc1(b + 32, ps2float::add(z, step_z));
                 swc1(prop + 48, x);
                 swc1(prop + 52, lwc1(b + 28));
                 swc1(prop + 56, lwc1(b + 32));
@@ -1076,10 +1076,10 @@ pub fn bulletTick() {
                 }
             }
             // The step of this frame.
-            swc1(sp, lwc1(b + 48) * dt);
-            swc1(sp + 4, lwc1(b + 52) * dt);
-            swc1(sp + 8, lwc1(b + 56) * dt);
-            swc1(b + 72, lwc1(b + 72) + (dt).pdiv(60.0_f32));
+            swc1(sp, ps2float::mul(lwc1(b + 48), dt));
+            swc1(sp + 4, ps2float::mul(lwc1(b + 52), dt));
+            swc1(sp + 8, ps2float::mul(lwc1(b + 56), dt));
+            swc1(b + 72, ps2float::add(lwc1(b + 72), (dt).pdiv(60.0_f32)));
             let exit = match kind {
                 2..=4 => tracer_bullet(sp, b, owner_prop),
                 5..=7 => spark_bullet(sp, b, owner_prop),
@@ -1096,9 +1096,9 @@ pub fn bulletTick() {
                 Exit::Drift => {
                     let y = lwc1(b + 28);
                     let z = lwc1(b + 32);
-                    swc1(b + 24, lwc1(b + 24) + lwc1(sp));
-                    swc1(b + 28, y + lwc1(sp + 4));
-                    swc1(b + 32, z + lwc1(sp + 8));
+                    swc1(b + 24, ps2float::add(lwc1(b + 24), lwc1(sp)));
+                    swc1(b + 28, ps2float::add(y, lwc1(sp + 4)));
+                    swc1(b + 32, ps2float::add(z, lwc1(sp + 8)));
                 }
                 Exit::ResetAge => sw(b + 72, 0),
                 Exit::Record(owner) => {

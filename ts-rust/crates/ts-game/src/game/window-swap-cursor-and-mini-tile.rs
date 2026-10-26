@@ -112,7 +112,7 @@ pub fn mmDrawCursor(object: i32) {
 pub fn rotateMiniTile() {
     let axis = joyGetAxis(0, 2);
     let four = 4.0_f32;
-    let turn = -axis * four;
+    let turn = ps2float::mul(-axis, four);
     let mut size = turn;
     if !(0.0_f32 <= turn) {
         size = -turn;
@@ -120,7 +120,7 @@ pub fn rotateMiniTile() {
     let spin;
     if lw(g::zoomtileflags) & 4 == 0 {
         let rotation = lwc1(g::zoomtileroty);
-        spin = rotation + turn;
+        spin = ps2float::add(rotation, turn);
     } else {
         let floor = lwc1(0x3aca68);
         let speed = lwc1(0x3b007c);
@@ -142,7 +142,7 @@ pub fn rotateMiniTile() {
                 swc1(0x3b0080, -1.0_f32);
             }
         } else {
-            now = speed - lwc1(0x3aca6c);
+            now = ps2float::sub(speed, lwc1(0x3aca6c));
             let below = now < lwc1(0x3aca70);
             swc1(0x3b007c, now);
             if below {
@@ -150,12 +150,12 @@ pub fn rotateMiniTile() {
                 swc1(0x3b007c, now);
             }
         }
-        spin = lwc1(g::zoomtileroty) + now * lwc1(0x3b0080);
+        spin = ps2float::add(lwc1(g::zoomtileroty), ps2float::mul(now, lwc1(0x3b0080)));
     }
     swc1(g::zoomtileroty, spin);
     let tilt_axis = joyGetAxis(0, 3);
     let limit = 45.0_f32;
-    let mut tilt = lwc1(g::zoomtiletilt) + tilt_axis;
+    let mut tilt = ps2float::add(lwc1(g::zoomtiletilt), tilt_axis);
     swc1(g::zoomtiletilt, tilt);
     if limit < tilt {
         tilt = limit;
@@ -170,7 +170,7 @@ pub fn rotateMiniTile() {
     let mut held = rotation;
     if full <= rotation {
         loop {
-            rotation = held - full;
+            rotation = ps2float::sub(held, full);
             held = rotation;
             if !(full <= rotation) {
                 break;
@@ -181,7 +181,7 @@ pub fn rotateMiniTile() {
     if rotation < 0.0_f32 {
         let mut wrapped;
         loop {
-            wrapped = rotation + 360.0_f32;
+            wrapped = ps2float::add(rotation, 360.0_f32);
             rotation = wrapped;
             if !(wrapped < 0.0_f32) {
                 break;
@@ -196,11 +196,11 @@ pub fn rotateMiniTile() {
         let buttons = joyBut(0);
         distance_now = lwc1(g::zoomtiledist);
         if buttons & 8 != 0 {
-            distance_now += lwc1(0x3aca78);
+            distance_now = ps2float::add(distance_now, lwc1(0x3aca78));
             swc1(g::zoomtiledist, distance_now);
         }
     } else {
-        distance_now = distance - lwc1(0x3aca74);
+        distance_now = ps2float::sub(distance, lwc1(0x3aca74));
         swc1(g::zoomtiledist, distance_now);
     }
     let one = 1.0_f32;

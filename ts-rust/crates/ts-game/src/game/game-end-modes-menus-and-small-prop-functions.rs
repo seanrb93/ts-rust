@@ -218,7 +218,7 @@ pub fn propEditCreate(a0: i32, a1: i32) {
         let z = lwc1(player + 852);
         let x = lwc1(player + 844);
         let angle = atan2f(x, z);
-        swc1(sp + 20, (angle * 1.8e+02_f32).pdiv(lwc1(0x3acfa0)));
+        swc1(sp + 20, ps2float::mul(angle, 1.8e+02_f32).pdiv(lwc1(0x3acfa0)));
     } else {
         sw(sp + 20, 0);
     }
@@ -324,9 +324,9 @@ pub fn drumDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
     let sp = frame.sp();
     if 1.0_f32 < lwc1(a0 + 532) {
         if (lhu(lw(a0 + 32) + 292) & 4) != 0 {
-            swc1(sp, lwc1(a0 + 508) + lwc1(a0 + 48));
-            swc1(sp + 4, lwc1(a0 + 512) + lwc1(a0 + 52));
-            swc1(sp + 8, lwc1(a0 + 516) + lwc1(a0 + 56));
+            swc1(sp, ps2float::add(lwc1(a0 + 508), lwc1(a0 + 48)));
+            swc1(sp + 4, ps2float::add(lwc1(a0 + 512), lwc1(a0 + 52)));
+            swc1(sp + 8, ps2float::add(lwc1(a0 + 516), lwc1(a0 + 56)));
             particleNewExplosion(0, 0, sp, a3, a4, a5, a1, 0);
             particleNewBurst(0, 15, sp, 0, 0.0_f32);
             let model = lw(a0 + 32);
@@ -439,9 +439,9 @@ pub fn mmStartZoomTileView(a0: i32) {
     let front = lw(g::front);
     sw(front + 36, 0x700000);
     sw(front + 32, 0x1400000);
-    let mut angle = 0.0_f32 - lwc1((lw(a0 + 24) << 2) + g::tilerotang);
+    let mut angle = ps2float::sub(0.0_f32, lwc1((lw(a0 + 24) << 2) + g::tilerotang));
     if angle < 0.0_f32 {
-        angle = angle + 3.6e+02_f32;
+        angle = ps2float::add(angle, 3.6e+02_f32);
     }
     zoomtileWindow(544, 190, 172);
     let distance = zoomtileSizeToDist(lw(g::zoomtilenum));
@@ -462,8 +462,8 @@ pub fn doorNewInVolume(a0: i32, a1: i32, a2: i32) {
     let door = doorNew(a0, a2, lwc1(volume + 8), lwc1(volume + 12), lwc1(volume + 16));
     sw(door + 88, 0);
     sw(door + 140, 2);
-    swc1(door + 72, dptofp(dpdiv(fptodp(lwc1(volume + 32) * degrees), divisor)));
-    swc1(door + 76, dptofp(dpdiv(fptodp(lwc1(volume + 36) * degrees), divisor)));
+    swc1(door + 72, dptofp(dpdiv(fptodp(ps2float::mul(lwc1(volume + 32), degrees)), divisor)));
+    swc1(door + 76, dptofp(dpdiv(fptodp(ps2float::mul(lwc1(volume + 36), degrees)), divisor)));
 }
 
 /// The sound an enemy makes when it wakes: by its type (78 and 79 play delayed sounds 816 and 655, 49 plays 655) or, for the others whose state at +8 is 0, the sound 188

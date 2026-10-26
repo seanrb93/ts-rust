@@ -4,7 +4,7 @@ use crate::*;
 
 /// Add `value` to the whole number kept in the float slot at `at` (the slot is read as an integer, made a float, added to and made an integer again).
 fn int_add(at: i32, value: f32) {
-    swc1(at, f32::from_bits((lwc1(at).to_bits() as i32 as f32 + value) as i32 as u32));
+    swc1(at, f32::from_bits(ps2float::add(lwc1(at).to_bits() as i32 as f32, value) as i32 as u32));
 }
 
 /// Make the stats of the current game shown (the pointer at 0x3aff04): with flag 0x2000 of the game's options new stats (`statsNew`, at 0x1fbc168); for two players or more the stats
@@ -178,16 +178,16 @@ pub fn StatsAddToLife(life: i32, slot: i32) {
     let value = StatsGet(9, slot);
     int_add(life + 32, value);
     let value = StatsGet(13, slot);
-    swc1(life + 36, lwc1(life + 36) + value);
+    swc1(life + 36, ps2float::add(lwc1(life + 36), value));
     let value = StatsGet(15, slot);
-    swc1(life + 40, lwc1(life + 40) + value);
+    swc1(life + 40, ps2float::add(lwc1(life + 40), value));
     let value = StatsGet(16, slot);
-    swc1(life + 44, lwc1(life + 44) + value);
+    swc1(life + 44, ps2float::add(lwc1(life + 44), value));
     let value = StatsGet(17, slot);
-    swc1(life + 48, lwc1(life + 48) + value);
+    swc1(life + 48, ps2float::add(lwc1(life + 48), value));
     let high = StatsGet(23, slot);
     let low = StatsGet(24, slot);
-    int_add(life + 52, high - low);
+    int_add(life + 52, ps2float::sub(high, low));
     let value = StatsGet(24, slot);
     int_add(life + 56, value);
     let value = StatsGet(32, slot);
@@ -201,7 +201,7 @@ pub fn StatsAddToLife(life: i32, slot: i32) {
         gun += 1;
         let other = StatsGetGun(3, slot, gun - 1);
         first += 4;
-        swc1(second, lwc1(second) + other);
+        swc1(second, ps2float::add(lwc1(second), other));
         second += 4;
         if gun >= 33 {
             break;
@@ -210,11 +210,11 @@ pub fn StatsAddToLife(life: i32, slot: i32) {
     let value = StatsGet(62, slot);
     int_add(life + 196, value);
     let value = StatsGet(63, slot);
-    swc1(life + 332, lwc1(life + 332) + value);
+    swc1(life + 332, ps2float::add(lwc1(life + 332), value));
     let value = StatsGet(64, slot);
     int_add(life + 336, value);
     let value = StatsGet(46, slot);
-    swc1(life + 344, lwc1(life + 344) + value);
+    swc1(life + 344, ps2float::add(lwc1(life + 344), value));
     let mut medal = 0;
     loop {
         let flag = life + 348 + medal;

@@ -198,7 +198,7 @@ pub fn bulletNonStraightLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) ->
     swc1(sp + 24, y);
     swc1(sp + 20, z);
     if kind == 19 {
-        swc1(sp + 20, z - lwc1(0x3ad1e8));
+        swc1(sp + 20, ps2float::sub(z, lwc1(0x3ad1e8)));
     }
     let flags = if 2 < ((kind - 14) as u32) { 0 } else { 4 };
     let s2 = a0 + 100;
@@ -246,10 +246,10 @@ pub fn bulletNonStraightLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) ->
                 swc1(sp + 40, lwc1(chr + 160));
             }
         }
-        let dy = lwc1(sp + 20) - lwc1(sp + 36);
+        let dy = ps2float::sub(lwc1(sp + 20), lwc1(sp + 36));
         let owner_flags = lw(owner + 16);
-        let dz = lwc1(sp + 24) - lwc1(sp + 40);
-        swc1(sp + 48, lwc1(sp + 16) - lwc1(sp + 32));
+        let dz = ps2float::sub(lwc1(sp + 24), lwc1(sp + 40));
+        swc1(sp + 48, ps2float::sub(lwc1(sp + 16), lwc1(sp + 32)));
         swc1(sp + 52, dy);
         sw(owner + 16, owner_flags & -33);
         swc1(sp + 56, dz);
@@ -341,10 +341,10 @@ pub fn baseDamage(a0: i32, a1: i32, _a2: i32, a3: i32, a4: i32, a5: i32) {
         changed = 1;
     }
     if changed != 0 {
-        let y = lwc1(a0 + 512) + lwc1(a0 + 52);
+        let y = ps2float::add(lwc1(a0 + 512), lwc1(a0 + 52));
         let kind = lw(a0 + 4);
-        let z = lwc1(a0 + 516) + lwc1(a0 + 56);
-        swc1(sp, lwc1(a0 + 508) + lwc1(a0 + 48));
+        let z = ps2float::add(lwc1(a0 + 516), lwc1(a0 + 56));
+        swc1(sp, ps2float::add(lwc1(a0 + 508), lwc1(a0 + 48)));
         swc1(sp + 4, y);
         swc1(sp + 8, z);
         if kind != 201 {
@@ -481,19 +481,19 @@ pub fn zbtestGfx() {
                 let u1 = tex_w << 4;
                 let y = lwc1(light + 16);
                 let v1 = tex_h << 4;
-                let high = radius * lwc1(0x3ad61c);
+                let high = ps2float::mul(radius, lwc1(0x3ad61c));
                 let colour = lw(light + 24);
                 let alpha = colour & 255;
-                dlTextureRectangleFloat(0, 0, u1, v1, colour, x - radius, y - high, x + radius, y + high);
+                dlTextureRectangleFloat(0, 0, u1, v1, colour, ps2float::sub(x, radius), ps2float::sub(y, high), ps2float::add(x, radius), ps2float::add(y, high));
                 let tint = 0x7f7f7f00;
                 let inner_colour = alpha | tint;
                 if (lw(light + 24) - alpha) != tint {
                     let scale = 0.75_f32;
                     let y = lwc1(light + 16);
-                    let inner_high = high * scale;
+                    let inner_high = ps2float::mul(high, scale);
                     let x = lwc1(light + 12);
-                    let inner_radius = lw(light + 20) as f32 * scale;
-                    dlTextureRectangleFloat(0, 0, u1, v1, inner_colour, x - inner_radius, y - inner_high, x + inner_radius, y + inner_high);
+                    let inner_radius = ps2float::mul(lw(light + 20) as f32, scale);
+                    dlTextureRectangleFloat(0, 0, u1, v1, inner_colour, ps2float::sub(x, inner_radius), ps2float::sub(y, inner_high), ps2float::add(x, inner_radius), ps2float::add(y, inner_high));
                 }
                 count = lw(0x3b017c);
                 i += 1;
@@ -666,14 +666,14 @@ pub fn enemyCheckValidPad(a0: i32) {
                     let py = lwc1(sp + 36);
                     let pz = lwc1(sp + 40);
                     let pad = nearest * 28 + pads;
-                    let dy = py - lwc1(pad + 16);
-                    let dx = px - lwc1(pad + 12);
-                    let dz = pz - lwc1(pad + 20);
+                    let dy = ps2float::sub(py, lwc1(pad + 16));
+                    let dx = ps2float::sub(px, lwc1(pad + 12));
+                    let dz = ps2float::sub(pz, lwc1(pad + 20));
                     let old = current * 28 + pads;
-                    let old_dy = py - lwc1(old + 16);
-                    let old_dx = px - lwc1(old + 12);
-                    let old_dz = pz - lwc1(old + 20);
-                    let gain = (dx * dx + dy * dy + dz * dz).abs().psqrt() - (old_dx * old_dx + old_dy * old_dy + old_dz * old_dz).abs().psqrt();
+                    let old_dy = ps2float::sub(py, lwc1(old + 16));
+                    let old_dx = ps2float::sub(px, lwc1(old + 12));
+                    let old_dz = ps2float::sub(pz, lwc1(old + 20));
+                    let gain = ps2float::sub(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt(), ps2float::add(ps2float::add(ps2float::mul(old_dx, old_dx), ps2float::mul(old_dy, old_dy)), ps2float::mul(old_dz, old_dz)).abs().psqrt());
                     let mut gain = fptodp(gain);
                     if dpcmp(gain, 0_i64) < 0 {
                         gain = dpsub(0_i64, gain);
@@ -685,9 +685,9 @@ pub fn enemyCheckValidPad(a0: i32) {
                         let py = lwc1(sp + 36);
                         let pz = lwc1(sp + 40);
                         let is_player = (a0 < lw(g::lvnumplayers)) as i32;
-                        swc1(sp + 16, lwc1(pad + 12) - lwc1(sp + 32));
-                        swc1(sp + 20, lwc1(pad + 16) - py);
-                        swc1(sp + 24, lwc1(pad + 20) - pz);
+                        swc1(sp + 16, ps2float::sub(lwc1(pad + 12), lwc1(sp + 32)));
+                        swc1(sp + 20, ps2float::sub(lwc1(pad + 16), py));
+                        swc1(sp + 24, ps2float::sub(lwc1(pad + 20), pz));
                         let blocked;
                         if is_player != 0 {
                             let players = lw(g::players);
@@ -696,7 +696,7 @@ pub fn enemyCheckValidPad(a0: i32) {
                             blocked = bgLineTest(lw(prop + 12), players + a0 * 1820 + 152, sp + 16, 0, 0, 0, 0, 56);
                         } else {
                             swc1(sp + 32, lwc1(prop + 48));
-                            swc1(sp + 36, lwc1(prop + 52) + 0.5_f32);
+                            swc1(sp + 36, ps2float::add(lwc1(prop + 52), 0.5_f32));
                             let z = lwc1(prop + 56);
                             sw(sp, 0);
                             sw(sp + 8, 0);

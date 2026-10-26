@@ -13,7 +13,7 @@ fn remainder(a: i32, b: i32) -> i32 {
 
 /// The sine of the angle in the table `table` for the angle `x` (the table index is the angle times the constant at 0x3ac948, rounded, taken modulo 2048).
 fn sine_at(table: i32, x: f32, scale: f32, half: f32) -> f32 {
-    lwc1(((((x * scale + half) as i32) & 2047) << 2) + table)
+    lwc1((((ps2float::add(ps2float::mul(x, scale), half) as i32) & 2047) << 2) + table)
 }
 
 /// Draw the picture of the texture `texture` as a grid of 15 by 7 waving cells (stack arguments: the strengths `size_x` and `size_y` of the waves, and the offsets `shift_x` and
@@ -55,18 +55,18 @@ pub fn frontfxWaveyTexture(
         let next = row + 1;
         let mut col = 0;
         let mut point = (row << 4) * 20 + sp;
-        let y = row as f32 * (((size_y * four + 224.0_f32)).pdiv(7.0_f32)) - (size_y + size_y);
-        let wave_x = sine_at(table, y * y_freq_x + time * y_time_x, scale, half);
-        let wave_y = sine_at(table, y * y_freq_y + time * y_time_y, scale, half);
+        let y = ps2float::sub(ps2float::mul(row as f32, ((ps2float::add(ps2float::mul(size_y, four), 224.0_f32)).pdiv(7.0_f32))), ps2float::add(size_y, size_y));
+        let wave_x = sine_at(table, ps2float::add(ps2float::mul(y, y_freq_x), ps2float::mul(time, y_time_x)), scale, half);
+        let wave_y = sine_at(table, ps2float::add(ps2float::mul(y, y_freq_y), ps2float::mul(time, y_time_y)), scale, half);
         loop {
             let column = col as f32;
             swc1(point + 8, y);
             sw(point, colour);
             col += 1;
-            let x = column * (((size_x * four + 6.4e+02_f32)).pdiv(15.0_f32)) - (size_x + size_x);
+            let x = ps2float::sub(ps2float::mul(column, ((ps2float::add(ps2float::mul(size_x, four), 6.4e+02_f32)).pdiv(15.0_f32))), ps2float::add(size_x, size_x));
             swc1(point + 4, x);
-            let across = (sine_at(table, x * x_freq_x + time * x_time_x, scale, half) + wave_x) * size_x;
-            swc1(point + 16, (sine_at(table, x * x_freq_y + time * x_time_y, scale, half) + wave_y) * size_y);
+            let across = ps2float::mul(ps2float::add(sine_at(table, ps2float::add(ps2float::mul(x, x_freq_x), ps2float::mul(time, x_time_x)), scale, half), wave_x), size_x);
+            swc1(point + 16, ps2float::mul(ps2float::add(sine_at(table, ps2float::add(ps2float::mul(x, x_freq_y), ps2float::mul(time, x_time_y)), scale, half), wave_y), size_y));
             swc1(point + 12, across);
             point += 20;
             if col >= 16 {
@@ -102,47 +102,47 @@ pub fn frontfxWaveyTexture(
             let across_f = across as f32;
             let down_f = down as f32;
             let top_left = first * 20 + sp;
-            let sum_x = lwc1(top_left + 4) + lwc1(top_left + 12);
+            let sum_x = ps2float::add(lwc1(top_left + 4), lwc1(top_left + 12));
             let bottom_left = (cell + next_base) * 20 + sp;
-            let sum_y = lwc1(top_left + 8) + lwc1(top_left + 16);
+            let sum_y = ps2float::add(lwc1(top_left + 8), lwc1(top_left + 16));
             sw(sp + 2560, lw(top_left));
             let bl_y2 = lwc1(bottom_left + 16);
             let bl_x1 = lwc1(bottom_left + 4);
-            let u0 = (((across_f).pdiv(cols_f) + shift_x) * width) as i32;
+            let u0 = ps2float::mul(ps2float::add((across_f).pdiv(cols_f), shift_x), width) as i32;
             let bl_x2 = lwc1(bottom_left + 12);
             let bl_y1 = lwc1(bottom_left + 8);
-            let v0 = (((down_f).pdiv(rows as f32) + shift_y) * height) as i32;
+            let v0 = ps2float::mul(ps2float::add((down_f).pdiv(rows as f32), shift_y), height) as i32;
             sw(sp + 2572, u0);
-            swc1(sp + 2564, f32::from_bits((sum_x * sixteen) as i32 as u32));
-            swc1(sp + 2568, f32::from_bits((sum_y * sixteen) as i32 as u32));
+            swc1(sp + 2564, f32::from_bits(ps2float::mul(sum_x, sixteen) as i32 as u32));
+            swc1(sp + 2568, f32::from_bits(ps2float::mul(sum_y, sixteen) as i32 as u32));
             sw(sp + 2576, v0);
             let colour_bl = lw(bottom_left);
             sw(sp + 2592, u0);
             sw(sp + 2580, colour_bl);
-            let v1 = ((((down_f + one)).pdiv(rows as f32) + shift_y) * height - one) as i32;
-            swc1(sp + 2584, f32::from_bits(((bl_x1 + bl_x2) * sixteen) as i32 as u32));
+            let v1 = ps2float::sub(ps2float::mul(ps2float::add((ps2float::add(down_f, one)).pdiv(rows as f32), shift_y), height), one) as i32;
+            swc1(sp + 2584, f32::from_bits(ps2float::mul(ps2float::add(bl_x1, bl_x2), sixteen) as i32 as u32));
             let top_right = right * 20 + sp;
-            swc1(sp + 2588, f32::from_bits(((bl_y1 + bl_y2) * sixteen) as i32 as u32));
+            swc1(sp + 2588, f32::from_bits(ps2float::mul(ps2float::add(bl_y1, bl_y2), sixteen) as i32 as u32));
             sw(sp + 2596, v1);
-            let tr_x = lwc1(top_right + 4) + lwc1(top_right + 12);
-            let tr_y = lwc1(top_right + 8) + lwc1(top_right + 16);
+            let tr_x = ps2float::add(lwc1(top_right + 4), lwc1(top_right + 12));
+            let tr_y = ps2float::add(lwc1(top_right + 8), lwc1(top_right + 16));
             let bottom_right = (cell + below) * 20 + sp;
             sw(sp + 2600, lw(top_right));
             sw(sp + 2616, v0);
-            let u1 = ((((across_f + one)).pdiv(cols_f) + shift_x) * width - one) as i32;
+            let u1 = ps2float::sub(ps2float::mul(ps2float::add((ps2float::add(across_f, one)).pdiv(cols_f), shift_x), width), one) as i32;
             let br_x1 = lwc1(bottom_right + 4);
             let br_x2 = lwc1(bottom_right + 12);
-            swc1(sp + 2604, f32::from_bits((tr_x * sixteen) as i32 as u32));
+            swc1(sp + 2604, f32::from_bits(ps2float::mul(tr_x, sixteen) as i32 as u32));
             sw(sp + 2612, u1);
-            swc1(sp + 2608, f32::from_bits((tr_y * sixteen) as i32 as u32));
+            swc1(sp + 2608, f32::from_bits(ps2float::mul(tr_y, sixteen) as i32 as u32));
             sw(sp + 2620, lw(bottom_right));
-            swc1(sp + 2624, f32::from_bits(((br_x1 + br_x2) * sixteen) as i32 as u32));
+            swc1(sp + 2624, f32::from_bits(ps2float::mul(ps2float::add(br_x1, br_x2), sixteen) as i32 as u32));
             let br_y2 = lwc1(bottom_right + 16);
             let br_y1 = lwc1(bottom_right + 8);
             sw(sp + 2632, u1);
             sw(sp + 2636, v1);
             sq(sp + 2656, below as u128);
-            swc1(sp + 2628, f32::from_bits(((br_y1 + br_y2) * sixteen) as i32 as u32));
+            swc1(sp + 2628, f32::from_bits(ps2float::mul(ps2float::add(br_y1, br_y2), sixteen) as i32 as u32));
             let packet = memdbAlloc(224);
             sb(lw(g::gfxtag) + 3, 48);
             sw(packet, 0x6c0d8000);

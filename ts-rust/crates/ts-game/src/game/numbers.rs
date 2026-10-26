@@ -4,11 +4,11 @@ use crate::*;
 
 /// The shortest turn from angle `from` to angle `to`, in degrees: the difference wrapped into -180 to 180 (@ 0x284e38).
 pub fn anglediff(from: f32, to: f32) -> f32 {
-    let d = to - from;
+    let d = ps2float::sub(to, from);
     if d < -180.0 {
-        d + 360.0
+        ps2float::add(d, 360.0)
     } else if 180.0 < d {
-        d - 360.0
+        ps2float::sub(d, 360.0)
     } else {
         d
     }
@@ -84,14 +84,14 @@ pub fn getNote(period: i32) -> i32 {
 /// is stretched so that it starts at 0 and still reaches 1.
 pub fn joyFixVal(raw: i32, dead: f32) -> f32 {
     let off = raw - 128;
-    let v = if raw >= 128 { (off as f32).pdiv(127.0) } else { off as f32 * 0.0078125 };
+    let v = if raw >= 128 { (off as f32).pdiv(127.0) } else { ps2float::mul(off as f32, 0.0078125) };
     if !(0.0 < dead) {
         return v;
     }
     if v < -dead {
-        ((v + dead)).pdiv((1.0 - dead))
+        (ps2float::add(v, dead)).pdiv(ps2float::sub(1.0, dead))
     } else if dead < v {
-        ((v - dead)).pdiv((1.0 - dead))
+        (ps2float::sub(v, dead)).pdiv(ps2float::sub(1.0, dead))
     } else {
         0.0
     }

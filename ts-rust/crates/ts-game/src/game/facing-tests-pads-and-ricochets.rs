@@ -8,19 +8,19 @@ pub fn checkSide(chr: i32, pos: i32, threshold: f32) -> i32 {
     let frame = Frame::new(160);
     let sp = frame.sp();
     let z = lwc1(pos + 8);
-    let angle = (lwc1(chr + 80) * lwc1(0x3ad98c)).pdiv(180.0_f32);
-    let dx = lwc1(pos) - lwc1(chr + 48);
+    let angle = ps2float::mul(lwc1(chr + 80), lwc1(0x3ad98c)).pdiv(180.0_f32);
+    let dx = ps2float::sub(lwc1(pos), lwc1(chr + 48));
     let chr_z = lwc1(chr + 56);
-    let dy = lwc1(pos + 4) - lwc1(chr + 52);
+    let dy = ps2float::sub(lwc1(pos + 4), lwc1(chr + 52));
     swc1(sp, dx);
     swc1(sp + 4, dy);
-    swc1(sp + 8, z - chr_z);
+    swc1(sp + 8, ps2float::sub(z, chr_z));
     let tail = lw(0x3a9e60 + 8);
     sd(sp + 16, ld(0x3a9e60));
     sw(sp + 24, tail);
     matrixRotY(sp + 32, angle);
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
-    if threshold < lwc1(sp) * lwc1(sp + 16) + lwc1(sp + 4) * lwc1(sp + 20) + lwc1(sp + 8) * lwc1(sp + 24) {
+    if threshold < ps2float::add(ps2float::add(ps2float::mul(lwc1(sp), lwc1(sp + 16)), ps2float::mul(lwc1(sp + 4), lwc1(sp + 20))), ps2float::mul(lwc1(sp + 8), lwc1(sp + 24))) {
         1
     } else {
         0
@@ -31,27 +31,27 @@ pub fn checkSide(chr: i32, pos: i32, threshold: f32) -> i32 {
 pub fn checkInFront(chr: i32, pos: i32, threshold: f32) -> i32 {
     let frame = Frame::new(176);
     let sp = frame.sp();
-    let dx = lwc1(pos) - lwc1(chr + 48);
+    let dx = ps2float::sub(lwc1(pos), lwc1(chr + 48));
     let chr_z = lwc1(chr + 56);
     let pos_z = lwc1(pos + 8);
-    let dy = lwc1(pos + 4) - lwc1(chr + 52);
+    let dy = ps2float::sub(lwc1(pos + 4), lwc1(chr + 52));
     let tail = lw(0x3a9d38);
     sd(sp + 16, ld(0x3a9d30));
     sw(sp + 24, tail);
-    let dz = pos_z - chr_z;
+    let dz = ps2float::sub(pos_z, chr_z);
     swc1(sp, dx);
     swc1(sp + 4, dy);
     swc1(sp + 8, dz);
-    let inv = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
-    let angle = (lwc1(chr + 80) * lwc1(0x3ad980)).pdiv(180.0_f32);
-    let nx = lwc1(sp) * inv;
-    let ny = lwc1(sp + 4) * inv;
-    swc1(sp + 8, lwc1(sp + 8) * inv);
+    let inv = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
+    let angle = ps2float::mul(lwc1(chr + 80), lwc1(0x3ad980)).pdiv(180.0_f32);
+    let nx = ps2float::mul(lwc1(sp), inv);
+    let ny = ps2float::mul(lwc1(sp + 4), inv);
+    swc1(sp + 8, ps2float::mul(lwc1(sp + 8), inv));
     swc1(sp, nx);
     swc1(sp + 4, ny);
     matrixRotY(sp + 32, angle);
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
-    if threshold < lwc1(sp) * lwc1(sp + 16) + lwc1(sp + 4) * lwc1(sp + 20) + lwc1(sp + 8) * lwc1(sp + 24) {
+    if threshold < ps2float::add(ps2float::add(ps2float::mul(lwc1(sp), lwc1(sp + 16)), ps2float::mul(lwc1(sp + 4), lwc1(sp + 20))), ps2float::mul(lwc1(sp + 8), lwc1(sp + 24))) {
         1
     } else {
         0
@@ -62,29 +62,29 @@ pub fn checkInFront(chr: i32, pos: i32, threshold: f32) -> i32 {
 pub fn checkAimingFront(chr: i32, other: i32, threshold: f32) -> i32 {
     let frame = Frame::new(176);
     let sp = frame.sp();
-    let dx = lwc1(chr + 48) - lwc1(other + 48);
+    let dx = ps2float::sub(lwc1(chr + 48), lwc1(other + 48));
     let other_z = lwc1(other + 56);
     let chr_z = lwc1(chr + 56);
-    let dy = lwc1(chr + 52) - lwc1(other + 52);
+    let dy = ps2float::sub(lwc1(chr + 52), lwc1(other + 52));
     let tail = lw(0x3a9d38);
     sd(sp + 16, ld(0x3a9d30));
     sw(sp + 24, tail);
-    let dz = chr_z - other_z;
+    let dz = ps2float::sub(chr_z, other_z);
     swc1(sp, dx);
     swc1(sp + 4, dy);
     swc1(sp + 8, dz);
-    let inv = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+    let inv = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
     let state = lw(other + 352);
     let scale = lwc1(0x3ad988);
-    let nx = lwc1(sp) * inv;
-    let ny = lwc1(sp + 4) * inv;
-    swc1(sp + 8, lwc1(sp + 8) * inv);
+    let nx = ps2float::mul(lwc1(sp), inv);
+    let ny = ps2float::mul(lwc1(sp + 4), inv);
+    swc1(sp + 8, ps2float::mul(lwc1(sp + 8), inv));
     swc1(sp, nx);
     swc1(sp + 4, ny);
-    let angle = (lwc1(state + 2972) * scale).pdiv(180.0_f32);
+    let angle = ps2float::mul(lwc1(state + 2972), scale).pdiv(180.0_f32);
     matrixRotY(sp + 32, angle);
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
-    if threshold < lwc1(sp) * lwc1(sp + 16) + lwc1(sp + 4) * lwc1(sp + 20) + lwc1(sp + 8) * lwc1(sp + 24) {
+    if threshold < ps2float::add(ps2float::add(ps2float::mul(lwc1(sp), lwc1(sp + 16)), ps2float::mul(lwc1(sp + 4), lwc1(sp + 20))), ps2float::mul(lwc1(sp + 8), lwc1(sp + 24))) {
         1
     } else {
         0
@@ -101,24 +101,24 @@ pub fn checkInFrontOfPad(pad: i32, pos: i32, threshold: f32) -> i32 {
     sw(sp + 24, tail);
     let record = pad * 28 + pads;
     let y = lwc1(pos + 4);
-    let dx = lwc1(pos) - lwc1(record + 12);
+    let dx = ps2float::sub(lwc1(pos), lwc1(record + 12));
     let z = lwc1(pos + 8);
     swc1(sp, dx);
-    let dy = y - lwc1(record + 16);
+    let dy = ps2float::sub(y, lwc1(record + 16));
     swc1(sp + 4, dy);
-    let dz = z - lwc1(record + 20);
+    let dz = ps2float::sub(z, lwc1(record + 20));
     swc1(sp + 8, dz);
-    let inv = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+    let inv = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
     let scale = lwc1(0x3ad984);
-    let nx = lwc1(sp) * inv;
-    let ny = lwc1(sp + 4) * inv;
-    swc1(sp + 8, lwc1(sp + 8) * inv);
+    let nx = ps2float::mul(lwc1(sp), inv);
+    let ny = ps2float::mul(lwc1(sp + 4), inv);
+    swc1(sp + 8, ps2float::mul(lwc1(sp + 8), inv));
     swc1(sp, nx);
     swc1(sp + 4, ny);
-    let angle = (lwc1(pad * 28 + pads + 24) * scale).pdiv(180.0_f32);
+    let angle = ps2float::mul(lwc1(pad * 28 + pads + 24), scale).pdiv(180.0_f32);
     matrixRotY(sp + 32, angle);
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
-    if threshold < lwc1(sp) * lwc1(sp + 16) + lwc1(sp + 4) * lwc1(sp + 20) + lwc1(sp + 8) * lwc1(sp + 24) {
+    if threshold < ps2float::add(ps2float::add(ps2float::mul(lwc1(sp), lwc1(sp + 16)), ps2float::mul(lwc1(sp + 4), lwc1(sp + 20))), ps2float::mul(lwc1(sp + 8), lwc1(sp + 24))) {
         1
     } else {
         0

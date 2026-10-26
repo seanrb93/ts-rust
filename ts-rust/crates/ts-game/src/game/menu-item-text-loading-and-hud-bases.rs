@@ -131,7 +131,7 @@ pub fn hudBaseGfx() {
         let base = enemyGetBase(index);
         let bar_top = y + 9;
         let text = lw(lw((lw(g::cur_language) << 2) + g::languages) + 3236);
-        let lost = 128 - (lwc1(base + 532) * 128.0_f32) as i32;
+        let lost = 128 - ps2float::mul(lwc1(base + 532), 128.0_f32) as i32;
         let positive = (-1 < lost * 50) as i32;
         let label = vafmt(&[0x3afba0, text as i64, next as i64, positive as i64]);
         let colour = lw(lw(lw(lw(g::currentplayer) + 384) + 352) + 20);
@@ -159,7 +159,7 @@ pub fn specialfxBlastShardTick(group: i32) {
         let record = groups + group * 92;
         let time_at = group * 92 + times;
         let time = lwc1(time_at);
-        swc1(sp, lwc1(record + 12) + lwc1(record + 80) * time);
+        swc1(sp, ps2float::add(lwc1(record + 12), ps2float::mul(lwc1(record + 80), time)));
         let wide = fptodp(time);
         let turned = dpadd(dpmul(dpmul(wide, ld(0x3a9728)), ld(0x3a9730)), 0x3fe0000000000000_i64);
         let index = dptoli(turned);
@@ -167,11 +167,11 @@ pub fn specialfxBlastShardTick(group: i32) {
         let speed_z = lwc1(record + 88);
         let base_z = lwc1(record + 20);
         let particles = lw(slot);
-        swc1(sp + 4, lwc1(group * 92 + (groups + 16)) + lwc1(group * 92 + (groups + 84)) * lwc1(((index & 2047) << 2) + g::g_SinTable));
-        swc1(sp + 8, base_z + speed_z * lwc1(time_at));
+        swc1(sp + 4, ps2float::add(lwc1(group * 92 + (groups + 16)), ps2float::mul(lwc1(group * 92 + (groups + 84)), lwc1(((index & 2047) << 2) + g::g_SinTable))));
+        swc1(sp + 8, ps2float::add(base_z, ps2float::mul(speed_z, lwc1(time_at))));
         particleUpdatePos(particles, sp);
         let particles = lw(slot);
-        particleUpdateRate(particles, (1.0_f32 - lwc1(time_at)) * 6e+01_f32);
+        particleUpdateRate(particles, ps2float::mul(ps2float::sub(1.0_f32, lwc1(time_at)), 6e+01_f32));
     }
     if 2.0_f32 < lwc1(group * 92 + times) {
         specialfxFree(group);

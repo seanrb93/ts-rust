@@ -18,23 +18,23 @@ pub fn spaceship1PropTick(prop: i32) {
     let k3 = lwc1(0x3acf34);
     let model = lw(lw(prop + 32));
     let k2 = lwc1(0x3acf38);
-    let y_at = (((time * lwc1(0x3acf2c) * k + half) as i32 & 2047) << 2) + table;
+    let y_at = ((ps2float::add(ps2float::mul(ps2float::mul(time, lwc1(0x3acf2c)), k), half) as i32 & 2047) << 2) + table;
     let base_y = lwc1(prop + 40);
     let bones = model - lw(model) * 80;
-    let later = ((now - lw(g::updateframesi)) as f32 * k3 * k + half) as i32;
+    let later = ps2float::add(ps2float::mul(ps2float::mul((now - lw(g::updateframesi)) as f32, k3), k), half) as i32;
     let base_z = lwc1(prop + 44);
-    swc1(prop + 48, lwc1(prop + 36) + lwc1((((time * lwc1(0x3acf24) * k + half) as i32 & 2047) << 2) + table) * lwc1(0x3acf30) * lwc1(state + 32));
-    let z_at = (((time * k3 * k + half) as i32 & 2047) << 2) + table;
-    swc1(prop + 52, base_y + lwc1(y_at) * k2 * lwc1(state + 32));
-    swc1(prop + 56, base_z + lwc1(z_at) * 1.5_f32 * lwc1(state + 32));
+    swc1(prop + 48, ps2float::add(lwc1(prop + 36), ps2float::mul(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(time, lwc1(0x3acf24)), k), half) as i32 & 2047) << 2) + table), lwc1(0x3acf30)), lwc1(state + 32))));
+    let z_at = ((ps2float::add(ps2float::mul(ps2float::mul(time, k3), k), half) as i32 & 2047) << 2) + table;
+    swc1(prop + 52, ps2float::add(base_y, ps2float::mul(ps2float::mul(lwc1(y_at), k2), lwc1(state + 32))));
+    swc1(prop + 56, ps2float::add(base_z, ps2float::mul(ps2float::mul(lwc1(z_at), 1.5_f32), lwc1(state + 32))));
     let glow = lwc1(z_at);
     swc1(prop + 88, glow);
     let next = lwc1(((later & 2047) << 2) + table);
     if glow <= 0.0_f32 && 0.0_f32 < next {
-        swc1(state + 32, random_as_float() * 2.3283064e-10_f32);
+        swc1(state + 32, ps2float::mul(random_as_float(), 2.3283064e-10_f32));
     }
     let amount = lwc1(state + 32);
-    swc1(prop + 88, lwc1(prop + 88) * amount);
+    swc1(prop + 88, ps2float::mul(lwc1(prop + 88), amount));
     allocateOverrideChunk(prop, 0, 1, 2);
     let out = getOverrideChunk(prop, 0, 1, 2, sp);
     if out != 0 {
@@ -46,7 +46,7 @@ pub fn spaceship1PropTick(prop: i32) {
             let tick = lw(g::gameframe);
             loop {
                 i += 1;
-                swc1(at, lwc1(source) + lwc1((((tick as f32 * lwc1(0x3acf3c) * lwc1(0x3acf40) + half) as i32 & 2047) << 2) + g::g_SinTable));
+                swc1(at, ps2float::add(lwc1(source), lwc1(((ps2float::add(ps2float::mul(ps2float::mul(tick as f32, lwc1(0x3acf3c)), lwc1(0x3acf40)), half) as i32 & 2047) << 2) + g::g_SinTable)));
                 swc1(at + 4, lwc1(source + 4));
                 swc1(at + 8, lwc1(source + 8));
                 let w = lwc1(source + 12);
@@ -80,17 +80,17 @@ pub fn reflectionsPropTick(prop: i32) {
                 let table = g::g_SinTable;
                 let eight = 8.0_f32;
                 i += 1;
-                let time = tick as f32 * lwc1(0x3ace98);
+                let time = ps2float::mul(tick as f32, lwc1(0x3ace98));
                 let k = lwc1(0x3acea0);
                 let half = 0.5_f32;
                 let k_z = lwc1(0x3aceac);
-                let time_z = time * lwc1(0x3acea8);
-                swc1(at, lwc1(source) + lwc1(((((lwc1(source + 4) * eight + time * lwc1(0x3ace9c)) * k + half) as i32 & 2047) << 2) + table) * lwc1(0x3acea4));
+                let time_z = ps2float::mul(time, lwc1(0x3acea8));
+                swc1(at, ps2float::add(lwc1(source), ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::add(ps2float::mul(lwc1(source + 4), eight), ps2float::mul(time, lwc1(0x3ace9c))), k), half) as i32 & 2047) << 2) + table), lwc1(0x3acea4))));
                 swc1(at + 4, lwc1(source + 4));
                 let z = lwc1(source + 8);
-                let y8 = lwc1(source + 4) * eight;
+                let y8 = ps2float::mul(lwc1(source + 4), eight);
                 source += 12;
-                swc1(at + 8, z + lwc1(((((y8 + time_z) * k + half) as i32 & 2047) << 2) + table) * k_z);
+                swc1(at + 8, ps2float::add(z, ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::add(y8, time_z), k), half) as i32 & 2047) << 2) + table), k_z)));
                 at += 12;
                 if i >= count {
                     break;

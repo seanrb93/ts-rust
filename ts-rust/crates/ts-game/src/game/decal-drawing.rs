@@ -19,16 +19,16 @@ pub fn decalDraw(decal: i32, alpha: f32) {
     let count;
     if object != 0 && lw(decal + 212) >= 0 {
         if lw(object + 140) != 2 {
-            let turn = (lwc1(object + 76) * lwc1(0x3ad604)).pdiv(1.8e+02_f32);
+            let turn = ps2float::mul(lwc1(object + 76), lwc1(0x3ad604)).pdiv(1.8e+02_f32);
             matrixTransRotY(sp + 224, lwc1(object + 48), lwc1(object + 52), lwc1(object + 56), turn);
         } else {
             let radians = lwc1(0x3ad600);
             let half_turn = 1.8e+02_f32;
             let z = lwc1(object + 56);
-            let a = (lwc1(object + 72) * radians).pdiv(half_turn);
+            let a = ps2float::mul(lwc1(object + 72), radians).pdiv(half_turn);
             let x = lwc1(object + 48);
-            let b = (lwc1(object + 76) * radians).pdiv(half_turn);
-            let c = (lwc1(object + 88) * radians).pdiv(half_turn);
+            let b = ps2float::mul(lwc1(object + 76), radians).pdiv(half_turn);
+            let c = ps2float::mul(lwc1(object + 88), radians).pdiv(half_turn);
             let y = lwc1(object + 52);
             matrixTransRotZXY(sp + 224, x, y, z, a, b, c);
         }
@@ -115,12 +115,12 @@ pub fn decalDraw(decal: i32, alpha: f32) {
             let depth_scale = lwc1(0x3ad608);
             swc1(q_at, inverse);
             let scale = lwc1(0x3ad60c);
-            swc1(a2, centre_x + across * lwc1(a2) * inverse);
-            swc1(y_at, centre_y + down * lwc1(y_at) * lwc1(q_at));
-            swc1(z_at, (lwc1(z_at) * depth_scale * lwc1(q_at) + 32768.0_f32) * scale);
+            swc1(a2, ps2float::add(centre_x, ps2float::mul(ps2float::mul(across, lwc1(a2)), inverse)));
+            swc1(y_at, ps2float::add(centre_y, ps2float::mul(ps2float::mul(down, lwc1(y_at)), lwc1(q_at))));
+            swc1(z_at, ps2float::mul(ps2float::add(ps2float::mul(ps2float::mul(lwc1(z_at), depth_scale), lwc1(q_at)), 32768.0_f32), scale));
             let mut next = i + 1;
             if i == 1 {
-                let dx = lwc1(sp) - lwc1(sp + 16);
+                let dx = ps2float::sub(lwc1(sp), lwc1(sp + 16));
                 let mut check_y = true;
                 let y0;
                 if !(0.0_f32 <= dx) {
@@ -135,7 +135,7 @@ pub fn decalDraw(decal: i32, alpha: f32) {
                     }
                 }
                 if check_y {
-                    let dy = y0 - lwc1(sp + 20);
+                    let dy = ps2float::sub(y0, lwc1(sp + 20));
                     if !(0.0_f32 <= dy) {
                         if -dy <= one {
                             skip = 1;
@@ -159,7 +159,7 @@ pub fn decalDraw(decal: i32, alpha: f32) {
         return;
     }
     let mut i = 0;
-    let colour = lw(decal + 228) | ((alpha * 127.0_f32 * lwc1(decal + 220)) as i32) << 24;
+    let colour = lw(decal + 228) | (ps2float::mul(ps2float::mul(alpha, 127.0_f32), lwc1(decal + 220)) as i32) << 24;
     dlSelectTextureKick(lw(decal + 204));
     let n = lw(decal + 200);
     let packet = memdbAlloc(((n << 1) + n + 2) << 4);
@@ -197,19 +197,19 @@ pub fn decalDraw(decal: i32, alpha: f32) {
             sw(put, 0);
             put += 4;
             let sixteen = 16.0_f32;
-            swc1(put, u * q);
+            swc1(put, ps2float::mul(u, q));
             put += 4;
             i += 1;
-            swc1(put, lwc1(decal + 132 + by_eight) * lwc1(q_at));
+            swc1(put, ps2float::mul(lwc1(decal + 132 + by_eight), lwc1(q_at)));
             put += 4;
             let y = lwc1(sp + 4 + by_sixteen);
-            let x = lwc1(sp + by_sixteen) * sixteen;
+            let x = ps2float::mul(lwc1(sp + by_sixteen), sixteen);
             sw(put, 2);
             put += 4;
             sw(put, 0);
             put += 4;
             let z = lwc1(sp + 8 + by_sixteen);
-            sw(put, (x as i32 + 0x6c00 & 0xffff) | (((y * sixteen) as i32 + 0x7900) << 16));
+            sw(put, (x as i32 + 0x6c00 & 0xffff) | ((ps2float::mul(y, sixteen) as i32 + 0x7900) << 16));
             put += 4;
             swc1(put, f32::from_bits(z as i32 as u32));
             put += 4;

@@ -485,7 +485,7 @@ pub fn challengeTick() {
                         }
                     }
                     if let Some(float) = scaled {
-                        value = (float * 65536.0_f32) as i32;
+                        value = ps2float::mul(float, 65536.0_f32) as i32;
                     }
                     let compare = lw(entry + 12);
                     if (compare as u32) < (5 as u32) {
@@ -658,25 +658,25 @@ pub fn updateData(a0: i32) {
                 if kind == 0 {
                     let turn = 3.6e+02_f32;
                     let half = 1.8e+02_f32;
-                    let mut value = turn - lwc1(step + 24) + lwc1(state + 72) + half;
+                    let mut value = ps2float::add(ps2float::add(ps2float::sub(turn, lwc1(step + 24)), lwc1(state + 72)), half);
                     if turn <= value {
-                        value = value - turn;
+                        value = ps2float::sub(value, turn);
                     }
-                    angle = (value * lwc1(0x3ace04)).pdiv(half);
+                    angle = ps2float::mul(value, lwc1(0x3ace04)).pdiv(half);
                 } else {
                     let turn = 3.6e+02_f32;
-                    let mut value = turn - lwc1(step + 24) + lwc1(state + 72);
+                    let mut value = ps2float::add(ps2float::sub(turn, lwc1(step + 24)), lwc1(state + 72));
                     if turn <= value {
-                        value = value - turn;
+                        value = ps2float::sub(value, turn);
                     }
-                    angle = (value * lwc1(0x3ace08)).pdiv(1.8e+02_f32);
+                    angle = ps2float::mul(value, lwc1(0x3ace08)).pdiv(1.8e+02_f32);
                 }
                 let sine = sinf(angle);
                 let current = lw(state + 12);
-                swc1(state + 28, lwc1(a0 + 48) + lwc1(step + 20) * sine);
+                swc1(state + 28, ps2float::add(lwc1(a0 + 48), ps2float::mul(lwc1(step + 20), sine)));
                 swc1(state + 32, lwc1(a0 + 52));
                 let cosine = cosf(angle);
-                swc1(state + 36, lwc1(a0 + 56) + lwc1(current + 20) * cosine);
+                swc1(state + 36, ps2float::add(lwc1(a0 + 56), ps2float::mul(lwc1(current + 20), cosine)));
                 return;
             }
             2 => {

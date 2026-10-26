@@ -11,20 +11,20 @@ fn turn_with_root(a0: i32, anim: i32, last: i32, half: f32, add: bool) {
         return;
     }
     let from = lwc1(a0 + last);
-    let to = (time).pdiv(half) * 9e+01_f32;
+    let to = ps2float::mul((time).pdiv(half), 9e+01_f32);
     let difference = anglediff(from, to);
     let owner = lw(a0 + 244);
     if add {
-        let heading = lwc1(owner + 84) + difference;
+        let heading = ps2float::add(lwc1(owner + 84), difference);
         swc1(owner + 84, heading);
         if 3.6e+02_f32 < heading {
-            swc1(owner + 84, heading - 3.6e+02_f32);
+            swc1(owner + 84, ps2float::sub(heading, 3.6e+02_f32));
         }
     } else {
-        let heading = lwc1(owner + 84) - difference;
+        let heading = ps2float::sub(lwc1(owner + 84), difference);
         swc1(owner + 84, heading);
         if heading < 0.0_f32 {
-            swc1(owner + 84, heading + 3.6e+02_f32);
+            swc1(owner + 84, ps2float::add(heading, 3.6e+02_f32));
         }
     }
     swc1(a0 + last, to);
@@ -35,7 +35,7 @@ fn turn_with_root(a0: i32, anim: i32, last: i32, half: f32, add: bool) {
 fn key_frame_fraction(anim: i32, time: f32, from: i32, to: i32) -> f32 {
     let times = lw(anim + 20);
     let a = (lw((from << 2) + times) as f32).pdiv(6e+01_f32);
-    ((time - a)).pdiv(((lw((to << 2) + times) as f32).pdiv(6e+01_f32) - a))
+    (ps2float::sub(time, a)).pdiv(ps2float::sub((lw((to << 2) + times) as f32).pdiv(6e+01_f32), a))
 }
 
 /// Calculate the matrices of the bones of the animated character `a0` (@ 0x212e08): move the time of its two animations (the second one blends in while it changes from
@@ -52,7 +52,7 @@ pub fn calMatrices(a0: i32) {
     let blend_length = lwc1(a0 + 224);
     let s2_1 = a0 + 160;
     if 0.0_f32 < blend_length {
-        let blend_time = lwc1(a0 + 232) + (lwc1(g::updateframesf)).pdiv(6e+01_f32);
+        let blend_time = ps2float::add(lwc1(a0 + 232), (lwc1(g::updateframesf)).pdiv(6e+01_f32));
         let blend = (blend_time).pdiv(blend_length);
         swc1(a0 + 232, blend_time);
         swc1(a0 + 228, blend);
@@ -104,11 +104,11 @@ pub fn calMatrices(a0: i32) {
         } else {
             let f1_2;
             'b5: {
-                let f0_4 = f0_3 * lwc1(s0_1 + 44);
+                let f0_4 = ps2float::mul(f0_3, lwc1(s0_1 + 44));
                 let f3_2 = lwc1(s0_1 + 4);
                 sw(s0_1 + 56, 0);
                 let v0_1 = lw(s7_1 + 12) & 1;
-                let f3_3 = f3_2 + (f0_4).pdiv(6e+01_f32);
+                let f3_3 = ps2float::add(f3_2, (f0_4).pdiv(6e+01_f32));
                 swc1(s0_1 + 4, f3_3);
                 if v0_1 == 0 {
                     if !(f21_1 < f3_3) {
@@ -124,7 +124,7 @@ pub fn calMatrices(a0: i32) {
                         loop {
                             let f0_5 = lwc1(s0_1 + 4);
                             sw(s0_1 + 56, 1);
-                            let f0_6 = f0_5 - f21_1;
+                            let f0_6 = ps2float::sub(f0_5, f21_1);
                             swc1(s0_1 + 4, f0_6);
                             if !(f21_1 < f0_6) {
                                 break;
@@ -144,7 +144,7 @@ pub fn calMatrices(a0: i32) {
                 let mut f1 = f1_2;
                 let mut f0_7;
                 loop {
-                    f0_7 = f1 + f21_1;
+                    f0_7 = ps2float::add(f1, f21_1);
                     f1 = f0_7;
                     if !(f0_7 < 0.0_f32) {
                         break;
@@ -162,9 +162,9 @@ pub fn calMatrices(a0: i32) {
             }
             extractAnimData(a0, s7_1, 0, lw(s7_1 + 4) - 1, sp + 240, f22_1);
             extractAnimData(a0, s7_1, 0, 0, sp + 272, f22_1);
-            let f1_3 = lwc1(sp + 276) + lwc1(s0_1 + 24) - lwc1(sp + 244);
-            let f2_3 = lwc1(sp + 280) + lwc1(s0_1 + 28) - lwc1(sp + 248);
-            swc1(s0_1 + 20, lwc1(sp + 272) + lwc1(s0_1 + 20) - lwc1(sp + 240));
+            let f1_3 = ps2float::sub(ps2float::add(lwc1(sp + 276), lwc1(s0_1 + 24)), lwc1(sp + 244));
+            let f2_3 = ps2float::sub(ps2float::add(lwc1(sp + 280), lwc1(s0_1 + 28)), lwc1(sp + 248));
+            swc1(s0_1 + 20, ps2float::sub(ps2float::add(lwc1(sp + 272), lwc1(s0_1 + 20)), lwc1(sp + 240)));
             swc1(s0_1 + 24, f1_3);
             swc1(s0_1 + 28, f2_3);
         }
@@ -179,10 +179,10 @@ pub fn calMatrices(a0: i32) {
         if 0.0_f32 < f20_1 {
             let mut f1_4;
             'b14: {
-                let f0_10 = f0_9 * lwc1(s2_1 + 44);
+                let f0_10 = ps2float::mul(f0_9, lwc1(s2_1 + 44));
                 sw(s2_1 + 56, 0);
                 let v0_4 = lw(lw(sp + 528) + 12) & 1;
-                let f3_4 = lwc1(s2_1 + 4) + (f0_10).pdiv(6e+01_f32);
+                let f3_4 = ps2float::add(lwc1(s2_1 + 4), (f0_10).pdiv(6e+01_f32));
                 swc1(s2_1 + 4, f3_4);
                 if v0_4 == 0 {
                     if f20_1 < f3_4 {
@@ -193,7 +193,7 @@ pub fn calMatrices(a0: i32) {
                     loop {
                         let f0_11 = lwc1(s2_1 + 4);
                         sw(s2_1 + 56, 1);
-                        let f0_12 = f0_11 - f20_1;
+                        let f0_12 = ps2float::sub(f0_11, f20_1);
                         swc1(s2_1 + 4, f0_12);
                         if !(f20_1 < f0_12) {
                             break;
@@ -210,7 +210,7 @@ pub fn calMatrices(a0: i32) {
             } else {
                 let mut f0_13;
                 loop {
-                    f0_13 = f1_4 + f20_1;
+                    f0_13 = ps2float::add(f1_4, f20_1);
                     f1_4 = f0_13;
                     if !(f0_13 < 0.0_f32) {
                         break;
@@ -228,9 +228,9 @@ pub fn calMatrices(a0: i32) {
                     let f4_3 = lwc1(sp + 272);
                     let f5_2 = lwc1(sp + 276);
                     let f3_5 = lwc1(sp + 280);
-                    let f2_4 = f5_2 + lwc1(s2_1 + 24) - f5_2;
-                    let f0_14 = f3_5 + lwc1(s2_1 + 28) - f3_5;
-                    swc1(s2_1 + 20, f4_3 + lwc1(s2_1 + 20) - f4_3);
+                    let f2_4 = ps2float::sub(ps2float::add(f5_2, lwc1(s2_1 + 24)), f5_2);
+                    let f0_14 = ps2float::sub(ps2float::add(f3_5, lwc1(s2_1 + 28)), f3_5);
+                    swc1(s2_1 + 20, ps2float::sub(ps2float::add(f4_3, lwc1(s2_1 + 20)), f4_3));
                     swc1(s2_1 + 24, f2_4);
                     swc1(s2_1 + 28, f0_14);
                 }
@@ -350,42 +350,42 @@ pub fn calMatrices(a0: i32) {
                     if s3_2 != 0 {
                         let f4_10 = lwc1(sp + 116);
                         let f5_8 = lwc1(sp + 120);
-                        let f0_19 = lwc1(sp + 152) - f5_8;
-                        let f11_5 = f4_10 + (lwc1(sp + 148) - f4_10) * f20_3;
-                        swc1(s0_5 + lw(a0 + 4) + 48, f3_12 + (lwc1(sp + 144) - f3_12) * f20_3);
+                        let f0_19 = ps2float::sub(lwc1(sp + 152), f5_8);
+                        let f11_5 = ps2float::add(f4_10, ps2float::mul(ps2float::sub(lwc1(sp + 148), f4_10), f20_3));
+                        swc1(s0_5 + lw(a0 + 4) + 48, ps2float::add(f3_12, ps2float::mul(ps2float::sub(lwc1(sp + 144), f3_12), f20_3)));
                         swc1(s0_5 + lw(a0 + 4) + 52, f11_5);
-                        swc1(s0_5 + lw(a0 + 4) + 56, f5_8 + f0_19 * f20_3);
+                        swc1(s0_5 + lw(a0 + 4) + 56, ps2float::add(f5_8, ps2float::mul(f0_19, f20_3)));
                     } else {
                         let f2_10 = lwc1(sp + 116);
                         if (lw(s7_1 + 12) & 2) == 0 {
                             let f3_14 = lwc1(sp + 116);
                             let f4_9 = lwc1(sp + 180);
-                            let f1_9 = lwc1(sp + 212) - f4_9;
-                            let f0_18 = (lwc1(sp + 148) - f3_14) * f20_3;
+                            let f1_9 = ps2float::sub(lwc1(sp + 212), f4_9);
+                            let f0_18 = ps2float::mul(ps2float::sub(lwc1(sp + 148), f3_14), f20_3);
                             sw(s0_5 + lw(a0 + 4) + 48, 0);
-                            let f11_4 = f3_14 + f0_18;
-                            swc1(s0_5 + lw(a0 + 4) + 52, f11_4 + (f4_9 + f1_9 * f21_2 - f11_4) * lwc1(a0 + 228));
+                            let f11_4 = ps2float::add(f3_14, f0_18);
+                            swc1(s0_5 + lw(a0 + 4) + 52, ps2float::add(f11_4, ps2float::mul(ps2float::sub(ps2float::add(f4_9, ps2float::mul(f1_9, f21_2)), f11_4), lwc1(a0 + 228))));
                             sw(s0_5 + lw(a0 + 4) + 56, 0);
                         } else {
                             let f9_3 = lwc1(sp + 180);
                             let f8_3 = lwc1(sp + 112);
                             let f6_4 = lwc1(sp + 176);
                             let f10_3 = lwc1(sp + 120);
-                            let f11_3 = f2_10 + (lwc1(sp + 148) - f2_10) * f20_3;
-                            let f5_7 = lwc1(sp + 144) - f8_3;
+                            let f11_3 = ps2float::add(f2_10, ps2float::mul(ps2float::sub(lwc1(sp + 148), f2_10), f20_3));
+                            let f5_7 = ps2float::sub(lwc1(sp + 144), f8_3);
                             let f7_3 = lwc1(sp + 184);
-                            let f0_17 = f9_3 + (lwc1(sp + 212) - f9_3) * f21_2;
+                            let f0_17 = ps2float::add(f9_3, ps2float::mul(ps2float::sub(lwc1(sp + 212), f9_3), f21_2));
                             let f2_11 = lwc1(sp + 216);
-                            let f4_8 = lwc1(sp + 208) - f6_4;
+                            let f4_8 = ps2float::sub(lwc1(sp + 208), f6_4);
                             let f1_8 = lwc1(a0 + 228);
-                            let f3_13 = lwc1(sp + 152) - f10_3;
+                            let f3_13 = ps2float::sub(lwc1(sp + 152), f10_3);
                             let v0_9 = lw(a0 + 4);
                             swc1(a0 + 172, f0_17);
-                            swc1(a0 + 112, f10_3 + f3_13 * f20_3);
-                            swc1(a0 + 108, f11_3 + (f0_17 - f11_3) * f1_8);
-                            swc1(a0 + 176, f7_3 + (f2_11 - f7_3) * f21_2);
-                            swc1(a0 + 104, -(f8_3 + f5_7 * f20_3));
-                            swc1(a0 + 168, -(f6_4 + f4_8 * f21_2));
+                            swc1(a0 + 112, ps2float::add(f10_3, ps2float::mul(f3_13, f20_3)));
+                            swc1(a0 + 108, ps2float::add(f11_3, ps2float::mul(ps2float::sub(f0_17, f11_3), f1_8)));
+                            swc1(a0 + 176, ps2float::add(f7_3, ps2float::mul(ps2float::sub(f2_11, f7_3), f21_2)));
+                            swc1(a0 + 104, -ps2float::add(f8_3, ps2float::mul(f5_7, f20_3)));
+                            swc1(a0 + 168, -ps2float::add(f6_4, ps2float::mul(f4_8, f21_2)));
                             sw(v0_9 + 48, 0);
                             swc1(lw(a0 + 4) + 52, lwc1(a0 + 108));
                             sw(lw(a0 + 4) + 56, 0);
@@ -444,14 +444,14 @@ pub fn calMatrices(a0: i32) {
                     if (lw(s7_1 + 12) & 2) == 0 {
                         sw(lw(a0 + 4) + 48, 0);
                         let f1_6 = lwc1(sp + 116);
-                        swc1(lw(a0 + 4) + 52, f1_6 + (lwc1(sp + 148) - f1_6) * f20_2);
+                        swc1(lw(a0 + 4) + 52, ps2float::add(f1_6, ps2float::mul(ps2float::sub(lwc1(sp + 148), f1_6), f20_2)));
                     } else {
                         let f4_5 = lwc1(sp + 116);
                         let f5_4 = lwc1(sp + 120);
                         let v0_6 = lw(a0 + 4);
-                        let f4_6 = f4_5 + (lwc1(sp + 148) - f4_5) * f20_2;
-                        let f5_5 = f5_4 + (lwc1(sp + 152) - f5_4) * f20_2;
-                        swc1(a0 + 104, f3_8 + (lwc1(sp + 144) - f3_8) * f20_2);
+                        let f4_6 = ps2float::add(f4_5, ps2float::mul(ps2float::sub(lwc1(sp + 148), f4_5), f20_2));
+                        let f5_5 = ps2float::add(f5_4, ps2float::mul(ps2float::sub(lwc1(sp + 152), f5_4), f20_2));
+                        swc1(a0 + 104, ps2float::add(f3_8, ps2float::mul(ps2float::sub(lwc1(sp + 144), f3_8), f20_2)));
                         swc1(a0 + 108, f4_6);
                         swc1(a0 + 112, f5_5);
                         sw(v0_6 + 48, 0);
@@ -544,12 +544,12 @@ pub fn calMatrices(a0: i32) {
                     let s5_1 = lw(v1_10);
                     let f13_6 = lwc1(a2_24 + 80);
                     let f12_20 = lwc1(a2_24 + 76);
-                    let f21_5 = -((f21_4 * f23_1).pdiv(f22_2));
+                    let f21_5 = -(ps2float::mul(f21_4, f23_1).pdiv(f22_2));
                     let f0_26 = anglediff(f12_20, f13_6);
                     let f13_7 = lwc1(lw(a0 + 244) + 80);
                     let f0_27 = anglediff(f26_1, f13_7);
                     let a0_29 = lw(sp + 556);
-                    let f13_8 = (f0_26 * f23_1).pdiv(f22_2) - (f0_27 * f23_1).pdiv(f22_2);
+                    let f13_8 = ps2float::sub(ps2float::mul(f0_26, f23_1).pdiv(f22_2), ps2float::mul(f0_27, f23_1).pdiv(f22_2));
                     matrixRotZXY(a0_29, f21_5, f13_8, 0.0_f32);
                     if s5_1 <= 0 {
                         break 'b49;
@@ -570,22 +570,22 @@ pub fn calMatrices(a0: i32) {
                                 }
                                 let s0_6 = a0_30 << 6;
                                 let v0_17 = s0_6 + lw(a0 + 4);
-                                swc1(v0_17 + 52, lwc1(v0_17 + 52) - f20_8);
+                                swc1(v0_17 + 52, ps2float::sub(lwc1(v0_17 + 52), f20_8));
                                 if s4_1 != 0 {
                                     if lh(s4_1 + 4) == 24 {
                                         let v0_18 = s0_6 + lw(a0 + 4);
-                                        swc1(v0_18 + 52, lwc1(v0_18 + 52) - lwc1(g::heightoffset_rf_114));
+                                        swc1(v0_18 + 52, ps2float::sub(lwc1(v0_18 + 52), lwc1(g::heightoffset_rf_114)));
                                     }
                                 }
                                 let a2_25 = lw(a0 + 4);
                                 let a1_24 = lw(sp + 556);
                                 let a2_26 = a2_25 + s0_6;
                                 sceVu0MulMatrix(sp + 368, a1_24, a2_26);
-                                let f1_17 = lwc1(sp + 420) + f20_8;
+                                let f1_17 = ps2float::add(lwc1(sp + 420), f20_8);
                                 swc1(sp + 420, f1_17);
                                 if s4_1 != 0 {
                                     if lh(s4_1 + 4) == 24 {
-                                        swc1(sp + 420, f1_17 + lwc1(g::heightoffset_rf_114));
+                                        swc1(sp + 420, ps2float::add(f1_17, lwc1(g::heightoffset_rf_114)));
                                     }
                                 }
                                 let a0_32 = lw(a0 + 4);
@@ -608,7 +608,7 @@ pub fn calMatrices(a0: i32) {
             let f23_2 = lwc1(0x3ac830);
             let f24_1 = 1.8e+02_f32;
             swc1(sp + 496, lwc1(v1_12 + 48));
-            let f22_3 = (f21_4 * f23_2).pdiv(f24_1);
+            let f22_3 = ps2float::mul(f21_4, f23_2).pdiv(f24_1);
             swc1(sp + 500, lwc1(v1_12 + 52));
             swc1(sp + 504, lwc1(v1_12 + 56));
             swc1(v1_12 + 48, 0.0_f32);
@@ -621,8 +621,8 @@ pub fn calMatrices(a0: i32) {
             let f13_10 = lwc1(lw(a0 + 244) + 80);
             let f0_29 = anglediff(f26_1, f13_10);
             let a0_34 = lw(sp + 556);
-            let f12_25 = f22_3 * -0.5_f32;
-            let f13_11 = ((f0_28 * f23_2).pdiv(f24_1) - (f0_29 * f23_2).pdiv(f24_1)) * 0.5_f32;
+            let f12_25 = ps2float::mul(f22_3, -0.5_f32);
+            let f13_11 = ps2float::mul(ps2float::sub(ps2float::mul(f0_28, f23_2).pdiv(f24_1), ps2float::mul(f0_29, f23_2).pdiv(f24_1)), 0.5_f32);
             matrixRotZXY(a0_34, f12_25, f13_11, 0.0_f32);
             let a1_26 = lw(sp + 556);
             let a2_28 = lw(a0 + 4) + s2_2;
@@ -642,7 +642,7 @@ pub fn calMatrices(a0: i32) {
             let f0_32 = anglediff(f26_1, f13_13);
             let a0_37 = lw(sp + 556);
             let f12_28 = -f22_3;
-            let f13_14 = (f0_31 * f23_2).pdiv(f24_1) - (f0_32 * f23_2).pdiv(f24_1);
+            let f13_14 = ps2float::sub(ps2float::mul(f0_31, f23_2).pdiv(f24_1), ps2float::mul(f0_32, f23_2).pdiv(f24_1));
             matrixRotZXY(a0_37, f12_28, f13_14, 0.0_f32);
             let v1_13 = lw(a0 + 92);
             let mut s3_4 = lw(v1_13 + 16);
@@ -656,13 +656,13 @@ pub fn calMatrices(a0: i32) {
                 let v0_21 = s2_2 + v1_14;
                 s3_4 = s3_4 + 1;
                 let v1_15 = s0_7 + v1_14;
-                swc1(v1_15 + 48, lwc1(v1_15 + 48) - lwc1(v0_21 + 48));
+                swc1(v1_15 + 48, ps2float::sub(lwc1(v1_15 + 48), lwc1(v0_21 + 48)));
                 let v0_22 = lw(a0 + 4);
                 let v0_23 = s0_7 + v0_22;
-                swc1(v0_23 + 52, lwc1(v0_23 + 52) - lwc1(s2_2 + v0_22 + 52));
+                swc1(v0_23 + 52, ps2float::sub(lwc1(v0_23 + 52), lwc1(s2_2 + v0_22 + 52)));
                 let v1_16 = lw(a0 + 4);
                 let v1_17 = s0_7 + v1_16;
-                swc1(v1_17 + 56, lwc1(v1_17 + 56) - lwc1(s2_2 + v1_16 + 56));
+                swc1(v1_17 + 56, ps2float::sub(lwc1(v1_17 + 56), lwc1(s2_2 + v1_16 + 56)));
                 let a2_29 = lw(a0 + 4) + s0_7;
                 sceVu0MulMatrix(sp + 368, a1_28, a2_29);
                 let a0_39 = lw(a0 + 4);
@@ -732,18 +732,18 @@ pub fn calMatrices(a0: i32) {
         sw(a0 + 196, 0);
     } else {
         let f8_4 = lwc1(a0 + 104);
-        let f14_9 = f8_4 - lwc1(a0 + 116);
+        let f14_9 = ps2float::sub(f8_4, lwc1(a0 + 116));
         let f7_4 = lwc1(a0 + 112);
         let f6_5 = lwc1(a0 + 168);
-        let f12_33 = f7_4 - lwc1(a0 + 124);
+        let f12_33 = ps2float::sub(f7_4, lwc1(a0 + 124));
         let f9_4 = lwc1(a0 + 108);
-        let f11_6 = f6_5 - lwc1(a0 + 180);
+        let f11_6 = ps2float::sub(f6_5, lwc1(a0 + 180));
         let f5_9 = lwc1(a0 + 172);
         let f4_11 = lwc1(a0 + 176);
-        let f1_18 = f5_9 - lwc1(a0 + 184);
+        let f1_18 = ps2float::sub(f5_9, lwc1(a0 + 184));
         let f3_16 = lwc1(a0 + 224);
-        let f10_4 = f4_11 - lwc1(a0 + 188);
-        swc1(a0 + 132, f9_4 - lwc1(a0 + 120));
+        let f10_4 = ps2float::sub(f4_11, lwc1(a0 + 188));
+        swc1(a0 + 132, ps2float::sub(f9_4, lwc1(a0 + 120)));
         swc1(a0 + 116, f8_4);
         swc1(a0 + 120, f9_4);
         swc1(a0 + 124, f7_4);
@@ -758,9 +758,9 @@ pub fn calMatrices(a0: i32) {
         if 0.0_f32 < f3_16 {
             let f2_16 = lwc1(a0 + 228);
             swc1(a0 + 132, 0.0_f32);
-            let f0_33 = 1.0_f32 - f2_16;
-            swc1(a0 + 136, f0_33 * f12_33 + f2_16 * f10_4);
-            swc1(a0 + 128, f0_33 * f14_9 + f2_16 * f11_6);
+            let f0_33 = ps2float::sub(1.0_f32, f2_16);
+            swc1(a0 + 136, ps2float::add(ps2float::mul(f0_33, f12_33), ps2float::mul(f2_16, f10_4)));
+            swc1(a0 + 128, ps2float::add(ps2float::mul(f0_33, f14_9), ps2float::mul(f2_16, f11_6)));
         }
     }
 }

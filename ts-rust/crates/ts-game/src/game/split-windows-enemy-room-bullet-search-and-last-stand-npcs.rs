@@ -126,18 +126,18 @@ pub fn enemySetRoom(enemy: i32, find: i32) {
                 sw(enemy + 12, room);
                 let mut room = room;
                 let pad_at = lw(record + 680) * 28;
-                swc1(record + 2812, lwc1(enemy + 52) + raise);
+                swc1(record + 2812, ps2float::add(lwc1(enemy + 52), raise));
                 let at = pad_at + pads;
                 swc1(record + 2816, lwc1(enemy + 56));
                 let px = lwc1(at + 12);
                 swc1(sp, px);
-                let py = lwc1(at + 16) + raise;
+                let py = ps2float::add(lwc1(at + 16), raise);
                 swc1(sp + 4, py);
                 let pz = lwc1(at + 20);
                 swc1(sp + 8, pz);
-                swc1(sp + 16, lwc1(record + 2808) - px);
-                swc1(sp + 20, lwc1(record + 2812) - py);
-                swc1(sp + 24, lwc1(record + 2816) - pz);
+                swc1(sp + 16, ps2float::sub(lwc1(record + 2808), px));
+                swc1(sp + 20, ps2float::sub(lwc1(record + 2812), py));
+                swc1(sp + 24, ps2float::sub(lwc1(record + 2816), pz));
                 if room != 0 {
                     loop {
                         room_now = bgPortalCrossed(sp, sp + 16, room, last, 0);
@@ -174,19 +174,19 @@ pub fn enemySetRoom(enemy: i32, find: i32) {
             swc1(sp, kept_x);
             let kept_y = lwc1(record + 2812);
             let x = lwc1(enemy + 48);
-            let raised = y + lwc1(0x3ad9c0);
+            let raised = ps2float::add(y, lwc1(0x3ad9c0));
             swc1(sp + 4, kept_y);
-            let dx = x - kept_x;
+            let dx = ps2float::sub(x, kept_x);
             let kept_z = lwc1(record + 2816);
             let mut room = lw(enemy + 12);
-            let dz = lwc1(enemy + 56) - kept_z;
+            let dz = ps2float::sub(lwc1(enemy + 56), kept_z);
             swc1(sp + 8, kept_z);
-            swc1(sp + 20, raised - kept_y);
+            swc1(sp + 20, ps2float::sub(raised, kept_y));
             swc1(sp + 16, dx);
             swc1(sp + 24, dz);
-            swc1(record + 2808, kept_x + dx);
-            swc1(record + 2812, lwc1(sp + 4) + lwc1(sp + 20));
-            swc1(record + 2816, lwc1(sp + 8) + lwc1(sp + 24));
+            swc1(record + 2808, ps2float::add(kept_x, dx));
+            swc1(record + 2812, ps2float::add(lwc1(sp + 4), lwc1(sp + 20)));
+            swc1(record + 2816, ps2float::add(lwc1(sp + 8), lwc1(sp + 24)));
             if room != 0 {
                 loop {
                     room_now = bgPortalCrossed(sp, sp + 16, room, last, 0);
@@ -201,7 +201,7 @@ pub fn enemySetRoom(enemy: i32, find: i32) {
         sw(enemy + 12, room_now);
         flags = lw(enemy + 16);
         if room_now == 0 && (flags & 0xf000000) != 0 {
-            let y = lwc1(enemy + 52) + lwc1(0x3ad9c4);
+            let y = ps2float::add(lwc1(enemy + 52), lwc1(0x3ad9c4));
             let z = lwc1(enemy + 56);
             swc1(sp + 160, lwc1(enemy + 48));
             swc1(sp + 168, z);
@@ -231,14 +231,14 @@ pub fn enemySetRoom(enemy: i32, find: i32) {
     'body: {
         if (flags & 128) == 0 && (flags & 0xf000000) != 0 {
             let turn = lwc1(enemy + 76);
-            matrixTransRotY(sp + 32, lwc1(enemy + 48), lwc1(enemy + 52), lwc1(enemy + 56), (turn * lwc1(0x3ad9d0)).pdiv(1.8e+02_f32));
+            matrixTransRotY(sp + 32, lwc1(enemy + 48), lwc1(enemy + 52), lwc1(enemy + 56), ps2float::mul(turn, lwc1(0x3ad9d0)).pdiv(1.8e+02_f32));
             let model = lw(enemy + 32);
             let bone = lw(model + 4) + (lw(lw(model + 92) + 20) << 6);
             sceVu0MulMatrix(sp + 96, sp + 32, bone);
             let drop = lwc1(0x3ad9d4);
             swc1(record + 3008, lwc1(sp + 144));
             let kind = lw(record + 8);
-            swc1(record + 3012, lwc1(sp + 148) - drop);
+            swc1(record + 3012, ps2float::sub(lwc1(sp + 148), drop));
             swc1(record + 3016, lwc1(sp + 152));
             if kind != 2 {
                 return;
@@ -251,7 +251,7 @@ pub fn enemySetRoom(enemy: i32, find: i32) {
         base_x = lwc1(enemy + 48);
     }
     swc1(record + 3008, base_x);
-    swc1(record + 3012, lwc1(enemy + 52) + lift);
+    swc1(record + 3012, ps2float::add(lwc1(enemy + 52), lift));
     swc1(record + 3016, lwc1(enemy + 56));
 }
 
@@ -304,9 +304,9 @@ pub fn bgBulletGetClosest(instance: i32, at: i32, strength: i32) -> i32 {
                     swc1(0x1fc5e1c, y);
                     let z = lwc1(hand + 24);
                     swc1(0x1fc5e20, z);
-                    swc1(0x1fc5e18, x + lwc1(player + 228) * 0.5_f32);
-                    swc1(0x1fc5e1c, y + lwc1(player + 232) * 0.5_f32);
-                    swc1(0x1fc5e20, z + lwc1(player + 236) * 0.5_f32);
+                    swc1(0x1fc5e18, ps2float::add(x, ps2float::mul(lwc1(player + 228), 0.5_f32)));
+                    swc1(0x1fc5e1c, ps2float::add(y, ps2float::mul(lwc1(player + 232), 0.5_f32)));
+                    swc1(0x1fc5e20, ps2float::add(z, ps2float::mul(lwc1(player + 236), 0.5_f32)));
                     swc1(strength, 1.0_f32);
                     return 0x1fc5e00;
                 }
@@ -320,29 +320,29 @@ pub fn bgBulletGetClosest(instance: i32, at: i32, strength: i32) -> i32 {
         if distance <= 3.0_f32 {
             swc1(strength, 1.0_f32);
         } else {
-            swc1(strength, (1.0_f32).pdiv((distance - 2.0_f32)));
+            swc1(strength, (1.0_f32).pdiv(ps2float::sub(distance, 2.0_f32)));
         }
     }
     if (number & 3) != frame_number & 3 {
         let packed = lw(record + 548);
         search = false;
         if packed != -1 {
-            let dx = lwc1(at) - lwc1(record + 552);
-            let dy = lwc1(at + 4) - lwc1(record + 556);
-            let dz = lwc1(at + 8) - lwc1(record + 560);
-            swc1(sp + 16, (((packed as u32) >> 24) & 255) as f32 * lwc1(0x3acb2c));
-            swc1(sp + 20, (((packed as u32) >> 16) & 255) as f32 * lwc1(0x3acb30));
-            let squared = dy * dy;
-            swc1(sp + 24, (((packed as u32) >> 8) & 255) as f32 * lwc1(0x3acb34));
+            let dx = ps2float::sub(lwc1(at), lwc1(record + 552));
+            let dy = ps2float::sub(lwc1(at + 4), lwc1(record + 556));
+            let dz = ps2float::sub(lwc1(at + 8), lwc1(record + 560));
+            swc1(sp + 16, ps2float::mul((((packed as u32) >> 24) & 255) as f32, lwc1(0x3acb2c)));
+            swc1(sp + 20, ps2float::mul((((packed as u32) >> 16) & 255) as f32, lwc1(0x3acb30)));
+            let squared = ps2float::mul(dy, dy);
+            swc1(sp + 24, ps2float::mul((((packed as u32) >> 8) & 255) as f32, lwc1(0x3acb34)));
             swc1(sp, lwc1(record + 552));
-            let radius = (dx * dx + squared + dz * dz).abs().psqrt();
+            let radius = ps2float::add(ps2float::add(ps2float::mul(dx, dx), squared), ps2float::mul(dz, dz)).abs().psqrt();
             swc1(sp + 4, lwc1(record + 556));
             swc1(sp + 8, lwc1(record + 560));
-            let half = radius * 0.5_f32;
+            let half = ps2float::mul(radius, 0.5_f32);
             explosion_strength = 1.0_f32;
             swc1(sp + 52, half);
             if !(half <= 2.0_f32) {
-                explosion_strength = (explosion_strength).pdiv((half - explosion_strength));
+                explosion_strength = (explosion_strength).pdiv(ps2float::sub(half, explosion_strength));
             }
         }
     }
@@ -353,18 +353,18 @@ pub fn bgBulletGetClosest(instance: i32, at: i32, strength: i32) -> i32 {
             sw(record + 548, -1);
         } else {
             explosion_strength = 1.0_f32;
-            let r = fptoui(red * 255.0_f32);
-            let g = fptoui(lwc1(sp + 20) * 255.0_f32);
-            let b = fptoui(lwc1(sp + 24) * 255.0_f32);
+            let r = fptoui(ps2float::mul(red, 255.0_f32));
+            let g = fptoui(ps2float::mul(lwc1(sp + 20), 255.0_f32));
+            let b = fptoui(ps2float::mul(lwc1(sp + 24), 255.0_f32));
             swc1(record + 552, lwc1(sp));
             let y = lwc1(sp + 4);
             sw(record + 548, r << 24 | g << 16 | b << 8);
             swc1(record + 556, y);
             swc1(record + 560, lwc1(sp + 8));
-            let half = lwc1(sp + 52) * 0.5_f32;
+            let half = ps2float::mul(lwc1(sp + 52), 0.5_f32);
             swc1(sp + 52, half);
             if !(half <= 2.0_f32) {
-                explosion_strength = (explosion_strength).pdiv((half - explosion_strength));
+                explosion_strength = (explosion_strength).pdiv(ps2float::sub(half, explosion_strength));
             }
         }
     }

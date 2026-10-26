@@ -9,89 +9,89 @@ pub fn bgHittestDistGlass(start: i32, direction: i32, a: i32, b: i32, c: i32, d:
     let ax = lwc1(a);
     let az = lwc1(a + 8);
     let ay = lwc1(a + 4);
-    let abx = bx - ax;
+    let abx = ps2float::sub(bx, ax);
     let bz = lwc1(b + 8);
     let cz = lwc1(c + 8);
     let by = lwc1(b + 4);
-    let abz = bz - az;
+    let abz = ps2float::sub(bz, az);
     let cy = lwc1(c + 4);
-    let acz = cz - az;
+    let acz = ps2float::sub(cz, az);
     let cx = lwc1(c);
-    let aby = by - ay;
-    let acy = cy - ay;
+    let aby = ps2float::sub(by, ay);
+    let acy = ps2float::sub(cy, ay);
     let dz = lwc1(direction + 8);
-    let acx = cx - ax;
+    let acx = ps2float::sub(cx, ax);
     let dy = lwc1(direction + 4);
     let dx = lwc1(direction);
-    let ny = abz * acx - abx * acz;
-    let nx = aby * acz - abz * acy;
-    let nz = abx * acy - aby * acx;
-    let facing = nx * dx + ny * dy + nz * dz;
+    let ny = ps2float::sub(ps2float::mul(abz, acx), ps2float::mul(abx, acz));
+    let nx = ps2float::sub(ps2float::mul(aby, acz), ps2float::mul(abz, acy));
+    let nz = ps2float::sub(ps2float::mul(abx, acy), ps2float::mul(aby, acx));
+    let facing = ps2float::add(ps2float::add(ps2float::mul(nx, dx), ps2float::mul(ny, dy)), ps2float::mul(nz, dz));
     if facing == 0.0_f32 {
         return 0;
     }
     let sx = lwc1(start);
     let sy = lwc1(start + 4);
     let sz = lwc1(start + 8);
-    let t = ((nx * ax + ny * ay + nz * az - (nx * sx + ny * sy + nz * sz))).pdiv(facing);
+    let t = (ps2float::sub(ps2float::add(ps2float::add(ps2float::mul(nx, ax), ps2float::mul(ny, ay)), ps2float::mul(nz, az)), ps2float::add(ps2float::add(ps2float::mul(nx, sx), ps2float::mul(ny, sy)), ps2float::mul(nz, sz)))).pdiv(facing);
     if t < 0.0_f32 {
         return 0;
     }
-    let hz = sz + t * dz;
-    let hx = sx + t * dx;
-    let hy = sy + t * dy;
+    let hz = ps2float::add(sz, ps2float::mul(t, dz));
+    let hx = ps2float::add(sx, ps2float::mul(t, dx));
+    let hy = ps2float::add(sy, ps2float::mul(t, dy));
     // the edge from b to c
-    let bcx = cx - bx;
-    let bcz = cz - bz;
-    let chx = cx - hx;
-    let chz = cz - hz;
-    let bcy = cy - by;
-    let chy = cy - hy;
-    let bhz = bz - hz;
-    let bhx = bx - hx;
-    let bhy = by - hy;
-    let e1_y = abz * bhx - abx * bhz;
-    let e1_z_part = bcz * chx - bcx * chz;
-    let e1_x_part = bcy * chz - bcz * chy;
-    let e1_x = aby * bhz - abz * bhy;
-    let e2_y = abx * bhy - aby * bhx;
-    let e2_z = bcx * chy - bcy * chx;
-    if (e1_x * e1_x_part + e1_y * e1_z_part + e2_y * e2_z) < 0.0_f32 {
+    let bcx = ps2float::sub(cx, bx);
+    let bcz = ps2float::sub(cz, bz);
+    let chx = ps2float::sub(cx, hx);
+    let chz = ps2float::sub(cz, hz);
+    let bcy = ps2float::sub(cy, by);
+    let chy = ps2float::sub(cy, hy);
+    let bhz = ps2float::sub(bz, hz);
+    let bhx = ps2float::sub(bx, hx);
+    let bhy = ps2float::sub(by, hy);
+    let e1_y = ps2float::sub(ps2float::mul(abz, bhx), ps2float::mul(abx, bhz));
+    let e1_z_part = ps2float::sub(ps2float::mul(bcz, chx), ps2float::mul(bcx, chz));
+    let e1_x_part = ps2float::sub(ps2float::mul(bcy, chz), ps2float::mul(bcz, chy));
+    let e1_x = ps2float::sub(ps2float::mul(aby, bhz), ps2float::mul(abz, bhy));
+    let e2_y = ps2float::sub(ps2float::mul(abx, bhy), ps2float::mul(aby, bhx));
+    let e2_z = ps2float::sub(ps2float::mul(bcx, chy), ps2float::mul(bcy, chx));
+    if ps2float::add(ps2float::add(ps2float::mul(e1_x, e1_x_part), ps2float::mul(e1_y, e1_z_part)), ps2float::mul(e2_y, e2_z)) < 0.0_f32 {
         return 0;
     }
     // the edge from c to d
     let dpz = lwc1(d + 8);
     let dpx = lwc1(d);
     let dpy = lwc1(d + 4);
-    let cdz = dpz - cz;
-    let cdx = dpx - cx;
-    let dhx = dpx - hx;
-    let dhz = dpz - hz;
-    let dhy = dpy - hy;
-    let cdy = dpy - cy;
-    let f_z = cdz * dhx - cdx * dhz;
-    let f_x = cdy * dhz - cdz * dhy;
-    let f_y = cdx * dhy - cdy * dhx;
-    if (e1_x * f_x + e1_y * f_z + e2_y * f_y) < 0.0_f32 {
+    let cdz = ps2float::sub(dpz, cz);
+    let cdx = ps2float::sub(dpx, cx);
+    let dhx = ps2float::sub(dpx, hx);
+    let dhz = ps2float::sub(dpz, hz);
+    let dhy = ps2float::sub(dpy, hy);
+    let cdy = ps2float::sub(dpy, cy);
+    let f_z = ps2float::sub(ps2float::mul(cdz, dhx), ps2float::mul(cdx, dhz));
+    let f_x = ps2float::sub(ps2float::mul(cdy, dhz), ps2float::mul(cdz, dhy));
+    let f_y = ps2float::sub(ps2float::mul(cdx, dhy), ps2float::mul(cdy, dhx));
+    if ps2float::add(ps2float::add(ps2float::mul(e1_x, f_x), ps2float::mul(e1_y, f_z)), ps2float::mul(e2_y, f_y)) < 0.0_f32 {
         return 0;
     }
     // the edge from d to a
-    let dax = ax - dpx;
-    let daz = az - dpz;
-    let ahx = ax - hx;
-    let ahz = az - hz;
-    let ahy = ay - hy;
-    let day = ay - dpy;
-    let g_z = daz * ahx - dax * ahz;
-    let g_x = day * ahz - daz * ahy;
-    let g_y = dax * ahy - day * ahx;
-    if (e1_x * g_x + e1_y * g_z + e2_y * g_y) < 0.0_f32 {
+    let dax = ps2float::sub(ax, dpx);
+    let daz = ps2float::sub(az, dpz);
+    let ahx = ps2float::sub(ax, hx);
+    let ahz = ps2float::sub(az, hz);
+    let ahy = ps2float::sub(ay, hy);
+    let day = ps2float::sub(ay, dpy);
+    let g_z = ps2float::sub(ps2float::mul(daz, ahx), ps2float::mul(dax, ahz));
+    let g_x = ps2float::sub(ps2float::mul(day, ahz), ps2float::mul(daz, ahy));
+    let g_y = ps2float::sub(ps2float::mul(dax, ahy), ps2float::mul(day, ahx));
+    if ps2float::add(ps2float::add(ps2float::mul(e1_x, g_x), ps2float::mul(e1_y, g_z)), ps2float::mul(e2_y, g_y)) < 0.0_f32 {
         return 0;
     }
-    let ox = hx - sx;
-    let oy = hy - sy;
-    let oz = hz - sz;
-    if !(limit2 <= ox * ox + oy * oy + oz * oz) {
+    let ox = ps2float::sub(hx, sx);
+    let oy = ps2float::sub(hy, sy);
+    let oz = ps2float::sub(hz, sz);
+    if !(limit2 <= ps2float::add(ps2float::add(ps2float::mul(ox, ox), ps2float::mul(oy, oy)), ps2float::mul(oz, oz))) {
         if hit != 0 {
             swc1(hit + 8, hz);
             swc1(hit, hx);
@@ -101,10 +101,10 @@ pub fn bgHittestDistGlass(start: i32, direction: i32, a: i32, b: i32, c: i32, d:
             swc1(normal, nx);
             swc1(normal + 4, ny);
             swc1(normal + 8, nz);
-            let inv = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
-            let z = lwc1(normal + 8) * inv;
-            let y = lwc1(normal + 4) * inv;
-            swc1(normal, lwc1(normal) * inv);
+            let inv = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(nx, nx), ps2float::mul(ny, ny)), ps2float::mul(nz, nz)).abs().psqrt());
+            let z = ps2float::mul(lwc1(normal + 8), inv);
+            let y = ps2float::mul(lwc1(normal + 4), inv);
+            swc1(normal, ps2float::mul(lwc1(normal), inv));
             swc1(normal + 8, z);
             swc1(normal + 4, y);
         }

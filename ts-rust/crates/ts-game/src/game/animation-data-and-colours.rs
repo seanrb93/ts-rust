@@ -46,10 +46,10 @@ pub fn extractAnimData(chr: i32, anim: i32, segment: i32, frame: i32, out: i32, 
     }
     let model = lw(chr + 88);
     if model != 0 && lw(model + 12) == 1 && !(lw(chr + 96) >= 566 && segment > 0) {
-        scale *= lwc1(0x3ac838);
+        scale = ps2float::mul(scale, lwc1(0x3ac838));
     }
-    let (y, z) = (lwc1(out + 4) * scale, lwc1(out + 8) * scale);
-    swc1(out, lwc1(out) * scale);
+    let (y, z) = (ps2float::mul(lwc1(out + 4), scale), ps2float::mul(lwc1(out + 8), scale));
+    swc1(out, ps2float::mul(lwc1(out), scale));
     swc1(out + 4, y);
     swc1(out + 8, z);
 }

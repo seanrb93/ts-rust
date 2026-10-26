@@ -18,19 +18,19 @@ pub fn frontfxLogoGfx(mode: i32) {
         let span;
         if !(three <= end_time) {
             time = lwc1(g::frontfxtime);
-            span = end_time - start_time;
+            span = ps2float::sub(end_time, start_time);
         } else {
-            let shifted = end_time - three;
+            let shifted = ps2float::sub(end_time, three);
             time = lwc1(g::frontfxtime);
             if !(time < shifted) {
-                span = end_time - start_time;
+                span = ps2float::sub(end_time, start_time);
             } else {
                 end_time = shifted;
-                start_time -= three;
-                span = end_time - start_time;
+                start_time = ps2float::sub(start_time, three);
+                span = ps2float::sub(end_time, start_time);
             }
         }
-        let progress = ((time - start_time)).pdiv(span);
+        let progress = (ps2float::sub(time, start_time)).pdiv(span);
         if 0.0_f32 <= progress {
             let base = g::logolayers;
             if progress < 1.0_f32 {
@@ -41,21 +41,21 @@ pub fn frontfxLogoGfx(mode: i32) {
                 let d = lwc1(at + 32);
                 let e = lwc1(at + 36);
                 let f = lwc1(at + 40);
-                let x = a + (lwc1(at + 20) - a) * progress;
-                let y = b + (lwc1(at + 24) - b) * progress;
-                let red = c + (lwc1(at + 44) - c) * progress;
-                let green = d + (lwc1(at + 48) - d) * progress;
-                let blue = e + (lwc1(at + 52) - e) * progress;
-                let mut alpha = f + (lwc1(at + 56) - f) * progress;
+                let x = ps2float::add(a, ps2float::mul(ps2float::sub(lwc1(at + 20), a), progress));
+                let y = ps2float::add(b, ps2float::mul(ps2float::sub(lwc1(at + 24), b), progress));
+                let red = ps2float::add(c, ps2float::mul(ps2float::sub(lwc1(at + 44), c), progress));
+                let green = ps2float::add(d, ps2float::mul(ps2float::sub(lwc1(at + 48), d), progress));
+                let blue = ps2float::add(e, ps2float::mul(ps2float::sub(lwc1(at + 52), e), progress));
+                let mut alpha = ps2float::add(f, ps2float::mul(ps2float::sub(lwc1(at + 56), f), progress));
                 if mode != 1 {
                     let tone = lwc1(0x3ac914);
                     if lw(offset + base) != 2 {
-                        alpha *= tone;
+                        alpha = ps2float::mul(alpha, tone);
                     } else {
-                        alpha *= lwc1(0x3ac918);
+                        alpha = ps2float::mul(alpha, lwc1(0x3ac918));
                     }
                 }
-                frontfxRenderLayer(lw(layer), x * lwc1(g::globalscalex), y * lwc1(g::globalscaley), red, green, blue, alpha);
+                frontfxRenderLayer(lw(layer), ps2float::mul(x, lwc1(g::globalscalex)), ps2float::mul(y, lwc1(g::globalscaley)), red, green, blue, alpha);
             }
         }
         layer += 60;
@@ -72,17 +72,17 @@ pub fn frontfxLogoGfx(mode: i32) {
         let scale = ld(0x3a18b0);
         let half = 0x3fe0000000000000_i64;
         let quarter = 0.5_f32;
-        let sway = lw(g::gameframe) as f32 * rate_a * rate_b;
+        let sway = ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, rate_a), rate_b);
         let offset_c = lwc1(0x3ac930);
         let screen = ld(0x3a18b8);
         let three_quarters = 0.75_f32;
-        let doubled = sway + sway;
+        let doubled = ps2float::add(sway, sway);
         let index = dptoli(dpadd(dpmul(dpmul(fptodp(doubled), radians), scale), half));
-        let sway = lw(g::gameframe) as f32 * rate_a * rate_b;
-        let bright_a = lwc1(((index & 2047) << 2) + table) * quarter + offset_c;
-        let doubled = sway + sway;
+        let sway = ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, rate_a), rate_b);
+        let bright_a = ps2float::add(ps2float::mul(lwc1(((index & 2047) << 2) + table), quarter), offset_c);
+        let doubled = ps2float::add(sway, sway);
         let index = dptoli(dpadd(dpmul(dpadd(dpmul(fptodp(doubled), radians), radians), scale), half));
-        let bright_b = lwc1(((index & 2047) << 2) + table) * rate_b + offset_c;
+        let bright_b = ps2float::add(ps2float::mul(lwc1(((index & 2047) << 2) + table), rate_b), offset_c);
         let x = dptofp(dpmul(fptodp(lwc1(g::globalscalex)), screen));
         let y = dptofp(dpmul(fptodp(lwc1(g::globalscaley)), screen));
         frontfxRenderLayer(0, x, y, 0.25_f32, three_quarters, quarter, bright_a);

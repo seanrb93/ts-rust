@@ -15,9 +15,9 @@ pub fn matrixLookAt(m: i32, eye: i32, target: i32, up: i32) {
     let ex = lwc1(eye);
     let ez = lwc1(eye + 8);
     let ey = lwc1(eye + 4);
-    let dx = lwc1(target) - ex;
-    let dz = lwc1(target + 8) - ez;
-    let dy = lwc1(target + 4) - ey;
+    let dx = ps2float::sub(lwc1(target), ex);
+    let dz = ps2float::sub(lwc1(target + 8), ez);
+    let dy = ps2float::sub(lwc1(target + 4), ey);
     let uy = lwc1(up + 4);
     let ux = lwc1(up);
     swc1(sp, lwc1(up + 8));

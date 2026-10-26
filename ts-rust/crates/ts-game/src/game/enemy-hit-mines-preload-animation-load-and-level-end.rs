@@ -56,10 +56,10 @@ pub fn enemyDetonateMines(a0: i32) {
                     if lwc1(mine + 48) == 0.0_f32 {
                         if lwc1(mine + 52) == 0.0_f32 {
                             if lwc1(mine + 56) == 0.0_f32 {
-                                let dx = lwc1(mine + 24) - x;
-                                let dy = lwc1(mine + 28) - y;
-                                let dz = lwc1(mine + 32) - z;
-                                if !(49.0_f32 < dx * dx + dy * dy + dz * dz) {
+                                let dx = ps2float::sub(lwc1(mine + 24), x);
+                                let dy = ps2float::sub(lwc1(mine + 28), y);
+                                let dz = ps2float::sub(lwc1(mine + 32), z);
+                                if !(49.0_f32 < ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz))) {
                                     if !(6.0_f32 < age) {
                                         break 'b3;
                                     }
@@ -127,7 +127,7 @@ pub fn pubsignPropTick(a0: i32) {
     let record = lw(a0 + 352);
     let wind = weatherCalcWindStrengthInDir(a0 + 48, lw(a0 + 12), sp);
     let ticks = lw(g::updateframesi);
-    swc1(record + 20, lwc1(record + 20) + wind * 0.25_f32 * lwc1(g::updateframesf));
+    swc1(record + 20, ps2float::add(lwc1(record + 20), ps2float::mul(ps2float::mul(wind, 0.25_f32), lwc1(g::updateframesf))));
     if ticks > 0 {
         loop {
             i += 1;
@@ -137,7 +137,7 @@ pub fn pubsignPropTick(a0: i32) {
             }
         }
     }
-    let angle = (lwc1(lw(a0 + 352) + 8) * lwc1(0x3acebc)).pdiv(1.8e+02_f32);
+    let angle = ps2float::mul(lwc1(lw(a0 + 352) + 8), lwc1(0x3acebc)).pdiv(1.8e+02_f32);
     matrixRotX(lw(lw(a0 + 32) + 4) + 64, angle);
 }
 
@@ -151,7 +151,7 @@ pub fn loadAnimation(a0: i32, a1: i32) {
     let table = lw(header + 4);
     sw(slot + g::animRightTag, lw(header + 12));
     let channels = lw(header + 28);
-    let length = ((lw(header) as f32 - 1.0_f32)).pdiv(6e+01_f32);
+    let length = (ps2float::sub(lw(header) as f32, 1.0_f32)).pdiv(6e+01_f32);
     let channel_table = (table << 2) + memory + 63 & mask;
     let mut data = ((lw(header + 4) << 2) + 15 & mask) + (memory + (channels << 5)) + 51 & mask;
     sw(header + 20, memory + 51 & mask);
@@ -375,13 +375,13 @@ pub fn bannerPropTick(a0: i32) {
     let wind = weatherCalcWindStrengthInDir(a0 + 48, lw(a0 + 12), sp);
     let sway = lwc1(record + 20);
     let push = if !(1.8e+02_f32 <= lwc1(a0 + 76)) {
-        wind * lwc1(0x3aced4) * lwc1(g::updateframesf)
+        ps2float::mul(ps2float::mul(wind, lwc1(0x3aced4)), lwc1(g::updateframesf))
     } else {
-        -wind * lwc1(0x3aced0) * lwc1(g::updateframesf)
+        ps2float::mul(ps2float::mul(-wind, lwc1(0x3aced0)), lwc1(g::updateframesf))
     };
     let ticks = lw(g::updateframesi);
     let mut i = 0;
-    swc1(record + 20, sway + push);
+    swc1(record + 20, ps2float::add(sway, push));
     if ticks > 0 {
         loop {
             i += 1;
@@ -391,7 +391,7 @@ pub fn bannerPropTick(a0: i32) {
             }
         }
     }
-    let angle = (lwc1(lw(a0 + 352) + 8) * lwc1(0x3acedc)).pdiv(1.8e+02_f32);
+    let angle = ps2float::mul(lwc1(lw(a0 + 352) + 8), lwc1(0x3acedc)).pdiv(1.8e+02_f32);
     matrixRotX(lw(lw(a0 + 32) + 4), angle);
 }
 
@@ -702,12 +702,12 @@ pub fn guiPreload() {
 /// The tick of the weather: the time moves on, the wind at that time is worked out and scaled by 14, and its sideways parts are pushed out to at least 9 either way (@ 0x2a84f0).
 pub fn weatherTick() {
     let weather = g::weather;
-    let time = lwc1(weather + 60) + lwc1(g::updateframesf) * lwc1(0x3ad62c);
+    let time = ps2float::add(lwc1(weather + 60), ps2float::mul(lwc1(g::updateframesf), lwc1(0x3ad62c)));
     swc1(weather + 60, time);
     weatherCalcWindAtTime(weather + 48, time);
     let scale = 14.0_f32;
-    let x = lwc1(weather + 48) * scale;
-    let z = lwc1(weather + 56) * scale;
+    let x = ps2float::mul(lwc1(weather + 48), scale);
+    let z = ps2float::mul(lwc1(weather + 56), scale);
     swc1(weather + 48, x);
     swc1(weather + 56, z);
     let mut pushed = x;

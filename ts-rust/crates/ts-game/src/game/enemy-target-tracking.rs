@@ -156,11 +156,11 @@ pub fn trackTarget(chr: i32) {
     enemySetMoveMode(chr, 1);
     let x = lwc1(state + 2796);
     swc1(state + 2872, lwc1(state + 2856));
-    let dx = lwc1(chr + 48) - x;
-    let dy = lwc1(chr + 52) - lwc1(state + 2800);
-    let dz = lwc1(chr + 56) - lwc1(state + 2804);
+    let dx = ps2float::sub(lwc1(chr + 48), x);
+    let dy = ps2float::sub(lwc1(chr + 52), lwc1(state + 2800));
+    let dz = ps2float::sub(lwc1(chr + 56), lwc1(state + 2804));
     let waited;
-    if !((dx * dx + dy * dy + dz * dz) < lwc1(0x3ad8a4)) {
+    if !(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < lwc1(0x3ad8a4)) {
         waited = lwc1(state + 2892);
     } else {
         let count = lw(state + 1688);

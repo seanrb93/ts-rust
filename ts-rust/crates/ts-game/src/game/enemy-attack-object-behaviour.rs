@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// Where the state machine of `enemyAttackObject` goes on to.
@@ -45,10 +45,10 @@ fn drift_check(enemy: i32, record: i32, drift: f32) -> Next {
 pub fn enemyAttackObject(enemy: i32) {
     let record = lw(enemy + 352);
     let target = lw(record + 2788);
-    let dx = lwc1(enemy + 48) - lwc1(target + 48);
-    let dy = lwc1(enemy + 52) - lwc1(target + 52);
-    let dz = lwc1(enemy + 56) - lwc1(target + 56);
-    let distance = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+    let dx = ps2float::sub(lwc1(enemy + 48), lwc1(target + 48));
+    let dy = ps2float::sub(lwc1(enemy + 52), lwc1(target + 52));
+    let dz = ps2float::sub(lwc1(enemy + 56), lwc1(target + 56));
+    let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
     'first: {
         if lw(record + 2772) != 0 {
             let kind = lw(record + 8);

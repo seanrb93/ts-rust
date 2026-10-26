@@ -153,9 +153,9 @@ pub fn transformPart(model: i32, part: i32, flag: i32) {
                         sceVu0TransposeMatrix(sp + 192, sp);
                         let y = lwc1(sp + 52);
                         let z = lwc1(sp + 56);
-                        swc1(sp + 256, lwc1(point) - lwc1(sp + 48));
-                        swc1(sp + 260, lwc1(point + 4) - y);
-                        swc1(sp + 264, lwc1(point + 8) - z);
+                        swc1(sp + 256, ps2float::sub(lwc1(point), lwc1(sp + 48)));
+                        swc1(sp + 260, ps2float::sub(lwc1(point + 4), y));
+                        swc1(sp + 264, ps2float::sub(lwc1(point + 8), z));
                         matrixVecRotAligned(&[(sp + 192) as i64, (sp + 256) as i64]);
                         swc1(point, lwc1(sp + 256));
                         swc1(point + 4, lwc1(sp + 260));
@@ -245,9 +245,9 @@ pub fn transformPart(model: i32, part: i32, flag: i32) {
                             matrix = sp + 64;
                         }
                         sceVu0TransposeMatrix(sp + 192, matrix);
-                        swc1(sp + 256, lwc1(point) - lwc1(matrix + 48));
-                        swc1(sp + 260, lwc1(point + 4) - lwc1(matrix + 52));
-                        swc1(sp + 264, lwc1(point + 8) - lwc1(matrix + 56));
+                        swc1(sp + 256, ps2float::sub(lwc1(point), lwc1(matrix + 48)));
+                        swc1(sp + 260, ps2float::sub(lwc1(point + 4), lwc1(matrix + 52)));
+                        swc1(sp + 264, ps2float::sub(lwc1(point + 8), lwc1(matrix + 56)));
                         matrixVecRotAligned(&[(sp + 192) as i64, (sp + 256) as i64]);
                         swc1(point, lwc1(sp + 256));
                         swc1(point + 4, lwc1(sp + 260));

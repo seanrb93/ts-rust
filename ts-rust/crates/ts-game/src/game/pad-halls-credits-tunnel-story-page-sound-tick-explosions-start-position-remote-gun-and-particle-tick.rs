@@ -201,57 +201,57 @@ pub fn padReset() {
 pub fn creditsBgTick() {
     let position = g::creditscampos;
     let limit = lwc1(0x3ad75c);
-    let moved = lwc1(position + 8) + lwc1(g::updateframesf) * lwc1(0x3ad758);
+    let moved = ps2float::add(lwc1(position + 8), ps2float::mul(lwc1(g::updateframesf), lwc1(0x3ad758)));
     swc1(position + 8, moved);
     if limit < moved {
-        swc1(position + 8, moved - limit);
+        swc1(position + 8, ps2float::sub(moved, limit));
         creditsRestartTunnel();
     }
     let along = lwc1(position + 8);
     let ahead = 3e+01_f32;
     getCreditTunnelPos(position, position + 4, along);
     let direction = g::creditscamdir;
-    getCreditTunnelPos(direction, direction + 4, lwc1(position + 8) + ahead);
+    getCreditTunnelPos(direction, direction + 4, ps2float::add(lwc1(position + 8), ahead));
     let y = lwc1(position + 4);
     let x = lwc1(g::creditscampos);
     let dir_x = lwc1(g::dirvec);
     let dir_y = lwc1(g::dirvec + 4);
     let smoothing = lwc1(0x3ad760);
-    let new_y = dir_y + (lwc1(direction + 4) - y - dir_y) * smoothing;
-    let new_x = dir_x + (lwc1(g::creditscamdir) - x - dir_x) * smoothing;
+    let new_y = ps2float::add(dir_y, ps2float::mul(ps2float::sub(ps2float::sub(lwc1(direction + 4), y), dir_y), smoothing));
+    let new_x = ps2float::add(dir_x, ps2float::mul(ps2float::sub(ps2float::sub(lwc1(g::creditscamdir), x), dir_x), smoothing));
     swc1(g::dirvec + 4, new_y);
     swc1(g::dirvec, new_x);
-    let squared = new_x * new_x + new_y * new_y;
-    swc1(g::creditscamdir, x + new_x);
-    swc1(direction + 4, y + new_y);
+    let squared = ps2float::add(ps2float::mul(new_x, new_x), ps2float::mul(new_y, new_y));
+    swc1(g::creditscamdir, ps2float::add(x, new_x));
+    swc1(direction + 4, ps2float::add(y, new_y));
     let length = sqrt(fptodp(squared));
     let length = dptofp(dpmul(length, ld(0x3a9888)));
     let step = lwc1(g::updateframesf);
     let wave_time = lwc1(g::randomsinewavetime);
-    let advance = (step * lwc1(0x3ad764)).pdiv(6e+01_f32);
-    let roll = lwc1(g::creditscamrotz) + step;
-    swc1(direction + 8, lwc1(position + 8) + ahead);
+    let advance = ps2float::mul(step, lwc1(0x3ad764)).pdiv(6e+01_f32);
+    let roll = ps2float::add(lwc1(g::creditscamrotz), step);
+    swc1(direction + 8, ps2float::add(lwc1(position + 8), ahead));
     swc1(g::creditscamrotz, roll);
-    let wave_time = wave_time + advance;
+    let wave_time = ps2float::add(wave_time, advance);
     swc1(g::randomsinewavetime, wave_time);
     if 1.0_f32 < wave_time {
-        let random = random_as_float() * 2.3283064e-10_f32;
+        let random = ps2float::mul(random_as_float(), 2.3283064e-10_f32);
         sw(g::randomsinewavetime, 0);
-        let centred = random + random - 1.0_f32;
-        swc1(g::randomsinewaveintensity, centred * centred * centred);
+        let centred = ps2float::sub(ps2float::add(random, random), 1.0_f32);
+        swc1(g::randomsinewaveintensity, ps2float::mul(ps2float::mul(centred, centred), centred));
     }
     let one = 1.0_f32;
     let layers = g::layerrot;
     let half_turn = ld(0x3a9890);
-    let first = sinf(lw(g::gameframe) as f32 * lwc1(0x3ad768));
-    let second_angle = lw(g::gameframe) as f32 * lwc1(0x3ad76c);
-    swc1(g::layerrot, first + one);
+    let first = sinf(ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ad768)));
+    let second_angle = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ad76c));
+    swc1(g::layerrot, ps2float::add(first, one));
     let second = sinf(second_angle);
-    let third_angle = lw(g::gameframe) as f32 * lwc1(0x3ad770);
-    swc1(layers + 4, second + one);
+    let third_angle = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ad770));
+    swc1(layers + 4, ps2float::add(second, one));
     let third = sinf(third_angle);
     let wave = lwc1(g::randomsinewavetime);
-    let doubled = wave + wave;
+    let doubled = ps2float::add(wave, wave);
     let angle = dptofp(dpsub(dpmul(fptodp(doubled), half_turn), half_turn));
     let cosine = cosf(angle);
     let scale = 5.0_f32;
@@ -261,14 +261,14 @@ pub fn creditsBgTick() {
     let mut tested = 0;
     let mut replaced = 0;
     let mut found = false;
-    swc1(layers + 8, third + one + (cosine + one) * 0.5_f32 * lwc1(g::randomsinewaveintensity) * length * length);
+    swc1(layers + 8, ps2float::add(ps2float::add(third, one), ps2float::mul(ps2float::mul(ps2float::mul(ps2float::mul(ps2float::add(cosine, one), 0.5_f32), lwc1(g::randomsinewaveintensity)), length), length)));
     loop {
         let section = offset + data;
         tested += 1;
         let more = (tested < 40) as i32;
         if lw(section + 0x1440) == 0 {
             replaced = data + section_offset;
-            if (lw(section + 0x1444) as f32 * scale) < lwc1(g::creditscampos + 8) - scale {
+            if ps2float::mul(lw(section + 0x1444) as f32, scale) < ps2float::sub(lwc1(g::creditscampos + 8), scale) {
                 found = true;
                 break;
             }
@@ -605,7 +605,7 @@ pub fn explosionDamage(_a0: i32, a1: i32, a2: i32, a3: i32, _a4: i32, a5: i32, f
     let sp = frame.sp();
     let kind = a2 - 8;
     let mut strength = 0.0_f32;
-    let age = (f12 * 6e+01_f32) as i32;
+    let age = ps2float::mul(f12, 6e+01_f32) as i32;
     sw(sp + 64, 0);
     let scale;
     let radius;
@@ -641,10 +641,10 @@ pub fn explosionDamage(_a0: i32, a1: i32, a2: i32, a3: i32, _a4: i32, a5: i32, f
     if due != 0 {
         let stage = age.wrapping_div(30);
         if stage == 1 {
-            strength = scale * lwc1(0x3acdc4);
+            strength = ps2float::mul(scale, lwc1(0x3acdc4));
         } else if stage >= 2 {
             if stage == 2 {
-                strength = scale * lwc1(0x3acdc8);
+                strength = ps2float::mul(scale, lwc1(0x3acdc8));
             } else if stage == 3 {
                 strength = 0.0_f32;
             }
@@ -653,7 +653,7 @@ pub fn explosionDamage(_a0: i32, a1: i32, a2: i32, a3: i32, _a4: i32, a5: i32, f
             sw(sp + 64, 1);
         }
         let random = random_as_float();
-        let strength = strength * (random * 2.3283064e-10_f32 * lwc1(0x3acdcc) + lwc1(0x3acdd0));
+        let strength = ps2float::mul(strength, ps2float::add(ps2float::mul(ps2float::mul(random, 2.3283064e-10_f32), lwc1(0x3acdcc)), lwc1(0x3acdd0)));
         if !(strength <= 0.0_f32) {
             let shrink = lwc1(0x3acdd4);
             let mut list = 0;
@@ -688,14 +688,14 @@ pub fn explosionDamage(_a0: i32, a1: i32, a2: i32, a3: i32, _a4: i32, a5: i32, f
                                     let offset = lwc1(prop + 512);
                                     hit = 1;
                                     let factor = if id != 420 && id != 423 { 0.5_f32 } else { lwc1(0x3acdd8) };
-                                    damage = damage * factor;
-                                    swc1(sp + 36, height + offset);
+                                    damage = ps2float::mul(damage, factor);
+                                    swc1(sp + 36, ps2float::add(height, offset));
                                 } else {
                                     let mode = lw(lw(prop + 352) + 2716);
                                     if (mode & 0x2010) == 0 {
                                         if mode != 0 {
                                             hit = 1;
-                                            swc1(sp + 36, lwc1(prop + 52) + 1.5_f32);
+                                            swc1(sp + 36, ps2float::add(lwc1(prop + 52), 1.5_f32));
                                         }
                                     }
                                 }
@@ -703,23 +703,23 @@ pub fn explosionDamage(_a0: i32, a1: i32, a2: i32, a3: i32, _a4: i32, a5: i32, f
                                 if hit != 0 {
                                     let x = lwc1(prop + 48);
                                     let centre_y = lwc1(a1 + 4);
-                                    let dx = lwc1(a1) - x;
+                                    let dx = ps2float::sub(lwc1(a1), x);
                                     swc1(sp + 32, x);
                                     let centre_z = lwc1(a1 + 8);
-                                    let dy = centre_y - y;
+                                    let dy = ps2float::sub(centre_y, y);
                                     let z = lwc1(prop + 56);
                                     swc1(sp + 16, dx);
-                                    let dz = centre_z - z;
+                                    let dz = ps2float::sub(centre_z, z);
                                     swc1(sp + 40, z);
                                     swc1(sp + 20, dy);
-                                    let distance = dx * dx + dy * dy + dz * dz;
+                                    let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                                     swc1(sp + 24, dz);
                                     if distance < radius_squared {
                                         sw(sp, 0);
                                         sw(sp + 8, 0);
-                                        swc1(sp + 16, dx * shrink);
-                                        swc1(sp + 20, dy * shrink);
-                                        swc1(sp + 24, dz * shrink);
+                                        swc1(sp + 16, ps2float::mul(dx, shrink));
+                                        swc1(sp + 20, ps2float::mul(dy, shrink));
+                                        swc1(sp + 24, ps2float::mul(dz, shrink));
                                         let blocked = bgLineTest(lw(prop + 12), sp + 32, sp + 16, 0, 0, 0, 0, -3);
                                         if blocked != 0 {
                                             i += 1;
@@ -730,7 +730,7 @@ pub fn explosionDamage(_a0: i32, a1: i32, a2: i32, a3: i32, _a4: i32, a5: i32, f
                                         let nz = -lwc1(sp + 24);
                                         swc1(sp + 48, -lwc1(sp + 16));
                                         swc1(sp + 52, ny);
-                                        let power = damage * (1.0_f32 - (distance.abs().psqrt()).pdiv(radius));
+                                        let power = ps2float::mul(damage, ps2float::sub(1.0_f32, (distance.abs().psqrt()).pdiv(radius)));
                                         swc1(sp + 56, nz);
                                         propDamage(prop, a5, prop + 48, a2, a3, sp + 48, 0, stage_flag, power);
                                     }
@@ -835,7 +835,7 @@ pub fn playerSetStartPos(a0: i32) {
         swc1(owner + 116, y);
         let eye_y = lwc1(a0 + 144);
         let eye_x = lwc1(a0 + 140);
-        let eye_height = eye_y + lwc1(a0 + 116);
+        let eye_height = ps2float::add(eye_y, lwc1(a0 + 116));
         let eye_z = lwc1(a0 + 148);
         swc1(a0 + 348, eye_y);
         swc1(a0 + 356, eye_x);
@@ -859,10 +859,10 @@ pub fn playerSetStartPos(a0: i32) {
                     let mut previous = 0;
                     let mut crossed = 0;
                     let mut current = room;
-                    let dy = ey - lwc1(a0 + 144);
+                    let dy = ps2float::sub(ey, lwc1(a0 + 144));
                     let player = lw(a0 + 384);
-                    let dz = ez - lwc1(a0 + 148);
-                    swc1(sp, ex - lwc1(a0 + 140));
+                    let dz = ps2float::sub(ez, lwc1(a0 + 148));
+                    swc1(sp, ps2float::sub(ex, lwc1(a0 + 140)));
                     let data = lw(player + 352);
                     swc1(sp + 4, dy);
                     swc1(sp + 8, dz);
@@ -967,7 +967,7 @@ pub fn gunRemoteFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
                 }
             }
             'aim: {
-                let heading = lwc1(a0 + 76) * lwc1(0x3ad324);
+                let heading = ps2float::mul(lwc1(a0 + 76), lwc1(0x3ad324));
                 sw(a1 + 68, 0);
                 let x = lwc1(a0 + 48);
                 let y = lwc1(a0 + 52);
@@ -993,10 +993,10 @@ pub fn gunRemoteFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
                     let owner = lw(lw(data + 96) + 356);
                     direction_x = lwc1(sp + 112);
                     if owner != 0 {
-                        let first = random_as_float() * 2.3283064e-10_f32;
-                        let spread_a = (first + first - 1.0_f32) * lwc1(stats + 32);
-                        let second = random_as_float() * 2.3283064e-10_f32;
-                        let spread_b = (second + second - 1.0_f32) * lwc1(stats + 32);
+                        let first = ps2float::mul(random_as_float(), 2.3283064e-10_f32);
+                        let spread_a = ps2float::mul(ps2float::sub(ps2float::add(first, first), 1.0_f32), lwc1(stats + 32));
+                        let second = ps2float::mul(random_as_float(), 2.3283064e-10_f32);
+                        let spread_b = ps2float::mul(ps2float::sub(ps2float::add(second, second), 1.0_f32), lwc1(stats + 32));
                         if lw(owner + 828) == 0 {
                             let dy = lwc1(sp + 116);
                             let dz = lwc1(sp + 120);
@@ -1006,17 +1006,17 @@ pub fn gunRemoteFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
                         } else {
                             let cy = lwc1(a1 + 76);
                             let cz = lwc1(a1 + 80);
-                            swc1(sp, lwc1(owner + 832) - lwc1(a1 + 72));
-                            swc1(sp + 4, lwc1(owner + 836) - cy);
-                            swc1(sp + 8, lwc1(owner + 840) - cz);
+                            swc1(sp, ps2float::sub(lwc1(owner + 832), lwc1(a1 + 72)));
+                            swc1(sp + 4, ps2float::sub(lwc1(owner + 836), cy));
+                            swc1(sp + 8, ps2float::sub(lwc1(owner + 840), cz));
                         }
                         let fx = lwc1(sp);
                         let fy = lwc1(sp + 4);
                         let fz = lwc1(sp + 8);
-                        let inverse = (1.0_f32).pdiv((fx * fx + fy * fy + fz * fz).abs().psqrt());
-                        swc1(sp, (fx * inverse + spread_a * lwc1(owner + 240) + spread_b * lwc1(owner + 228)) * lwc1(stats + 28));
-                        swc1(sp + 4, (fy * inverse + spread_a * lwc1(owner + 244) + spread_b * lwc1(owner + 232)) * lwc1(stats + 28));
-                        swc1(sp + 8, (fz * inverse + spread_a * lwc1(owner + 248) + spread_b * lwc1(owner + 236)) * lwc1(stats + 28));
+                        let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(fx, fx), ps2float::mul(fy, fy)), ps2float::mul(fz, fz)).abs().psqrt());
+                        swc1(sp, ps2float::mul(ps2float::add(ps2float::add(ps2float::mul(fx, inverse), ps2float::mul(spread_a, lwc1(owner + 240))), ps2float::mul(spread_b, lwc1(owner + 228))), lwc1(stats + 28)));
+                        swc1(sp + 4, ps2float::mul(ps2float::add(ps2float::add(ps2float::mul(fy, inverse), ps2float::mul(spread_a, lwc1(owner + 244))), ps2float::mul(spread_b, lwc1(owner + 232))), lwc1(stats + 28)));
+                        swc1(sp + 8, ps2float::mul(ps2float::add(ps2float::add(ps2float::mul(fz, inverse), ps2float::mul(spread_a, lwc1(owner + 248))), ps2float::mul(spread_b, lwc1(owner + 236))), lwc1(stats + 28)));
                         break 'aim;
                     }
                 }
@@ -1051,13 +1051,13 @@ pub fn particleTick() {
         let first_kind = kind;
         if kind != -1 {
             let remaining = lwc1(group + 52);
-            let age = lwc1(group + 12) + (frame_time).pdiv(6e+01_f32);
+            let age = ps2float::add(lwc1(group + 12), (frame_time).pdiv(6e+01_f32));
             swc1(group + 12, age);
             if 0.0_f32 < remaining {
                 if !(remaining <= age) {
                 } else {
                     swc1(group + 52, 0.0_f32);
-                    swc1(group + 12, age - remaining);
+                    swc1(group + 12, ps2float::sub(age, remaining));
                 }
             }
             let now = lwc1(group + 12);
@@ -1105,9 +1105,9 @@ pub fn particleTick() {
                                     }
                                     if tick {
                                         let speed = lwc1(group + 940);
-                                        let y = lwc1(group + 932) + lwc1(group + 944) * frame_time;
-                                        let z = lwc1(group + 936) + lwc1(group + 948) * frame_time;
-                                        swc1(group + 928, lwc1(group + 928) + speed * frame_time);
+                                        let y = ps2float::add(lwc1(group + 932), ps2float::mul(lwc1(group + 944), frame_time));
+                                        let z = ps2float::add(lwc1(group + 936), ps2float::mul(lwc1(group + 948), frame_time));
+                                        swc1(group + 928, ps2float::add(lwc1(group + 928), ps2float::mul(speed, frame_time)));
                                         swc1(group + 932, y);
                                         swc1(group + 936, z);
                                     }
@@ -1130,19 +1130,19 @@ pub fn particleTick() {
                                     }
                                     if tick {
                                         let speed = lwc1(group + 944);
-                                        let y = lwc1(group + 936) + lwc1(group + 948) * frame_time;
+                                        let y = ps2float::add(lwc1(group + 936), ps2float::mul(lwc1(group + 948), frame_time));
                                         let frames = lw(g::updateframesi);
-                                        let z = lwc1(group + 940) + lwc1(group + 952) * frame_time;
-                                        swc1(group + 932, lwc1(group + 932) + speed * frame_time);
+                                        let z = ps2float::add(lwc1(group + 940), ps2float::mul(lwc1(group + 952), frame_time));
+                                        swc1(group + 932, ps2float::add(lwc1(group + 932), ps2float::mul(speed, frame_time)));
                                         swc1(group + 936, y);
                                         swc1(group + 940, z);
                                         if frames > 0 {
                                             let mut angle = group + 956;
                                             let mut left = 19;
                                             loop {
-                                                let random = random_as_float() * 2.3283064e-10_f32;
+                                                let random = ps2float::mul(random_as_float(), 2.3283064e-10_f32);
                                                 left -= 1;
-                                                swc1(angle, random * 3.6e+02_f32);
+                                                swc1(angle, ps2float::mul(random, 3.6e+02_f32));
                                                 angle += 4;
                                                 if left < 0 {
                                                     break;

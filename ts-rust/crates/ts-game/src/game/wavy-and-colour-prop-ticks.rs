@@ -24,18 +24,18 @@ pub fn greenthingPropTick(prop: i32) {
             loop {
                 let x = lwc1(source);
                 let z = lwc1(source + 8);
-                let radius = (x * x + z * z).abs().psqrt();
+                let radius = ps2float::add(ps2float::mul(x, x), ps2float::mul(z, z)).abs().psqrt();
                 let k = lwc1(0x3acf6c);
-                let time = lw(g::gameframe) as f32 * lwc1(0x3acf68);
+                let time = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3acf68));
                 swc1(at, x);
                 i += 1;
                 let height_scale = lwc1(0x3acf74);
                 let y = lwc1(source + 4);
-                let depth = lwc1(0x3acf70) - radius;
+                let depth = ps2float::sub(lwc1(0x3acf70), radius);
                 source += 12;
-                let wave = lwc1(((((radius + radius + time) * k + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable);
+                let wave = lwc1(((ps2float::add(ps2float::mul(ps2float::add(ps2float::add(radius, radius), time), k), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable);
                 swc1(at + 8, z);
-                swc1(at + 4, y - depth * ((wave + 0.5_f32) * height_scale));
+                swc1(at + 4, ps2float::sub(y, ps2float::mul(depth, ps2float::mul(ps2float::add(wave, 0.5_f32), height_scale))));
                 at += 12;
                 if i >= count {
                     break;
@@ -58,8 +58,8 @@ pub fn streamersPropTick(prop: i32) {
         let mut at = out;
         let mut source = lw(bone + 48);
         let mut i = 0;
-        let time = lw(g::gameframe) as f32 + (lw(state + 4) << 5) as f32;
-        let double_time = time + time;
+        let time = ps2float::add(lw(g::gameframe) as f32, (lw(state + 4) << 5) as f32);
+        let double_time = ps2float::add(time, time);
         if count > 0 {
             loop {
                 let x = lwc1(source);
@@ -67,16 +67,16 @@ pub fn streamersPropTick(prop: i32) {
                 let k1 = lwc1(0x3ace84);
                 i += 1;
                 let k2 = lwc1(0x3ace88);
-                let base = x * 3.5_f32;
+                let base = ps2float::mul(x, 3.5_f32);
                 let k4 = lwc1(0x3ace8c);
                 let half = 0.5_f32;
                 let k5 = lwc1(0x3ace94);
-                let z_at = ((((base + double_time * lwc1(0x3ace90)) * k4 + half) as i32 & 2047) << 2) + table;
-                swc1(at, x + lwc1(((((base + double_time * k1) * k4 + half) as i32 & 2047) << 2) + table) * k1 * x);
-                swc1(at + 4, lwc1(source + 4) + lwc1(((((base + double_time * k2) * k4 + half) as i32 & 2047) << 2) + table) * k5 * x);
+                let z_at = ((ps2float::add(ps2float::mul(ps2float::add(base, ps2float::mul(double_time, lwc1(0x3ace90))), k4), half) as i32 & 2047) << 2) + table;
+                swc1(at, ps2float::add(x, ps2float::mul(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::add(base, ps2float::mul(double_time, k1)), k4), half) as i32 & 2047) << 2) + table), k1), x)));
+                swc1(at + 4, ps2float::add(lwc1(source + 4), ps2float::mul(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::add(base, ps2float::mul(double_time, k2)), k4), half) as i32 & 2047) << 2) + table), k5), x)));
                 let z = lwc1(source + 8);
                 source += 12;
-                swc1(at + 8, z + (lwc1(z_at) - half) * k2 * x);
+                swc1(at + 8, ps2float::add(z, ps2float::mul(ps2float::mul(ps2float::sub(lwc1(z_at), half), k2), x)));
                 at += 12;
                 if i >= count {
                     break;
@@ -101,10 +101,10 @@ pub fn propTickPlayer() {
                 let pressed = joyNewBut(lw(lw(g::currentplayer)));
                 let player = lw(g::currentplayer);
                 if (pressed & lw(player + 36)) != 0 {
-                    let dx = lwc1(player + 140) - lwc1(prop + 48);
-                    let dy = lwc1(player + 144) - lwc1(prop + 52);
-                    let dz = lwc1(player + 148) - lwc1(prop + 56);
-                    if (dx * dx + dy * dy + dz * dz) < 6.25_f32 {
+                    let dx = ps2float::sub(lwc1(player + 140), lwc1(prop + 48));
+                    let dy = ps2float::sub(lwc1(player + 144), lwc1(prop + 52));
+                    let dz = ps2float::sub(lwc1(player + 148), lwc1(prop + 56));
+                    if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < 6.25_f32 {
                         let function = lw(prop + 384);
                         sw(prop + 28, lw(prop + 28) | 1);
                         if function != 0 {
@@ -149,13 +149,13 @@ pub fn planetspawnPropTick(prop: i32) {
                 let height = lwc1(source + 4);
                 i += 1;
                 source += 12;
-                let t = height * 0.25_f32;
+                let t = ps2float::mul(height, 0.25_f32);
                 let top = 127.0_f32;
-                let u = 1.0_f32 - t;
-                let a = fptoui((alpha_a * t + alpha_b * u) * top);
-                let r = fptoui((u * red_a + t * red_b) * top);
-                let g_ = fptoui((u * green_a + t * green_b) * top);
-                let b = fptoui((u * blue_a + t * blue_b) * top);
+                let u = ps2float::sub(1.0_f32, t);
+                let a = fptoui(ps2float::mul(ps2float::add(ps2float::mul(alpha_a, t), ps2float::mul(alpha_b, u)), top));
+                let r = fptoui(ps2float::mul(ps2float::add(ps2float::mul(u, red_a), ps2float::mul(t, red_b)), top));
+                let g_ = fptoui(ps2float::mul(ps2float::add(ps2float::mul(u, green_a), ps2float::mul(t, green_b)), top));
+                let b = fptoui(ps2float::mul(ps2float::add(ps2float::mul(u, blue_a), ps2float::mul(t, blue_b)), top));
                 sw(at, r | (a & 255) << 24 | (b << 16 | g_ << 8));
                 at += 4;
                 if i >= lw(sp) {
@@ -173,7 +173,7 @@ pub fn planetspawnPropTick(prop: i32) {
 pub fn laserPropTick(prop: i32) {
     let frame = Frame::new(128);
     let sp = frame.sp();
-    let alpha = fptoui(lwc1(g::hologramAlpha) * 127.0_f32);
+    let alpha = fptoui(ps2float::mul(lwc1(g::hologramAlpha), 127.0_f32));
     let mut model = lw(prop + 32);
     let skeleton = lw(model);
     let bones = lw(skeleton);
@@ -217,11 +217,11 @@ pub fn laserPropTick(prop: i32) {
     }
     let k = lwc1(0x3acf90);
     let table = g::g_SinTable;
-    let time = lw(g::gameframe) as f32 * lwc1(0x3acf8c);
+    let time = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3acf8c));
     let rate = lwc1(0x3acf94);
     let half = 0.5_f32;
     let matrix = lw(model + 4);
-    swc1(prop + 72, lwc1(((((time * k).pdiv(180.0_f32) * rate + half) as i32 & 2047) << 2) + table) * 70.0_f32);
-    let squash = lwc1((((((time + time + 135.0_f32) * k).pdiv(180.0_f32) * rate + half) as i32 & 2047) << 2) + table) * 0.25_f32 + 0.75_f32;
+    swc1(prop + 72, ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(time, k).pdiv(180.0_f32), rate), half) as i32 & 2047) << 2) + table), 70.0_f32));
+    let squash = ps2float::add(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(ps2float::add(ps2float::add(time, time), 135.0_f32), k).pdiv(180.0_f32), rate), half) as i32 & 2047) << 2) + table), 0.25_f32), 0.75_f32);
     matrixScaleSet(matrix, 1.0_f32, squash, 1.0_f32);
 }

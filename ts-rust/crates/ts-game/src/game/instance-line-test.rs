@@ -32,21 +32,21 @@ pub fn obInstLineTest(inst: i32, from: i32, dir: i32, segment: i32, hit: i32, no
         let x = lwc1(vector);
         let y = lwc1(vector + 4);
         let z = lwc1(vector + 8);
-        best = x * x + y * y + z * z;
+        best = ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z));
     }
     let limit = best;
     if lw(model + 8) != 2 {
         let turned = lw(sp + 480);
         let matrix;
         if lw(model + 140) != 2 {
-            let angle = (lwc1(turned + 76) * lwc1(0x3acb98)).pdiv(1.8e+02_f32);
+            let angle = ps2float::mul(lwc1(turned + 76), lwc1(0x3acb98)).pdiv(1.8e+02_f32);
             matrixRotY(sp + 64, angle);
             matrix = sp + 64;
         } else {
             let radians = lwc1(0x3acb94);
-            let a = (lwc1(model + 72) * radians).pdiv(1.8e+02_f32);
-            let b = (lwc1(model + 76) * radians).pdiv(1.8e+02_f32);
-            let c = (lwc1(model + 88) * radians).pdiv(1.8e+02_f32);
+            let a = ps2float::mul(lwc1(model + 72), radians).pdiv(1.8e+02_f32);
+            let b = ps2float::mul(lwc1(model + 76), radians).pdiv(1.8e+02_f32);
+            let c = ps2float::mul(lwc1(model + 88), radians).pdiv(1.8e+02_f32);
             matrixRotZXY(sp + 64, a, b, c);
             matrix = sp + 64;
         }
@@ -112,20 +112,20 @@ pub fn obInstLineTest(inst: i32, from: i32, dir: i32, segment: i32, hit: i32, no
                                 let fy = lwc1(from + 4);
                                 let fz = lwc1(from + 8);
                                 let dy = lwc1(dir + 4);
-                                swc1(sp + 32, lwc1(lw(sp + 452)) - lwc1(model_now + 48));
+                                swc1(sp + 32, ps2float::sub(lwc1(lw(sp + 452)), lwc1(model_now + 48)));
                                 let dz = lwc1(dir + 8);
-                                swc1(sp + 36, fy - lwc1(model_now + 52));
+                                swc1(sp + 36, ps2float::sub(fy, lwc1(model_now + 52)));
                                 let offset_z = lwc1(model_now + 56);
                                 swc1(sp + 48, dx);
                                 swc1(sp + 52, dy);
                                 swc1(sp + 56, dz);
-                                swc1(sp + 40, fz - offset_z);
+                                swc1(sp + 40, ps2float::sub(fz, offset_z));
                                 matrixVecMulAligned(&[lw(sp + 492) as i64, lw(sp + 496) as i64]);
                                 matrixVecMulAligned(&[lw(sp + 492) as i64, lw(sp + 500) as i64]);
                                 sceVu0CopyMatrix(lw(sp + 504), lw(lw(sp + 448) + 4) + (lb(lw(sp + 484) + 1) << 6));
-                                let y = lwc1(sp + 36) - lwc1(sp + 244);
-                                let z = lwc1(sp + 40) - lwc1(sp + 248);
-                                swc1(sp + 32, lwc1(sp + 32) - lwc1(sp + 240));
+                                let y = ps2float::sub(lwc1(sp + 36), lwc1(sp + 244));
+                                let z = ps2float::sub(lwc1(sp + 40), lwc1(sp + 248));
+                                swc1(sp + 32, ps2float::sub(lwc1(sp + 32), lwc1(sp + 240)));
                                 sw(sp + 240, 0);
                                 swc1(sp + 36, y);
                                 sw(sp + 244, 0);
@@ -153,13 +153,13 @@ pub fn obInstLineTest(inst: i32, from: i32, dir: i32, segment: i32, hit: i32, no
                                                     let start = lwc1(sp + 32 + axis * 4);
                                                     let low = lwc1(boxes + axis * 4);
                                                     let delta = lwc1(sp + 48 + axis * 4);
-                                                    if start < low && (start + delta) < low {
+                                                    if start < low && ps2float::add(start, delta) < low {
                                                         chunks += 24;
                                                         break 'rejected;
                                                     }
                                                     let high = lwc1(boxes + 12 + axis * 4);
                                                     let delta = lwc1(sp + 48 + axis * 4);
-                                                    if high < start && high < start + delta {
+                                                    if high < start && high < ps2float::add(start, delta) {
                                                         chunks += 24;
                                                         break 'rejected;
                                                     }
@@ -203,14 +203,14 @@ pub fn obInstLineTest(inst: i32, from: i32, dir: i32, segment: i32, hit: i32, no
                                                         if hit_poly != 0 {
                                                             let hx = lwc1(sp + 320);
                                                             let hy = lwc1(sp + 324);
-                                                            let dx = hx - lwc1(sp + 32);
+                                                            let dx = ps2float::sub(hx, lwc1(sp + 32));
                                                             let hz = lwc1(sp + 328);
-                                                            let dy = hy - lwc1(sp + 36);
+                                                            let dy = ps2float::sub(hy, lwc1(sp + 36));
                                                             let from_z = lwc1(sp + 40);
                                                             swc1(sp + 368, dx);
-                                                            let dz = hz - from_z;
+                                                            let dz = ps2float::sub(hz, from_z);
                                                             swc1(sp + 372, dy);
-                                                            let distance = dx * dx + dy * dy + dz * dz;
+                                                            let distance = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                                                             swc1(sp + 376, dz);
                                                             if distance < best {
                                                                 best = distance;
@@ -300,21 +300,21 @@ pub fn obInstLineTest(inst: i32, from: i32, dir: i32, segment: i32, hit: i32, no
             let at = lw(sp + 464);
             let y = lwc1(at + 4);
             let z = lwc1(at + 8);
-            swc1(at, lwc1(at) + lwc1(model + 48));
-            swc1(at + 4, y + lwc1(model + 52));
-            swc1(at + 8, z + lwc1(model + 56));
+            swc1(at, ps2float::add(lwc1(at), lwc1(model + 48)));
+            swc1(at + 4, ps2float::add(y, lwc1(model + 52)));
+            swc1(at + 8, ps2float::add(z, lwc1(model + 56)));
         }
     }
     let nx = lwc1(sp + 16);
     if lw(sp + 468) != 0 {
         let ny = lwc1(sp + 20);
         let nz = lwc1(sp + 24);
-        let unit = (1.0_f32).pdiv((nx * nx + ny * ny + nz * nz).abs().psqrt());
+        let unit = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(nx, nx), ps2float::mul(ny, ny)), ps2float::mul(nz, nz)).abs().psqrt());
         let out = lw(sp + 468);
         let kind = lw(lw(sp + 480) + 8);
-        swc1(out + 8, nz * unit);
-        swc1(out, nx * unit);
-        swc1(out + 4, ny * unit);
+        swc1(out + 8, ps2float::mul(nz, unit));
+        swc1(out, ps2float::mul(nx, unit));
+        swc1(out + 4, ps2float::mul(ny, unit));
         if kind != 2 {
             matrixVecMul(sp + 64, lw(sp + 468));
         }

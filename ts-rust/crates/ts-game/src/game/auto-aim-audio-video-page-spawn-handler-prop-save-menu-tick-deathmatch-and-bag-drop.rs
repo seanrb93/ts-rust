@@ -71,21 +71,21 @@ pub fn playerAutoAimTick() {
                             }
                             let z = lwc1(prop + 56);
                             let x = lwc1(prop + 48);
-                            let angle = (heading * lwc1(0x3acfe4)).pdiv(1.8e+02_f32);
+                            let angle = ps2float::mul(heading, lwc1(0x3acfe4)).pdiv(1.8e+02_f32);
                             let y = lwc1(prop + 52);
                             matrixTransRotY(sp + 16, x, y, z, angle);
                             let model = lw(lw(chr + 3020) + 32);
                             let bone = lw(model + 4) + (lw(lw(model + 92) + 20) << 6);
                             sceVu0MulMatrix(sp + 80, sp + 16, bone);
                             let bx = lwc1(sp + 128);
-                            let by = lwc1(sp + 132) - lwc1(0x3acfe8);
+                            let by = ps2float::sub(lwc1(sp + 132), lwc1(0x3acfe8));
                             let bz = lwc1(sp + 136);
                             swc1(sp + 144, bx);
                             swc1(sp + 152, bz);
                             swc1(sp + 148, by);
-                            swc1(sp + 160, bx - lwc1(player + 152));
-                            swc1(sp + 164, by - lwc1(player + 156));
-                            swc1(sp + 168, bz - lwc1(player + 160));
+                            swc1(sp + 160, ps2float::sub(bx, lwc1(player + 152)));
+                            swc1(sp + 164, ps2float::sub(by, lwc1(player + 156)));
+                            swc1(sp + 168, ps2float::sub(bz, lwc1(player + 160)));
                             playerAutoAimCalc(player + 188, sp + 160, result);
                             if 0.5_f32 < lwc1(result + 4) {
                                 sw(sp, 1);
@@ -255,7 +255,7 @@ pub fn enemyAIDefaultSpawnHandler1() {
                         let mut ready = 0;
                         'timer: {
                             if spawned != 0 {
-                                let remaining = lwc1(spawn + 48) - (lwc1(g::updateframesf)).pdiv(6e+01_f32);
+                                let remaining = ps2float::sub(lwc1(spawn + 48), (lwc1(g::updateframesf)).pdiv(6e+01_f32));
                                 swc1(spawn + 48, remaining);
                                 if !(remaining <= 0.0_f32) {
                                     break 'timer;

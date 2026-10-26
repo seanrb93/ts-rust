@@ -79,7 +79,7 @@ pub fn splitterdomePropTick(prop: i32) {
     let data = lw(prop + 352);
     scale_parts(prop, 1.0, || lwc1(data + 44), 1.0);
     let f = lwc1(g::updateframesf);
-    swc1(prop + 76, lwc1(prop + 76) - (f + f));
+    swc1(prop + 76, ps2float::sub(lwc1(prop + 76), ps2float::add(f, f)));
 }
 
 /// A rotating spawn: parts scaled evenly by the data's +44; turns at 8 degrees a tick on two axes (@ 0x27bc08).
@@ -99,9 +99,9 @@ pub fn rotatespawnPropTick(prop: i32) {
             }
         }
     }
-    let turn = lwc1(g::updateframesf) * 8.0;
-    let other = lwc1(prop + 72) + turn;
-    swc1(prop + 76, lwc1(prop + 76) + turn);
+    let turn = ps2float::mul(lwc1(g::updateframesf), 8.0);
+    let other = ps2float::add(lwc1(prop + 72), turn);
+    swc1(prop + 76, ps2float::add(lwc1(prop + 76), turn));
     swc1(prop + 72, other);
 }
 

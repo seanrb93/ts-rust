@@ -291,10 +291,10 @@ pub fn propSwipeTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) -> i3
     swc1(sp + 200, z);
     let target_z = lwc1(a1 + 8);
     let start_z = lwc1(sp + 200);
-    let dy = lwc1(a1 + 4) - lwc1(sp + 196);
-    swc1(sp + 208, lwc1(a1) - lwc1(sp + 192));
+    let dy = ps2float::sub(lwc1(a1 + 4), lwc1(sp + 196));
+    swc1(sp + 208, ps2float::sub(lwc1(a1), lwc1(sp + 192)));
     swc1(sp + 212, dy);
-    swc1(sp + 216, target_z - start_z);
+    swc1(sp + 216, ps2float::sub(target_z, start_z));
     let mut previous = 0;
     sw(sp + 248, sp + 176);
     sw(sp + 240, sp + 144);
@@ -382,10 +382,10 @@ pub fn propSwipeTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) -> i3
     }
     let target = lw(sp + 228);
     let z = lwc1(target + 8);
-    let x = lwc1(target) - lwc1(a1);
-    let y = lwc1(target + 4) - lwc1(a1 + 4);
+    let x = ps2float::sub(lwc1(target), lwc1(a1));
+    let y = ps2float::sub(lwc1(target + 4), lwc1(a1 + 4));
     let flags = lw(a0 + 16);
-    let z = z - lwc1(a1 + 8);
+    let z = ps2float::sub(z, lwc1(a1 + 8));
     let line = lw(sp + 248);
     swc1(sp + 176, x);
     let hit_a = lw(sp + 240);

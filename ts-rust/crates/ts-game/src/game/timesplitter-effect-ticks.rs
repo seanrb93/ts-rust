@@ -28,7 +28,7 @@ fn timesplitter_tick(index: i32, kind: i32, count_kind: i32) {
     let group = lw(first);
     let rec = fx + index * 92;
     if group != 0 {
-        let lifted = lwc1(rec + 28) + 0.25_f32;
+        let lifted = ps2float::add(lwc1(rec + 28), 0.25_f32);
         let z = lwc1(rec + 32);
         swc1(sp, lwc1(rec + 24));
         swc1(sp + 8, z);
@@ -44,7 +44,7 @@ fn timesplitter_tick(index: i32, kind: i32, count_kind: i32) {
     let rec = fx + index * 92;
     let mut frames;
     if group != 0 {
-        let lifted = lwc1(rec + 40) + 0.25_f32;
+        let lifted = ps2float::add(lwc1(rec + 40), 0.25_f32);
         let z = lwc1(rec + 44);
         swc1(sp + 16, lwc1(rec + 36));
         swc1(sp + 24, z);
@@ -60,7 +60,7 @@ fn timesplitter_tick(index: i32, kind: i32, count_kind: i32) {
     }
     if frames > 0 {
         let r = random_as_float();
-        swc1(index * 92 + (g::fxgroups + 52), r * 2.3283064e-10_f32);
+        swc1(index * 92 + (g::fxgroups + 52), ps2float::mul(r, 2.3283064e-10_f32));
     }
 }
 

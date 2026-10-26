@@ -5,10 +5,10 @@ use crate::*;
 
 /// The squared distance between the positions (+48, +52, +56) of two objects.
 fn distance_squared(a: i32, b: i32) -> f32 {
-    let dx = lwc1(a + 48) - lwc1(b + 48);
-    let dy = lwc1(a + 52) - lwc1(b + 52);
-    let dz = lwc1(a + 56) - lwc1(b + 56);
-    dx * dx + dy * dy + dz * dz
+    let dx = ps2float::sub(lwc1(a + 48), lwc1(b + 48));
+    let dy = ps2float::sub(lwc1(a + 52), lwc1(b + 52));
+    let dz = ps2float::sub(lwc1(a + 56), lwc1(b + 56));
+    ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz))
 }
 
 /// Choose the target of the enemy `a0` by the game kind (`curgameparms + 72`): kind 1 takes the bag (or, with a team flag, the nearest chase of a mate), kinds 2 and 5 look for the
@@ -156,7 +156,7 @@ pub fn selectTarget(a0: i32) {
                                                                 }
                                                                 let roll = random_as_float();
                                                                 target = 0;
-                                                                if !(0.5_f32 < roll * 2.3283064e-10_f32) {
+                                                                if !(0.5_f32 < ps2float::mul(roll, 2.3283064e-10_f32)) {
                                                                     target = lw(s2 + 2788);
                                                                 } else {
                                                                     sw(s2 + 2788, 0);
@@ -199,7 +199,7 @@ pub fn selectTarget(a0: i32) {
                                                             }
                                                             let roll = random_as_float();
                                                             target = 0;
-                                                            if !(0.5_f32 < roll * 2.3283064e-10_f32) {
+                                                            if !(0.5_f32 < ps2float::mul(roll, 2.3283064e-10_f32)) {
                                                                 target = lw(s2 + 2788);
                                                             } else {
                                                                 sw(s2 + 2788, 0);

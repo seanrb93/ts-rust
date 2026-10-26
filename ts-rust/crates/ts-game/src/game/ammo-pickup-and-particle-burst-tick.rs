@@ -78,19 +78,19 @@ pub fn particleBurstTick(group: i32) {
             let vx = group + 2528 + i * 12;
             let vy = group + 2532 + i * 12;
             let vz = group + 2536 + i * 12;
-            swc1(px, lwc1(px) + lwc1(vx) * frame_time);
-            swc1(py, lwc1(py) + lwc1(vy) * frame_time);
-            swc1(pz, lwc1(pz) + lwc1(vz) * frame_time);
-            swc1(vy, lwc1(vy) + lwc1(infos + lw(group + 4) * 104 + 52) * frame_time);
+            swc1(px, ps2float::add(lwc1(px), ps2float::mul(lwc1(vx), frame_time)));
+            swc1(py, ps2float::add(lwc1(py), ps2float::mul(lwc1(vy), frame_time)));
+            swc1(pz, ps2float::add(lwc1(pz), ps2float::mul(lwc1(vz), frame_time)));
+            swc1(vy, ps2float::add(lwc1(vy), ps2float::mul(lwc1(infos + lw(group + 4) * 104 + 52), frame_time)));
             let floor = lwc1(group + 40);
             let running = lw(g::updateframesi);
             if lwc1(py) < floor {
                 let friction = infos + 92;
                 if running > 0 {
                     swc1(py, floor);
-                    swc1(vy, -lwc1(vy) * lwc1(lw(group + 4) * 104 + infos + 96));
-                    swc1(vx, lwc1(vx) * lwc1(lw(group + 4) * 104 + friction));
-                    swc1(vz, lwc1(vz) * lwc1(lw(group + 4) * 104 + friction));
+                    swc1(vy, ps2float::mul(-lwc1(vy), lwc1(lw(group + 4) * 104 + infos + 96)));
+                    swc1(vx, ps2float::mul(lwc1(vx), lwc1(lw(group + 4) * 104 + friction)));
+                    swc1(vz, ps2float::mul(lwc1(vz), lwc1(lw(group + 4) * 104 + friction)));
                 }
             }
             i += 1;

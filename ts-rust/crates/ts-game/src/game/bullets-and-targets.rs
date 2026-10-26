@@ -14,10 +14,10 @@ pub fn bulletGetClosest(pos: i32, out: i32) -> i32 {
         if (t as u32) < 17 {
             match t {
                 0..=6 | 8 | 9 | 15 | 16 => {
-                    let dx = lwc1(node + 24) - lwc1(pos);
-                    let dy = lwc1(node + 28) - lwc1(pos + 4);
-                    let dz = lwc1(node + 32) - lwc1(pos + 8);
-                    let d2 = dx * dx + dy * dy + dz * dz;
+                    let dx = ps2float::sub(lwc1(node + 24), lwc1(pos));
+                    let dy = ps2float::sub(lwc1(node + 28), lwc1(pos + 4));
+                    let dz = ps2float::sub(lwc1(node + 32), lwc1(pos + 8));
+                    let d2 = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                     if d2 < best_d2 {
                         best_d2 = d2;
                         best = node;

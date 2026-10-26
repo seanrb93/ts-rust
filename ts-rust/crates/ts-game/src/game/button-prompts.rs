@@ -77,12 +77,12 @@ pub fn roomlightGetRoomColourIntensity(room: i32, colour: i32, intensity: i32) -
 
 /// A scanner prop turns at half a degree a tick (@ 0x279058).
 pub fn scannerPropTick(prop: i32) {
-    let turn = lwc1(g::updateframesf) * 0.5;
+    let turn = ps2float::mul(lwc1(g::updateframesf), 0.5);
     sw(prop + 140, 2);
-    let angle = lwc1(prop + 72) + turn;
+    let angle = ps2float::add(lwc1(prop + 72), turn);
     swc1(prop + 72, angle);
     if 360.0 <= angle {
-        swc1(prop + 72, angle - 360.0);
+        swc1(prop + 72, ps2float::sub(angle, 360.0));
     }
 }
 
@@ -160,10 +160,10 @@ pub fn hr_calcestcost(from: i32, to: i32) -> f32 {
     let pads = lw(g::levelpads);
     let a = from * 28 + pads;
     let b = to * 28 + pads;
-    let dx = lwc1(b + 12) - lwc1(a + 12);
-    let dy = lwc1(b + 16) - lwc1(a + 16);
-    let dz = lwc1(b + 20) - lwc1(a + 20);
-    (dx * dx + dy * dy + dz * dz).abs().psqrt()
+    let dx = ps2float::sub(lwc1(b + 12), lwc1(a + 12));
+    let dy = ps2float::sub(lwc1(b + 16), lwc1(a + 16));
+    let dz = ps2float::sub(lwc1(b + 20), lwc1(a + 20));
+    ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt()
 }
 
 /// The same estimate for the other route finder (@ 0x266768).

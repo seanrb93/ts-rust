@@ -8,27 +8,27 @@ use crate::*;
 pub fn DistFromWallSq(pos: i32, wall: i32, out: i32, _unused: f32, limit: f32) -> f32 {
     let x0 = lwc1(wall + 4);
     let z0 = lwc1(wall + 12);
-    let dx = lwc1(wall + 20) - x0;
-    let dz = lwc1(wall + 28) - z0;
-    let vx = lwc1(pos) - x0;
-    let vz = lwc1(pos + 8) - z0;
-    if (dz * vx + -dx * vz) < 0.0 {
+    let dx = ps2float::sub(lwc1(wall + 20), x0);
+    let dz = ps2float::sub(lwc1(wall + 28), z0);
+    let vx = ps2float::sub(lwc1(pos), x0);
+    let vz = ps2float::sub(lwc1(pos + 8), z0);
+    if ps2float::add(ps2float::mul(dz, vx), ps2float::mul(-dx, vz)) < 0.0 {
         return lwc1(0x3af9d0);
     }
-    let along = vx * dx + vz * dz;
-    let length2 = dx * dx + dz * dz;
+    let along = ps2float::add(ps2float::mul(vx, dx), ps2float::mul(vz, dz));
+    let length2 = ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz));
     let (mut rx, mut rz) = (vx, vz);
     if 0.0 < along {
         if !(length2 <= along) {
             let t = (along).pdiv(length2);
-            rz = vz - t * dz;
-            rx = vx - t * dx;
+            rz = ps2float::sub(vz, ps2float::mul(t, dz));
+            rx = ps2float::sub(vx, ps2float::mul(t, dx));
         } else {
-            rx = vx - dx;
-            rz = vz - dz;
+            rx = ps2float::sub(vx, dx);
+            rz = ps2float::sub(vz, dz);
         }
     }
-    let d2 = rx * rx + rz * rz;
+    let d2 = ps2float::add(ps2float::mul(rx, rx), ps2float::mul(rz, rz));
     if out != 0 {
         if !(d2 < limit) {
             return d2;

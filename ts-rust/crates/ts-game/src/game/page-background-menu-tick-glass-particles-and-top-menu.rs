@@ -182,15 +182,15 @@ pub fn particleGlassTick(group: i32) {
             let at4 = i << 2;
             let time_at = times + at4;
             let spin = lw(sp + 20) + i * 12;
-            let time = lwc1(time_at) + dt;
-            let fall_z = lwc1(speed_z + i * 12) * dt;
-            let fall_y = lwc1(spin) * dt;
+            let time = ps2float::add(lwc1(time_at), dt);
+            let fall_z = ps2float::mul(lwc1(speed_z + i * 12), dt);
+            let fall_y = ps2float::mul(lwc1(spin), dt);
             let y = lwc1(lw(sp + 8) + at64);
             let z = lwc1(lw(sp + 12) + at64);
-            let x = lwc1(lw(sp + 4) + at64) + lwc1(lw(sp + 16) + i * 12) * dt;
+            let x = ps2float::add(lwc1(lw(sp + 4) + at64), ps2float::mul(lwc1(lw(sp + 16) + i * 12), dt));
             swc1(time_at, time);
-            let new_y = y + fall_y;
-            let new_z = z + fall_z;
+            let new_y = ps2float::add(y, fall_y);
+            let new_z = ps2float::add(z, fall_z);
             let next = i + 1;
             if 0.0_f32 <= time {
                 let turn_x = base + 2240;
@@ -201,7 +201,7 @@ pub fn particleGlassTick(group: i32) {
                 let rz = lwc1(turn_z + at12);
                 matrixTransRotZXY(lw(sp) + at64, x, new_y, new_z, rx, ry, rz);
                 let updates = lw(g::updateframesi);
-                swc1(spin, lwc1(spin) + dt * -7.5_f32);
+                swc1(spin, ps2float::add(lwc1(spin), ps2float::mul(dt, -7.5_f32)));
                 let flags = lw(group + 8);
                 let spins_x = base + 3200;
                 let spins_y = base + 3204;
@@ -217,8 +217,8 @@ pub fn particleGlassTick(group: i32) {
                         k += 1;
                         let a = lw(sp + 16) + i * 12;
                         let b = speed_z + i * 12;
-                        swc1(a, lwc1(a) * drag);
-                        swc1(b, lwc1(b) * drag);
+                        swc1(a, ps2float::mul(lwc1(a), drag));
+                        swc1(b, ps2float::mul(lwc1(b), drag));
                         if k >= updates {
                             break;
                         }
@@ -227,17 +227,17 @@ pub fn particleGlassTick(group: i32) {
                 let a = turn_x + i * 12;
                 let b = turn_y + i * 12;
                 let c = turn_z + i * 12;
-                swc1(a, lwc1(a) + lwc1(spins_x + i * 12) * dt);
-                swc1(b, lwc1(b) + lwc1(spins_y + i * 12) * dt);
-                swc1(c, lwc1(c) + lwc1(spins_z + i * 12) * dt);
+                swc1(a, ps2float::add(lwc1(a), ps2float::mul(lwc1(spins_x + i * 12), dt)));
+                swc1(b, ps2float::add(lwc1(b), ps2float::mul(lwc1(spins_y + i * 12), dt)));
+                swc1(c, ps2float::add(lwc1(c), ps2float::mul(lwc1(spins_z + i * 12), dt)));
                 let mut alpha = 1.0_f32;
                 if (flags & 256) == 0 {
-                    alpha -= (lwc1(times + at4)).pdiv(lwc1(0x3ad50c));
+                    alpha = ps2float::sub(alpha, (lwc1(times + at4)).pdiv(lwc1(0x3ad50c)));
                 } else {
                     let start = lwc1(0x3ad508);
                     let age = lwc1(times + at4);
                     if start < age {
-                        alpha = start - (age - alpha) * 4.0_f32;
+                        alpha = ps2float::sub(start, ps2float::mul(ps2float::sub(age, alpha), 4.0_f32));
                     }
                 }
                 if alpha < 0.0_f32 {
@@ -250,7 +250,7 @@ pub fn particleGlassTick(group: i32) {
                 let mask = 0xffffff;
                 sw(corner0, lw(corner0) & mask);
                 sw(corner1, lw(corner1) & mask);
-                let top = ((alpha * 127.0_f32) as i32) << 24;
+                let top = (ps2float::mul(alpha, 127.0_f32) as i32) << 24;
                 sw(corner2, lw(corner2) & mask);
                 sw(corner3, lw(corner3) & mask);
                 sw(corner0, lw(corner0) | top);

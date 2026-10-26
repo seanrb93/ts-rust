@@ -22,7 +22,7 @@ pub fn particleSmokeGfx(particle: i32, colour: i32, matrix: i32) {
     let table = g::g_SinTable;
     let mut offset = 0;
     loop {
-        let age = lwc1(particle + 12) - (i as f32 * half).pdiv(5.0_f32);
+        let age = ps2float::sub(lwc1(particle + 12), ps2float::mul(i as f32, half).pdiv(5.0_f32));
         if 0.0_f32 <= age {
             let angles = particle + 948;
             if age < 1.5_f32 {
@@ -30,21 +30,21 @@ pub fn particleSmokeGfx(particle: i32, colour: i32, matrix: i32) {
                 let mut spread = lwc1(angles + offset);
                 if !(age < half) {
                     if fade < age {
-                        let down = 1.5_f32 - age;
-                        fade = down + down;
+                        let down = ps2float::sub(1.5_f32, age);
+                        fade = ps2float::add(down, down);
                     }
                 } else {
-                    fade = age + age;
+                    fade = ps2float::add(age, age);
                 }
                 if spread < 0.0_f32 {
                     spread = -spread;
                 }
                 let y = lwc1(particle + 932);
-                let lift = spread * age * lwc1(0x3ad52c);
+                let lift = ps2float::mul(ps2float::mul(spread, age), lwc1(0x3ad52c));
                 let z = lwc1(particle + 936);
                 swc1(sp, lwc1(particle + 928));
                 swc1(sp + 8, z);
-                swc1(sp + 4, y + lift);
+                swc1(sp + 4, ps2float::add(y, lift));
                 matrixVec3Mul4Aligned(&[matrix as i64, sp as i64, (sp + 16) as i64]);
                 let w = lwc1(sp + 28);
                 let x = lwc1(sp + 16);
@@ -61,34 +61,34 @@ pub fn particleSmokeGfx(particle: i32, colour: i32, matrix: i32) {
                             let scale = lwc1(0x3ad538);
                             let inverse = (one).pdiv(w);
                             let down = (0 - lw(window + 36)) as f32;
-                            let screen_x = x * inverse;
-                            let turn = (lwc1(angles + offset) * age * lwc1(0x3ad530)).pdiv(1.8e+02_f32) * lwc1(0x3ad534) + half;
-                            let depth = z * inverse;
-                            let screen_y = y * inverse;
+                            let screen_x = ps2float::mul(x, inverse);
+                            let turn = ps2float::add(ps2float::mul(ps2float::mul(ps2float::mul(lwc1(angles + offset), age), lwc1(0x3ad530)).pdiv(1.8e+02_f32), lwc1(0x3ad534)), half);
+                            let depth = ps2float::mul(z, inverse);
+                            let screen_y = ps2float::mul(y, inverse);
                             swc1(sp + 16, screen_x);
                             let index = turn as i32;
-                            let size = ((zoom * 1.5e+02_f32).pdiv(z) * (age + one)) as i32 as f32;
+                            let size = ps2float::mul(ps2float::mul(zoom, 1.5e+02_f32).pdiv(z), ps2float::add(age, one)) as i32 as f32;
                             swc1(sp + 24, depth);
                             swc1(sp + 20, screen_y);
-                            let px = centre_x + across * screen_x;
-                            let dy = size * lwc1((((index + 512) & 2047) << 2) + table);
-                            let dx = size * lwc1(((index & 2047) << 2) + table);
+                            let px = ps2float::add(centre_x, ps2float::mul(across, screen_x));
+                            let dy = ps2float::mul(size, lwc1((((index + 512) & 2047) << 2) + table));
+                            let dx = ps2float::mul(size, lwc1(((index & 2047) << 2) + table));
                             swc1(sp, px);
-                            let py = centre_y + down * screen_y;
-                            let half_dy = dy * half;
-                            let half_dx = dx * half;
+                            let py = ps2float::add(centre_y, ps2float::mul(down, screen_y));
+                            let half_dy = ps2float::mul(dy, half);
+                            let half_dx = ps2float::mul(dx, half);
                             swc1(sp + 4, py);
-                            swc1(sp + 80, px - dy);
-                            swc1(sp + 32, px + dy);
-                            swc1(sp + 84, py - half_dx);
-                            let z_out = depth * scale + 32768.0_f32 + 1e+02_f32;
-                            swc1(sp + 64, px - dx);
-                            swc1(sp + 68, py + half_dy);
-                            swc1(sp + 36, py + half_dx);
+                            swc1(sp + 80, ps2float::sub(px, dy));
+                            swc1(sp + 32, ps2float::add(px, dy));
+                            swc1(sp + 84, ps2float::sub(py, half_dx));
+                            let z_out = ps2float::add(ps2float::add(ps2float::mul(depth, scale), 32768.0_f32), 1e+02_f32);
+                            swc1(sp + 64, ps2float::sub(px, dx));
+                            swc1(sp + 68, ps2float::add(py, half_dy));
+                            swc1(sp + 36, ps2float::add(py, half_dx));
                             swc1(sp + 88, z_out);
-                            swc1(sp + 48, px + dx);
-                            swc1(sp + 52, py - half_dy);
-                            let alpha = (fade * 4e+01_f32) as i32 & 255;
+                            swc1(sp + 48, ps2float::add(px, dx));
+                            swc1(sp + 52, ps2float::sub(py, half_dy));
+                            let alpha = ps2float::mul(fade, 4e+01_f32) as i32 & 255;
                             swc1(sp + 8, z_out);
                             swc1(sp + 40, z_out);
                             swc1(sp + 56, z_out);
@@ -168,9 +168,9 @@ pub fn particleTracerGfx(particle: i32, colour: i32, matrix: i32) {
     let y0 = lwc1(particle + 932);
     let z0 = lwc1(particle + 936);
     let zoom = lwc1(lw(g::currentplayer) + 260);
-    let y1 = y0 + lwc1(particle + 944) * reach;
-    let z1 = z0 + lwc1(particle + 948) * reach;
-    swc1(sp + 16, x0 + lwc1(particle + 940) * reach);
+    let y1 = ps2float::add(y0, ps2float::mul(lwc1(particle + 944), reach));
+    let z1 = ps2float::add(z0, ps2float::mul(lwc1(particle + 948), reach));
+    swc1(sp + 16, ps2float::add(x0, ps2float::mul(lwc1(particle + 940), reach)));
     swc1(sp + 20, y1);
     swc1(sp + 24, z1);
     swc1(sp, x0);
@@ -180,10 +180,10 @@ pub fn particleTracerGfx(particle: i32, colour: i32, matrix: i32) {
     matrixVec3Mul4Aligned(&[matrix as i64, (sp + 16) as i64, (sp + 48) as i64]);
     let w1 = lwc1(sp + 44);
     let a_x = lwc1(sp + 32);
-    let limit_a = w1 + w1;
+    let limit_a = ps2float::add(w1, w1);
     let w2 = lwc1(sp + 60);
     let low_a = -limit_a;
-    let limit_b = w2 + w2;
+    let limit_b = ps2float::add(w2, w2);
     if !(low_a <= a_x) {
         return;
     }
@@ -215,58 +215,58 @@ pub fn particleTracerGfx(particle: i32, colour: i32, matrix: i32) {
     let centre_x = lw(g::window + 8) as f32;
     let centre_y = lw(g::window + 28) as f32;
     let down = (0 - lw(g::window + 36)) as f32;
-    let a_sx = a_x * inverse_a;
-    let b_sy = b_y * inverse_b;
-    let b_sx = b_x * inverse_b;
-    let a_sy = a_y * inverse_a;
+    let a_sx = ps2float::mul(a_x, inverse_a);
+    let b_sy = ps2float::mul(b_y, inverse_b);
+    let b_sx = ps2float::mul(b_x, inverse_b);
+    let a_sy = ps2float::mul(a_y, inverse_a);
     swc1(sp + 32, a_sx);
     swc1(sp + 52, b_sy);
     swc1(sp + 48, b_sx);
     swc1(sp + 36, a_sy);
-    let b_py = centre_y + down * b_sy;
-    let b_px = centre_x + across * b_sx;
-    let a_px = centre_x + across * a_sx;
-    let a_py = centre_y + down * a_sy;
+    let b_py = ps2float::add(centre_y, ps2float::mul(down, b_sy));
+    let b_px = ps2float::add(centre_x, ps2float::mul(across, b_sx));
+    let a_px = ps2float::add(centre_x, ps2float::mul(across, a_sx));
+    let a_py = ps2float::add(centre_y, ps2float::mul(down, a_sy));
     swc1(sp + 84, b_py);
-    let a_sz = a_z * inverse_a;
+    let a_sz = ps2float::mul(a_z, inverse_a);
     swc1(sp + 80, b_px);
-    let dx = b_px - a_px;
+    let dx = ps2float::sub(b_px, a_px);
     swc1(sp + 64, a_px);
-    let dy = b_py - a_py;
+    let dy = ps2float::sub(b_py, a_py);
     swc1(sp + 68, a_py);
-    let b_sz = b_z * inverse_b;
+    let b_sz = ps2float::mul(b_z, inverse_b);
     swc1(sp + 40, a_sz);
     swc1(sp + 56, b_sz);
-    let width = (6e+01_f32).pdiv(zoom) * 3e+01_f32;
-    swc1(sp + 88, b_sz * scale + 32768.0_f32);
-    let width_b = (width).pdiv((b_z + 5.0_f32));
-    let width_a = (width).pdiv((a_z + 5.0_f32));
-    swc1(sp + 72, a_sz * scale + 32768.0_f32);
-    let unit = (1.0_f32).pdiv((dx * dx + dy * dy).abs().psqrt());
+    let width = ps2float::mul((6e+01_f32).pdiv(zoom), 3e+01_f32);
+    swc1(sp + 88, ps2float::add(ps2float::mul(b_sz, scale), 32768.0_f32));
+    let width_b = (width).pdiv(ps2float::add(b_z, 5.0_f32));
+    let width_a = (width).pdiv(ps2float::add(a_z, 5.0_f32));
+    swc1(sp + 72, ps2float::add(ps2float::mul(a_sz, scale), 32768.0_f32));
+    let unit = (1.0_f32).pdiv(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)).abs().psqrt());
     let p_x = lwc1(sp + 64);
     let p_y = lwc1(sp + 68);
     let q_x = lwc1(sp + 80);
     let q_y = lwc1(sp + 84);
-    let ny = dy * unit;
-    let nx = dx * unit;
+    let ny = ps2float::mul(dy, unit);
+    let nx = ps2float::mul(dx, unit);
     let ney = -ny;
     let nex = -nx;
-    let sum = width_b * (nx + ny);
-    swc1(sp + 112, p_x + width_a * (nex - ny));
-    swc1(sp + 116, p_y + width_a * (ney + nx) * 0.5_f32);
-    swc1(sp + 144, q_x + width_b * (nx - ny));
-    swc1(sp + 148, q_y + sum * 0.5_f32);
-    swc1(sp + 96, p_x + width_a * (nex + ny));
-    swc1(sp + 100, p_y + width_a * (ney - nx) * 0.5_f32);
-    swc1(sp + 132, q_y + width_b * (ny - nx) * 0.5_f32);
-    swc1(sp + 128, q_x + sum);
+    let sum = ps2float::mul(width_b, ps2float::add(nx, ny));
+    swc1(sp + 112, ps2float::add(p_x, ps2float::mul(width_a, ps2float::sub(nex, ny))));
+    swc1(sp + 116, ps2float::add(p_y, ps2float::mul(ps2float::mul(width_a, ps2float::add(ney, nx)), 0.5_f32)));
+    swc1(sp + 144, ps2float::add(q_x, ps2float::mul(width_b, ps2float::sub(nx, ny))));
+    swc1(sp + 148, ps2float::add(q_y, ps2float::mul(sum, 0.5_f32)));
+    swc1(sp + 96, ps2float::add(p_x, ps2float::mul(width_a, ps2float::add(nex, ny))));
+    swc1(sp + 100, ps2float::add(p_y, ps2float::mul(ps2float::mul(width_a, ps2float::sub(ney, nx)), 0.5_f32)));
+    swc1(sp + 132, ps2float::add(q_y, ps2float::mul(ps2float::mul(width_b, ps2float::sub(ny, nx)), 0.5_f32)));
+    swc1(sp + 128, ps2float::add(q_x, sum));
     let packet = memdbAlloc(192);
     sb(lw(g::gfxtag) + 3, 48);
     sw(packet, 0x6c0b8000);
     let tag = lw(g::gfxtag);
     sw(tag + 4, packet);
     let tinted = colour | -0x80000000;
-    let zero_a = inverse_a * 0.0_f32;
+    let zero_a = ps2float::mul(inverse_a, 0.0_f32);
     let words: [i32; 38] = [
         0x8001,
         -0x5fd1c000,
@@ -297,7 +297,7 @@ pub fn particleTracerGfx(particle: i32, colour: i32, matrix: i32) {
         1,
         0,
         inverse_b.to_bits() as i32,
-        (inverse_b * 0.0_f32).to_bits() as i32,
+        ps2float::mul(inverse_b, 0.0_f32).to_bits() as i32,
         2,
         0,
         packed_corner(lwc1(sp + 128), lwc1(sp + 132)),

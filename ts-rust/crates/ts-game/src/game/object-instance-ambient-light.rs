@@ -65,9 +65,9 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
         let a0_2 = lw(sp + 296);
         let v0_2 = lw(lw(sp + 288) + 4);
         sw(sp + 304, sp);
-        swc1(sp, lwc1(a0_2 + 48) + lwc1(v0_2 + 48));
-        swc1(sp + 4, lwc1(a0_2 + 52) + lwc1(v0_2 + 52));
-        swc1(sp + 8, lwc1(a0_2 + 56) + lwc1(v0_2 + 56));
+        swc1(sp, ps2float::add(lwc1(a0_2 + 48), lwc1(v0_2 + 48)));
+        swc1(sp + 4, ps2float::add(lwc1(a0_2 + 52), lwc1(v0_2 + 52)));
+        swc1(sp + 8, ps2float::add(lwc1(a0_2 + 56), lwc1(v0_2 + 56)));
     }
     let mut a0_6 = lw(lw(sp + 296) + 540);
     let mut v1_6;
@@ -75,10 +75,10 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
         'b5: {
             if a0_6 != -1 {
                 if (((a0 - v1_1).wrapping_mul(-0x3e7063e7)) >> 3 & 3) != a1_1 & 3 {
-                    swc1(lw(sp + 292), channel(a0_6, 0) * lwc1(0x3acad0));
-                    swc1(lw(sp + 292) + 4, channel(a0_6, 8) * lwc1(0x3acad4));
+                    swc1(lw(sp + 292), ps2float::mul(channel(a0_6, 0), lwc1(0x3acad0)));
+                    swc1(lw(sp + 292) + 4, ps2float::mul(channel(a0_6, 8), lwc1(0x3acad4)));
                     a3_1 = 1;
-                    swc1(lw(sp + 292) + 8, channel(a0_6, 16) * lwc1(0x3acad8));
+                    swc1(lw(sp + 292) + 8, ps2float::mul(channel(a0_6, 16), lwc1(0x3acad8)));
                     break 'b5;
                 }
             }
@@ -93,10 +93,10 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
             let f1_7 = channel(v0_8, 0);
             let v0_9 = lw(sp + 296);
             a0_6 = lw(v0_9 + 540);
-            swc1(lw(sp + 292), f1_7 * lwc1(0x3acadc));
-            swc1(lw(sp + 292) + 4, channel(a0_6, 8) * lwc1(0x3acae0));
+            swc1(lw(sp + 292), ps2float::mul(f1_7, lwc1(0x3acadc)));
+            swc1(lw(sp + 292) + 4, ps2float::mul(channel(a0_6, 8), lwc1(0x3acae0)));
             a3_1 = 1;
-            swc1(lw(sp + 292) + 8, channel(a0_6, 16) * lwc1(0x3acae4));
+            swc1(lw(sp + 292) + 8, ps2float::mul(channel(a0_6, 16), lwc1(0x3acae4)));
         }
         v1_6 = lw(g::roomlightinitial);
     }
@@ -132,7 +132,7 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
                 let a1_5 = lw(sp + 304);
                 let mut f21 = lwc1(0x3aea90);
                 swc1(sp + 32, lwc1(a1_5));
-                swc1(sp + 36, lwc1(a1_5 + 4) + f2_1);
+                swc1(sp + 36, ps2float::add(lwc1(a1_5 + 4), f2_1));
                 swc1(sp + 40, lwc1(a1_5 + 8));
                 let mut a5_1 = lw(sp + 300);
                 loop {
@@ -263,14 +263,14 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
                                                                                 if v0_18 != 0 {
                                                                                     let f6_1 = lwc1(sp + 128);
                                                                                     let f7_1 = lwc1(sp + 132);
-                                                                                    let f1_13 = f6_1 - lwc1(sp + 32);
+                                                                                    let f1_13 = ps2float::sub(f6_1, lwc1(sp + 32));
                                                                                     let f5_1 = lwc1(sp + 136);
-                                                                                    let f2_2 = f7_1 - lwc1(sp + 36);
+                                                                                    let f2_2 = ps2float::sub(f7_1, lwc1(sp + 36));
                                                                                     let f0_1 = lwc1(sp + 40);
                                                                                     swc1(sp + 144, f1_13);
-                                                                                    let f0_2 = f5_1 - f0_1;
+                                                                                    let f0_2 = ps2float::sub(f5_1, f0_1);
                                                                                     swc1(sp + 148, f2_2);
-                                                                                    let f3_1 = f1_13 * f1_13 + f2_2 * f2_2 + f0_2 * f0_2;
+                                                                                    let f3_1 = ps2float::add(ps2float::add(ps2float::mul(f1_13, f1_13), ps2float::mul(f2_2, f2_2)), ps2float::mul(f0_2, f0_2));
                                                                                     swc1(sp + 152, f0_2);
                                                                                     if f3_1 < f21 {
                                                                                         swc1(sp + 16, f6_1);
@@ -380,58 +380,58 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
                     break 'b14;
                 }
                 let a0_14 = lw(sp + 112);
-                swc1(sp + 208, channel(a0_14, 0) * lwc1(0x3acaec));
-                swc1(sp + 212, channel(a0_14, 8) * lwc1(0x3acaf0));
+                swc1(sp + 208, ps2float::mul(channel(a0_14, 0), lwc1(0x3acaec)));
+                swc1(sp + 212, ps2float::mul(channel(a0_14, 8), lwc1(0x3acaf0)));
                 let a0_15 = lw(sp + 116);
-                swc1(sp + 216, channel(a0_14, 16) * lwc1(0x3acaf4));
-                swc1(sp + 220, channel(a0_15, 0) * lwc1(0x3acaf8));
-                swc1(sp + 224, channel(a0_15, 8) * lwc1(0x3acafc));
+                swc1(sp + 216, ps2float::mul(channel(a0_14, 16), lwc1(0x3acaf4)));
+                swc1(sp + 220, ps2float::mul(channel(a0_15, 0), lwc1(0x3acaf8)));
+                swc1(sp + 224, ps2float::mul(channel(a0_15, 8), lwc1(0x3acafc)));
                 let a0_16 = lw(sp + 120);
-                swc1(sp + 228, channel(a0_15, 16) * lwc1(0x3acb00));
-                swc1(sp + 232, channel(a0_16, 0) * lwc1(0x3acb04));
-                swc1(sp + 236, channel(a0_16, 8) * lwc1(0x3acb08));
+                swc1(sp + 228, ps2float::mul(channel(a0_15, 16), lwc1(0x3acb00)));
+                swc1(sp + 232, ps2float::mul(channel(a0_16, 0), lwc1(0x3acb04)));
+                swc1(sp + 236, ps2float::mul(channel(a0_16, 8), lwc1(0x3acb08)));
                 let f6_2 = channel(a0_16, 16);
                 let f0_5 = lwc1(sp + 76);
                 let f15_1 = lwc1(sp + 64);
                 let f19_1 = lwc1(sp + 68);
-                let f0_6 = f0_5 - f15_1;
+                let f0_6 = ps2float::sub(f0_5, f15_1);
                 let f2_3 = lwc1(sp + 84);
-                let f1_30 = lwc1(sp + 80) - f19_1;
+                let f1_30 = ps2float::sub(lwc1(sp + 80), f19_1);
                 let f20_2 = lwc1(sp + 72);
                 swc1(sp + 128, f0_6);
-                let f2_4 = f2_3 - f20_2;
+                let f2_4 = ps2float::sub(f2_3, f20_2);
                 let f3_2 = lwc1(0x3acb0c);
                 swc1(sp + 132, f1_30);
                 swc1(sp + 136, f2_4);
-                swc1(sp + 240, f6_2 * f3_2);
-                let f0_7 = (1.0_f32).pdiv((f0_6 * f0_6 + f1_30 * f1_30 + f2_4 * f2_4).abs().psqrt());
+                swc1(sp + 240, ps2float::mul(f6_2, f3_2));
+                let f0_7 = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(f0_6, f0_6), ps2float::mul(f1_30, f1_30)), ps2float::mul(f2_4, f2_4)).abs().psqrt());
                 let f23_1 = lwc1(sp + 16);
                 let f24_1 = lwc1(sp + 20);
-                let f9_1 = f23_1 - f15_1;
-                let f11_1 = f24_1 - f19_1;
+                let f9_1 = ps2float::sub(f23_1, f15_1);
+                let f11_1 = ps2float::sub(f24_1, f19_1);
                 let f22_1 = lwc1(sp + 24);
                 let f17_1 = lwc1(sp + 88);
-                let f6_4 = lwc1(sp + 128) * f0_7;
+                let f6_4 = ps2float::mul(lwc1(sp + 128), f0_7);
                 let f16_1 = lwc1(sp + 92);
-                let f5_2 = lwc1(sp + 132) * f0_7;
+                let f5_2 = ps2float::mul(lwc1(sp + 132), f0_7);
                 let f21_2 = lwc1(sp + 96);
-                let f4_1 = lwc1(sp + 136) * f0_7;
+                let f4_1 = ps2float::mul(lwc1(sp + 136), f0_7);
                 swc1(sp + 128, f6_4);
                 swc1(sp + 132, f5_2);
-                let f10_1 = f22_1 - f20_2;
+                let f10_1 = ps2float::sub(f22_1, f20_2);
                 swc1(sp + 136, f4_1);
-                let f1_31 = f17_1 - f15_1;
-                let f2_5 = f16_1 - f19_1;
-                let f3_3 = f21_2 - f20_2;
-                let f14_1 = f9_1 * f6_4 + f11_1 * f5_2 + f10_1 * f4_1;
-                let f14_2 = f1_31 * f6_4 + f2_5 * f5_2 + f3_3 * f4_1;
-                let f9_2 = f9_1 - f14_1 * f6_4;
-                let f11_2 = f11_1 - f14_1 * f5_2;
-                let f1_32 = f1_31 - f14_2 * f6_4;
-                let f2_6 = f2_5 - f14_2 * f5_2;
-                let f3_4 = f3_3 - f14_2 * f4_1;
+                let f1_31 = ps2float::sub(f17_1, f15_1);
+                let f2_5 = ps2float::sub(f16_1, f19_1);
+                let f3_3 = ps2float::sub(f21_2, f20_2);
+                let f14_1 = ps2float::add(ps2float::add(ps2float::mul(f9_1, f6_4), ps2float::mul(f11_1, f5_2)), ps2float::mul(f10_1, f4_1));
+                let f14_2 = ps2float::add(ps2float::add(ps2float::mul(f1_31, f6_4), ps2float::mul(f2_5, f5_2)), ps2float::mul(f3_3, f4_1));
+                let f9_2 = ps2float::sub(f9_1, ps2float::mul(f14_1, f6_4));
+                let f11_2 = ps2float::sub(f11_1, ps2float::mul(f14_1, f5_2));
+                let f1_32 = ps2float::sub(f1_31, ps2float::mul(f14_2, f6_4));
+                let f2_6 = ps2float::sub(f2_5, ps2float::mul(f14_2, f5_2));
+                let f3_4 = ps2float::sub(f3_3, ps2float::mul(f14_2, f4_1));
                 swc1(sp + 160, f1_32);
-                let f10_2 = f10_1 - f14_1 * f4_1;
+                let f10_2 = ps2float::sub(f10_1, ps2float::mul(f14_1, f4_1));
                 swc1(sp + 164, f2_6);
                 swc1(sp + 168, f3_4);
                 let f3_5 = lwc1(sp + 76);
@@ -443,56 +443,56 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
                 let f13_1 = lwc1(sp + 224);
                 let f12_1 = lwc1(sp + 228);
                 let f17_2 = lwc1(sp + 208);
-                let ratio = (((f9_2 * f9_2 + f11_2 * f11_2 + f10_2 * f10_2)).pdiv((f1_32 * f1_32 + f2_6 * f2_6 + f3_4 * f3_4))).abs().psqrt();
-                let f3_6 = f3_5 + ratio * (f17_1 - f3_5);
+                let ratio = ((ps2float::add(ps2float::add(ps2float::mul(f9_2, f9_2), ps2float::mul(f11_2, f11_2)), ps2float::mul(f10_2, f10_2))).pdiv(ps2float::add(ps2float::add(ps2float::mul(f1_32, f1_32), ps2float::mul(f2_6, f2_6)), ps2float::mul(f3_4, f3_4)))).abs().psqrt();
+                let f3_6 = ps2float::add(f3_5, ps2float::mul(ratio, ps2float::sub(f17_1, f3_5)));
                 let f16_2 = lwc1(sp + 212);
-                let f4_3 = f4_2 + ratio * (f16_1 - f4_2);
+                let f4_3 = ps2float::add(f4_2, ps2float::mul(ratio, ps2float::sub(f16_1, f4_2)));
                 let f14_3 = lwc1(sp + 216);
-                let f1_33 = f15_1 + ratio * (f17_1 - f15_1);
+                let f1_33 = ps2float::add(f15_1, ps2float::mul(ratio, ps2float::sub(f17_1, f15_1)));
                 swc1(sp + 268, f3_6);
-                let f2_7 = f19_1 + ratio * (f16_1 - f19_1);
+                let f2_7 = ps2float::add(f19_1, ps2float::mul(ratio, ps2float::sub(f16_1, f19_1)));
                 swc1(sp + 272, f4_3);
                 let f15_2 = lwc1(sp + 220);
-                let f5_4 = f5_3 + ratio * (f21_2 - f5_3);
+                let f5_4 = ps2float::add(f5_3, ps2float::mul(ratio, ps2float::sub(f21_2, f5_3)));
                 swc1(sp + 256, f1_33);
-                let f3_7 = f3_6 - f1_33;
+                let f3_7 = ps2float::sub(f3_6, f1_33);
                 swc1(sp + 260, f2_7);
-                let f0_8 = f20_2 + ratio * (f21_2 - f20_2);
-                let f4_4 = f4_3 - f2_7;
+                let f0_8 = ps2float::add(f20_2, ps2float::mul(ratio, ps2float::sub(f21_2, f20_2)));
+                let f4_4 = ps2float::sub(f4_3, f2_7);
                 swc1(sp + 276, f5_4);
-                let f1_34 = f23_1 - f1_33;
+                let f1_34 = ps2float::sub(f23_1, f1_33);
                 swc1(sp + 160, f3_7);
-                let f2_8 = f24_1 - f2_7;
+                let f2_8 = ps2float::sub(f24_1, f2_7);
                 swc1(sp + 264, f0_8);
-                let f5_5 = f5_4 - f0_8;
+                let f5_5 = ps2float::sub(f5_4, f0_8);
                 swc1(sp + 164, f4_4);
-                let f0_9 = f22_1 - f0_8;
+                let f0_9 = ps2float::sub(f22_1, f0_8);
                 swc1(sp + 168, f5_5);
-                swc1(sp + 176, f17_2 + ratio * (f11_3 - f17_2));
-                swc1(sp + 180, f16_2 + ratio * (f10_3 - f16_2));
-                swc1(sp + 184, f14_3 + ratio * (f9_3 - f14_3));
-                swc1(sp + 188, f15_2 + ratio * (f11_3 - f15_2));
-                swc1(sp + 192, f13_1 + ratio * (f10_3 - f13_1));
-                swc1(sp + 196, f12_1 + ratio * (f9_3 - f12_1));
+                swc1(sp + 176, ps2float::add(f17_2, ps2float::mul(ratio, ps2float::sub(f11_3, f17_2))));
+                swc1(sp + 180, ps2float::add(f16_2, ps2float::mul(ratio, ps2float::sub(f10_3, f16_2))));
+                swc1(sp + 184, ps2float::add(f14_3, ps2float::mul(ratio, ps2float::sub(f9_3, f14_3))));
+                swc1(sp + 188, ps2float::add(f15_2, ps2float::mul(ratio, ps2float::sub(f11_3, f15_2))));
+                swc1(sp + 192, ps2float::add(f13_1, ps2float::mul(ratio, ps2float::sub(f10_3, f13_1))));
+                swc1(sp + 196, ps2float::add(f12_1, ps2float::mul(ratio, ps2float::sub(f9_3, f12_1))));
                 let f5_6 = lwc1(sp + 180);
                 let f4_5 = lwc1(sp + 176);
                 let f6_5 = lwc1(sp + 184);
                 let a2_10 = lw(sp + 292);
-                let ratio2 = (((f1_34 * f1_34 + f2_8 * f2_8 + f0_9 * f0_9)).pdiv((f3_7 * f3_7 + f4_4 * f4_4 + f5_5 * f5_5))).abs().psqrt();
-                let f5_7 = f5_6 + ratio2 * (lwc1(sp + 192) - f5_6);
-                let f1_35 = ratio2 * (lwc1(sp + 196) - f6_5);
-                let f4_6 = f4_5 + ratio2 * (lwc1(sp + 188) - f4_5);
+                let ratio2 = ((ps2float::add(ps2float::add(ps2float::mul(f1_34, f1_34), ps2float::mul(f2_8, f2_8)), ps2float::mul(f0_9, f0_9))).pdiv(ps2float::add(ps2float::add(ps2float::mul(f3_7, f3_7), ps2float::mul(f4_4, f4_4)), ps2float::mul(f5_5, f5_5)))).abs().psqrt();
+                let f5_7 = ps2float::add(f5_6, ps2float::mul(ratio2, ps2float::sub(lwc1(sp + 192), f5_6)));
+                let f1_35 = ps2float::mul(ratio2, ps2float::sub(lwc1(sp + 196), f6_5));
+                let f4_6 = ps2float::add(f4_5, ps2float::mul(ratio2, ps2float::sub(lwc1(sp + 188), f4_5)));
                 swc1(a2_10 + 4, f5_7);
-                let f6_6 = f6_5 + f1_35;
+                let f6_6 = ps2float::add(f6_5, f1_35);
                 swc1(a2_10, f4_6);
                 swc1(a2_10 + 8, f6_6);
-                sw(lw(sp + 296) + 540, (f4_6 * 255.0_f32) as i32 | ((f5_7 * 255.0_f32) as i32) << 8 | ((f6_6 * 255.0_f32) as i32) << 16);
+                sw(lw(sp + 296) + 540, ps2float::mul(f4_6, 255.0_f32) as i32 | (ps2float::mul(f5_7, 255.0_f32) as i32) << 8 | (ps2float::mul(f6_6, 255.0_f32) as i32) << 16);
                 break 'b14;
             }
         }
-        swc1(lw(sp + 292), channel(a0_6, 0) * lwc1(0x3acb14));
-        swc1(lw(sp + 292) + 4, channel(a0_6, 8) * lwc1(0x3acb18));
-        swc1(lw(sp + 292) + 8, channel(a0_6, 16) * lwc1(0x3acb1c));
+        swc1(lw(sp + 292), ps2float::mul(channel(a0_6, 0), lwc1(0x3acb14)));
+        swc1(lw(sp + 292) + 4, ps2float::mul(channel(a0_6, 8), lwc1(0x3acb18)));
+        swc1(lw(sp + 292) + 8, ps2float::mul(channel(a0_6, 16), lwc1(0x3acb1c)));
     }
     let mut a6_5;
     'b49: {
@@ -536,18 +536,18 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
                     }
                     let f1_44 = lwc1(0x3acb24);
                     let a0_21 = lw(sp + 292);
-                    let f0_12 = lwc1(a0_21 + 4) + lwc1(sp + 20) * f1_44;
-                    let f1_45 = lwc1(a0_21 + 8) + lwc1(sp + 24) * f1_44;
-                    swc1(a0_21, lwc1(a0_21) + lwc1(sp + 16) * f1_44);
+                    let f0_12 = ps2float::add(lwc1(a0_21 + 4), ps2float::mul(lwc1(sp + 20), f1_44));
+                    let f1_45 = ps2float::add(lwc1(a0_21 + 8), ps2float::mul(lwc1(sp + 24), f1_44));
+                    swc1(a0_21, ps2float::add(lwc1(a0_21), ps2float::mul(lwc1(sp + 16), f1_44)));
                     swc1(a0_21 + 4, f0_12);
                     swc1(a0_21 + 8, f1_45);
                     break 'b54;
                 }
                 let f1_42 = lwc1(0x3acb20);
                 let v1_23 = lw(sp + 292);
-                let f0_11 = lwc1(v1_23 + 4) + lwc1(sp + 20) * f1_42;
-                let f1_43 = lwc1(v1_23 + 8) + lwc1(sp + 24) * f1_42;
-                swc1(v1_23, lwc1(v1_23) + lwc1(sp + 16) * f1_42);
+                let f0_11 = ps2float::add(lwc1(v1_23 + 4), ps2float::mul(lwc1(sp + 20), f1_42));
+                let f1_43 = ps2float::add(lwc1(v1_23 + 8), ps2float::mul(lwc1(sp + 24), f1_42));
+                swc1(v1_23, ps2float::add(lwc1(v1_23), ps2float::mul(lwc1(sp + 16), f1_42)));
                 swc1(v1_23 + 4, f0_11);
                 swc1(v1_23 + 8, f1_43);
             }
@@ -571,13 +571,13 @@ pub fn obinstCalcAmbientLight(a0: i32, a1: i32) {
     let a7_7 = lw(sp + 292);
     if 0.0_f32 < f2_9 {
         let f4_7 = lw(a6_5 + 320) as f32;
-        let f0_13 = 1.0_f32 - f2_9;
+        let f0_13 = ps2float::sub(1.0_f32, f2_9);
         let f7_2 = lwc1(0x3acb28);
         let f5_8 = lw(a6_5 + 324) as f32;
-        let f2_10 = lwc1(a7_7 + 4) * f0_13;
-        let f6_7 = lwc1(a7_7 + 8) * f0_13;
-        swc1(a7_7, lwc1(a7_7) * f0_13 + lw(a6_5 + 316) as f32 * f2_9 * f7_2);
-        swc1(a7_7 + 4, f2_10 + f4_7 * lwc1(a6_5 + 312) * f7_2);
-        swc1(a7_7 + 8, f6_7 + f5_8 * lwc1(a6_5 + 312) * f7_2);
+        let f2_10 = ps2float::mul(lwc1(a7_7 + 4), f0_13);
+        let f6_7 = ps2float::mul(lwc1(a7_7 + 8), f0_13);
+        swc1(a7_7, ps2float::add(ps2float::mul(lwc1(a7_7), f0_13), ps2float::mul(ps2float::mul(lw(a6_5 + 316) as f32, f2_9), f7_2)));
+        swc1(a7_7 + 4, ps2float::add(f2_10, ps2float::mul(ps2float::mul(f4_7, lwc1(a6_5 + 312)), f7_2)));
+        swc1(a7_7 + 8, ps2float::add(f6_7, ps2float::mul(ps2float::mul(f5_8, lwc1(a6_5 + 312)), f7_2)));
     }
 }

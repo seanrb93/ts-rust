@@ -32,13 +32,13 @@ pub fn bgPortalCrossed(position: i32, direction: i32, room: i32, skip: i32, unbo
                 let dy = lwc1(direction + 4);
                 let nz = lwc1(plane + 8);
                 let dz = lwc1(direction + 8);
-                let facing = nx * dx + ny * dy + nz * dz;
-                let offset = nx * lwc1(portal + 24) + ny * lwc1(portal + 28) + nz * lwc1(portal + 32);
+                let facing = ps2float::add(ps2float::add(ps2float::mul(nx, dx), ps2float::mul(ny, dy)), ps2float::mul(nz, dz));
+                let offset = ps2float::add(ps2float::add(ps2float::mul(nx, lwc1(portal + 24)), ps2float::mul(ny, lwc1(portal + 28))), ps2float::mul(nz, lwc1(portal + 32)));
                 if !(facing == 0.0_f32) {
                     let sx = lwc1(position);
                     let sy = lwc1(position + 4);
                     let sz = lwc1(position + 8);
-                    let t = ((offset - (nx * sx + ny * sy + nz * sz))).pdiv(facing);
+                    let t = (ps2float::sub(offset, ps2float::add(ps2float::add(ps2float::mul(nx, sx), ps2float::mul(ny, sy)), ps2float::mul(nz, sz)))).pdiv(facing);
                     let mut skip_portal = false;
                     if t <= 0.0_f32 {
                         skip_portal = true;
@@ -49,25 +49,25 @@ pub fn bgPortalCrossed(position: i32, direction: i32, room: i32, skip: i32, unbo
                         let corners = lhu(portal + 20) as i32;
                         let mut index = 0;
                         let mut outside = false;
-                        let hz = sz + t * dz;
-                        let hx = sx + t * dx;
-                        let hy = sy + t * dy;
+                        let hz = ps2float::add(sz, ps2float::mul(t, dz));
+                        let hx = ps2float::add(sx, ps2float::mul(t, dx));
+                        let hy = ps2float::add(sy, ps2float::mul(t, dy));
                         let signed_corners = (corners << 16) >> 16;
                         let mut previous = portal + (signed_corners * 12 + 12);
                         let (mut cx, mut cy, mut cz) = (0.0_f32, 0.0_f32, 0.0_f32);
                         if signed_corners > 0 {
                             loop {
                                 let corner = portal + (index * 12 + 24);
-                                let ex = lwc1(corner) - lwc1(previous);
-                                let ey = lwc1(corner + 4) - lwc1(previous + 4);
-                                let ez = lwc1(corner + 8) - lwc1(previous + 8);
-                                let wx = lwc1(corner) - hx;
-                                let wy = lwc1(corner + 4) - hy;
-                                let new_z = ex * wy - ey * wx;
-                                let wz = lwc1(corner + 8) - hz;
-                                let new_y = ez * wx - ex * wz;
-                                let new_x = ey * wz - ez * wy;
-                                if index > 0 && (cx * new_x + cy * new_y + cz * new_z) < 0.0_f32 {
+                                let ex = ps2float::sub(lwc1(corner), lwc1(previous));
+                                let ey = ps2float::sub(lwc1(corner + 4), lwc1(previous + 4));
+                                let ez = ps2float::sub(lwc1(corner + 8), lwc1(previous + 8));
+                                let wx = ps2float::sub(lwc1(corner), hx);
+                                let wy = ps2float::sub(lwc1(corner + 4), hy);
+                                let new_z = ps2float::sub(ps2float::mul(ex, wy), ps2float::mul(ey, wx));
+                                let wz = ps2float::sub(lwc1(corner + 8), hz);
+                                let new_y = ps2float::sub(ps2float::mul(ez, wx), ps2float::mul(ex, wz));
+                                let new_x = ps2float::sub(ps2float::mul(ey, wz), ps2float::mul(ez, wy));
+                                if index > 0 && ps2float::add(ps2float::add(ps2float::mul(cx, new_x), ps2float::mul(cy, new_y)), ps2float::mul(cz, new_z)) < 0.0_f32 {
                                     outside = true;
                                 }
                                 index += 1;

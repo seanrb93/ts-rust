@@ -23,7 +23,7 @@ pub fn mcseqMake() {
 
 /// How many particles to make out of `n`, for the number of players (@ 0x2968a0).
 pub fn particleGetNum(n: i32) -> i32 {
-    (particleGetScale() * n as f32) as i32
+    ps2float::mul(particleGetScale(), n as f32) as i32
 }
 
 /// The cost of a link between pads for the route finder (@ 0x266188).

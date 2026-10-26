@@ -5,7 +5,7 @@ use crate::*;
 /// Let the flinch after a hit die away (the time at +200 of the animation state goes down by the frame time in seconds; at 0 the two extra animations at +336 and +340 stop) and
 /// turn the two matrices of the flinch (at +208 and +272) by angles worked out from the time left, from the game's constants (@ 0x215b50).
 pub fn animHitReactUpdate(state: i32) {
-    let left = lwc1(state + 200) - (lwc1(g::updateframesf)).pdiv(60.0_f32);
+    let left = ps2float::sub(lwc1(state + 200), (lwc1(g::updateframesf)).pdiv(60.0_f32));
     swc1(state + 200, left);
     if left < 0.0_f32 {
         swc1(state + 200, 0.0_f32);
@@ -15,26 +15,26 @@ pub fn animHitReactUpdate(state: i32) {
     let fraction = (lwc1(state + 200)).pdiv(lwc1(0x3ac848));
     let scale = lwc1(0x3ac84c);
     sw(state + 336, lw(lw(lw(state + 32) + 92) + 16));
-    matrixRotZ(state + 208, fraction * scale);
+    matrixRotZ(state + 208, ps2float::mul(fraction, scale));
     let time = lwc1(state + 200);
     let switch_at = lwc1(0x3ac850);
     if !(switch_at < time) {
         let model = lw(state + 32);
         let rising = (time).pdiv(switch_at);
-        let angle = rising * lwc1(0x3ac860);
+        let angle = ps2float::mul(rising, lwc1(0x3ac860));
         sw(state + 340, lw(lw(model + 92) + 20));
-        matrixRotZ(state + 272, angle * rising * rising);
+        matrixRotZ(state + 272, ps2float::mul(ps2float::mul(angle, rising), rising));
         return;
     }
     let half = 0.5_f32;
-    let part = ((time - switch_at)).pdiv(lwc1(0x3ac854));
+    let part = (ps2float::sub(time, switch_at)).pdiv(lwc1(0x3ac854));
     sw(state + 340, lw(lw(lw(state + 32) + 92) + 20));
     if !(half < part) {
-        let down = half - part;
-        matrixRotZ(state + 272, (down + down) * lwc1(0x3ac85c));
+        let down = ps2float::sub(half, part);
+        matrixRotZ(state + 272, ps2float::mul(ps2float::add(down, down), lwc1(0x3ac85c)));
         return;
     }
-    matrixRotZ(state + 272, (part + part - 1.0_f32) * lwc1(0x3ac858));
+    matrixRotZ(state + 272, ps2float::mul(ps2float::sub(ps2float::add(part, part), 1.0_f32), lwc1(0x3ac858)));
 }
 
 /// Make the table of 576 pitches (halfwords at 0x1fb20a8): for the six octaves -3 to 2, the 12 notes and eighths of a note, two to the power of the note over 12 times the game's
@@ -54,7 +54,7 @@ pub fn calcPitches() {
             loop {
                 let exponent = (step).pdiv(12.0_f32);
                 left -= 1;
-                step += 0.125_f32;
+                step = ps2float::add(step, 0.125_f32);
                 let wide = fptodp(exponent);
                 let power = pow(0x4000000000000000_i64, wide);
                 let scaled = dpmul(power, ld(0x3998a8));
@@ -164,9 +164,9 @@ pub fn transformHead(_unused: i32, chunks: i32, matrix: i32) {
                 sceVu0TransposeMatrix(sp, matrix);
                 let y = lwc1(matrix + 52);
                 let z = lwc1(matrix + 56);
-                swc1(sp + 64, lwc1(vertex) - lwc1(matrix + 48));
-                swc1(sp + 68, lwc1(vertex + 4) - y);
-                swc1(sp + 72, lwc1(vertex + 8) - z);
+                swc1(sp + 64, ps2float::sub(lwc1(vertex), lwc1(matrix + 48)));
+                swc1(sp + 68, ps2float::sub(lwc1(vertex + 4), y));
+                swc1(sp + 72, ps2float::sub(lwc1(vertex + 8), z));
                 matrixVecRotAligned(&[sp as i64, (sp + 64) as i64]);
                 swc1(vertex, lwc1(sp + 64));
                 swc1(vertex + 4, lwc1(sp + 68));

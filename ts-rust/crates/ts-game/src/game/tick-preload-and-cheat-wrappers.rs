@@ -41,7 +41,7 @@ pub fn specialfxTick() {
 
 /// The tick of the credits: the time moves on by the frames times a rate, then the background and the text tick (@ 0x2ae698).
 pub fn creditsTick() {
-    swc1(g::creditstime, lwc1(g::creditstime) + lwc1(g::updateframesf) * lwc1(0x3ad750));
+    swc1(g::creditstime, ps2float::add(lwc1(g::creditstime), ps2float::mul(lwc1(g::updateframesf), lwc1(0x3ad750))));
     creditsBgTick();
     creditsTextTick();
 }

@@ -6,7 +6,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// The prop for the flag of the team `team` (1 to 4), or -1 for another team.
@@ -61,7 +61,7 @@ pub fn enemySetup() {
                                 let flag_prop = team_flag_prop(team);
                                 let owner = lw(slot);
                                 let z = lwc1(owner + 56);
-                                let y = lwc1(owner + 52) + lwc1(0x3ad7d8);
+                                let y = ps2float::add(lwc1(owner + 52), lwc1(0x3ad7d8));
                                 let x = lwc1(owner + 48);
                                 let prop = propNew(flag_prop, x, y, z, 0.0_f32);
                                 let owner = lw(slot);
@@ -325,12 +325,12 @@ pub fn aiTickBefore() {
                             let kind = lw(target + 8);
                             if kind == 8 {
                                 let target_mind = lw(target + 352);
-                                swc1(sp + 16, lwc1(target + 48) - x);
-                                swc1(sp + 20, lwc1(target_mind + 3012) - lwc1(0x3ad7e4) - y);
+                                swc1(sp + 16, ps2float::sub(lwc1(target + 48), x));
+                                swc1(sp + 20, ps2float::sub(ps2float::sub(lwc1(target_mind + 3012), lwc1(0x3ad7e4)), y));
                                 let tz = lwc1(target + 56);
                                 sw(sp, 1);
                                 sw(sp + 8, 0);
-                                swc1(sp + 24, tz - z);
+                                swc1(sp + 24, ps2float::sub(tz, z));
                                 seen = bgLineTest(lw(chr + 12), sp + 48, sp + 16, 0, 0, 0, 0, 112);
                                 target = lw(mind + 2788);
                             } else {
@@ -339,22 +339,22 @@ pub fn aiTickBefore() {
                                     if kind != 64 {
                                         if kind == 256 {
                                             let tx = lwc1(target + 48);
-                                            let dx = tx - x;
+                                            let dx = ps2float::sub(tx, x);
                                             let pos1 = g::gpos1;
                                             let pos2 = g::gpos2;
                                             swc1(sp + 16, dx);
-                                            let dy = lwc1(target + 52) + 0.5_f32 - y;
+                                            let dy = ps2float::sub(ps2float::add(lwc1(target + 52), 0.5_f32), y);
                                             swc1(sp + 20, dy);
                                             let tz = lwc1(target + 56);
-                                            swc1(g::gpos2, x + dx);
-                                            let dz = tz - z;
+                                            swc1(g::gpos2, ps2float::add(x, dx));
+                                            let dz = ps2float::sub(tz, z);
                                             sw(sp, 0);
                                             sw(sp + 8, 0);
                                             swc1(g::gpos1, x);
                                             swc1(pos1 + 8, z);
-                                            swc1(pos2 + 4, y + dy);
+                                            swc1(pos2 + 4, ps2float::add(y, dy));
                                             let room = lw(chr + 12);
-                                            swc1(pos2 + 8, z + dz);
+                                            swc1(pos2 + 8, ps2float::add(z, dz));
                                             swc1(sp + 24, dz);
                                             swc1(pos1 + 4, y);
                                             seen = bgLineTest(room, sp + 48, sp + 16, 0, 0, 0, 0, 48);
@@ -375,17 +375,17 @@ pub fn aiTickBefore() {
                                 let z = lwc1(sp + 56);
                                 let top;
                                 if ((prop_kind - 201) as u32) >= (2 as u32) {
-                                    swc1(sp + 16, lwc1(target + 48) + lwc1(target + 508) - x);
-                                    top = lwc1(target + 52) + lwc1(target + 512);
+                                    swc1(sp + 16, ps2float::sub(ps2float::add(lwc1(target + 48), lwc1(target + 508)), x));
+                                    top = ps2float::add(lwc1(target + 52), lwc1(target + 512));
                                 } else {
-                                    swc1(sp + 16, lwc1(target + 48) + lwc1(target + 508) - x);
-                                    top = lwc1(target + 52) + 0.25_f32;
+                                    swc1(sp + 16, ps2float::sub(ps2float::add(lwc1(target + 48), lwc1(target + 508)), x));
+                                    top = ps2float::add(lwc1(target + 52), 0.25_f32);
                                 }
-                                swc1(sp + 20, top - y);
-                                swc1(sp + 24, lwc1(target + 56) + lwc1(target + 516) - z);
-                                let end_x = x + lwc1(sp + 16);
+                                swc1(sp + 20, ps2float::sub(top, y));
+                                swc1(sp + 24, ps2float::sub(ps2float::add(lwc1(target + 56), lwc1(target + 516)), z));
+                                let end_x = ps2float::add(x, lwc1(sp + 16));
                                 let shooter = lw((lw(g::updateplayer) << 2) + g::chr);
-                                let end_z = z + lwc1(sp + 24);
+                                let end_z = ps2float::add(z, lwc1(sp + 24));
                                 let dy = lwc1(sp + 20);
                                 sw(sp, 0);
                                 let pos2 = g::gpos2;
@@ -395,7 +395,7 @@ pub fn aiTickBefore() {
                                 swc1(pos2 + 8, end_z);
                                 swc1(g::gpos1, x);
                                 swc1(pos1 + 8, z);
-                                swc1(pos2 + 4, y + dy);
+                                swc1(pos2 + 4, ps2float::add(y, dy));
                                 let room = lw(shooter + 12);
                                 swc1(pos1 + 4, y);
                                 seen = bgLineTest(room, sp + 48, sp + 16, 0, 0, 0, 0, 48);
@@ -514,19 +514,19 @@ pub fn aiTickBefore() {
                     let flags = lw(prop + 16);
                     swc1(sp + 32, x);
                     let first_mind = lw(lw(player + 384) + 352);
-                    let y = lwc1(prop + 52) + lwc1(0x3ad7dc);
+                    let y = ps2float::add(lwc1(prop + 52), lwc1(0x3ad7dc));
                     sw(prop + 16, flags & -33);
                     let height = lwc1(0x3ad7e0);
                     swc1(sp + 36, y);
                     let z = lwc1(prop + 56);
                     swc1(sp + 40, z);
-                    swc1(sp + 16, lwc1(player + 140) - x);
-                    swc1(sp + 20, lwc1(first_mind + 3012) - height - y);
+                    swc1(sp + 16, ps2float::sub(lwc1(player + 140), x));
+                    swc1(sp + 20, ps2float::sub(ps2float::sub(lwc1(first_mind + 3012), height), y));
                     let tz = lwc1(player + 148);
                     sw(sp, 1);
                     sw(sp + 8, 0);
                     let room = lw(prop + 12);
-                    swc1(sp + 24, tz - z);
+                    swc1(sp + 24, ps2float::sub(tz, z));
                     let result = bgLineTest(room, sp + 32, sp + 16, 0, 0, 0, 0, 112);
                     let owner;
                     if result != lw(mind + 2788) {
@@ -791,12 +791,12 @@ pub fn playerFireShots(a0: i32) {
         if lw(gun_data + 384) >= 0 {
             let random = random_unit();
             let kind = lw(lw(a0 + 172));
-            let mut angle = random * 3.6e+02_f32;
+            let mut angle = ps2float::mul(random, 3.6e+02_f32);
             if kind == 1 || kind == 19 {
                 let first = newrnd();
                 let second = random_unit();
                 let step = (((first as i32 as u32) % (6 as u32)) as i32) as f32;
-                angle = step * 6e+01_f32 + (second - 0.5_f32) * 5.0_f32;
+                angle = ps2float::add(ps2float::mul(step, 6e+01_f32), ps2float::mul(ps2float::sub(second, 0.5_f32), 5.0_f32));
             }
             let owner_now = lw(a0 + 12);
             let data = lw(owner_now + 32);
@@ -804,7 +804,7 @@ pub fn playerFireShots(a0: i32) {
             let matrix = lw(data + 4) + (lw(gun_data + 384) << 6);
             let pivot = lw(header - lw(header) * 80 + 72) + lw(gun_data + 364) * 12;
             matrixTrans(matrix, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-            matrixRotZXY(sp + 272, 0.0_f32, 0.0_f32, (angle * lwc1(0x3ad2b0)).pdiv(1.8e+02_f32));
+            matrixRotZXY(sp + 272, 0.0_f32, 0.0_f32, ps2float::mul(angle, lwc1(0x3ad2b0)).pdiv(1.8e+02_f32));
             sceVu0MulMatrix(matrix, matrix, sp + 272);
             matrixTrans(sp + 272, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
             sceVu0MulMatrix(matrix, matrix, sp + 272);
@@ -828,9 +828,9 @@ pub fn playerFireShots(a0: i32) {
     swc1(a0 + 76, lwc1(shot + 56));
     let strength = lwc1(shot + 60);
     let limited = spread < lwc1(0x3ad2b4);
-    let recoil = lwc1(shot + 56) * -2e+02_f32;
+    let recoil = ps2float::mul(lwc1(shot + 56), -2e+02_f32);
     sw(a0 + 184, burst + 1);
-    swc1(a0 + 60, recoil * strength);
+    swc1(a0 + 60, ps2float::mul(recoil, strength));
     let pull = lwc1(shot + 72);
     swc1(a0 + 120, 1.0_f32);
     swc1(a0 + 80, pull);
@@ -847,15 +847,15 @@ pub fn playerFireShots(a0: i32) {
         }
         let random = random_unit();
         let size = lwc1(shot + 96);
-        let wobble = random * lwc1(0x3ad2b8);
+        let wobble = ps2float::mul(random, lwc1(0x3ad2b8));
         swc1(a0 + 116, 1.0_f32);
-        swc1(a0 + 112, wobble * size);
+        swc1(a0 + 112, ps2float::mul(wobble, size));
     }
     let to_radians = lwc1(0x3ad2bc);
     swc1(a0 + 188, lwc1(shot + 128));
-    let ax = (lwc1(prop + 72) * to_radians).pdiv(1.8e+02_f32);
-    let ay = (lwc1(prop + 76) * to_radians).pdiv(1.8e+02_f32);
-    let az = (lwc1(prop + 88) * to_radians).pdiv(1.8e+02_f32);
+    let ax = ps2float::mul(lwc1(prop + 72), to_radians).pdiv(1.8e+02_f32);
+    let ay = ps2float::mul(lwc1(prop + 76), to_radians).pdiv(1.8e+02_f32);
+    let az = ps2float::mul(lwc1(prop + 88), to_radians).pdiv(1.8e+02_f32);
     let mut pivot = lw(sp + 376);
     matrixRotZXY(sp + 48, ax, ay, az);
     let vy = lwc1(a0 + 72);
@@ -867,16 +867,16 @@ pub fn playerFireShots(a0: i32) {
     let ry = lwc1(sp + 260);
     let rz = lwc1(sp + 264);
     let skeleton = lw(sp + 372);
-    swc1(sp + 240, lwc1(prop + 48) + lwc1(sp + 256));
-    swc1(sp + 244, lwc1(prop + 52) + ry);
-    swc1(sp + 248, lwc1(prop + 56) + rz);
+    swc1(sp + 240, ps2float::add(lwc1(prop + 48), lwc1(sp + 256)));
+    swc1(sp + 244, ps2float::add(lwc1(prop + 52), ry));
+    swc1(sp + 248, ps2float::add(lwc1(prop + 56), rz));
     if lb(skeleton + 7) > 0 {
         pivot = lw(skeleton + 72);
     }
     swc1(sp + 32, lwc1(pivot));
     swc1(sp + 36, lwc1(pivot + 4));
     swc1(sp + 40, lwc1(pivot + 8));
-    let turn = (lwc1(prop + 76) * to_radians).pdiv(1.8e+02_f32);
+    let turn = ps2float::mul(lwc1(prop + 76), to_radians).pdiv(1.8e+02_f32);
     matrixTransRotY(sp + 112, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), turn);
     sceVu0MulMatrix(sp + 176, sp + 112, lw(lw(prop + 32) + 4));
     matrixTrans(sp + 112, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
@@ -901,9 +901,9 @@ pub fn playerFireShots(a0: i32) {
         lwc1(owner + 48),
         lwc1(owner + 52),
         lwc1(owner + 56),
-        (lwc1(owner + 72) * to_radians2).pdiv(1.8e+02_f32),
-        (lwc1(owner + 76) * to_radians2).pdiv(1.8e+02_f32),
-        (lwc1(owner + 88) * to_radians2).pdiv(1.8e+02_f32),
+        ps2float::mul(lwc1(owner + 72), to_radians2).pdiv(1.8e+02_f32),
+        ps2float::mul(lwc1(owner + 76), to_radians2).pdiv(1.8e+02_f32),
+        ps2float::mul(lwc1(owner + 88), to_radians2).pdiv(1.8e+02_f32),
     );
     matrixVecMul(sp + 112, sp + 32);
     let muzzle_y = lwc1(sp + 36);
@@ -917,9 +917,9 @@ pub fn playerFireShots(a0: i32) {
     if spark_bone >= 0 {
         let holder = lw(a0 + 168);
         let owner = lw(a0 + 12);
-        swc1(sp + 352, lwc1(holder + 48) - lwc1(holder + 112));
-        swc1(sp + 356, lwc1(holder + 52) - lwc1(holder + 116));
-        swc1(sp + 360, lwc1(holder + 56) - lwc1(holder + 120));
+        swc1(sp + 352, ps2float::sub(lwc1(holder + 48), lwc1(holder + 112)));
+        swc1(sp + 356, ps2float::sub(lwc1(holder + 52), lwc1(holder + 116)));
+        swc1(sp + 360, ps2float::sub(lwc1(holder + 56), lwc1(holder + 120)));
         let word = lw(sp + 360);
         sd(sp + 336, ld(sp + 352));
         sw(sp + 344, word);
@@ -930,18 +930,18 @@ pub fn playerFireShots(a0: i32) {
         swc1(sp + 32, lwc1(pivot));
         swc1(sp + 36, lwc1(pivot + 4));
         swc1(sp + 40, lwc1(pivot + 8));
-        let az = (lwc1(owner + 88) * to_radians2).pdiv(1.8e+02_f32);
-        let ax = (lwc1(owner + 72) * to_radians2).pdiv(1.8e+02_f32);
-        let ay = (lwc1(owner + 76) * to_radians2).pdiv(1.8e+02_f32);
+        let az = ps2float::mul(lwc1(owner + 88), to_radians2).pdiv(1.8e+02_f32);
+        let ax = ps2float::mul(lwc1(owner + 72), to_radians2).pdiv(1.8e+02_f32);
+        let ay = ps2float::mul(lwc1(owner + 76), to_radians2).pdiv(1.8e+02_f32);
         matrixTransRotZXY(sp + 112, x, y, z, ax, ay, az);
         matrixVecRotAligned(&[(sp + 112) as i64, (sp + 32) as i64]);
         let sy = lwc1(sp + 36);
         let player = lw(g::currentplayer);
         let sz = lwc1(sp + 40);
-        swc1(sp + 32, lwc1(sp + 32) + lwc1(owner + 48));
+        swc1(sp + 32, ps2float::add(lwc1(sp + 32), lwc1(owner + 48)));
         let view = lw(player + 1772);
-        swc1(sp + 36, sy + lwc1(owner + 52));
-        swc1(sp + 40, sz + lwc1(owner + 56));
+        swc1(sp + 36, ps2float::add(sy, lwc1(owner + 52)));
+        swc1(sp + 40, ps2float::add(sz, lwc1(owner + 56)));
         matrixVecMulAligned(&[view as i64, (sp + 32) as i64]);
         let sparks = particleNewGunSparks(0, sp + 32, sp + 336);
         particleSetViewmask(sparks, 1 << (lw(lw(g::currentplayer)) & 31));
@@ -958,38 +958,38 @@ pub fn playerFireShots(a0: i32) {
     if bullets != 0 {
         loop {
             let random = random_unit();
-            let mut side = (random + random - 1.0_f32) * lwc1(shot + 32);
+            let mut side = ps2float::mul(ps2float::sub(ps2float::add(random, random), 1.0_f32), lwc1(shot + 32));
             let random = random_unit();
             let player = lw(g::currentplayer);
-            let mut up = (random + random - 1.0_f32) * lwc1(shot + 32);
+            let mut up = ps2float::mul(ps2float::sub(ps2float::add(random, random), 1.0_f32), lwc1(shot + 32));
             let aiming = lw(player + 828);
             if (lw(player + 20) & 2) != 0 {
                 if bullets == 1 {
                     let scale = lwc1(0x3ad2c4);
-                    up = up * scale;
-                    side = side * scale;
+                    up = ps2float::mul(up, scale);
+                    side = ps2float::mul(side, scale);
                 }
             }
             if aiming == 0 {
                 let mind = lw(sp + 368);
-                swc1(sp, (lwc1(mind + 2976) + side * lwc1(player + 240) + up * lwc1(player + 228)) * lwc1(shot + 28));
-                swc1(sp + 4, (lwc1(mind + 2980) + side * lwc1(player + 244) + up * lwc1(player + 232)) * lwc1(shot + 28));
-                swc1(sp + 8, (lwc1(mind + 2984) + side * lwc1(player + 248) + up * lwc1(player + 236)) * lwc1(shot + 28));
+                swc1(sp, ps2float::mul(ps2float::add(ps2float::add(lwc1(mind + 2976), ps2float::mul(side, lwc1(player + 240))), ps2float::mul(up, lwc1(player + 228))), lwc1(shot + 28)));
+                swc1(sp + 4, ps2float::mul(ps2float::add(ps2float::add(lwc1(mind + 2980), ps2float::mul(side, lwc1(player + 244))), ps2float::mul(up, lwc1(player + 232))), lwc1(shot + 28)));
+                swc1(sp + 8, ps2float::mul(ps2float::add(ps2float::add(lwc1(mind + 2984), ps2float::mul(side, lwc1(player + 248))), ps2float::mul(up, lwc1(player + 236))), lwc1(shot + 28)));
             } else {
                 let y0 = lwc1(a0 + 20);
-                let dx = lwc1(player + 832) - lwc1(a0 + 16);
+                let dx = ps2float::sub(lwc1(player + 832), lwc1(a0 + 16));
                 let z0 = lwc1(a0 + 24);
                 swc1(sp, dx);
-                let dy = lwc1(player + 836) - y0;
+                let dy = ps2float::sub(lwc1(player + 836), y0);
                 swc1(sp + 4, dy);
-                let dz = lwc1(player + 840) - z0;
+                let dz = ps2float::sub(lwc1(player + 840), z0);
                 swc1(sp + 8, dz);
-                let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
-                let ny = lwc1(sp + 4) * inverse;
-                let nz = lwc1(sp + 8) * inverse;
-                swc1(sp, (lwc1(sp) * inverse + side * lwc1(player + 240) + up * lwc1(player + 228)) * lwc1(shot + 28));
-                swc1(sp + 4, (ny + side * lwc1(player + 244) + up * lwc1(player + 232)) * lwc1(shot + 28));
-                swc1(sp + 8, (nz + side * lwc1(player + 248) + up * lwc1(player + 236)) * lwc1(shot + 28));
+                let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
+                let ny = ps2float::mul(lwc1(sp + 4), inverse);
+                let nz = ps2float::mul(lwc1(sp + 8), inverse);
+                swc1(sp, ps2float::mul(ps2float::add(ps2float::add(ps2float::mul(lwc1(sp), inverse), ps2float::mul(side, lwc1(player + 240))), ps2float::mul(up, lwc1(player + 228))), lwc1(shot + 28)));
+                swc1(sp + 4, ps2float::mul(ps2float::add(ps2float::add(ny, ps2float::mul(side, lwc1(player + 244))), ps2float::mul(up, lwc1(player + 232))), lwc1(shot + 28)));
+                swc1(sp + 8, ps2float::mul(ps2float::add(ps2float::add(nz, ps2float::mul(side, lwc1(player + 248))), ps2float::mul(up, lwc1(player + 236))), lwc1(shot + 28)));
             }
             let (extra, holder);
             if bullet_kind == 4 && fired >= 2 {

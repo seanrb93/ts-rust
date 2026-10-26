@@ -136,11 +136,11 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                 }
                 for k in 0..4 {
                     let base_x = lwc1(glow + 68);
-                    swc1(sp + 480 + k * 16, base_x + (lwc1(points_x + 12 + k * 12) - base_x) * 0.5_f32);
+                    swc1(sp + 480 + k * 16, ps2float::add(base_x, ps2float::mul(ps2float::sub(lwc1(points_x + 12 + k * 12), base_x), 0.5_f32)));
                     let base_y = lwc1(glow + 72);
-                    swc1(sp + 484 + k * 16, base_y + (lwc1(points_y + 12 + k * 12) - base_y) * 0.5_f32);
+                    swc1(sp + 484 + k * 16, ps2float::add(base_y, ps2float::mul(ps2float::sub(lwc1(points_y + 12 + k * 12), base_y), 0.5_f32)));
                     let base_z = lwc1(glow + 76);
-                    swc1(sp + 488 + k * 16, base_z + (lwc1(points_z + 12 + k * 12) - base_z) * 0.5_f32);
+                    swc1(sp + 488 + k * 16, ps2float::add(base_z, ps2float::mul(ps2float::sub(lwc1(points_z + 12 + k * 12), base_z), 0.5_f32)));
                 }
                 if kind == 2 {
                     if lw(g::updateframesi) > 0 {
@@ -200,14 +200,14 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                         }
                         let inverse = (1.0_f32).pdiv(w);
                         let kind_now = lw(glow);
-                        let screen_y = lw(g::window + 28) as f32 - lw(g::window + 36) as f32 * (y * inverse);
-                        let depth = 32768.0_f32 - z * inverse * lwc1(0x3acb80);
-                        swc1(sp + 544 + n * 12, lw(g::window + 8) as f32 + lw(g::window + 16) as f32 * (x * inverse));
+                        let screen_y = ps2float::sub(lw(g::window + 28) as f32, ps2float::mul(lw(g::window + 36) as f32, ps2float::mul(y, inverse)));
+                        let depth = ps2float::sub(32768.0_f32, ps2float::mul(ps2float::mul(z, inverse), lwc1(0x3acb80)));
+                        swc1(sp + 544 + n * 12, ps2float::add(lw(g::window + 8) as f32, ps2float::mul(lw(g::window + 16) as f32, ps2float::mul(x, inverse))));
                         swc1(sp + 548 + n * 12, screen_y);
                         swc1(sp + 552 + n * 12, depth);
                         if kind_now == 0 {
-                            let size = depth * lwc1(0x3acb84) * ((6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260)));
-                            let small = if ilinkGetNumLocalPlayers() < 2 { (size as i32) < 8 } else { ((size * 0.5_f32) as i32) < 8 };
+                            let size = ps2float::mul(ps2float::mul(depth, lwc1(0x3acb84)), ((6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260))));
+                            let small = if ilinkGetNumLocalPlayers() < 2 { (size as i32) < 8 } else { (ps2float::mul(size, 0.5_f32) as i32) < 8 };
                             if small {
                                 started = false;
                                 break 'project;
@@ -246,30 +246,30 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                             }
                         }
                         let viewer = lw(g::currentplayer);
-                        let dx = lwc1(viewer + 884) - lwc1(glow + 68);
+                        let dx = ps2float::sub(lwc1(viewer + 884), lwc1(glow + 68));
                         swc1(sp + 656, dx);
-                        let dy = lwc1(viewer + 888) - lwc1(glow + 72);
+                        let dy = ps2float::sub(lwc1(viewer + 888), lwc1(glow + 72));
                         swc1(sp + 660, dy);
-                        let dz = lwc1(viewer + 892) - lwc1(glow + 76);
+                        let dz = ps2float::sub(lwc1(viewer + 892), lwc1(glow + 76));
                         swc1(sp + 664, dz);
-                        let facing = lwc1(glow + 128) * dx + lwc1(glow + 132) * dy + lwc1(glow + 136) * dz;
-                        let cosine = (facing).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+                        let facing = ps2float::add(ps2float::add(ps2float::mul(lwc1(glow + 128), dx), ps2float::mul(lwc1(glow + 132), dy)), ps2float::mul(lwc1(glow + 136), dz));
+                        let cosine = (facing).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
                         let strength;
                         if lh(glow + 6) == 0 {
-                            strength = (cosine + 1.0_f32) * 0.25_f32 + 0.5_f32;
+                            strength = ps2float::add(ps2float::mul(ps2float::add(cosine, 1.0_f32), 0.25_f32), 0.5_f32);
                         } else if !(-0.5_f32 < cosine) {
                             strength = 0.0_f32;
                         } else {
-                            strength = ((cosine + 0.5_f32)).pdiv(1.5_f32);
+                            strength = (ps2float::add(cosine, 0.5_f32)).pdiv(1.5_f32);
                         }
                         let bias = zbtestGetVisibleBias(lw(viewer), glow, chr);
-                        let amount = fptoui(strength * (bias as f32 * lwc1(0x3acb88)) * 127.0_f32);
+                        let amount = fptoui(ps2float::mul(ps2float::mul(strength, ps2float::mul(bias as f32, lwc1(0x3acb88))), 127.0_f32));
                         let previous_at = glow + 144 + lw(lw(g::currentplayer));
                         let blended = lb(previous_at) + amount;
                         let half = ((blended as u32) >> 1) as i32;
                         sb(previous_at, amount);
                         let level = half as f32;
-                        let alpha = fptoui(level * (lbu(glow + 148) as f32 * 0.00390625_f32));
+                        let alpha = fptoui(ps2float::mul(level, ps2float::mul(lbu(glow + 148) as f32, 0.00390625_f32)));
                         if alpha != 0 {
                             let viewer_now = lw(g::currentplayer);
                             if lw(glow) == 3 {
@@ -284,15 +284,15 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                                 let owner_x = lwc1(owner + 48);
                                 let y = lwc1(sp + 676);
                                 let z = lwc1(sp + 680);
-                                swc1(sp + 672, lwc1(sp + 672) + owner_x);
-                                swc1(sp + 676, y + lwc1(owner + 52));
-                                swc1(sp + 680, z + lwc1(owner + 56));
+                                swc1(sp + 672, ps2float::add(lwc1(sp + 672), owner_x));
+                                swc1(sp + 676, ps2float::add(y, lwc1(owner + 52)));
+                                swc1(sp + 680, ps2float::add(z, lwc1(owner + 56)));
                                 zbtestDrawFlareFx(lw(lw(g::currentplayer)), lh(glow + 4), sp + 672, alpha);
                                 n += 1;
                                 break 'next;
                             }
-                            let size = lwc1(sp + 552) * lwc1(0x3acb8c) * ((6e+01_f32).pdiv(lwc1(viewer_now + 260)));
-                            let amount_size = if ilinkGetNumLocalPlayers() < 2 { (size as i32) * alpha } else { ((size * 0.5_f32) as i32) * alpha };
+                            let size = ps2float::mul(ps2float::mul(lwc1(sp + 552), lwc1(0x3acb8c)), ((6e+01_f32).pdiv(lwc1(viewer_now + 260))));
+                            let amount_size = if ilinkGetNumLocalPlayers() < 2 { (size as i32) * alpha } else { (ps2float::mul(size, 0.5_f32) as i32) * alpha };
                             zbtestDrawGlow(
                                 lw(lw(g::currentplayer)),
                                 lh(glow + 4),
@@ -502,7 +502,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                             }
                             1 | 2 => {
                                 if mode == 1 {
-                                    matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb60)).pdiv(1.8e+02_f32));
+                                    matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), ps2float::mul(lwc1(owner + 76), lwc1(0x3acb60)).pdiv(1.8e+02_f32));
                                 } else {
                                     let pi = lwc1(0x3acb64);
                                     matrixTransRotZXY(
@@ -510,9 +510,9 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                                         lwc1(owner + 48),
                                         lwc1(owner + 52),
                                         lwc1(owner + 56),
-                                        (lwc1(owner + 72) * pi).pdiv(1.8e+02_f32),
-                                        (lwc1(owner + 76) * pi).pdiv(1.8e+02_f32),
-                                        (lwc1(owner + 88) * pi).pdiv(1.8e+02_f32),
+                                        ps2float::mul(lwc1(owner + 72), pi).pdiv(1.8e+02_f32),
+                                        ps2float::mul(lwc1(owner + 76), pi).pdiv(1.8e+02_f32),
+                                        ps2float::mul(lwc1(owner + 88), pi).pdiv(1.8e+02_f32),
                                     );
                                 }
                                 let stage = lw(owner + 136);
@@ -524,7 +524,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                                 break 'b38;
                             }
                             3 => {
-                                matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb68)).pdiv(1.8e+02_f32));
+                                matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), ps2float::mul(lwc1(owner + 76), lwc1(0x3acb68)).pdiv(1.8e+02_f32));
                                 let stage = lw(owner + 136);
                                 if stage == 1 {
                                     sceVu0MulMatrix(sp + 64, view, sp);
@@ -540,7 +540,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                                 break 'b38;
                             }
                             4 => {
-                                matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb6c)).pdiv(1.8e+02_f32));
+                                matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), ps2float::mul(lwc1(owner + 76), lwc1(0x3acb6c)).pdiv(1.8e+02_f32));
                                 matrixroll(lw(lw(owner + 32) + 4), owner + 100, lwc1(owner + 92));
                                 sceVu0MulMatrix(sp, sp, lw(lw(owner + 32) + 4));
                                 let stage = lw(owner + 136);
@@ -604,7 +604,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                     }
                     1 | 2 => {
                         if mode == 1 {
-                            matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb70)).pdiv(1.8e+02_f32));
+                            matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), ps2float::mul(lwc1(owner + 76), lwc1(0x3acb70)).pdiv(1.8e+02_f32));
                         } else {
                             let pi = lwc1(0x3acb74);
                             matrixTransRotZXY(
@@ -612,9 +612,9 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                                 lwc1(owner + 48),
                                 lwc1(owner + 52),
                                 lwc1(owner + 56),
-                                (lwc1(owner + 72) * pi).pdiv(1.8e+02_f32),
-                                (lwc1(owner + 76) * pi).pdiv(1.8e+02_f32),
-                                (lwc1(owner + 88) * pi).pdiv(1.8e+02_f32),
+                                ps2float::mul(lwc1(owner + 72), pi).pdiv(1.8e+02_f32),
+                                ps2float::mul(lwc1(owner + 76), pi).pdiv(1.8e+02_f32),
+                                ps2float::mul(lwc1(owner + 88), pi).pdiv(1.8e+02_f32),
                             );
                         }
                         let stage = lw(owner + 136);
@@ -625,7 +625,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                         }
                     }
                     3 => {
-                        matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb78)).pdiv(1.8e+02_f32));
+                        matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), ps2float::mul(lwc1(owner + 76), lwc1(0x3acb78)).pdiv(1.8e+02_f32));
                         let stage = lw(owner + 136);
                         if stage == 1 {
                             sceVu0MulMatrix(sp + 64, lw(lw(g::currentplayer) + 1764), sp);
@@ -635,7 +635,7 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
                         }
                     }
                     4 => {
-                        matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), (lwc1(owner + 76) * lwc1(0x3acb7c)).pdiv(1.8e+02_f32));
+                        matrixTransRotY(sp, lwc1(owner + 48), lwc1(owner + 52), lwc1(owner + 56), ps2float::mul(lwc1(owner + 76), lwc1(0x3acb7c)).pdiv(1.8e+02_f32));
                         matrixroll(lw(lw(owner + 32) + 4), owner + 100, lwc1(owner + 92));
                         sceVu0MulMatrix(sp, sp, lw(lw(owner + 32) + 4));
                         let stage = lw(owner + 136);

@@ -99,14 +99,14 @@ pub fn propMovingPropInRange(a0: i32, a1: i32, f12: f32) -> i32 {
                         x = lwc1(a0);
                     }
                     let y = lwc1(a0 + 4);
-                    let dx = lwc1(prop + 48) - x;
+                    let dx = ps2float::sub(lwc1(prop + 48), x);
                     let z = lwc1(a0 + 8);
                     swc1(sp + 16, dx);
-                    let dy = lwc1(prop + 52) + 1.0_f32 - y;
+                    let dy = ps2float::sub(ps2float::add(lwc1(prop + 52), 1.0_f32), y);
                     swc1(sp + 20, dy);
-                    let dz = lwc1(prop + 56) - z;
+                    let dz = ps2float::sub(lwc1(prop + 56), z);
                     swc1(sp + 24, dz);
-                    if (dx * dx + dy * dy + dz * dz) < f12 * f12 {
+                    if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < ps2float::mul(f12, f12) {
                         sw(sp, 0);
                         sw(sp + 8, 0);
                         let hit = bgLineTest(a1, a0, sp + 16, 0, 0, 0, 0, -3);
@@ -202,17 +202,17 @@ pub fn bgSmashGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32) {
     let origin_x = lwc1(a0 + 56);
     let sound = roll & 3_i64;
     let origin_y = lwc1(a0 + 60);
-    let f6 = lwc1(a0 + 16) - origin_x;
-    let f7 = lwc1(a0 + 20) - origin_y;
-    let f8 = lwc1(a0 + 96) - origin_x;
-    let f9 = lwc1(a0 + 100) - origin_y;
-    let f11 = lwc1(a1) - origin_x;
-    let f13 = lwc1(a1 + 4) - origin_y;
+    let f6 = ps2float::sub(lwc1(a0 + 16), origin_x);
+    let f7 = ps2float::sub(lwc1(a0 + 20), origin_y);
+    let f8 = ps2float::sub(lwc1(a0 + 96), origin_x);
+    let f9 = ps2float::sub(lwc1(a0 + 100), origin_y);
+    let f11 = ps2float::sub(lwc1(a1), origin_x);
+    let f13 = ps2float::sub(lwc1(a1 + 4), origin_y);
     let origin_z = lwc1(a0 + 64);
-    let f10 = lwc1(a1 + 8) - origin_z;
+    let f10 = ps2float::sub(lwc1(a1 + 8), origin_z);
     let texture = lw(a0 + 4);
-    let f1 = lwc1(a0 + 24) - origin_z;
-    let f3 = lwc1(a0 + 104) - origin_z;
+    let f1 = ps2float::sub(lwc1(a0 + 24), origin_z);
+    let f3 = ps2float::sub(lwc1(a0 + 104), origin_z);
     let textures = lw(g::leveltextures);
     sw(sp, sp + 80);
     sw(sp + 8, a3);
@@ -230,8 +230,8 @@ pub fn bgSmashGlass(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32) {
     swc1(sp + 64, f11);
     swc1(sp + 68, f13);
     swc1(sp + 72, f10);
-    swc1(sp + 80, ((f6 * f11 + f7 * f13 + f1 * f10)).pdiv((f6 * f6 + f7 * f7 + f1 * f1)));
-    swc1(sp + 84, ((f8 * f11 + f9 * f13 + f3 * f10)).pdiv((f8 * f8 + f9 * f9 + f3 * f3)));
+    swc1(sp + 80, (ps2float::add(ps2float::add(ps2float::mul(f6, f11), ps2float::mul(f7, f13)), ps2float::mul(f1, f10))).pdiv(ps2float::add(ps2float::add(ps2float::mul(f6, f6), ps2float::mul(f7, f7)), ps2float::mul(f1, f1))));
+    swc1(sp + 84, (ps2float::add(ps2float::add(ps2float::mul(f8, f11), ps2float::mul(f9, f13)), ps2float::mul(f3, f10))).pdiv(ps2float::add(ps2float::add(ps2float::mul(f8, f8), ps2float::mul(f9, f9)), ps2float::mul(f3, f3))));
     particleNewGlass(0, a1_1, a2_1, a3_1, a0 + 56, position, a0 + 96, a0 + 136, f12);
     swc1(a0, -6e+01_f32);
     if sound == 1_i64 {
@@ -489,17 +489,17 @@ pub fn droppingPickupPropTick(a0: i32) {
                         sw(record + 76, left);
                         if left > 0 {
                             let frames = lwc1(g::updateframesf);
-                            let y = lwc1(a0 + 52) + lwc1(a0 + 64) * frames;
+                            let y = ps2float::add(lwc1(a0 + 52), ps2float::mul(lwc1(a0 + 64), frames));
                             let spin_y = lwc1(a0 + 72);
-                            let z = lwc1(a0 + 56) + lwc1(a0 + 68) * frames;
+                            let z = ps2float::add(lwc1(a0 + 56), ps2float::mul(lwc1(a0 + 68), frames));
                             let spin_z = lwc1(a0 + 76);
-                            swc1(a0 + 48, lwc1(a0 + 48) + lwc1(a0 + 60) * frames);
+                            swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), ps2float::mul(lwc1(a0 + 60), frames)));
                             swc1(a0 + 52, y);
                             swc1(a0 + 56, z);
                             let spin_w = lwc1(a0 + 88);
-                            swc1(a0 + 72, spin_y + lwc1(record + 80) * frames);
-                            swc1(a0 + 76, spin_z + lwc1(record + 84) * frames);
-                            swc1(a0 + 88, spin_w + lwc1(record + 88) * frames);
+                            swc1(a0 + 72, ps2float::add(spin_y, ps2float::mul(lwc1(record + 80), frames)));
+                            swc1(a0 + 76, ps2float::add(spin_z, ps2float::mul(lwc1(record + 84), frames)));
+                            swc1(a0 + 88, ps2float::add(spin_w, ps2float::mul(lwc1(record + 88), frames)));
                         } else {
                             let mut kind;
                             let x;
@@ -566,7 +566,7 @@ pub fn specialfxGroupsTick() {
         let kind = lw(i * 92 + groups);
         if kind != -1 {
             let time = offset + (groups + 48);
-            swc1(time, lwc1(time) + step);
+            swc1(time, ps2float::add(lwc1(time), step));
             if (kind as u32) < 12 {
                 match kind {
                     0 => specialfxOccasionalRocketSmokeTick(i),

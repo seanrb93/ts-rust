@@ -38,14 +38,14 @@ pub fn bgPortalCalcPos(room: i32, matrix: i32) {
     let top = lw(second + lw((lw(player) << 2) + room_data) + 8) - 1;
     sw(sp + 4, top);
     let now = lw(player);
-    swc1(0x3b0088, ((left as f32 - centre_x)).pdiv(scale_x));
+    swc1(0x3b0088, (ps2float::sub(left as f32, centre_x)).pdiv(scale_x));
     let right = lw(second + lw((now << 2) + room_data) + 12) + 1;
     sw(sp + 16, right);
-    swc1(0x3b0090, ((top as f32 - centre_y)).pdiv(scale_y));
+    swc1(0x3b0090, (ps2float::sub(top as f32, centre_y)).pdiv(scale_y));
     let bottom = lw(second + lw((lw(player) << 2) + room_data) + 16) + 1;
-    swc1(0x3b008c, ((right as f32 - centre_x)).pdiv(scale_x));
+    swc1(0x3b008c, (ps2float::sub(right as f32, centre_x)).pdiv(scale_x));
     sw(sp + 20, bottom);
-    swc1(0x3b0094, ((bottom as f32 - centre_y)).pdiv(scale_y));
+    swc1(0x3b0094, (ps2float::sub(bottom as f32, centre_y)).pdiv(scale_y));
     if count <= 0 {
         return;
     }
@@ -124,8 +124,8 @@ pub fn bgPortalCalcPos(room: i32, matrix: i32) {
                     let w = lwc1(vertex + 12);
                     let x_at = sp + 224 + at;
                     let y_at = sp + 228 + at;
-                    let y = lw(window + 28) as f32 - lw(window + 36) as f32 * ((lwc1(vertex + 4)).pdiv(w));
-                    swc1(x_at, f32::from_bits((lw(window + 8) as f32 + lw(window + 16) as f32 * ((lwc1(vertex)).pdiv(w))) as i32 as u32));
+                    let y = ps2float::sub(lw(window + 28) as f32, ps2float::mul(lw(window + 36) as f32, ((lwc1(vertex + 4)).pdiv(w))));
+                    swc1(x_at, f32::from_bits(ps2float::add(lw(window + 8) as f32, ps2float::mul(lw(window + 16) as f32, ((lwc1(vertex)).pdiv(w)))) as i32 as u32));
                     swc1(y_at, f32::from_bits(y as i32 as u32));
                     let value = lw(x_at);
                     if value < lw(data + 24) {
@@ -222,7 +222,7 @@ pub fn blastringGfx() {
         let angle_at = ring * 36 + (base - 8);
         matrixroll(lw(sp + 640), ring * 36 + base, lwc1(angle_at));
         let full = 3.6e+02_f32;
-        let angle = lwc1(angle_at) + lwc1(base + offset - 4);
+        let angle = ps2float::add(lwc1(angle_at), lwc1(base + offset - 4));
         swc1(angle_at, angle);
         let frames;
         if !(full < angle) {
@@ -233,7 +233,7 @@ pub fn blastringGfx() {
             sw(sp + 632, ring + 1);
             loop {
                 let at = ring * 36 + (g::br + 16);
-                let back = lwc1(at) - full;
+                let back = ps2float::sub(lwc1(at), full);
                 swc1(at, back);
                 if !(full < back) {
                     break;
@@ -244,12 +244,12 @@ pub fn blastringGfx() {
         let one = 1.0_f32;
         let rings_at = g::br;
         let time_at = ring * 36 + (rings_at + 12);
-        let time = lwc1(time_at) + (frames).pdiv(6e+01_f32);
+        let time = ps2float::add(lwc1(time_at), (frames).pdiv(6e+01_f32));
         swc1(time_at, time);
         if one < time {
             sw(g::numrings, 0);
         }
-        let inner = time * 3.0_f32;
+        let inner = ps2float::mul(time, 3.0_f32);
         let outer_at = offset + (rings_at + 4);
         let mut turn = 0.0_f32;
         let mut pair = 0;
@@ -257,12 +257,12 @@ pub fn blastringGfx() {
         let mut step = 0;
         let matrix = lw(sp + 640);
         let player_at = lw(sp + 624);
-        swc1(outer_at, inner + one);
+        swc1(outer_at, ps2float::add(inner, one));
         let inner_vec = lw(sp + 628);
         let outer_vec = lw(sp + 636);
         loop {
-            let radians = turn * lwc1(0x3ad620);
-            turn += 22.5_f32;
+            let radians = ps2float::mul(turn, lwc1(0x3ad620));
+            turn = ps2float::add(turn, 22.5_f32);
             let radians = (radians).pdiv(1.8e+02_f32);
             let cosine = cosf(radians);
             let sine = sinf(radians);
@@ -270,10 +270,10 @@ pub fn blastringGfx() {
             let inner_radius = lwc1(offset + g::br);
             sw(sp + 532, 0);
             sw(sp + 548, 0);
-            swc1(sp + 552, outer_radius * sine);
-            swc1(sp + 544, outer_radius * cosine);
-            swc1(sp + 536, inner_radius * sine);
-            swc1(sp + 528, inner_radius * cosine);
+            swc1(sp + 552, ps2float::mul(outer_radius, sine));
+            swc1(sp + 544, ps2float::mul(outer_radius, cosine));
+            swc1(sp + 536, ps2float::mul(inner_radius, sine));
+            swc1(sp + 528, ps2float::mul(inner_radius, cosine));
             matrixVecRotAligned(&[matrix as i64, lw(sp + 628) as i64]);
             matrixVecRotAligned(&[matrix as i64, lw(sp + 636) as i64]);
             let next_step = step + 1;
@@ -288,13 +288,13 @@ pub fn blastringGfx() {
                 let inner_value = lwc1(inner_at);
                 left -= 1;
                 inner_at += 4;
-                swc1(first_at, lwc1(player_value) + inner_value);
+                swc1(first_at, ps2float::add(lwc1(player_value), inner_value));
                 first_at += 4;
                 let player_now = lwc1(player_value);
                 let outer_value = lwc1(outer_at_vec);
                 player_value += 4;
                 outer_at_vec += 4;
-                swc1(second_at, player_now + outer_value);
+                swc1(second_at, ps2float::add(player_now, outer_value));
                 second_at += 4;
                 if left < 0 {
                     break;

@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// The attack of a Timesplitter, by the stage kept at +2728 of its state: 0 picks the next stage (3 or 4, at random) and sets move mode 8; 1 plays the animations 549, then 553
@@ -14,9 +14,9 @@ fn random_unit() -> f32 {
 pub fn enemyTimeSplitterAttack(chr: i32) {
     let state = lw(chr + 352);
     let target = lw(state + 2788);
-    let dx = lwc1(chr + 48) - lwc1(target + 48);
-    let dy = lwc1(chr + 52) - lwc1(target + 52);
-    let dz = lwc1(chr + 56) - lwc1(target + 56);
+    let dx = ps2float::sub(lwc1(chr + 48), lwc1(target + 48));
+    let dy = ps2float::sub(lwc1(chr + 52), lwc1(target + 52));
+    let dz = ps2float::sub(lwc1(chr + 56), lwc1(target + 56));
     let tx = lwc1(target + 48);
     let stage = lw(state + 2728);
     swc1(state + 2796, tx);
@@ -103,7 +103,7 @@ pub fn enemyTimeSplitterAttack(chr: i32) {
         }
         _ => unreachable!(),
     }
-    if !((dx * dx + dy * dy + dz * dz).abs().psqrt() < 9.0_f32) {
+    if !(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt() < 9.0_f32) {
         return;
     }
     sw(state + 2728, 1);

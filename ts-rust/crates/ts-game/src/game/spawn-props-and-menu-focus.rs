@@ -97,10 +97,10 @@ pub fn selectDrop(chr: i32) -> i32 {
 /// Whether the point is behind a portal as seen from room `room`: the dot product of the vector from the portal's corner (+24) with its normal (+8)
 /// is negative, or positive if the portal's room is `room` (@ 0x257860).
 pub fn bgPortalBackFaceTest(room: i32, point: i32, portal: i32) -> i32 {
-    let dy = lwc1(point + 4) - lwc1(portal + 28);
-    let dx = lwc1(point) - lwc1(portal + 24);
-    let dz = lwc1(point + 8) - lwc1(portal + 32);
-    let dot = dx * lwc1(portal + 8) + dy * lwc1(portal + 12) + dz * lwc1(portal + 16);
+    let dy = ps2float::sub(lwc1(point + 4), lwc1(portal + 28));
+    let dx = ps2float::sub(lwc1(point), lwc1(portal + 24));
+    let dz = ps2float::sub(lwc1(point + 8), lwc1(portal + 32));
+    let dot = ps2float::add(ps2float::add(ps2float::mul(dx, lwc1(portal + 8)), ps2float::mul(dy, lwc1(portal + 12))), ps2float::mul(dz, lwc1(portal + 16)));
     if lw(portal) != room {
         (dot < 0.0) as i32
     } else {
@@ -113,7 +113,7 @@ pub fn blastspawnPropTick(prop: i32) {
     let data = lw(prop + 352);
     let mut model = lw(prop + 32);
     let count = lw(lw(model));
-    swc1(prop + 76, lwc1(prop + 76) + lwc1(g::updateframesf) * 10.0);
+    swc1(prop + 76, ps2float::add(lwc1(prop + 76), ps2float::mul(lwc1(g::updateframesf), 10.0)));
     if count > 0 {
         let mut i = 0;
         loop {
@@ -146,7 +146,7 @@ pub fn ringspawnPropTick(prop: i32) {
             }
         }
     }
-    swc1(prop + 76, lwc1(prop + 76) + lwc1(g::updateframesf) * 6.0);
+    swc1(prop + 76, ps2float::add(lwc1(prop + 76), ps2float::mul(lwc1(g::updateframesf), 6.0)));
 }
 
 /// The level chooser (frontred): d-pad down / up (0x4000 / 0x1000) move through the levels, cross or start (2112) pick one (@ 0x22ff48).
@@ -235,10 +235,10 @@ pub fn checkProgress(chr: i32) {
     let flags = lw(data + 2704) & -2;
     sw(data + 2704, flags);
     if !waiting {
-        let dx = lwc1(chr + 48) - lwc1(data + 2988);
-        let dy = lwc1(chr + 52) - lwc1(data + 2992);
-        let dz = lwc1(chr + 56) - lwc1(data + 2996);
-        if !((dx * dx + dy * dy + dz * dz) < lwc1(0x3ad88c)) || lw(data + 2708) & 8 != 0 {
+        let dx = ps2float::sub(lwc1(chr + 48), lwc1(data + 2988));
+        let dy = ps2float::sub(lwc1(chr + 52), lwc1(data + 2992));
+        let dz = ps2float::sub(lwc1(chr + 56), lwc1(data + 2996));
+        if !(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < lwc1(0x3ad88c)) || lw(data + 2708) & 8 != 0 {
             sw(data + 2896, 0);
         } else {
             if lw(data + 2716) == 512 {

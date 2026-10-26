@@ -39,14 +39,14 @@ pub fn particleBurstGfx(group: i32, matrix: i32) {
                     let fade_in = lwc1(info + 24);
                     let fraction = (age).pdiv(life);
                     let mut alpha = 1.0_f32;
-                    let spin = (lwc1(group + (i << 2) + 3728) * age * lwc1(0x3ad568)).pdiv(1.8e+02_f32);
+                    let spin = ps2float::mul(ps2float::mul(lwc1(group + (i << 2) + 3728), age), lwc1(0x3ad568)).pdiv(1.8e+02_f32);
                     let colour = lw(info + 32);
                     let flags;
                     if !(age < fade_in) {
                         let fade_out = lwc1(info + 28);
                         flags = lw(group + 8);
-                        if (life - fade_out) < age {
-                            alpha = ((life - age)).pdiv(fade_out);
+                        if ps2float::sub(life, fade_out) < age {
+                            alpha = (ps2float::sub(life, age)).pdiv(fade_out);
                         }
                     } else {
                         alpha = (age).pdiv(fade_in);
@@ -56,9 +56,9 @@ pub fn particleBurstGfx(group: i32, matrix: i32) {
                     if (flags & 1) == 0 {
                         let place = group + offset;
                         let speed = group + i * 12;
-                        let x = lwc1(place + 928) + lwc1(speed + 2528) * age;
-                        let y = lwc1(place + 932) + lwc1(speed + 2532) * age;
-                        swc1(sp + 8, lwc1(place + 936) + lwc1(speed + 2536) * age);
+                        let x = ps2float::add(lwc1(place + 928), ps2float::mul(lwc1(speed + 2528), age));
+                        let y = ps2float::add(lwc1(place + 932), ps2float::mul(lwc1(speed + 2532), age));
+                        swc1(sp + 8, ps2float::add(lwc1(place + 936), ps2float::mul(lwc1(speed + 2536), age)));
                         swc1(sp, x);
                         swc1(sp + 4, y);
                         matrixVec3Mul4Aligned(&[matrix as i64, sp as i64, (sp + 16) as i64]);
@@ -97,43 +97,43 @@ pub fn particleBurstGfx(group: i32, matrix: i32) {
                         let sz = lwc1(sp + 24);
                         let inverse = (one).pdiv(w);
                         let particle_texture = lw(info) << 4;
-                        let depth = sz * inverse;
+                        let depth = ps2float::mul(sz, inverse);
                         let depth_scale = lwc1(0x3ad570);
-                        let ndc_x = sx * inverse;
-                        let ndc_y = sy * inverse;
-                        let angle = (spin * lwc1(0x3ad56c) + half) as i32;
+                        let ndc_x = ps2float::mul(sx, inverse);
+                        let ndc_y = ps2float::mul(sy, inverse);
+                        let angle = ps2float::add(ps2float::mul(spin, lwc1(0x3ad56c)), half) as i32;
                         let screen_h = (0 - lw(window + 36)) as f32;
                         let name = lw(particle_texture + (g::particletextures + 4));
-                        let size = (lwc1(info + 40)).pdiv(depth) * rate;
+                        let size = ps2float::mul((lwc1(info + 40)).pdiv(depth), rate);
                         let sine = lwc1(((angle & 2047) << 2) + table);
                         let name2 = lw(particle_texture + (g::particletextures + 8));
                         let cosine = lwc1(((angle + 512 & 2047) << 2) + table);
                         let screen_w = lw(window + 16) as f32;
-                        let half_h = (size * (fraction * lwc1(info + 44) + one)) as i32;
-                        let half_w = (size * (fraction * lwc1(info + 48) + one)) as i32 as f32;
+                        let half_h = ps2float::mul(size, ps2float::add(ps2float::mul(fraction, lwc1(info + 44)), one)) as i32;
+                        let half_w = ps2float::mul(size, ps2float::add(ps2float::mul(fraction, lwc1(info + 48)), one)) as i32 as f32;
                         let centre_x = lw(window + 8) as f32;
                         swc1(sp + 16, ndc_x);
                         swc1(sp + 20, ndc_y);
-                        let w_sin = half_w * sine;
+                        let w_sin = ps2float::mul(half_w, sine);
                         swc1(sp + 24, depth);
-                        let h_cos = half_h as f32 * cosine;
-                        let cx = centre_x + screen_w * ndc_x;
-                        let cy = lw(window + 28) as f32 + screen_h * ndc_y;
-                        let w_half = w_sin * half;
-                        let h_half = h_cos * half;
+                        let h_cos = ps2float::mul(half_h as f32, cosine);
+                        let cx = ps2float::add(centre_x, ps2float::mul(screen_w, ndc_x));
+                        let cy = ps2float::add(lw(window + 28) as f32, ps2float::mul(screen_h, ndc_y));
+                        let w_half = ps2float::mul(w_sin, half);
+                        let h_half = ps2float::mul(h_cos, half);
                         swc1(sp, cx);
                         swc1(sp + 4, cy);
-                        let colour_alpha = colour | ((alpha * 4e+01_f32) as i32) << 24;
-                        swc1(sp + 80, cx - h_cos);
-                        swc1(sp + 84, cy - w_half);
-                        swc1(sp + 64, cx - w_sin);
-                        let z = depth * depth_scale + 32768.0_f32 + 1e+02_f32;
-                        swc1(sp + 68, cy + h_half);
-                        swc1(sp + 32, cx + h_cos);
-                        swc1(sp + 36, cy + w_half);
+                        let colour_alpha = colour | (ps2float::mul(alpha, 4e+01_f32) as i32) << 24;
+                        swc1(sp + 80, ps2float::sub(cx, h_cos));
+                        swc1(sp + 84, ps2float::sub(cy, w_half));
+                        swc1(sp + 64, ps2float::sub(cx, w_sin));
+                        let z = ps2float::add(ps2float::add(ps2float::mul(depth, depth_scale), 32768.0_f32), 1e+02_f32);
+                        swc1(sp + 68, ps2float::add(cy, h_half));
+                        swc1(sp + 32, ps2float::add(cx, h_cos));
+                        swc1(sp + 36, ps2float::add(cy, w_half));
                         swc1(sp + 88, z);
-                        swc1(sp + 48, cx + w_sin);
-                        swc1(sp + 52, cy - h_half);
+                        swc1(sp + 48, ps2float::add(cx, w_sin));
+                        swc1(sp + 52, ps2float::sub(cy, h_half));
                         swc1(sp + 8, z);
                         swc1(sp + 40, z);
                         swc1(sp + 56, z);
@@ -192,26 +192,26 @@ pub fn cartridgesTick() {
                         let step = lwc1(g::updateframesf);
                         if flying != 0 {
                             let speed_y = lwc1(prop + 64);
-                            let y = lwc1(prop + 52) + speed_y * step;
-                            let z = lwc1(prop + 56) + lwc1(prop + 68) * step;
+                            let y = ps2float::add(lwc1(prop + 52), ps2float::mul(speed_y, step));
+                            let z = ps2float::add(lwc1(prop + 56), ps2float::mul(lwc1(prop + 68), step));
                             let roll = lwc1(prop + 72);
-                            let gravity = step * lwc1(0x3ad474);
-                            swc1(prop + 48, lwc1(prop + 48) + lwc1(prop + 60) * step);
+                            let gravity = ps2float::mul(step, lwc1(0x3ad474));
+                            swc1(prop + 48, ps2float::add(lwc1(prop + 48), ps2float::mul(lwc1(prop + 60), step)));
                             swc1(prop + 52, y);
                             swc1(prop + 56, z);
                             let spin = lwc1(prop + 88);
                             ticks = lw(g::updateframesi);
-                            swc1(prop + 72, roll + lwc1(record + 68) * step);
+                            swc1(prop + 72, ps2float::add(roll, ps2float::mul(lwc1(record + 68), step)));
                             let turn = lwc1(record + 76);
-                            swc1(prop + 64, speed_y - gravity);
-                            swc1(prop + 88, spin + turn * step);
+                            swc1(prop + 64, ps2float::sub(speed_y, gravity));
+                            swc1(prop + 88, ps2float::add(spin, ps2float::mul(turn, step)));
                             done += 1;
                             if ticks > 0 {
                                 let mut k = 0;
                                 loop {
                                     k += 1;
-                                    let slow_z = lwc1(shown + 68) * drag;
-                                    swc1(shown + 60, lwc1(shown + 60) * drag);
+                                    let slow_z = ps2float::mul(lwc1(shown + 68), drag);
+                                    swc1(shown + 60, ps2float::mul(lwc1(shown + 60), drag));
                                     swc1(shown + 68, slow_z);
                                     if k >= ticks {
                                         break;
@@ -225,16 +225,16 @@ pub fn cartridgesTick() {
                                 break 'moved;
                             }
                             let vy = lwc1(prop + 64);
-                            let vx = lwc1(prop + 60) * half;
-                            let vz = lwc1(prop + 68) * half;
+                            let vx = ps2float::mul(lwc1(prop + 60), half);
+                            let vz = ps2float::mul(lwc1(prop + 68), half);
                             swc1(prop + 52, floor);
-                            let bounce = vy * -0.5_f32;
+                            let bounce = ps2float::mul(vy, -0.5_f32);
                             swc1(prop + 60, vx);
                             swc1(prop + 68, vz);
                             swc1(prop + 64, bounce);
                             if dpcmp(fptodp(bounce), ld(g::cartridge_table + 16)) >= 0 {
-                                swc1(record + 68, lwc1(shown + 60) * thousand);
-                                swc1(record + 76, lwc1(shown + 68) * thousand);
+                                swc1(record + 68, ps2float::mul(lwc1(shown + 60), thousand));
+                                swc1(record + 76, ps2float::mul(lwc1(shown + 68), thousand));
                             } else {
                                 sw(shown + 68, 0);
                                 sw(shown + 64, 0);
@@ -255,7 +255,7 @@ pub fn cartridgesTick() {
                     }
                     let roll = lwc1(prop + 72);
                     sw(record + 80, age + ticks);
-                    matrixRotZXY(sp, (roll * to_radians).pdiv(half_turn), 0.0_f32, (spin_z * to_radians).pdiv(half_turn));
+                    matrixRotZXY(sp, ps2float::mul(roll, to_radians).pdiv(half_turn), 0.0_f32, ps2float::mul(spin_z, to_radians).pdiv(half_turn));
                     sceVu0MulMatrix(lw(lw(lw(record + 64) + 32) + 4), sp, record);
                     let player = lw(g::currentplayer);
                     swc1(lw(lw(lw(record + 64) + 32) + 4) + 48, 0.0_f32);
@@ -308,7 +308,7 @@ pub fn creditsBgGfx() {
     swc1(sp + 132, up_y);
     swc1(sp + 136, up_z);
     let matrix = memdbAlloc(64);
-    let roll = (lwc1(g::creditscamrotz) * lwc1(0x3ad77c)).pdiv(1.8e+02_f32);
+    let roll = ps2float::mul(lwc1(g::creditscamrotz), lwc1(0x3ad77c)).pdiv(1.8e+02_f32);
     sw(g::creditsmatrix, matrix);
     matrixRotZ(sp + 64, roll);
     matrixVecMul(sp + 64, sp + 128);
@@ -422,10 +422,10 @@ pub fn drawLine(from: i32, to: i32, colour: i32) {
     sw(at, 0x6c048018);
     let one = 1.0_f32;
     let corners = [
-        (x0 + half, lwc1(from + 4), lwc1(from + 8)),
-        (lwc1(from) - half, lwc1(from + 4), lwc1(from + 8)),
-        (lwc1(to) + half, lwc1(to + 4), lwc1(to + 8)),
-        (lwc1(to) - half, lwc1(to + 4), lwc1(to + 8)),
+        (ps2float::add(x0, half), lwc1(from + 4), lwc1(from + 8)),
+        (ps2float::sub(lwc1(from), half), lwc1(from + 4), lwc1(from + 8)),
+        (ps2float::add(lwc1(to), half), lwc1(to + 4), lwc1(to + 8)),
+        (ps2float::sub(lwc1(to), half), lwc1(to + 4), lwc1(to + 8)),
     ];
     for (x, y, z) in corners {
         at += 4;

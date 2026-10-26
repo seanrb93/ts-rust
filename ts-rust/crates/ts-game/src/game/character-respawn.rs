@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// Reset a computer character `chr` for a new life: the prop it is (at +3020) gets its flags and health back, the state of its mind (the many words from +2692 to +3028 of its
@@ -113,14 +113,14 @@ pub fn chrRespawn(chr: i32) {
         sw(chr + 252, 0);
     }
     if kind == 1 {
-        let r = random_unit() + 2.0_f32;
+        let r = ps2float::add(random_unit(), 2.0_f32);
         swc1(chr + 2872, r);
         swc1(chr + 2856, r);
         let r2 = random_as_float();
         swc1(chr + 2868, 0.25_f32);
         swc1(chr + 2880, 3.5_f32);
         sw(chr + 2700, 0);
-        swc1(chr + 2860, r2 * 2.3283064e-10_f32 * 0.75_f32 + 1.0_f32);
+        swc1(chr + 2860, ps2float::add(ps2float::mul(ps2float::mul(r2, 2.3283064e-10_f32), 0.75_f32), 1.0_f32));
     } else if kind >= 2 {
         if kind == 2 {
             let eight = 8.0_f32;
@@ -145,14 +145,14 @@ pub fn chrRespawn(chr: i32) {
         }
     } else if kind == 0 {
         let r = random_unit();
-        let wait = 8.0_f32 - (r + r);
+        let wait = ps2float::sub(8.0_f32, ps2float::add(r, r));
         swc1(chr + 2872, wait);
         swc1(chr + 2856, wait);
         let r2 = random_as_float();
         swc1(chr + 2868, 0.25_f32);
         swc1(chr + 2880, 8.0_f32);
         swc1(chr + 2700, 0.5_f32);
-        swc1(chr + 2860, 4.0_f32 - r2 * 2.3283064e-10_f32);
+        swc1(chr + 2860, ps2float::sub(4.0_f32, ps2float::mul(r2, 2.3283064e-10_f32)));
     }
     let head = chrGetChrHeadProp(lh(chr + 4), lh(chr + 6));
     sw(chr + 3024, head);

@@ -69,45 +69,45 @@ pub fn matrix2Euler(m: i32, angles: i32) {
         swc1(angles + 4, second);
         sw(angles + 8, 0);
     } else {
-        let rest = one - negated * negated;
+        let rest = ps2float::sub(one, ps2float::mul(negated, negated));
         fptodp(rest);
         let wide = fptodp(rest);
         let root = sqrt(wide);
         let inverse = dpdiv(0x3ff0000000000000_i64, root);
         let inv = dptofp(inverse);
-        swc1(angles + 4, asinf(lwc1(m + 44) * inv));
-        swc1(angles + 8, asinf(lwc1(m + 24) * inv));
+        swc1(angles + 4, asinf(ps2float::mul(lwc1(m + 44), inv)));
+        swc1(angles + 8, asinf(ps2float::mul(lwc1(m + 24), inv)));
     }
 }
 
 /// Make the matrix `m` that turns by `degrees` about the axis `axis` (a unit vector of three floats) (@ 0x2b5c28).
 pub fn matrixroll(m: i32, axis: i32, degrees: f32) {
-    let angle = (degrees * lwc1(0x3ad7bc)).pdiv(180.0_f32);
+    let angle = ps2float::mul(degrees, lwc1(0x3ad7bc)).pdiv(180.0_f32);
     let s = sinf(angle);
     let one = 1.0_f32;
     let c = cosf(angle);
     let ay = lwc1(axis + 4);
-    let one_less_c = one - c;
+    let one_less_c = ps2float::sub(one, c);
     let az = lwc1(axis + 8);
     let ax = lwc1(axis);
     sceVu0UnitMatrix(m);
-    let t = one_less_c * ax;
+    let t = ps2float::mul(one_less_c, ax);
     swc1(m + 60, one);
-    let t_az = t * az;
-    let t_ay_az = one_less_c * ay * az;
-    let s_ax = s * ax;
-    let s_az = s * az;
-    let s_ay = s * ay;
-    let t_ay = t * ay;
-    swc1(m + 40, one_less_c * (az * az) + c);
-    swc1(m + 36, t_ay_az + s_ax);
-    swc1(m + 16, t_ay + s_az);
-    swc1(m + 32, t_az - s_ay);
-    swc1(m, one_less_c * (ax * ax) + c);
-    swc1(m + 20, one_less_c * (ay * ay) + c);
-    swc1(m + 4, t_ay - s_az);
-    swc1(m + 8, t_az + s_ay);
-    swc1(m + 24, t_ay_az - s_ax);
+    let t_az = ps2float::mul(t, az);
+    let t_ay_az = ps2float::mul(ps2float::mul(one_less_c, ay), az);
+    let s_ax = ps2float::mul(s, ax);
+    let s_az = ps2float::mul(s, az);
+    let s_ay = ps2float::mul(s, ay);
+    let t_ay = ps2float::mul(t, ay);
+    swc1(m + 40, ps2float::add(ps2float::mul(one_less_c, ps2float::mul(az, az)), c));
+    swc1(m + 36, ps2float::add(t_ay_az, s_ax));
+    swc1(m + 16, ps2float::add(t_ay, s_az));
+    swc1(m + 32, ps2float::sub(t_az, s_ay));
+    swc1(m, ps2float::add(ps2float::mul(one_less_c, ps2float::mul(ax, ax)), c));
+    swc1(m + 20, ps2float::add(ps2float::mul(one_less_c, ps2float::mul(ay, ay)), c));
+    swc1(m + 4, ps2float::sub(t_ay, s_az));
+    swc1(m + 8, ps2float::add(t_az, s_ay));
+    swc1(m + 24, ps2float::sub(t_ay_az, s_ax));
     swc1(m + 48, 0.0_f32);
     swc1(m + 44, 0.0_f32);
     swc1(m + 28, 0.0_f32);
@@ -118,11 +118,11 @@ pub fn matrixroll(m: i32, axis: i32, degrees: f32) {
 
 /// Make the perspective matrix `m` for the field of view `fov`, the aspect ratio `aspect` (the first float, divided into the x scale), and the near and far planes (@ 0x2b5258).
 pub fn matrixPerspective(m: i32, aspect: f32, fov: f32, near: f32, far: f32) {
-    let half = fov * 0.5_f32;
-    let depth = far - near;
+    let half = ps2float::mul(fov, 0.5_f32);
+    let depth = ps2float::sub(far, near);
     let c = cosf(half);
     let s = sinf(half);
-    let near_far = near * far;
+    let near_far = ps2float::mul(near, far);
     let scale = (c).pdiv(s);
     sw(m + 60, 0);
     swc1(m + 44, -1.0_f32);
@@ -137,31 +137,31 @@ pub fn matrixPerspective(m: i32, aspect: f32, fov: f32, near: f32, far: f32) {
     sw(m + 36, 0);
     sw(m + 48, 0);
     swc1(m, (scale).pdiv(aspect));
-    swc1(m + 40, (-(near + far)).pdiv(depth));
-    swc1(m + 56, (-(near_far + near_far)).pdiv(depth));
+    swc1(m + 40, (-ps2float::add(near, far)).pdiv(depth));
+    swc1(m + 56, (-ps2float::add(near_far, near_far)).pdiv(depth));
     sw(m + 52, 0);
 }
 
 /// Make the quaternion `q` (x, y, z, w) of the turns about three axes (three floats at `angles`) (@ 0x2b3e88).
 pub fn rot2fquat(angles: i32, q: i32) {
     let half = 0.5_f32;
-    let a = lwc1(angles) * half;
-    let b = lwc1(angles + 4) * half;
-    let c = lwc1(angles + 8) * half;
+    let a = ps2float::mul(lwc1(angles), half);
+    let b = ps2float::mul(lwc1(angles + 4), half);
+    let c = ps2float::mul(lwc1(angles + 8), half);
     let sa = sinf(a);
     let ca = cosf(a);
     let sb_ = sinf(b);
     let cb = cosf(b);
     let sc = sinf(c);
     let cc = cosf(c);
-    let sa_sb = sa * sb_;
-    let ca_sb = ca * sb_;
-    let sa_cb = sa * cb;
-    let ca_cb = ca * cb;
-    swc1(q + 8, ca_sb * cc + sa_cb * sc);
-    swc1(q, ca_cb * cc + sa_sb * sc);
-    swc1(q + 4, sa_cb * cc - ca_sb * sc);
-    swc1(q + 12, ca_cb * sc - sa_sb * cc);
+    let sa_sb = ps2float::mul(sa, sb_);
+    let ca_sb = ps2float::mul(ca, sb_);
+    let sa_cb = ps2float::mul(sa, cb);
+    let ca_cb = ps2float::mul(ca, cb);
+    swc1(q + 8, ps2float::add(ps2float::mul(ca_sb, cc), ps2float::mul(sa_cb, sc)));
+    swc1(q, ps2float::add(ps2float::mul(ca_cb, cc), ps2float::mul(sa_sb, sc)));
+    swc1(q + 4, ps2float::sub(ps2float::mul(sa_cb, cc), ps2float::mul(ca_sb, sc)));
+    swc1(q + 12, ps2float::sub(ps2float::mul(ca_cb, sc), ps2float::mul(sa_sb, cc)));
 }
 
 /// Copy the matrices of the bones of the skeleton `skeleton` (from `source`, one for each bone in turn, the count kept in the word `count`) into the matrix table of the model

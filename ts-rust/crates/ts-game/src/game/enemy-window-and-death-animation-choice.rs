@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// What the enemy `enemy` does at a window, by its state at +2728 of its record: with a random chance (1 in 4 while in state 1, the constant at 0x3ada3c otherwise) it is fired at
@@ -42,7 +42,7 @@ pub fn enemyWindow(enemy: i32) {
         sw(record + 2728, 2);
         let r = random_unit();
         sw(record + 2892, 0);
-        swc1(record + 2732, r * 0.5_f32 + lwc1(0x3ada40));
+        swc1(record + 2732, ps2float::add(ps2float::mul(r, 0.5_f32), lwc1(0x3ada40)));
         return;
     }
     if state < 2 {
@@ -52,8 +52,8 @@ pub fn enemyWindow(enemy: i32) {
             let r = random_unit();
             let scale = lwc1(record + 2964);
             sw(record + 2892, 0);
-            swc1(record + 2964, scale * 0.25_f32);
-            swc1(record + 2732, r + r + 0.5_f32);
+            swc1(record + 2964, ps2float::mul(scale, 0.25_f32));
+            swc1(record + 2732, ps2float::add(ps2float::add(r, r), 0.5_f32));
         }
         return;
     }
@@ -65,7 +65,7 @@ pub fn enemyWindow(enemy: i32) {
             sw(record + 2728, 1);
             let r = random_unit();
             sw(record + 2892, 0);
-            swc1(record + 2732, r + r + 1.0_f32);
+            swc1(record + 2732, ps2float::add(ps2float::add(r, r), 1.0_f32));
         }
         if !(lwc1(record + 2732) < lwc1(record + 2892)) {
             return;
@@ -96,7 +96,7 @@ pub fn enemyWindow(enemy: i32) {
     }
     let r = random_unit();
     sw(record + 2892, 0);
-    swc1(record + 2732, r + r + 1.0_f32);
+    swc1(record + 2732, ps2float::add(ps2float::add(r, r), 1.0_f32));
 }
 
 /// Start the death animation `anim` of `chr`: 21 more when the character's model type (+12 of the thing at +88 of its model) is 1; animation 599 is started at double speed
@@ -173,9 +173,9 @@ pub fn chrSelectDeathAnim(chr: i32, from: i32, at: i32, dir: i32, kind: i32, fla
             start_death_animation(chr, pick_death_animation(r));
             return;
         }
-        let x = lwc1(at) - lwc1(dir) * 1e+02_f32;
-        let y = lwc1(at + 4) - lwc1(dir + 4) * 1e+02_f32;
-        swc1(sp + 8, lwc1(at + 8) - lwc1(dir + 8) * 1e+02_f32);
+        let x = ps2float::sub(lwc1(at), ps2float::mul(lwc1(dir), 1e+02_f32));
+        let y = ps2float::sub(lwc1(at + 4), ps2float::mul(lwc1(dir + 4), 1e+02_f32));
+        swc1(sp + 8, ps2float::sub(lwc1(at + 8), ps2float::mul(lwc1(dir + 8), 1e+02_f32)));
         swc1(sp, x);
         swc1(sp + 4, y);
         let mut chosen;

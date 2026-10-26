@@ -41,7 +41,7 @@ pub fn timerTick() {
                     let argument = lw(rec + 16);
                     call_indirect(lw(rec + 20), [argument, rec, offset, timers, 0, 0, 0, 0], [0.0; 8]);
                     count = lw(g::numtimers);
-                    sw(time_at, (lw(time_at) as f32 - lwc1(period_at)) as i32);
+                    sw(time_at, ps2float::sub(lw(time_at) as f32, lwc1(period_at)) as i32);
                 }
             }
             i += 1;

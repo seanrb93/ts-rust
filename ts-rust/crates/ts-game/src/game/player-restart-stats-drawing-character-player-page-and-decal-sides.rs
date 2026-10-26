@@ -48,7 +48,7 @@ pub fn playerRestart() {
                 swc1(p + 108, lwc1(set + 24));
                 let y = lwc1(set + 28);
                 swc1(p + 124, 0.0_f32);
-                let height = x - y;
+                let height = ps2float::sub(x, y);
                 swc1(p + 112, y);
                 swc1(p + 120, height);
                 swc1(p + 116, height);
@@ -125,7 +125,7 @@ pub fn playerRestart() {
                     };
                     let chr_now = lw(p + 384);
                     let y = lwc1(chr_now + 56);
-                    let x = lwc1(chr_now + 52) + lwc1(0x3acfdc);
+                    let x = ps2float::add(lwc1(chr_now + 52), lwc1(0x3acfdc));
                     let w = lwc1(chr_now + 48);
                     let prop = propNew(flag_prop, w, x, y, 0.0_f32);
                     let mask = match player {
@@ -403,7 +403,7 @@ pub fn drawStats() {
     }
     y += line;
     let accuracy = StatsGet(10, lw(lw(g::currentplayer)));
-    let percent = accuracy * 1e+02_f32;
+    let percent = ps2float::mul(accuracy, 1e+02_f32);
     textOutline(x, y, lw(lw((lw(g::cur_language) << 2) + languages) + 0x1160), colour, 80);
     let whole = percent as i32;
     let shots = StatsGet(8, lw(lw(g::currentplayer)));
@@ -424,7 +424,7 @@ pub fn drawStats() {
     if !(1.0_f32 <= total) {
         text = lw(lw((lw(g::cur_language) << 2) + languages) + 0x116c);
     } else {
-        text = vafmt(&[0x3ae528, (hits * 1e+02_f32) as i32 as i64]);
+        text = vafmt(&[0x3ae528, ps2float::mul(hits, 1e+02_f32) as i32 as i64]);
     }
     textOutline(right - textWidth(text), y, text, colour, 80);
     textSelect(lw(sp));
@@ -874,9 +874,9 @@ pub fn decalNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) {
         let place = lw(sp + 200);
         let y = lwc1(place + 4);
         let z = lwc1(place + 8);
-        swc1(place, lwc1(place) + lwc1(a4) * scale);
-        swc1(place + 4, y + lwc1(a4 + 4) * scale);
-        swc1(place + 8, z + lwc1(a4 + 8) * scale);
+        swc1(place, ps2float::add(lwc1(place), ps2float::mul(lwc1(a4), scale)));
+        swc1(place + 4, ps2float::add(y, ps2float::mul(lwc1(a4 + 4), scale)));
+        swc1(place + 8, ps2float::add(z, ps2float::mul(lwc1(a4 + 8), scale)));
     }
     sw(sp + 204, sp + 32);
     sw(sp + 208, sp + 48);

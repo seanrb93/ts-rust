@@ -10,9 +10,9 @@ fn pane_point(a: i32, b: i32, c: i32, d: i32, side_1: i32, side_2: i32, u: f32, 
         let offset = axis * 4;
         let s1 = lwc1(side_1 + offset);
         let s2 = lwc1(side_2 + offset);
-        let across_c = (lwc1(c + offset) + s1) - lwc1(d + offset);
-        let across_b = (lwc1(b + offset) + s2) - lwc1(d + offset);
-        point[axis as usize] = lwc1(a + offset) + s1 * u + s2 * v - (across_c * v + across_b * u);
+        let across_c = ps2float::sub(ps2float::add(lwc1(c + offset), s1), lwc1(d + offset));
+        let across_b = ps2float::sub(ps2float::add(lwc1(b + offset), s2), lwc1(d + offset));
+        point[axis as usize] = ps2float::sub(ps2float::add(ps2float::add(lwc1(a + offset), ps2float::mul(s1, u)), ps2float::mul(s2, v)), ps2float::add(ps2float::mul(across_c, v), ps2float::mul(across_b, u)));
     }
     point
 }
@@ -24,21 +24,21 @@ fn corner_texture(a: i32, b: i32, c: i32, d: i32, affine: bool, uv: i32, at: i32
     if affine {
         let base_u = lwc1(a + 12);
         let base_v = lwc1(a + 16);
-        let b_u = lwc1(b + 12) - base_u;
-        let c_u = lwc1(c + 12) - base_u;
-        let b_v = lwc1(b + 16) - base_v;
-        let c_v = lwc1(c + 16) - base_v;
-        swc1(at, base_u + b_u * u + c_u * v);
-        swc1(at + 4, lwc1(a + 16) + b_v * u + c_v * v);
+        let b_u = ps2float::sub(lwc1(b + 12), base_u);
+        let c_u = ps2float::sub(lwc1(c + 12), base_u);
+        let b_v = ps2float::sub(lwc1(b + 16), base_v);
+        let c_v = ps2float::sub(lwc1(c + 16), base_v);
+        swc1(at, ps2float::add(ps2float::add(base_u, ps2float::mul(b_u, u)), ps2float::mul(c_u, v)));
+        swc1(at + 4, ps2float::add(ps2float::add(lwc1(a + 16), ps2float::mul(b_v, u)), ps2float::mul(c_v, v)));
         swc1(at + 8, 1.0_f32);
         swc1(at + 12, 1.0_f32);
     } else {
         for component in 0..3 {
             let offset = 12 + component * 4;
-            let one_minus_u = 1.0_f32 - u;
-            let one_minus_v = 1.0_f32 - v;
-            let value = (lwc1(a + offset) * one_minus_u + lwc1(b + offset) * u) * one_minus_v
-                + (lwc1(c + offset) * one_minus_u + lwc1(d + offset) * u) * v;
+            let one_minus_u = ps2float::sub(1.0_f32, u);
+            let one_minus_v = ps2float::sub(1.0_f32, v);
+            let value = ps2float::mul(ps2float::add(ps2float::mul(lwc1(a + offset), one_minus_u), ps2float::mul(lwc1(b + offset), u)), one_minus_v)
+                + ps2float::mul(ps2float::add(ps2float::mul(lwc1(c + offset), one_minus_u), ps2float::mul(lwc1(d + offset), u)), v);
             swc1(at + component * 4, value);
         }
         swc1(at + 12, 1.0_f32);
@@ -71,16 +71,16 @@ pub fn glassSetQuad(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
     let v1 = lwc1(uv_1 + 4);
     let u2 = lwc1(uv_2);
     let v2 = lwc1(uv_2 + 4);
-    let centre_u = ((u0 + u1 + u2)).pdiv(3.0_f32);
-    let centre_v = ((v0 + v1 + v2)).pdiv(3.0_f32);
+    let centre_u = (ps2float::add(ps2float::add(u0, u1), u2)).pdiv(3.0_f32);
+    let centre_v = (ps2float::add(ps2float::add(v0, v1), v2)).pdiv(3.0_f32);
     let scale = lwc1(0x3ad4c0);
-    let offset_u = lwc1(texture_offset) * scale;
-    let offset_v = lwc1(texture_offset + 4) * scale;
+    let offset_u = ps2float::mul(lwc1(texture_offset), scale);
+    let offset_v = ps2float::mul(lwc1(texture_offset + 4), scale);
     let corners = [
-        (u0 + offset_u, v0 + offset_v),
-        (u1 + offset_u, v1 + offset_v),
-        (u2 + offset_u, v2 + offset_v),
-        (lwc1(uv_3) + offset_u, lwc1(uv_3 + 4) + offset_v),
+        (ps2float::add(u0, offset_u), ps2float::add(v0, offset_v)),
+        (ps2float::add(u1, offset_u), ps2float::add(v1, offset_v)),
+        (ps2float::add(u2, offset_u), ps2float::add(v2, offset_v)),
+        (ps2float::add(lwc1(uv_3), offset_u), ps2float::add(lwc1(uv_3 + 4), offset_v)),
     ];
 
     // The matrix of the shard moves it to the middle, and its vertices are round it.
@@ -103,12 +103,12 @@ pub fn glassSetQuad(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
     }
 
     // The speed and the spin: they are bigger the nearer the shard is to the point of impact.
-    let from_impact_u = centre_u - lwc1(impact);
-    let from_impact_v = centre_v - lwc1(impact + 4);
-    let distance = ((from_impact_u * from_impact_u + from_impact_v * from_impact_v).abs().psqrt()).pdiv(2.0_f32.abs().psqrt());
-    let near = 1.0_f32 - distance;
-    let power = near * near * near;
-    let push = power * 14.0_f32 * f12;
+    let from_impact_u = ps2float::sub(centre_u, lwc1(impact));
+    let from_impact_v = ps2float::sub(centre_v, lwc1(impact + 4));
+    let distance = (ps2float::add(ps2float::mul(from_impact_u, from_impact_u), ps2float::mul(from_impact_v, from_impact_v)).abs().psqrt()).pdiv(2.0_f32.abs().psqrt());
+    let near = ps2float::sub(1.0_f32, distance);
+    let power = ps2float::mul(ps2float::mul(near, near), near);
+    let push = ps2float::mul(ps2float::mul(power, 14.0_f32), f12);
     let velocities = a3 + 1280;
     let rotations = a3 + 2240;
     let spins = a3 + 3200;
@@ -117,39 +117,39 @@ pub fn glassSetQuad(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
     let random_x = random_as_float();
     swc1(
         velocities + shard_slot,
-        lwc1(direction) * push + (random_x * 2.3283064e-10_f32 - 0.5_f32) * lwc1(0x3ad4c4) * distance,
+        ps2float::add(ps2float::mul(lwc1(direction), push), ps2float::mul(ps2float::mul(ps2float::sub(ps2float::mul(random_x, 2.3283064e-10_f32), 0.5_f32), lwc1(0x3ad4c4)), distance)),
     );
     let random_y = random_as_float();
     swc1(
         velocities + 4 + shard_slot,
-        lwc1(direction + 4) * push + (random_y * 2.3283064e-10_f32 - 0.5_f32) * lwc1(0x3ad4c8) * distance,
+        ps2float::add(ps2float::mul(lwc1(direction + 4), push), ps2float::mul(ps2float::mul(ps2float::sub(ps2float::mul(random_y, 2.3283064e-10_f32), 0.5_f32), lwc1(0x3ad4c8)), distance)),
     );
     let random_z = random_as_float();
-    let scatter_z = (random_z * 2.3283064e-10_f32 - 0.5_f32) * lwc1(0x3ad4cc);
-    let fade = distance * lwc1(0x3ad4d0);
-    swc1(velocities + 8 + shard_slot, lwc1(direction + 8) * push + scatter_z * distance);
+    let scatter_z = ps2float::mul(ps2float::sub(ps2float::mul(random_z, 2.3283064e-10_f32), 0.5_f32), lwc1(0x3ad4cc));
+    let fade = ps2float::mul(distance, lwc1(0x3ad4d0));
+    swc1(velocities + 8 + shard_slot, ps2float::add(ps2float::mul(lwc1(direction + 8), push), ps2float::mul(scatter_z, distance)));
     swc1(rotations + shard_slot, 0.0_f32);
     swc1(rotations + 4 + shard_slot, 0.0_f32);
     swc1(rotations + 8 + shard_slot, 0.0_f32);
     swc1(fades, -fade);
-    let mut around_u = 1.0_f32 - from_impact_u;
+    let mut around_u = ps2float::sub(1.0_f32, from_impact_u);
     if from_impact_u < 0.0_f32 {
-        around_u = -1.0_f32 - from_impact_u;
+        around_u = ps2float::sub(-1.0_f32, from_impact_u);
     }
-    let mut around_v = 1.0_f32 - from_impact_v;
+    let mut around_v = ps2float::sub(1.0_f32, from_impact_v);
     if from_impact_v < 0.0_f32 {
-        around_v = -1.0_f32 - from_impact_v;
+        around_v = ps2float::sub(-1.0_f32, from_impact_v);
     }
-    let twist = f12 * 18.0_f32 * power;
-    let twist_v = around_v * twist;
-    let twist_u = around_u * twist;
-    swc1(spins + shard_slot, twist_v * lwc1(direction + 4) + twist_v * lwc1(direction + 8));
-    swc1(spins + 4 + shard_slot, twist_u * lwc1(direction) + twist_u * lwc1(direction + 8));
-    swc1(spins + 8 + shard_slot, twist_v * lwc1(direction) + twist_u * lwc1(direction + 4));
+    let twist = ps2float::mul(ps2float::mul(f12, 18.0_f32), power);
+    let twist_v = ps2float::mul(around_v, twist);
+    let twist_u = ps2float::mul(around_u, twist);
+    swc1(spins + shard_slot, ps2float::add(ps2float::mul(twist_v, lwc1(direction + 4)), ps2float::mul(twist_v, lwc1(direction + 8))));
+    swc1(spins + 4 + shard_slot, ps2float::add(ps2float::mul(twist_u, lwc1(direction)), ps2float::mul(twist_u, lwc1(direction + 8))));
+    swc1(spins + 8 + shard_slot, ps2float::add(ps2float::mul(twist_v, lwc1(direction)), ps2float::mul(twist_u, lwc1(direction + 4))));
     if first_flag != 0 && flags & 512 == 0 && newrnd() & 7 == 0 {
         // Some shards just drop.
         let random = random_as_float();
-        swc1(fades, -(random * 2.3283064e-10_f32 * lwc1(0x3ad4d4) + 0.5_f32));
+        swc1(fades, -ps2float::add(ps2float::mul(ps2float::mul(random, 2.3283064e-10_f32), lwc1(0x3ad4d4)), 0.5_f32));
         for axis in 0..3 {
             sw(velocities + axis * 4 + shard_slot, 0);
             sw(rotations + axis * 4 + shard_slot, 0);

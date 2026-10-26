@@ -150,21 +150,21 @@ pub fn GetXOffset(text: i32) -> i32 {
 /// Squared distance of the point `p` from the line through `a` with direction `dir` (a unit vector); the nearest point on the line goes to `nearest` if it is not 0 (@ 0x20acf0).
 pub fn HitTestDistancePointToLineSquared(p: i32, a: i32, dir: i32, nearest: i32) -> f32 {
     let ax = lwc1(a);
-    let vy = lwc1(p + 4) - lwc1(a + 4);
+    let vy = ps2float::sub(lwc1(p + 4), lwc1(a + 4));
     let dy = lwc1(dir + 4);
-    let vx = lwc1(p) - ax;
+    let vx = ps2float::sub(lwc1(p), ax);
     let dx = lwc1(dir);
-    let vz = lwc1(p + 8) - lwc1(a + 8);
+    let vz = ps2float::sub(lwc1(p + 8), lwc1(a + 8));
     let dz = lwc1(dir + 8);
-    let along = vx * dx + vy * dy + vz * dz;
-    let (px, py, pz) = (along * dx, along * dy, along * dz);
+    let along = ps2float::add(ps2float::add(ps2float::mul(vx, dx), ps2float::mul(vy, dy)), ps2float::mul(vz, dz));
+    let (px, py, pz) = (ps2float::mul(along, dx), ps2float::mul(along, dy), ps2float::mul(along, dz));
     if nearest != 0 {
-        swc1(nearest, ax + px);
-        swc1(nearest + 4, lwc1(a + 4) + py);
-        swc1(nearest + 8, lwc1(a + 8) + pz);
+        swc1(nearest, ps2float::add(ax, px));
+        swc1(nearest + 4, ps2float::add(lwc1(a + 4), py));
+        swc1(nearest + 8, ps2float::add(lwc1(a + 8), pz));
     }
-    let (rx, ry, rz) = (vx - px, vy - py, vz - pz);
-    rx * rx + ry * ry + rz * rz
+    let (rx, ry, rz) = (ps2float::sub(vx, px), ps2float::sub(vy, py), ps2float::sub(vz, pz));
+    ps2float::add(ps2float::add(ps2float::mul(rx, rx), ps2float::mul(ry, ry)), ps2float::mul(rz, rz))
 }
 
 /// Rotate the vector `v` in place by the upper 3 x 3 of the matrix `m` (@ 0x2b55a0).
@@ -173,7 +173,7 @@ pub fn matrixVecRot(m: i32, v: i32) {
     let mut out = [0.0_f32; 3];
     for (i, o) in out.iter_mut().enumerate() {
         let i = i as i32;
-        *o = x * lwc1(m + 4 * i) + y * lwc1(m + 16 + 4 * i) + z * lwc1(m + 32 + 4 * i);
+        *o = ps2float::add(ps2float::add(ps2float::mul(x, lwc1(m + 4 * i)), ps2float::mul(y, lwc1(m + 16 + 4 * i))), ps2float::mul(z, lwc1(m + 32 + 4 * i)));
     }
     for (i, o) in out.iter().enumerate() {
         swc1(v + 4 * i as i32, *o);
@@ -198,6 +198,6 @@ pub fn GetFormat(header: i32) -> i32 {
 pub fn StatsAddChar(stat: i32, slot: i32, other: i32, value: f32) {
     if stats_slot_in_play(slot) && stats_slot_in_play(other) {
         let at = (stat << 2) + other * 24 + slot * 1368 + (g::matchstats + 936);
-        swc1(at, lwc1(at) + value);
+        swc1(at, ps2float::add(lwc1(at), value));
     }
 }

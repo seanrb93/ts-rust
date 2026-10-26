@@ -9,10 +9,10 @@ pub fn hudTick() {
     let number = lw(player);
     let hud = number * 352 + g::hudparms;
     if number == 0 {
-        let mut angle = lwc1(0x3b0190) + lwc1(0x3ad780);
+        let mut angle = ps2float::add(lwc1(0x3b0190), lwc1(0x3ad780));
         swc1(0x3b0190, angle);
         while 360.0 <= angle {
-            angle -= 360.0;
+            angle = ps2float::sub(angle, 360.0);
             swc1(0x3b0190, angle);
         }
     }

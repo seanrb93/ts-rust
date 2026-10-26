@@ -15,12 +15,12 @@ pub fn propGetAimProp() {
             let center = player + 152;
             let prop = i * 592 + lw(g::levelprops);
             let sizes = lw(lw(player + 384) + 352) + 2976;
-            swc1(sp, lwc1(prop + 48) - half);
-            swc1(sp + 4, lwc1(prop + 52) - half);
-            swc1(sp + 8, lwc1(prop + 56) - half);
-            swc1(sp + 16, lwc1(prop + 48) + half);
-            swc1(sp + 20, lwc1(prop + 52) + half);
-            swc1(sp + 24, lwc1(prop + 56) + half);
+            swc1(sp, ps2float::sub(lwc1(prop + 48), half));
+            swc1(sp + 4, ps2float::sub(lwc1(prop + 52), half));
+            swc1(sp + 8, ps2float::sub(lwc1(prop + 56), half));
+            swc1(sp + 16, ps2float::add(lwc1(prop + 48), half));
+            swc1(sp + 20, ps2float::add(lwc1(prop + 52), half));
+            swc1(sp + 24, ps2float::add(lwc1(prop + 56), half));
             hittestLineBox(center, sizes, sp, line_end);
             i += 1;
             if i >= lw(g::num_props) {

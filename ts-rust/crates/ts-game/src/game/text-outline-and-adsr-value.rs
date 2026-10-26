@@ -68,7 +68,7 @@ pub fn adsrvalue_draw(entry: i32) {
                 break 'text;
             }
             format = 0x399b58;
-            shown = rate * 1e+03_f32;
+            shown = ps2float::mul(rate, 1e+03_f32);
         } else {
             shown = (value as f32).pdiv(15.0_f32);
             format = 0x3ae3a8;

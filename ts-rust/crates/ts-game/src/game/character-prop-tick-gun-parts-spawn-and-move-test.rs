@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// Set the animation state of the character prop `chr` (the word at +344) and return it.
@@ -198,7 +198,7 @@ pub fn chrPropTick(a0: i32) {
     let glow_time = lwc1(mind + 2900);
     let frame_time = lwc1(g::updateframesf);
     if 0.0_f32 < glow_time {
-        swc1(mind + 2900, glow_time - (frame_time).pdiv(6e+01_f32));
+        swc1(mind + 2900, ps2float::sub(glow_time, (frame_time).pdiv(6e+01_f32)));
     }
     if lw(mind + 0x11a8) == 0 {
         let mut amount = (lwc1(mind + 2900)).pdiv(2.5_f32);
@@ -209,9 +209,9 @@ pub fn chrPropTick(a0: i32) {
             obInstSetOverrideCol(lw(a0 + 32), 0, 0, 0, 0.0_f32);
         } else {
             let strength = amount.abs().psqrt();
-            let wave = (lwc1(((((lw(g::gameframe) as f32 * 6.0_f32).pdiv(6e+01_f32) * lwc1(0x3acc74) + 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) + 1.0_f32) * 0.5_f32 * 0.5_f32 + 0.5_f32;
+            let wave = ps2float::add(ps2float::mul(ps2float::mul(ps2float::add(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, 6.0_f32).pdiv(6e+01_f32), lwc1(0x3acc74)), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable), 1.0_f32), 0.5_f32), 0.5_f32), 0.5_f32);
             let hold = lw(mind + 0x11a4);
-            let glow = wave * strength;
+            let glow = ps2float::mul(wave, strength);
             if hold == 0 {
                 let inst = lw(a0 + 32);
                 obInstSetOverrideCol(inst, lw(inst + 316), lw(inst + 320), lw(inst + 324), glow);
@@ -255,11 +255,11 @@ pub fn chrPropTick(a0: i32) {
                 break 'stat;
             }
         }
-        StatsAddGun(3, lw(mind), lw(mind + 260), frame_time * lwc1(0x3acc78));
+        StatsAddGun(3, lw(mind), lw(mind + 260), ps2float::mul(frame_time, lwc1(0x3acc78)));
     }
     let frame_time = lwc1(g::updateframesf);
     if lw(mind + 484) != 0 {
-        StatsAdd(36, lw(mind), frame_time * lwc1(0x3acc7c));
+        StatsAdd(36, lw(mind), ps2float::mul(frame_time, lwc1(0x3acc7c)));
     }
     let rank = gameGetRankTeam(lw(mind + 24));
     let players = lw(g::lvnumplayers);
@@ -267,12 +267,12 @@ pub fn chrPropTick(a0: i32) {
     if rank != 0 {
         let mut level_now = lw(g::lvlevelnum);
         if rank == players + lw(g::numactivechars) - 1 {
-            StatsAdd(41, lw(mind), lwc1(g::updateframesf) * lwc1(0x3acc84));
+            StatsAdd(41, lw(mind), ps2float::mul(lwc1(g::updateframesf), lwc1(0x3acc84)));
             level_now = lw(g::lvlevelnum);
         }
         level = level_now;
     } else {
-        StatsAdd(40, lw(mind), lwc1(g::updateframesf) * lwc1(0x3acc80));
+        StatsAdd(40, lw(mind), ps2float::mul(lwc1(g::updateframesf), lwc1(0x3acc80)));
         level = lw(g::lvlevelnum);
     }
     if level == 102 {
@@ -429,18 +429,18 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
     let step = lwc1(g::updateframesf);
     let owner_y = lwc1(owner + 52);
     let owner_z = lwc1(owner + 56);
-    let z_sway = (((phase * lwc1(0x3ad38c) * phase_scale + half) as i32 & 2047) << 2) + sin_table;
+    let z_sway = ((ps2float::add(ps2float::mul(ps2float::mul(phase, lwc1(0x3ad38c)), phase_scale), half) as i32 & 2047) << 2) + sin_table;
     swc1(
         owner + 48,
         lwc1(owner + 48)
-            + (lwc1(a0 + 68) + lwc1((((phase * lwc1(0x3ad384) * phase_scale + half) as i32 & 2047) << 2) + sin_table) * lwc1(shot + 88) * lwc1(a0 + 120) + lwc1(a0 + 92) * lwc1(a0 + 116)),
+            + ps2float::add(ps2float::add(lwc1(a0 + 68), ps2float::mul(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(phase, lwc1(0x3ad384)), phase_scale), half) as i32 & 2047) << 2) + sin_table), lwc1(shot + 88)), lwc1(a0 + 120))), ps2float::mul(lwc1(a0 + 92), lwc1(a0 + 116))),
     );
     swc1(
         owner + 52,
-        owner_y + (lwc1(a0 + 72) + lwc1((((phase * phase_scale + half) as i32 & 2047) << 2) + sin_table) * lwc1(shot + 88) * lwc1(a0 + 120) + lwc1(a0 + 96) * lwc1(a0 + 116)),
+        ps2float::add(owner_y, ps2float::add(ps2float::add(lwc1(a0 + 72), ps2float::mul(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(phase, phase_scale), half) as i32 & 2047) << 2) + sin_table), lwc1(shot + 88)), lwc1(a0 + 120))), ps2float::mul(lwc1(a0 + 96), lwc1(a0 + 116)))),
     );
-    swc1(owner + 56, owner_z + (lwc1(a0 + 76) + lwc1(z_sway) * lwc1(shot + 88) * lwc1(a0 + 120) + lwc1(a0 + 100) * lwc1(a0 + 116)));
-    swc1(a0 + 84, lwc1(a0 + 84) + lwc1(a0 + 88) * step);
+    swc1(owner + 56, ps2float::add(owner_z, ps2float::add(ps2float::add(lwc1(a0 + 76), ps2float::mul(ps2float::mul(lwc1(z_sway), lwc1(shot + 88)), lwc1(a0 + 120))), ps2float::mul(lwc1(a0 + 100), lwc1(a0 + 116)))));
+    swc1(a0 + 84, ps2float::add(lwc1(a0 + 84), ps2float::mul(lwc1(a0 + 88), step)));
     if kind == 23 {
         if lw(a0 + 152) >= 9 {
             sw(a0 + 84, 0);
@@ -452,7 +452,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
             if (lhu(lw(player + 24) + 2) & 80) == 80 {
                 let left = joyGetShockLeft(lw(player));
                 let right = joyGetShockRight(lw(lw(g::currentplayer)));
-                joySetShock(lw(player), left, right + (lwc1(a0 + 188) * 128.0_f32) as i32);
+                joySetShock(lw(player), left, right + ps2float::mul(lwc1(a0 + 188), 128.0_f32) as i32);
                 kind = lw(a1);
                 frames_now = lw(g::updateframesi);
             }
@@ -470,15 +470,15 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
             let spin = lwc1(a0 + 88);
             let slide = lwc1(a0 + 116);
             let pull = lwc1(a0 + 120);
-            swc1(a0 + 60, lwc1(a0 + 60) * (lwc1(shot + 68) * decay));
+            swc1(a0 + 60, ps2float::mul(lwc1(a0 + 60), ps2float::mul(lwc1(shot + 68), decay)));
             let shock = lwc1(a0 + 188);
-            swc1(a0 + 68, x * (lwc1(shot + 68) * decay));
-            swc1(a0 + 72, y * (lwc1(shot + 68) * decay));
-            swc1(a0 + 76, z * (lwc1(shot + 68) * decay));
-            swc1(a0 + 88, spin * (lwc1(shot + 84) * decay));
-            swc1(a0 + 116, slide * (lwc1(shot + 100) * decay));
-            swc1(a0 + 120, pull * (lwc1(shot + 92) * decay));
-            swc1(a0 + 188, shock * (lwc1(shot + 132) * decay));
+            swc1(a0 + 68, ps2float::mul(x, ps2float::mul(lwc1(shot + 68), decay)));
+            swc1(a0 + 72, ps2float::mul(y, ps2float::mul(lwc1(shot + 68), decay)));
+            swc1(a0 + 76, ps2float::mul(z, ps2float::mul(lwc1(shot + 68), decay)));
+            swc1(a0 + 88, ps2float::mul(spin, ps2float::mul(lwc1(shot + 84), decay)));
+            swc1(a0 + 116, ps2float::mul(slide, ps2float::mul(lwc1(shot + 100), decay)));
+            swc1(a0 + 120, ps2float::mul(pull, ps2float::mul(lwc1(shot + 92), decay)));
+            swc1(a0 + 188, ps2float::mul(shock, ps2float::mul(lwc1(shot + 132), decay)));
             if n >= frames_now {
                 break;
             }
@@ -501,7 +501,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
                         }
                         let frames = lwc1(g::updateframesf);
                         let damped = powf(power, frames);
-                        value = lwc1(a0 + 80) * damped;
+                        value = ps2float::mul(lwc1(a0 + 80), damped);
                         break 'moved;
                     }
                 }
@@ -513,7 +513,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
                     eject_start = 33.0_f32;
                     let frames = lwc1(g::updateframesf);
                     if age < eject_start {
-                        value = lwc1(a0 + 80) + lwc1(shot + 72) * frames;
+                        value = ps2float::add(lwc1(a0 + 80), ps2float::mul(lwc1(shot + 72), frames));
                         break 'moved;
                     }
                 }
@@ -532,24 +532,24 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
                 if !(age < 5e+01_f32) {
                     break 'part;
                 }
-                value = lwc1(a0 + 80) - lwc1(shot + 72) * frames;
+                value = ps2float::sub(lwc1(a0 + 80), ps2float::mul(lwc1(shot + 72), frames));
             }
             swc1(a0 + 80, value);
         }
     }
     let frames = lwc1(g::updateframesf);
     'slide: {
-        let y = lwc1(a0 + 96) + lwc1(a0 + 108) * frames;
+        let y = ps2float::add(lwc1(a0 + 96), ps2float::mul(lwc1(a0 + 108), frames));
         let mut mode = lw(a0 + 124);
-        let z = lwc1(a0 + 100) + lwc1(a0 + 112) * frames;
-        swc1(a0 + 92, lwc1(a0 + 92) + lwc1(a0 + 104) * frames);
+        let z = ps2float::add(lwc1(a0 + 100), ps2float::mul(lwc1(a0 + 112), frames));
+        swc1(a0 + 92, ps2float::add(lwc1(a0 + 92), ps2float::mul(lwc1(a0 + 104), frames)));
         swc1(a0 + 96, y);
         swc1(a0 + 100, z);
         if mode != 1 {
             let damped = powf(lwc1(shot + 112), frames);
-            swc1(a0 + 128, lwc1(a0 + 128) * damped);
+            swc1(a0 + 128, ps2float::mul(lwc1(a0 + 128), damped));
         } else {
-            let moved = lwc1(a0 + 128) + lwc1(shot + 104) * frames;
+            let moved = ps2float::add(lwc1(a0 + 128), ps2float::mul(lwc1(shot + 104), frames));
             swc1(a0 + 128, moved);
             let limit = lwc1(shot + 108);
             let reached = if !(lwc1(shot + 104) < 0.0_f32) { limit < moved } else { moved < limit };
@@ -582,9 +582,9 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
                 break 'turn;
             }
             let damped = powf(lwc1(shot + 124), lwc1(g::updateframesf));
-            swc1(a0 + 132, lwc1(a0 + 132) * damped);
+            swc1(a0 + 132, ps2float::mul(lwc1(a0 + 132), damped));
         } else {
-            let moved = lwc1(a0 + 132) + lwc1(shot + 116) * lwc1(g::updateframesf);
+            let moved = ps2float::add(lwc1(a0 + 132), ps2float::mul(lwc1(shot + 116), lwc1(g::updateframesf)));
             swc1(a0 + 132, moved);
             let limit = lwc1(shot + 120);
             let reached = if !(lwc1(shot + 116) < 0.0_f32) { limit < moved } else { moved < limit };
@@ -616,16 +616,16 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
             let skeleton = header - lw(header) * 80;
             let pivot = lw(skeleton + 72);
             let at = pivot + 12;
-            matrixTrans(first, lwc1(pivot + 12), lwc1(at + 4), lwc1(at + 8) + shift);
-            matrixRotZXY(sp, 0.0_f32, (shift * 9e+01_f32 * minus_twelve * scale).pdiv(full), 0.0_f32);
+            matrixTrans(first, lwc1(pivot + 12), lwc1(at + 4), ps2float::add(lwc1(at + 8), shift));
+            matrixRotZXY(sp, 0.0_f32, ps2float::mul(ps2float::mul(ps2float::mul(shift, 9e+01_f32), minus_twelve), scale).pdiv(full), 0.0_f32);
             sceVu0MulMatrix(first, first, sp);
             matrixTrans(sp, -lwc1(pivot + 12), -lwc1(at + 4), -lwc1(at + 8));
             sceVu0MulMatrix(first, first, sp);
             let pivot = lw(skeleton + 72);
             let at = pivot + 24;
             let second = lw(lw(lw(a0 + 12) + 32) + 4) + 256;
-            matrixTrans(second, lwc1(pivot + 24), lwc1(at + 4), lwc1(at + 8) + lwc1(a0 + 80));
-            matrixRotZXY(sp, 0.0_f32, (shift * -9e+01_f32 * minus_twelve * scale).pdiv(full), 0.0_f32);
+            matrixTrans(second, lwc1(pivot + 24), lwc1(at + 4), ps2float::add(lwc1(at + 8), lwc1(a0 + 80)));
+            matrixRotZXY(sp, 0.0_f32, ps2float::mul(ps2float::mul(ps2float::mul(shift, -9e+01_f32), minus_twelve), scale).pdiv(full), 0.0_f32);
             sceVu0MulMatrix(second, second, sp);
             matrixTrans(sp, -lwc1(pivot + 24), -lwc1(at + 4), -lwc1(at + 8));
             sceVu0MulMatrix(second, second, sp);
@@ -641,7 +641,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
             let matrix = lw(model + 4) + (lw(gun + 372) << 6);
             let pivot = lw(header - lw(header) * 80 + 72) + offset;
             matrixTrans(matrix, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-            matrixRotZXY(sp, 0.0_f32, 0.0_f32, (lwc1(a0 + 84) * lwc1(0x3ad39c)).pdiv(1.8e+02_f32));
+            matrixRotZXY(sp, 0.0_f32, 0.0_f32, ps2float::mul(lwc1(a0 + 84), lwc1(0x3ad39c)).pdiv(1.8e+02_f32));
             sceVu0MulMatrix(matrix, matrix, sp);
             matrixTrans(sp, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
             sceVu0MulMatrix(matrix, matrix, sp);
@@ -670,7 +670,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
         let matrix = lw(model + 4) + (lw(gun + 376) << 6);
         let pivot = lw(header - lw(header) * 80 + 72) + second_bone * 12;
         matrixTrans(matrix, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-        matrixRotZXY(sp + 64, (lwc1(a0 + 128) * lwc1(0x3ad3a0)).pdiv(1.8e+02_f32), 0.0_f32, 0.0_f32);
+        matrixRotZXY(sp + 64, ps2float::mul(lwc1(a0 + 128), lwc1(0x3ad3a0)).pdiv(1.8e+02_f32), 0.0_f32, 0.0_f32);
         sceVu0MulMatrix(matrix, matrix, sp + 64);
         matrixTrans(sp + 64, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
         sceVu0MulMatrix(matrix, matrix, sp + 64);
@@ -682,7 +682,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
         let matrix = lw(model + 4) + (lw(gun + 380) << 6);
         let pivot = lw(header - lw(header) * 80 + 72) + third_bone * 12;
         matrixTrans(matrix, lwc1(pivot), lwc1(pivot + 4), lwc1(pivot + 8));
-        matrixRotZXY(sp + 128, (lwc1(a0 + 132) * lwc1(0x3ad3a4)).pdiv(1.8e+02_f32), 0.0_f32, 0.0_f32);
+        matrixRotZXY(sp + 128, ps2float::mul(lwc1(a0 + 132), lwc1(0x3ad3a4)).pdiv(1.8e+02_f32), 0.0_f32, 0.0_f32);
         sceVu0MulMatrix(matrix, matrix, sp + 128);
         matrixTrans(sp + 128, -lwc1(pivot), -lwc1(pivot + 4), -lwc1(pivot + 8));
         sceVu0MulMatrix(matrix, matrix, sp + 128);
@@ -690,12 +690,12 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
     let kind_now = lw(a1);
     if kind_now == 18 {
         let owner = lw(a0 + 12);
-        swc1(owner + 88, lwc1(owner + 88) - 5e+01_f32);
+        swc1(owner + 88, ps2float::sub(lwc1(owner + 88), 5e+01_f32));
     }
     if kind_now == 25 {
         let owner = lw(a0 + 12);
-        let moved = lwc1(owner + 72) - 3e+01_f32;
-        swc1(owner + 88, lwc1(owner + 88) - 5e+01_f32);
+        let moved = ps2float::sub(lwc1(owner + 72), 3e+01_f32);
+        swc1(owner + 88, ps2float::sub(lwc1(owner + 88), 5e+01_f32));
         swc1(owner + 72, moved);
     }
 }
@@ -962,7 +962,7 @@ pub fn spawn(a0: i32) {
     sw(mind + 2772, 0);
     sw(mind + 3004, 0);
     let mode = lw(parms + 72);
-    swc1(a0 + 52, y + raise);
+    swc1(a0 + 52, ps2float::add(y, raise));
     swc1(a0 + 56, lwc1(pad + 20));
     let angle = lwc1(pad + 24);
     swc1(a0 + 84, angle);
@@ -983,21 +983,21 @@ pub fn spawn(a0: i32) {
         let skill = (lw(parms2 + 108) as f32).pdiv(4e+01_f32);
         let index = number - lw(g::lvnumplayers);
         let c1 = lwc1(0x3ad95c);
-        let c2 = skill * lwc1(0x3ad94c) + lwc1(0x3ad954);
-        swc1(mind + 2832, (level + random + lwc1(0x3ad950)) * lwc1(0x3ad958));
-        swc1(mind + 2836, (index as f32).pdiv(lw(parms2 + 8) as f32) * c2 + ((1.0_f32 - skill) * c1 + lwc1(0x3ad960)));
+        let c2 = ps2float::add(ps2float::mul(skill, lwc1(0x3ad94c)), lwc1(0x3ad954));
+        swc1(mind + 2832, ps2float::mul(ps2float::add(ps2float::add(level, random), lwc1(0x3ad950)), lwc1(0x3ad958)));
+        swc1(mind + 2836, ps2float::add(ps2float::mul((index as f32).pdiv(lw(parms2 + 8) as f32), c2), ps2float::add(ps2float::mul(ps2float::sub(1.0_f32, skill), c1), lwc1(0x3ad960))));
     } else {
         if lw(parms + 76) == 0 {
             let random = random_unit();
-            swc1(mind + 2832, (random + 2.0_f32) * lwc1(0x3ad940));
+            swc1(mind + 2832, ps2float::mul(ps2float::add(random, 2.0_f32), lwc1(0x3ad940)));
         }
         if lw(parms + 76) == 1 {
             let random = random_unit();
-            swc1(mind + 2832, (random + 1.0_f32) * lwc1(0x3ad944));
+            swc1(mind + 2832, ps2float::mul(ps2float::add(random, 1.0_f32), lwc1(0x3ad944)));
         }
         if lw(parms + 76) == 2 {
             let random = random_unit();
-            swc1(mind + 2832, (random + 0.0_f32) * lwc1(0x3ad948));
+            swc1(mind + 2832, ps2float::mul(ps2float::add(random, 0.0_f32), lwc1(0x3ad948)));
         }
         swc1(mind + 2836, 0.5_f32);
     }
@@ -1006,7 +1006,7 @@ pub fn spawn(a0: i32) {
     let mut colour = -1;
     'b33: {
         let radius = lwc1(0x3ad964);
-        swc1(mind + 2964, lwc1(mind + 2964) * (lwc1(mind + 2832) + 0.25_f32));
+        swc1(mind + 2964, ps2float::mul(lwc1(mind + 2964), ps2float::add(lwc1(mind + 2832), 0.25_f32)));
         let y = lwc1(a0 + 52);
         let z = lwc1(a0 + 56);
         swc1(sp, lwc1(a0 + 48));
@@ -1118,14 +1118,14 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
     if on_floor == 0 && end_x == start_x && end_y == start_y && end_z == start_z {
         sw(sp + 340, 0);
     }
-    swc1(sp + 16, end_x - start_x);
-    swc1(sp + 20, end_z - start_z);
-    let (low_x, high_x) = if !(start_x < end_x) { (end_x - f13, start_x + f13) } else { (start_x - f13, end_x + f13) };
+    swc1(sp + 16, ps2float::sub(end_x, start_x));
+    swc1(sp + 20, ps2float::sub(end_z, start_z));
+    let (low_x, high_x) = if !(start_x < end_x) { (ps2float::sub(end_x, f13), ps2float::add(start_x, f13)) } else { (ps2float::sub(start_x, f13), ps2float::add(end_x, f13)) };
     swc1(sp + 32, low_x);
     swc1(sp + 44, high_x);
     swc1(sp + 36, start_y);
-    swc1(sp + 48, start_y + f12);
-    let (low_z, high_z) = if !(start_z < end_z) { (end_z - f13, start_z + f13) } else { (start_z - f13, end_z + f13) };
+    swc1(sp + 48, ps2float::add(start_y, f12));
+    let (low_z, high_z) = if !(start_z < end_z) { (ps2float::sub(end_z, f13), ps2float::add(start_z, f13)) } else { (ps2float::sub(start_z, f13), ps2float::add(end_z, f13)) };
     swc1(sp + 40, low_z);
     swc1(sp + 52, high_z);
     sw(sp + 348, sp + 80);
@@ -1212,7 +1212,7 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
             'fixed: {
                 let mut bits = lw(sp + 332);
                 if (lw(sp + 332) & 12) == 12 {
-                    if (lwc1(sp + 64) * lwc1(sp + 176) + lwc1(sp + 68) * lwc1(sp + 180)) <= 0.0_f32 {
+                    if ps2float::add(ps2float::mul(lwc1(sp + 64), lwc1(sp + 176)), ps2float::mul(lwc1(sp + 68), lwc1(sp + 180))) <= 0.0_f32 {
                         swc1(a2, lwc1(a1));
                         swc1(a2 + 4, lwc1(a1 + 4));
                         swc1(a2 + 8, lwc1(a1 + 8));
@@ -1225,20 +1225,20 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
                 let along;
                 if (bits & 8) == 0 {
                     step_z = lwc1(sp + 20);
-                    along = nearest_wall * step_x;
+                    along = ps2float::mul(nearest_wall, step_x);
                 } else {
                     step_z = lwc1(sp + 20);
-                    if (step_x * lwc1(sp + 176) + step_z * lwc1(sp + 180)) < 0.0_f32 {
+                    if ps2float::add(ps2float::mul(step_x, lwc1(sp + 176)), ps2float::mul(step_z, lwc1(sp + 180))) < 0.0_f32 {
                         swc1(a2, lwc1(a1));
                         swc1(a2 + 4, lwc1(a1 + 4));
                         swc1(a2 + 8, lwc1(a1 + 8));
                         break 'fixed;
                     }
-                    along = nearest_wall * step_x;
+                    along = ps2float::mul(nearest_wall, step_x);
                 }
-                swc1(a2, lwc1(a1) + along);
+                swc1(a2, ps2float::add(lwc1(a1), along));
                 swc1(a2 + 4, lwc1(a1 + 4));
-                swc1(a2 + 8, lwc1(a1 + 8) + nearest_wall * step_z);
+                swc1(a2 + 8, ps2float::add(lwc1(a1 + 8), ps2float::mul(nearest_wall, step_z)));
             }
         } else {
             let sides = hit & 12;
@@ -1246,7 +1246,7 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
             if sides == 8 {
                 let wall_x = lwc1(sp + 176);
                 let wall_z = lwc1(sp + 180);
-                if (lwc1(sp + 16) * wall_x + lwc1(sp + 20) * wall_z) < 0.0_f32 {
+                if ps2float::add(ps2float::mul(lwc1(sp + 16), wall_x), ps2float::mul(lwc1(sp + 20), wall_z)) < 0.0_f32 {
                     swc1(sp + 64, wall_x);
                     nearest_wall = 0.0_f32;
                     swc1(sp + 68, wall_z);
@@ -1260,9 +1260,9 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
                 let normal_z = lwc1(sp + 68);
                 let negative = -normal_x;
                 let step_z = lwc1(sp + 20);
-                let product = lwc1(sp + 16) * normal_z;
+                let product = ps2float::mul(lwc1(sp + 16), normal_z);
                 swc1(sp + 256, normal_z);
-                let mut dot = product + step_z * negative;
+                let mut dot = ps2float::add(product, ps2float::mul(step_z, negative));
                 swc1(sp + 260, negative);
                 if dot < 0.0_f32 {
                     swc1(sp + 260, normal_x);
@@ -1271,14 +1271,14 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
                 }
                 let ex = lwc1(sp + 256);
                 let ez = lwc1(sp + 260);
-                let size = ex * ex + ez * ez;
+                let size = ps2float::add(ps2float::mul(ex, ex), ps2float::mul(ez, ez));
                 if !(0.0_f32 < size) {
                     swc1(sp + 256, 0.0_f32);
                     swc1(sp + 260, 0.0_f32);
                 } else {
-                    let scale = ((1.0_f32 - nearest_wall) * dot).pdiv(size);
-                    swc1(sp + 260, ez * scale);
-                    swc1(sp + 256, ex * scale);
+                    let scale = ps2float::mul(ps2float::sub(1.0_f32, nearest_wall), dot).pdiv(size);
+                    swc1(sp + 260, ps2float::mul(ez, scale));
+                    swc1(sp + 256, ps2float::mul(ex, scale));
                 }
             }
             'corner: {
@@ -1289,9 +1289,9 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
                     let wall_x = lwc1(sp + 176);
                     let wall_z = lwc1(sp + 180);
                     let slide_x = lwc1(sp + 256);
-                    if (lwc1(sp + 64) * wall_x + lwc1(sp + 68) * wall_z) <= 0.0_f32 {
+                    if ps2float::add(ps2float::mul(lwc1(sp + 64), wall_x), ps2float::mul(lwc1(sp + 68), wall_z)) <= 0.0_f32 {
                         let out = lw(sp + 316);
-                        if !((slide_x * wall_x + lwc1(sp + 260) * wall_z) <= 0.0_f32) {
+                        if !(ps2float::add(ps2float::mul(slide_x, wall_x), ps2float::mul(lwc1(sp + 260), wall_z)) <= 0.0_f32) {
                             swc1(sp + 272, 0.0_f32);
                             swc1(sp + 276, 0.0_f32);
                             break 'corner;
@@ -1317,10 +1317,10 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
                 } else {
                     let wall_x = lwc1(sp + 176);
                     let wall_z = lwc1(sp + 180);
-                    let towards = (lwc1(sp + 16) * wall_x + lwc1(sp + 20) * wall_z) < 0.0_f32;
-                    let push = (((f13 - nearest_prop)).pdiv(f13) * 4.0_f32 * frames).pdiv(6e+01_f32) + lwc1(0x3acfa8);
-                    swc1(sp + 276, push * wall_z);
-                    swc1(sp + 272, push * wall_x);
+                    let towards = ps2float::add(ps2float::mul(lwc1(sp + 16), wall_x), ps2float::mul(lwc1(sp + 20), wall_z)) < 0.0_f32;
+                    let push = ps2float::add(ps2float::mul(ps2float::mul((ps2float::sub(f13, nearest_prop)).pdiv(f13), 4.0_f32), frames).pdiv(6e+01_f32), lwc1(0x3acfa8));
+                    swc1(sp + 276, ps2float::mul(push, wall_z));
+                    swc1(sp + 272, ps2float::mul(push, wall_x));
                     if towards {
                         nearest_wall = 0.0_f32;
                     }
@@ -1332,26 +1332,26 @@ pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, 
                 let along_z;
                 if (bits & 4) == 0 {
                     let push_z = lwc1(sp + 276);
-                    let step = nearest_wall * lwc1(sp + 20);
-                    swc1(a2, lwc1(a1) + nearest_wall * step_x + lwc1(sp + 272));
+                    let step = ps2float::mul(nearest_wall, lwc1(sp + 20));
+                    swc1(a2, ps2float::add(ps2float::add(lwc1(a1), ps2float::mul(nearest_wall, step_x)), lwc1(sp + 272)));
                     swc1(a2 + 4, lwc1(a1 + 4));
-                    along_z = lwc1(a1 + 8) + step + push_z;
+                    along_z = ps2float::add(ps2float::add(lwc1(a1 + 8), step), push_z);
                 } else {
                     let factor = lwc1(0x3acfac);
                     let push_z = lwc1(sp + 276);
-                    let step = nearest_wall * lwc1(sp + 20);
-                    let wall = lwc1(sp + 68) * factor;
-                    swc1(a2, lwc1(a1) + nearest_wall * step_x + lwc1(sp + 64) * factor + lwc1(sp + 272));
+                    let step = ps2float::mul(nearest_wall, lwc1(sp + 20));
+                    let wall = ps2float::mul(lwc1(sp + 68), factor);
+                    swc1(a2, ps2float::add(ps2float::add(ps2float::add(lwc1(a1), ps2float::mul(nearest_wall, step_x)), ps2float::mul(lwc1(sp + 64), factor)), lwc1(sp + 272)));
                     swc1(a2 + 4, lwc1(a1 + 4));
-                    along_z = lwc1(a1 + 8) + step + wall + push_z;
+                    along_z = ps2float::add(ps2float::add(ps2float::add(lwc1(a1 + 8), step), wall), push_z);
                 }
                 swc1(a2 + 8, along_z);
                 moveTest(lw(sp + 312), a1, a2, 0, 0, 0, f12, f13);
                 let out = lw(sp + 316);
                 let slide_z = lwc1(sp + 260);
-                swc1(out, lwc1(a2) + lwc1(sp + 256));
+                swc1(out, ps2float::add(lwc1(a2), lwc1(sp + 256)));
                 swc1(out + 4, lwc1(a2 + 4));
-                swc1(out + 8, lwc1(a2 + 8) + slide_z);
+                swc1(out + 8, ps2float::add(lwc1(a2 + 8), slide_z));
             }
         }
         flags_after = lw(sp + 340);

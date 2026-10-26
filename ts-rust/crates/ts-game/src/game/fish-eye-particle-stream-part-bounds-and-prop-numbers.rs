@@ -7,9 +7,9 @@ use crate::*;
 pub fn ipFishEye(strength: f32, ratio: f32) {
     let frame = Frame::new(16);
     let sp = frame.sp();
-    let mut pull = (1.0_f32 - strength) * lwc1(0x3ad478) + lwc1(0x3ad47c);
+    let mut pull = ps2float::add(ps2float::mul(ps2float::sub(1.0_f32, strength), lwc1(0x3ad478)), lwc1(0x3ad47c));
     if lw(g::lvnumplayers) >= 3 {
-        pull *= 0.5_f32;
+        pull = ps2float::mul(pull, 0.5_f32);
     }
     ipSetCurScreenAsTexture();
     dlSetBlend(0);
@@ -18,14 +18,14 @@ pub fn ipFishEye(strength: f32, ratio: f32) {
     if y < lw(g::window + 24) + 1 {
         let window = g::window;
         loop {
-            let angle = ((y as f32 * 1.8e+02_f32).pdiv(lw(window + 32) as f32) * lwc1(0x3ad480)).pdiv(1.8e+02_f32);
+            let angle = ps2float::mul(ps2float::mul(y as f32, 1.8e+02_f32).pdiv(lw(window + 32) as f32), lwc1(0x3ad480)).pdiv(1.8e+02_f32);
             let wave = sinf(angle);
             let right = lw(window + 4);
             let bottom = lw(window + 24);
             let next = y + 1;
             let left = lw(g::window);
             let right_edge = right + 1;
-            let shift = (wave.abs().psqrt() * pull) as i32;
+            let shift = ps2float::mul(wave.abs().psqrt(), pull) as i32;
             sw(sp, 0x7f7f7f7f);
             dlTextureRectangle(left, bottom, right_edge, bottom + 1, left << 4, y << 4, right_edge << 4, next << 4);
             let bottom = lw(window + 24);
@@ -57,7 +57,7 @@ pub fn ipFishEye(strength: f32, ratio: f32) {
             let right = lw(window + 4);
             let top = lw(window + 20);
             let bottom = lw(window + 24) + 1;
-            let shift = (middle * wave) as i32;
+            let shift = ps2float::mul(middle, wave) as i32;
             sw(sp, 0x7f7f7f7f);
             dlTextureRectangle(right, top, right + 1, bottom, x << 4, top << 4, next << 4, bottom << 4);
             let right = lw(window + 4);
@@ -88,7 +88,7 @@ pub fn particleStreamGfx(group: i32, matrix: i32) {
     if count > 0 {
         loop {
             let at4 = i << 2;
-            let age = lwc1(group + 12) - lwc1(group + 3332 + at4);
+            let age = ps2float::sub(lwc1(group + 12), lwc1(group + 3332 + at4));
             if !(0.0_f32 <= age) {
                 i += 1;
             } else {
@@ -98,20 +98,20 @@ pub fn particleStreamGfx(group: i32, matrix: i32) {
                     let fraction = (age).pdiv(life);
                     let fade_in = lwc1(info + 24);
                     let mut alpha = 1.0_f32;
-                    let spin = (lwc1(spin_at + 3732) * age * lwc1(0x3ad574)).pdiv(1.8e+02_f32);
+                    let spin = ps2float::mul(ps2float::mul(lwc1(spin_at + 3732), age), lwc1(0x3ad574)).pdiv(1.8e+02_f32);
                     let colour = lw(info + 32);
                     if !(age < fade_in) {
                         let fade_out = lwc1(info + 28);
-                        if (life - fade_out) < age {
-                            alpha = ((life - age)).pdiv(fade_out);
+                        if ps2float::sub(life, fade_out) < age {
+                            alpha = (ps2float::sub(life, age)).pdiv(fade_out);
                         }
                     } else {
                         alpha = (age).pdiv(fade_in);
                     }
                     let place = group + i * 12;
-                    let x = lwc1(place + 932) + lwc1(info + 56) * age;
-                    let y = lwc1(place + 936) + lwc1(info + 60) * age;
-                    swc1(sp + 8, lwc1(place + 940) + lwc1(info + 64) * age);
+                    let x = ps2float::add(lwc1(place + 932), ps2float::mul(lwc1(info + 56), age));
+                    let y = ps2float::add(lwc1(place + 936), ps2float::mul(lwc1(info + 60), age));
+                    swc1(sp + 8, ps2float::add(lwc1(place + 940), ps2float::mul(lwc1(info + 64), age)));
                     swc1(sp, x);
                     swc1(sp + 4, y);
                     matrixVec3Mul4Aligned(&[matrix as i64, sp as i64, (sp + 16) as i64]);
@@ -153,44 +153,44 @@ pub fn particleStreamGfx(group: i32, matrix: i32) {
                             let one = 1.0_f32;
                             let inverse = (one).pdiv(w);
                             let half = 0.5_f32;
-                            let depth = sz * inverse;
+                            let depth = ps2float::mul(sz, inverse);
                             let table = g::g_SinTable;
                             let depth_scale = lwc1(0x3ad57c);
-                            let angle = (spin * lwc1(0x3ad578) + half) as i32;
-                            let ndc_x = sx * inverse;
-                            let ndc_y = sy * inverse;
-                            let size = (lwc1(info + 40)).pdiv(depth) * rate;
+                            let angle = ps2float::add(ps2float::mul(spin, lwc1(0x3ad578)), half) as i32;
+                            let ndc_x = ps2float::mul(sx, inverse);
+                            let ndc_y = ps2float::mul(sy, inverse);
+                            let size = ps2float::mul((lwc1(info + 40)).pdiv(depth), rate);
                             let sine = lwc1(((angle & 2047) << 2) + table);
                             let cosine = lwc1(((angle + 512 & 2047) << 2) + table);
-                            let px = lw(screen + 16) as f32 * ndc_x;
+                            let px = ps2float::mul(lw(screen + 16) as f32, ndc_x);
                             let particle_texture = (lw(info) << 4) + g::particletextures;
                             let name = lw(particle_texture + 4);
-                            let py = (0 - lw(screen + 36)) as f32 * ndc_y;
-                            let half_w = (size * (fraction * lwc1(info + 48) + one)) as i32 as f32;
+                            let py = ps2float::mul((0 - lw(screen + 36)) as f32, ndc_y);
+                            let half_w = ps2float::mul(size, ps2float::add(ps2float::mul(fraction, lwc1(info + 48)), one)) as i32 as f32;
                             let name2 = lw(particle_texture + 8);
-                            let half_h = (size * (fraction * lwc1(info + 44) + one)) as i32 as f32;
+                            let half_h = ps2float::mul(size, ps2float::add(ps2float::mul(fraction, lwc1(info + 44)), one)) as i32 as f32;
                             swc1(sp + 20, ndc_y);
                             swc1(sp + 24, depth);
                             swc1(sp + 16, ndc_x);
-                            let w_sin = half_w * sine;
-                            let h_cos = half_h * cosine;
-                            let h_half = h_cos * half;
-                            let cx = lw(screen + 8) as f32 + px;
-                            let cy = lw(screen + 28) as f32 + py;
-                            let w_half = w_sin * half;
+                            let w_sin = ps2float::mul(half_w, sine);
+                            let h_cos = ps2float::mul(half_h, cosine);
+                            let h_half = ps2float::mul(h_cos, half);
+                            let cx = ps2float::add(lw(screen + 8) as f32, px);
+                            let cy = ps2float::add(lw(screen + 28) as f32, py);
+                            let w_half = ps2float::mul(w_sin, half);
                             swc1(sp, cx);
                             swc1(sp + 4, cy);
-                            let colour_alpha = colour | ((alpha * 4e+01_f32) as i32) << 24;
-                            swc1(sp + 80, cx - h_cos);
-                            swc1(sp + 84, cy - w_half);
-                            swc1(sp + 64, cx - w_sin);
-                            let z = depth * depth_scale + 32768.0_f32 + 1e+02_f32;
-                            swc1(sp + 68, cy + h_half);
-                            swc1(sp + 32, cx + h_cos);
-                            swc1(sp + 36, cy + w_half);
+                            let colour_alpha = colour | (ps2float::mul(alpha, 4e+01_f32) as i32) << 24;
+                            swc1(sp + 80, ps2float::sub(cx, h_cos));
+                            swc1(sp + 84, ps2float::sub(cy, w_half));
+                            swc1(sp + 64, ps2float::sub(cx, w_sin));
+                            let z = ps2float::add(ps2float::add(ps2float::mul(depth, depth_scale), 32768.0_f32), 1e+02_f32);
+                            swc1(sp + 68, ps2float::add(cy, h_half));
+                            swc1(sp + 32, ps2float::add(cx, h_cos));
+                            swc1(sp + 36, ps2float::add(cy, w_half));
                             swc1(sp + 88, z);
-                            swc1(sp + 48, cx + w_sin);
-                            swc1(sp + 52, cy - h_half);
+                            swc1(sp + 48, ps2float::add(cx, w_sin));
+                            swc1(sp + 52, ps2float::sub(cy, h_half));
                             swc1(sp + 8, z);
                             swc1(sp + 40, z);
                             swc1(sp + 56, z);

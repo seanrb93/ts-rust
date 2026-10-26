@@ -46,7 +46,7 @@ pub fn guiDrawImage(image: i32, colour: i32, x: f32, y: f32) {
     let height = lhu(record + 2);
     let width = lhu(record);
     dlSelectTextureKick(texture);
-    dlTextureRectangleFloat(0, 0, (width - 1) << 4, (height - 1) << 4, colour, x, y, x + width as f32, y + height as f32 * 0.5);
+    dlTextureRectangleFloat(0, 0, (width - 1) << 4, (height - 1) << 4, colour, x, y, ps2float::add(x, width as f32), ps2float::add(y, ps2float::mul(height as f32, 0.5)));
 }
 
 /// The frame buffer being drawn is the texture of the next drawing (@ 0x295f88).

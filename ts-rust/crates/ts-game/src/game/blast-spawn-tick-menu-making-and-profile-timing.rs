@@ -175,7 +175,7 @@ pub fn profileTimeStart(timer: i32) {
     sw(record + 4, 1);
     let now = profileTimeGet();
     let total = timer * 28 + (data + 8);
-    swc1(total, lwc1(total) - now);
+    swc1(total, ps2float::sub(lwc1(total), now));
 }
 
 /// Stop the timer `timer`: the timing stops with the last one, the running flag is cleared and the time now is added to the total, which is brought up by 128 when it is below 0
@@ -190,9 +190,9 @@ pub fn profileTimeEnd(timer: i32) {
     sw(timer * 28 + (data + 4), 0);
     let now = profileTimeGet();
     let total = timer * 28 + (data + 8);
-    let sum = lwc1(total) + now;
+    let sum = ps2float::add(lwc1(total), now);
     swc1(total, sum);
     if sum < 0.0_f32 {
-        swc1(total, sum + 128.0_f32);
+        swc1(total, ps2float::add(sum, 128.0_f32));
     }
 }

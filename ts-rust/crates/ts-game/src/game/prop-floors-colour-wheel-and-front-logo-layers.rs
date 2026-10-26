@@ -13,7 +13,7 @@ pub fn propCalculateFloors(prop: i32, by_bones: i32) {
         return;
     }
     propGetOriginalFloors(lw(prop + 4), sp + 64, sp + 68);
-    matrixTransRotY(sp, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), (lwc1(prop + 76) * lwc1(0x3acbc8)).pdiv(1.8e+02_f32));
+    matrixTransRotY(sp, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), ps2float::mul(lwc1(prop + 76), lwc1(0x3acbc8)).pdiv(1.8e+02_f32));
     let mut originals = lw(sp + 64);
     let mut source = lw(originals);
     let mut index = 0;
@@ -156,23 +156,23 @@ pub fn frontfxRenderLayer(layer: i32, width: f32, height: f32, alpha: f32, red: 
     let frame = Frame::new(48);
     let sp = frame.sp();
     let full = 127.0_f32;
-    let a = fptoui(alpha * full);
+    let a = fptoui(ps2float::mul(alpha, full));
     let top = lw(g::logoposy);
-    let b = fptoui(blue * full);
-    let gr = fptoui(green * full);
-    let r = fptoui(red * full);
+    let b = fptoui(ps2float::mul(blue, full));
+    let gr = fptoui(ps2float::mul(green, full));
+    let r = fptoui(ps2float::mul(red, full));
     let colour = a << 24 | b & 255 | ((gr & 255) << 8 | (r & 255) << 16);
     if layer != -1 {
         let y = top as f32;
         let x = lw(g::logoposx) as f32;
-        let half_width = width * 3.2e+02_f32;
-        let half_height = height * 56.0_f32;
+        let half_width = ps2float::mul(width, 3.2e+02_f32);
+        let half_height = ps2float::mul(height, 56.0_f32);
         let slot = (layer << 2) + 0x1fbd1a8;
         dlSelectTextureKick(lw(slot));
-        let left = (x - half_width) as i32;
-        let up = (y - half_height) as i32;
-        let down = (y + half_height) as i32;
-        let right = (x + half_width) as i32;
+        let left = ps2float::sub(x, half_width) as i32;
+        let up = ps2float::sub(y, half_height) as i32;
+        let down = ps2float::add(y, half_height) as i32;
+        let right = ps2float::add(x, half_width) as i32;
         let texture = lw(slot) * 40 + lw(lw(g::thistexbuf) + 4);
         let size_x = lhu(texture);
         let size_y = lhu(texture + 2) - 1;
@@ -180,14 +180,14 @@ pub fn frontfxRenderLayer(layer: i32, width: f32, height: f32, alpha: f32, red: 
         dlTextureRectangle(left, up, right, down, 0, 0, (size_x - 1) << 4, size_y << 4);
     } else {
         let y = top as f32;
-        let half_height = height * 56.0_f32;
-        let down = (y + half_height) as i32;
-        let up = (y - half_height) as i32;
+        let half_height = ps2float::mul(height, 56.0_f32);
+        let down = ps2float::add(y, half_height) as i32;
+        let up = ps2float::sub(y, half_height) as i32;
         dlSelectTextureKick(lw(g::logotop1num));
         let middle = lw(g::logoposx);
-        let half_width = width * 256.0_f32;
+        let half_width = ps2float::mul(width, 256.0_f32);
         let texture = lw(g::logotop1num) * 40 + lw(lw(g::thistexbuf) + 4);
-        let left = (middle as f32 - half_width) as i32;
+        let left = ps2float::sub(middle as f32, half_width) as i32;
         let size_y = (lhu(texture + 2) - 1) << 4;
         let size_x = (lhu(texture) - 1) << 4;
         sw(sp, colour);
@@ -195,7 +195,7 @@ pub fn frontfxRenderLayer(layer: i32, width: f32, height: f32, alpha: f32, red: 
         dlSelectTextureKick(lw(g::logotop2num));
         let middle = lw(g::logoposx);
         let texture = lw(g::logotop2num) * 40 + lw(lw(g::thistexbuf) + 4);
-        let right = (middle as f32 + half_width) as i32;
+        let right = ps2float::add(middle as f32, half_width) as i32;
         let size_x = lhu(texture);
         let size_y = lhu(texture + 2) - 1;
         sw(sp, colour);
@@ -214,15 +214,15 @@ pub fn draw_colourwheel(wheel: i32) {
     let half_width = ((lhu(wheel + 4) as u32) >> 1) as i32 as f32;
     let half_height = ((lhu(wheel + 6) as u32) >> 1) as i32 as f32;
     let to_radians = lwc1(0x3aca7c);
-    let radius_x = half_width - 4.0_f32;
-    let centre_x = lhu(wheel) as f32 + half_width;
+    let radius_x = ps2float::sub(half_width, 4.0_f32);
+    let centre_x = ps2float::add(lhu(wheel) as f32, half_width);
     let one = 1.0_f32;
     let scale = lwc1(0x3aca80);
-    let radius_y = half_height - 2.0_f32;
-    let centre_y = lhu(wheel + 2) as f32 + half_height;
+    let radius_y = ps2float::sub(half_height, 2.0_f32);
+    let centre_y = ps2float::add(lhu(wheel + 2) as f32, half_height);
     let mut hue = 0.0_f32;
     loop {
-        let angle = ((hue * to_radians).pdiv(1.8e+02_f32) * scale + 0.5_f32) as i32;
+        let angle = ps2float::add(ps2float::mul(ps2float::mul(hue, to_radians).pdiv(1.8e+02_f32), scale), 0.5_f32) as i32;
         let sine = lwc1(((angle & 2047) << 2) + table);
         let cosine = lwc1(((angle + 512 & 2047) << 2) + table);
         if i != 24 {
@@ -231,8 +231,8 @@ pub fn draw_colourwheel(wheel: i32) {
             sw(at + 8, centre_y as i32);
             let colour = hsv2col(hue, one, one);
             sw(at + 12, colour);
-            sw(at + 16, (centre_x + cosine * radius_x) as i32);
-            sw(at + 20, (centre_y - sine * radius_y) as i32);
+            sw(at + 16, ps2float::add(centre_x, ps2float::mul(cosine, radius_x)) as i32);
+            sw(at + 20, ps2float::sub(centre_y, ps2float::mul(sine, radius_y)) as i32);
             at += 24;
         } else {
             let second = ld(sp + 8);
@@ -242,17 +242,17 @@ pub fn draw_colourwheel(wheel: i32) {
             sd(at + 16, third);
         }
         i += 1;
-        hue += 15.0_f32;
+        hue = ps2float::add(hue, 15.0_f32);
         if i >= 25 {
             break;
         }
     }
     dlDrawTriangleStrip(sp, 50, 0);
-    let angle = ((lwc1(g::lighthue) * lwc1(0x3aca84)).pdiv(1.8e+02_f32) * lwc1(0x3aca88) + 0.5_f32) as i32;
+    let angle = ps2float::add(ps2float::mul(ps2float::mul(lwc1(g::lighthue), lwc1(0x3aca84)).pdiv(1.8e+02_f32), lwc1(0x3aca88)), 0.5_f32) as i32;
     let sine = lwc1(((angle & 2047) << 2) + table);
-    let x = lw(g::window) as f32 + centre_x + lwc1(((angle + 512 & 2047) << 2) + table) * lwc1(g::lightsaturation) * radius_x;
+    let x = ps2float::add(ps2float::add(lw(g::window) as f32, centre_x), ps2float::mul(ps2float::mul(lwc1(((angle + 512 & 2047) << 2) + table), lwc1(g::lightsaturation)), radius_x));
     let x = dptofp(dpsub(fptodp(x), 0x4000000000000000_i64));
-    let y = lw(g::window + 20) as f32 + centre_y - sine * lwc1(g::lightsaturation) * radius_y;
+    let y = ps2float::sub(ps2float::add(lw(g::window + 20) as f32, centre_y), ps2float::mul(ps2float::mul(sine, lwc1(g::lightsaturation)), radius_y));
     let y = dptofp(dpsub(fptodp(y), 0x3ff0000000000000_i64));
     guiDrawImage(14, 0x7f7f7f80, x, y);
 }

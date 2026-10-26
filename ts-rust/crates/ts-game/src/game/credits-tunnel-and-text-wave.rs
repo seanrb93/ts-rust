@@ -11,7 +11,7 @@ pub fn getCreditTunnelSection(out: i32, time: i32) {
     let sp = frame.sp();
     let two_pi = ld(0x3a98a0);
     let step = time.wrapping_rem(540);
-    let fraction = (step as f32).pdiv(1e+01_f32) - step.wrapping_div(10) as f32;
+    let fraction = ps2float::sub((step as f32).pdiv(1e+01_f32), step.wrapping_div(10) as f32);
     let angle = dptofp(dpadd(dpmul(fptodp(fraction), two_pi), two_pi));
     let cosine = cosf(angle);
     let tunnel = g::tunnel;
@@ -20,28 +20,28 @@ pub fn getCreditTunnelSection(out: i32, time: i32) {
     let point = step.wrapping_div(10);
     let y_at = point * 48 + y_base;
     let x = lwc1(point * 48 + tunnel);
-    let ease = cosine * 0.5_f32 + 0.5_f32;
+    let ease = ps2float::add(ps2float::mul(cosine, 0.5_f32), 0.5_f32);
     let rows = tunnel + 20;
     let z_at = point * 48 + z_base;
     let next = (point + 1).wrapping_rem(54);
-    let dx = lwc1(next * 48 + tunnel) - x;
+    let dx = ps2float::sub(lwc1(next * 48 + tunnel), x);
     let z = lwc1(z_at);
-    let dy = lwc1(next * 48 + y_base) - lwc1(y_at);
+    let dy = ps2float::sub(lwc1(next * 48 + y_base), lwc1(y_at));
     let next_z = lwc1(next * 48 + z_base);
     let mut third = out + 20;
     swc1(sp, dx);
-    let dz = next_z - z;
+    let dz = ps2float::sub(next_z, z);
     swc1(sp + 4, dy);
     let mut mine = point * 48 + rows;
     let mut second = out + 16;
     swc1(sp + 8, dz);
-    let along = ease * dz;
+    let along = ps2float::mul(ease, dz);
     let mut first = out + 12;
     let mut theirs = next * 48 + rows;
-    swc1(out, x + ease * dx);
-    swc1(out + 4, lwc1(y_at) + ease * dy);
-    swc1(out + 8, lwc1(z_at) + along);
-    swc1(out + 8, lwc1(z_at) + along);
+    swc1(out, ps2float::add(x, ps2float::mul(ease, dx)));
+    swc1(out + 4, ps2float::add(lwc1(y_at), ps2float::mul(ease, dy)));
+    swc1(out + 8, ps2float::add(lwc1(z_at), along));
+    swc1(out + 8, ps2float::add(lwc1(z_at), along));
     loop {
         let a = lw(mine - 8);
         let da = (lw(theirs - 8) - a) as f32;
@@ -52,11 +52,11 @@ pub fn getCreditTunnelSection(out: i32, time: i32) {
         swc1(sp + 16, da);
         swc1(sp + 20, db);
         swc1(sp + 24, dc);
-        sw(first, ((a as f32 + ease * da) * 0.5_f32) as i32);
+        sw(first, ps2float::mul(ps2float::add(a as f32, ps2float::mul(ease, da)), 0.5_f32) as i32);
         first += 12;
-        sw(second, ((lw(mine - 4) as f32 + ease * db) * 0.5_f32) as i32);
+        sw(second, ps2float::mul(ps2float::add(lw(mine - 4) as f32, ps2float::mul(ease, db)), 0.5_f32) as i32);
         second += 12;
-        sw(third, ((lw(mine) as f32 + ease * dc) * 0.5_f32) as i32);
+        sw(third, ps2float::mul(ps2float::add(lw(mine) as f32, ps2float::mul(ease, dc)), 0.5_f32) as i32);
         third += 12;
         mine += 12;
         if third >= out + 56 {
@@ -71,30 +71,30 @@ pub fn creditsCalcTextWave(place: i32) -> i32 {
     let wait = lwc1(g::creditswaittime);
     let four = 4.0_f32;
     let page = lwc1(g::creditspagetime);
-    let come_in_end = wait + four;
+    let come_in_end = ps2float::add(wait, four);
     let ratio = (place as f32).pdiv(lw(g::window + 32) as f32);
-    let go_out_start = come_in_end + lwc1(g::creditstexttime);
+    let go_out_start = ps2float::add(come_in_end, lwc1(g::creditstexttime));
     if page < wait {
         return 0;
     }
-    if (go_out_start + four) <= page {
+    if ps2float::add(go_out_start, four) <= page {
         return 0;
     }
     if come_in_end <= page && page < go_out_start {
         return 0;
     }
     if !(page < come_in_end) {
-        let t = page - go_out_start - (ratio + ratio);
+        let t = ps2float::sub(ps2float::sub(page, go_out_start), ps2float::add(ratio, ratio));
         if !(0.0_f32 <= t) {
             return 0;
         }
         if t < 1.0_f32 {
             let angle = dptofp(dpmul(dpmul(fptodp(t), ld(0x3a98b8)), 0x3fe0000000000000_i64));
-            return (sinf(angle) * -1.2e+03_f32) as i32;
+            return ps2float::mul(sinf(angle), -1.2e+03_f32) as i32;
         }
         return -700;
     }
-    let t = page - wait - (ratio + ratio);
+    let t = ps2float::sub(ps2float::sub(page, wait), ps2float::add(ratio, ratio));
     if !(0.0_f32 <= t) {
         return 700;
     }
@@ -104,10 +104,10 @@ pub fn creditsCalcTextWave(place: i32) -> i32 {
         let low = lwc1((index << 2) + table);
         let at = index << 2;
         index += 1;
-        let u = ((t - low)).pdiv((lwc1((index << 2) + table) - low));
+        let u = (ps2float::sub(t, low)).pdiv(ps2float::sub(lwc1((index << 2) + table), low));
         if 0.0_f32 <= u && u < 1.0_f32 {
             let angle = dptofp(dpmul(fptodp(u), ld(0x3a98b0)));
-            return (sinf(angle) * lwc1(at + g::sinwaveintensity)) as i32;
+            return ps2float::mul(sinf(angle), lwc1(at + g::sinwaveintensity)) as i32;
         }
     }
 }

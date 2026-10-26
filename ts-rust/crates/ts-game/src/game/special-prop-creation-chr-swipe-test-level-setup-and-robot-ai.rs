@@ -176,7 +176,7 @@ pub fn specialPropNew(a0: i32, a1: i32, f12: f32, f13: f32, f14: f32, f15: f32) 
                 }
                 let random = random_as_float();
                 sw(prop + 16, lw(prop + 16) | 0x40000000);
-                swc1(data + 32, random * 2.3283064e-10_f32);
+                swc1(data + 32, ps2float::mul(random, 2.3283064e-10_f32));
             }
             22 => {
                 allocateOverridePointers(prop);
@@ -292,51 +292,51 @@ pub fn specialPropNew(a0: i32, a1: i32, f12: f32, f13: f32, f14: f32, f15: f32) 
 fn swipe_triangle(sp: i32, point: i32, scratch: i32) -> bool {
     let f7 = lwc1(sp + 100);
     let f8 = lwc1(sp + 104);
-    let f10 = lwc1(sp + 132) - f7;
-    let f9 = lwc1(sp + 136) - f8;
-    let f4 = lwc1(sp + 116) - f7;
+    let f10 = ps2float::sub(lwc1(sp + 132), f7);
+    let f9 = ps2float::sub(lwc1(sp + 136), f8);
+    let f4 = ps2float::sub(lwc1(sp + 116), f7);
     let f6 = lwc1(sp + 96);
-    let f3 = lwc1(sp + 120) - f8;
+    let f3 = ps2float::sub(lwc1(sp + 120), f8);
     let px = lwc1(point);
-    let f12 = lwc1(sp + 128) - f6;
+    let f12 = ps2float::sub(lwc1(sp + 128), f6);
     let f5 = lwc1(sp + 112);
     let py = lwc1(point + 4);
-    let f13 = px - f6;
+    let f13 = ps2float::sub(px, f6);
     let pz = lwc1(point + 8);
     swc1(sp + 152, f3);
-    let f5b = f5 - f6;
+    let f5b = ps2float::sub(f5, f6);
     swc1(sp + 148, f4);
-    let f14 = py - f7;
+    let f14 = ps2float::sub(py, f7);
     swc1(sp + 160, f13);
-    let f11 = pz - f8;
+    let f11 = ps2float::sub(pz, f8);
     swc1(sp + 176, f12);
-    let f15 = f4 * f9 - f3 * f10;
+    let f15 = ps2float::sub(ps2float::mul(f4, f9), ps2float::mul(f3, f10));
     swc1(sp + 144, f5b);
     swc1(sp + 164, f14);
     swc1(sp + 168, f11);
     swc1(sp + 180, f10);
     swc1(sp + 184, f9);
     swc1(scratch, f15);
-    let fa = f3 * f12 - f5b * f9;
-    let fb = f4 * f11 - f3 * f14;
-    let fc = f3 * f13 - f5b * f11;
+    let fa = ps2float::sub(ps2float::mul(f3, f12), ps2float::mul(f5b, f9));
+    let fb = ps2float::sub(ps2float::mul(f4, f11), ps2float::mul(f3, f14));
+    let fc = ps2float::sub(ps2float::mul(f3, f13), ps2float::mul(f5b, f11));
     swc1(scratch + 4, fa);
     swc1(scratch + 16, fb);
     swc1(scratch + 20, fc);
-    let fd = f5b * f14 - f4 * f13;
-    let fe = f5b * f10 - f4 * f12;
+    let fd = ps2float::sub(ps2float::mul(f5b, f14), ps2float::mul(f4, f13));
+    let fe = ps2float::sub(ps2float::mul(f5b, f10), ps2float::mul(f4, f12));
     swc1(scratch + 24, fd);
     swc1(scratch + 8, fe);
-    if (f15 * fb + fa * fc + fe * fd) < 0.0_f32 {
+    if ps2float::add(ps2float::add(ps2float::mul(f15, fb), ps2float::mul(fa, fc)), ps2float::mul(fe, fd)) < 0.0_f32 {
         return false;
     }
-    let g1 = f11 * f12 - f13 * f9;
-    let g2 = f14 * f9 - f11 * f10;
+    let g1 = ps2float::sub(ps2float::mul(f11, f12), ps2float::mul(f13, f9));
+    let g2 = ps2float::sub(ps2float::mul(f14, f9), ps2float::mul(f11, f10));
     swc1(scratch + 20, g1);
     swc1(scratch + 16, g2);
-    let g3 = f13 * f10 - f14 * f12;
+    let g3 = ps2float::sub(ps2float::mul(f13, f10), ps2float::mul(f14, f12));
     swc1(scratch + 24, g3);
-    !((f15 * g2 + fa * g1 + fe * g3) < 0.0_f32)
+    !(ps2float::add(ps2float::add(ps2float::mul(f15, g2), ps2float::mul(fa, g1)), ps2float::mul(fe, g3)) < 0.0_f32)
 }
 
 /// Test a swipe of the character `a0` from `a1` to `a2` (with the triangle made with the point `a3`) against the hit spheres and capsules of its model, and keep the nearest hit
@@ -356,14 +356,14 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
     let start_x = lwc1(a1);
     let end_y = lwc1(a2 + 4);
     let start_y = lwc1(a1 + 4);
-    let dx = end_x - start_x;
-    let dy = end_y - start_y;
+    let dx = ps2float::sub(end_x, start_x);
+    let dy = ps2float::sub(end_y, start_y);
     let end_z = lwc1(a2 + 8);
     let start_z = lwc1(a1 + 8);
-    let angle = (lwc1(a0 + 76) * lwc1(0x3ad1ac)).pdiv(1.8e+02_f32);
+    let angle = ps2float::mul(lwc1(a0 + 76), lwc1(0x3ad1ac)).pdiv(1.8e+02_f32);
     let chr_y = lwc1(a0 + 52);
     let chr_z = lwc1(a0 + 56);
-    let dz = end_z - start_z;
+    let dz = ps2float::sub(end_z, start_z);
     let chr_x = lwc1(a0 + 48);
     let other_z = lwc1(a3 + 8);
     let other_x = lwc1(a3);
@@ -371,18 +371,18 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
     let word = lw(0x3a8878);
     sd(sp + 16, ld(0x3a8870));
     sw(sp + 24, word);
-    swc1(sp + 116, end_y - chr_y);
-    swc1(sp + 120, end_z - chr_z);
-    swc1(sp + 96, start_x - chr_x);
-    swc1(sp + 136, other_z - chr_z);
-    swc1(sp + 128, other_x - chr_x);
-    swc1(sp + 132, other_y - chr_y);
+    swc1(sp + 116, ps2float::sub(end_y, chr_y));
+    swc1(sp + 120, ps2float::sub(end_z, chr_z));
+    swc1(sp + 96, ps2float::sub(start_x, chr_x));
+    swc1(sp + 136, ps2float::sub(other_z, chr_z));
+    swc1(sp + 128, ps2float::sub(other_x, chr_x));
+    swc1(sp + 132, ps2float::sub(other_y, chr_y));
     let turn = -angle;
     let mut best = lwc1(0x3afa54);
-    let length = dx * dx + dy * dy + dz * dz;
-    swc1(sp + 100, start_y - chr_y);
-    swc1(sp + 104, start_z - chr_z);
-    swc1(sp + 112, end_x - chr_x);
+    let length = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
+    swc1(sp + 100, ps2float::sub(start_y, chr_y));
+    swc1(sp + 104, ps2float::sub(start_z, chr_z));
+    swc1(sp + 112, ps2float::sub(end_x, chr_x));
     matrixTransRotY(sp + 32, 0.0_f32, 0.0_f32, 0.0_f32, turn);
     matrixVecMulAligned(&[(sp + 32) as i64, (sp + 96) as i64]);
     sw(sp + 396, sp + 112);
@@ -392,31 +392,31 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
     let f0 = lwc1(sp + 96);
     let f8 = lwc1(sp + 104);
     let f4 = lwc1(sp + 100);
-    let f1 = lwc1(sp + 120) - f8;
-    let f7 = lwc1(sp + 128) - f0;
-    let f2 = lwc1(sp + 112) - f0;
+    let f1 = ps2float::sub(lwc1(sp + 120), f8);
+    let f7 = ps2float::sub(lwc1(sp + 128), f0);
+    let f2 = ps2float::sub(lwc1(sp + 112), f0);
     let f3 = lwc1(sp + 136);
-    let f5 = lwc1(sp + 116) - f4;
-    let f6 = lwc1(sp + 132) - f4;
+    let f5 = ps2float::sub(lwc1(sp + 116), f4);
+    let f6 = ps2float::sub(lwc1(sp + 132), f4);
     swc1(sp + 152, f1);
-    let f3b = f3 - f8;
+    let f3b = ps2float::sub(f3, f8);
     swc1(sp + 144, f2);
     swc1(sp + 148, f5);
     swc1(sp + 160, f7);
     swc1(sp + 168, f3b);
     swc1(sp + 164, f6);
-    let normal_y = f1 * f7 - f2 * f3b;
-    let normal_x = f5 * f3b - f1 * f6;
+    let normal_y = ps2float::sub(ps2float::mul(f1, f7), ps2float::mul(f2, f3b));
+    let normal_x = ps2float::sub(ps2float::mul(f5, f3b), ps2float::mul(f1, f6));
     swc1(sp + 196, normal_y);
     swc1(sp + 192, normal_x);
-    let normal_z = f2 * f6 - f5 * f7;
-    let size = (normal_x * normal_x + normal_y * normal_y + normal_z * normal_z).abs().psqrt();
+    let normal_z = ps2float::sub(ps2float::mul(f2, f6), ps2float::mul(f5, f7));
+    let size = ps2float::add(ps2float::add(ps2float::mul(normal_x, normal_x), ps2float::mul(normal_y, normal_y)), ps2float::mul(normal_z, normal_z)).abs().psqrt();
     swc1(sp + 200, normal_z);
     let scale = (1.0_f32).pdiv(size);
     let count = lw(lw(sp + 392));
-    let nx = lwc1(sp + 192) * scale;
-    let ny = lwc1(sp + 196) * scale;
-    swc1(sp + 200, lwc1(sp + 200) * scale);
+    let nx = ps2float::mul(lwc1(sp + 192), scale);
+    let ny = ps2float::mul(lwc1(sp + 196), scale);
+    swc1(sp + 200, ps2float::mul(lwc1(sp + 200), scale));
     swc1(sp + 192, nx);
     swc1(sp + 196, ny);
     if count > 0 {
@@ -440,11 +440,11 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
                     matrixVecMulAligned(&[(matrices + (lb(at) << 6)) as i64, (sp + 272) as i64]);
                     matrixVecMulAligned(&[(lw(model_data + 4) + (lb(at) << 6)) as i64, (sp + 224) as i64]);
                     let distance = HitTestDistancePointToLineSegmentSquared(sp + 96, sp + 272, sp + 224, sp + 304);
-                    if (length + lwc1(at + 4)) < distance {
+                    if ps2float::add(length, lwc1(at + 4)) < distance {
                         break 'next;
                     }
                     let plane = HitTestDistanceLineSegmentToPlane(sp + 272, sp + 224, sp + 96, sp + 192, 0, sp + 320);
-                    let plane_squared = plane * plane;
+                    let plane_squared = ps2float::mul(plane, plane);
                     if lwc1(at + 4) < plane_squared {
                         break 'next;
                     }
@@ -481,36 +481,36 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
                     swc1(sp + 212, lwc1(at + 12));
                     swc1(sp + 216, lwc1(at + 16));
                     matrixVecMulAligned(&[(matrices + (lb(at) << 6)) as i64, (sp + 208) as i64]);
-                    let x = lwc1(sp + 208) - lwc1(sp + 96);
+                    let x = ps2float::sub(lwc1(sp + 208), lwc1(sp + 96));
                     let high = lwc1(sp + 216);
-                    let y = lwc1(sp + 212) - lwc1(sp + 100);
+                    let y = ps2float::sub(lwc1(sp + 212), lwc1(sp + 100));
                     let low = lwc1(sp + 104);
                     swc1(sp + 224, x);
-                    let z = high - low;
+                    let z = ps2float::sub(high, low);
                     swc1(sp + 228, y);
                     swc1(sp + 232, z);
                     let radius = lwc1(at + 4);
-                    if (length + radius) < x * x + y * y + z * z {
+                    if ps2float::add(length, radius) < ps2float::add(ps2float::add(ps2float::mul(x, x), ps2float::mul(y, y)), ps2float::mul(z, z)) {
                         break 'next;
                     }
-                    let mut depth = x * lwc1(sp + 192) + y * lwc1(sp + 196) + z * lwc1(sp + 200);
+                    let mut depth = ps2float::add(ps2float::add(ps2float::mul(x, lwc1(sp + 192)), ps2float::mul(y, lwc1(sp + 196))), ps2float::mul(z, lwc1(sp + 200)));
                     if !(0.0_f32 <= depth) {
                         depth = -depth;
                     }
-                    let depth_squared = depth * depth;
+                    let depth_squared = ps2float::mul(depth, depth);
                     if radius < depth_squared {
                         break 'next;
                     }
                     'edge: {
                         let first = HitTestDistancePointToLineSegmentSquared(sp + 208, lw(sp + 400), sp + 96, sp + 256);
                         let mut foot_x = lwc1(sp + 256);
-                        if !((first * first) <= lwc1(at + 4)) {
+                        if !(ps2float::mul(first, first) <= lwc1(at + 4)) {
                             let second = HitTestDistancePointToLineSegmentSquared(sp + 208, lw(sp + 396), sp + 96, sp + 256);
                             foot_x = lwc1(sp + 256);
-                            if !((second * second) <= lwc1(at + 4)) {
-                                let foot_y = lwc1(sp + 212) - depth * lwc1(sp + 196);
-                                let foot_z = lwc1(sp + 216) - depth * lwc1(sp + 200);
-                                swc1(sp + 240, lwc1(sp + 208) - depth * lwc1(sp + 192));
+                            if !(ps2float::mul(second, second) <= lwc1(at + 4)) {
+                                let foot_y = ps2float::sub(lwc1(sp + 212), ps2float::mul(depth, lwc1(sp + 196)));
+                                let foot_z = ps2float::sub(lwc1(sp + 216), ps2float::mul(depth, lwc1(sp + 200)));
+                                swc1(sp + 240, ps2float::sub(lwc1(sp + 208), ps2float::mul(depth, lwc1(sp + 192))));
                                 swc1(sp + 244, foot_y);
                                 swc1(sp + 248, foot_z);
                                 break 'edge;
@@ -539,9 +539,9 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
                 let hit_z = lwc1(hit_point + 8);
                 swc1(sp, hit_x);
                 swc1(sp + 4, hit_y);
-                swc1(sp + 16, hit_x - nearest_x);
-                swc1(sp + 20, hit_y - nearest_y);
-                swc1(sp + 24, hit_z - nearest_z);
+                swc1(sp + 16, ps2float::sub(hit_x, nearest_x));
+                swc1(sp + 20, ps2float::sub(hit_y, nearest_y));
+                swc1(sp + 24, ps2float::sub(hit_z, nearest_z));
                 swc1(sp + 8, hit_z);
                 sw(g::s_PossibleLastHitPart_3afa30, part);
             }
@@ -563,7 +563,7 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
             swc1(place, hit_x);
             let x = lwc1(a0 + 48);
             let y = lwc1(a0 + 52);
-            let turn = (lwc1(a0 + 76) * lwc1(0x3ad1b0)).pdiv(1.8e+02_f32);
+            let turn = ps2float::mul(lwc1(a0 + 76), lwc1(0x3ad1b0)).pdiv(1.8e+02_f32);
             let z = lwc1(a0 + 56);
             matrixTransRotY(sp + 32, x, y, z, turn);
             matrixVecMul(sp + 32, lw(sp + 384));
@@ -573,12 +573,12 @@ pub fn chrSwipeTestChr(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
             let dir_y = lwc1(sp + 20);
             let dir_z = lwc1(sp + 24);
             let direction = lw(sp + 388);
-            let scale = (1.0_f32).pdiv((dir_x * dir_x + dir_y * dir_y + dir_z * dir_z).abs().psqrt());
+            let scale = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dir_x, dir_x), ps2float::mul(dir_y, dir_y)), ps2float::mul(dir_z, dir_z)).abs().psqrt());
             let factor = lwc1(0x3ad1b4);
-            swc1(direction + 8, dir_z * scale);
-            swc1(direction, dir_x * scale);
-            swc1(direction + 4, dir_y * scale);
-            let turn = (lwc1(a0 + 76) * factor).pdiv(1.8e+02_f32);
+            swc1(direction + 8, ps2float::mul(dir_z, scale));
+            swc1(direction, ps2float::mul(dir_x, scale));
+            swc1(direction + 4, ps2float::mul(dir_y, scale));
+            let turn = ps2float::mul(lwc1(a0 + 76), factor).pdiv(1.8e+02_f32);
             matrixRotY(sp + 32, turn);
             matrixVecMul(sp + 32, lw(sp + 388));
         }
@@ -837,7 +837,7 @@ pub fn lvLevelSetup() {
                     let pad = padNumFromExtref(lw(offset + pads));
                     let record = lw(g::levelpads) + pad * 28;
                     let z = lwc1(record + 20);
-                    let y = lwc1(record + 16) + lwc1(0x3ac8d8);
+                    let y = ps2float::add(lwc1(record + 16), lwc1(0x3ac8d8));
                     let x = lwc1(record + 12);
                     propNew(202, x, y, z, 0.0_f32);
                     offset = n << 2;
@@ -862,7 +862,7 @@ pub fn robotAI(a0: i32) {
     swc1(mind + 3008, lwc1(a0 + 48));
     let alerted = lw(mind + 2772);
     let target_mind = lw(target + 352);
-    let eye = lwc1(a0 + 52) + 1.0_f32;
+    let eye = ps2float::add(lwc1(a0 + 52), 1.0_f32);
     sw(mind + 2788, target);
     swc1(mind + 3012, eye);
     swc1(mind + 3016, lwc1(a0 + 56));
@@ -885,10 +885,10 @@ pub fn robotAI(a0: i32) {
                     swc1(mind + 2800, y);
                     let z = lwc1(player + 148);
                     swc1(mind + 2804, z);
-                    let dx = x - lwc1(a0 + 48);
-                    let dy = y - lwc1(a0 + 52);
-                    let dz = z - lwc1(a0 + 56);
-                    if (dx * dx + dy * dy + dz * dz) < 1e+02_f32 {
+                    let dx = ps2float::sub(x, lwc1(a0 + 48));
+                    let dy = ps2float::sub(y, lwc1(a0 + 52));
+                    let dz = ps2float::sub(z, lwc1(a0 + 56));
+                    if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < 1e+02_f32 {
                         sw(mind + 2728, 6);
                     }
                 }
@@ -909,10 +909,10 @@ pub fn robotAI(a0: i32) {
                             swc1(mind + 2800, y);
                             let z = lwc1(pad + 20);
                             swc1(mind + 2804, z);
-                            let dx = x - lwc1(a0 + 48);
-                            let dy = y - lwc1(a0 + 52);
-                            let dz = z - lwc1(a0 + 56);
-                            if 1e+02_f32 < dx * dx + dy * dy + dz * dz {
+                            let dx = ps2float::sub(x, lwc1(a0 + 48));
+                            let dy = ps2float::sub(y, lwc1(a0 + 52));
+                            let dz = ps2float::sub(z, lwc1(a0 + 56));
+                            if 1e+02_f32 < ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) {
                                 sw(mind + 2728, 4);
                             }
                             n += 1;
@@ -925,11 +925,11 @@ pub fn robotAI(a0: i32) {
                 4 => {
                     enemySetMoveMode(a0, 1);
                     let x = lwc1(mind + 2796);
-                    let dy = lwc1(mind + 2800) - lwc1(a0 + 52);
+                    let dy = ps2float::sub(lwc1(mind + 2800), lwc1(a0 + 52));
                     let z = lwc1(mind + 2804);
-                    let dx = x - lwc1(a0 + 48);
-                    let dz = z - lwc1(a0 + 56);
-                    if (dx * dx + dy * dy + dz * dz) < lwc1(0x3ad998) {
+                    let dx = ps2float::sub(x, lwc1(a0 + 48));
+                    let dz = ps2float::sub(z, lwc1(a0 + 56));
+                    if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < lwc1(0x3ad998) {
                         sw(mind + 2728, 1);
                     }
                 }
@@ -943,10 +943,10 @@ pub fn robotAI(a0: i32) {
                     swc1(mind + 2800, y);
                     let z = lwc1(player + 148);
                     swc1(mind + 2804, z);
-                    let dx = x - lwc1(a0 + 48);
-                    let dy = y - lwc1(a0 + 52);
-                    let dz = z - lwc1(a0 + 56);
-                    if 64.0_f32 < dx * dx + dy * dy + dz * dz {
+                    let dx = ps2float::sub(x, lwc1(a0 + 48));
+                    let dy = ps2float::sub(y, lwc1(a0 + 52));
+                    let dz = ps2float::sub(z, lwc1(a0 + 56));
+                    if 64.0_f32 < ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) {
                         sw(mind + 2728, 1);
                     }
                     if 0.5_f32 < lwc1(mind + 2896) {
@@ -983,10 +983,10 @@ pub fn robotAI(a0: i32) {
         swc1(mind + 2800, y);
         let z = lwc1(record + 20);
         swc1(mind + 2804, z);
-        let dx = lwc1(a0 + 48) - x;
-        let dy = lwc1(a0 + 52) - y;
-        let dz = lwc1(a0 + 56) - z;
-        if (dx * dx + dy * dy + dz * dz) < near {
+        let dx = ps2float::sub(lwc1(a0 + 48), x);
+        let dy = ps2float::sub(lwc1(a0 + 52), y);
+        let dz = ps2float::sub(lwc1(a0 + 56), z);
+        if ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < near {
             let left = lw(mind + 1688);
             sw(mind + 680, next);
             sw(mind + 1688, left - 1);
@@ -998,8 +998,8 @@ pub fn robotAI(a0: i32) {
     let goal_z = lwc1(mind + 2804);
     let at = a0 + 48;
     let previous = a0 + 112;
-    let toward_x = goal_x - x;
-    let toward_z = goal_z - z;
+    let toward_x = ps2float::sub(goal_x, x);
+    let toward_z = ps2float::sub(goal_z, z);
     let bearing = atan2(fptodp(toward_x), fptodp(toward_z));
     let bearing = dpmul(bearing, ld(0x3a9e90));
     let bearing = dpdiv(bearing, ld(0x3a9e98));
@@ -1010,16 +1010,16 @@ pub fn robotAI(a0: i32) {
         size = dpsub(0_i64, size);
     }
     let turn_speed = lwc1(mind + 2880);
-    let step = turn_speed * lwc1(g::updateframesf);
+    let step = ps2float::mul(turn_speed, lwc1(g::updateframesf));
     let turned;
     if dpcmp(size, fptodp(step)) <= 0 {
-        turned = lwc1(a0 + 76) + difference;
+        turned = ps2float::add(lwc1(a0 + 76), difference);
     } else {
         let heading = lwc1(a0 + 76);
         if !(0.0_f32 < difference) {
-            turned = heading - step;
+            turned = ps2float::sub(heading, step);
         } else {
-            turned = heading + step;
+            turned = ps2float::add(heading, step);
         }
     }
     swc1(a0 + 76, turned);
@@ -1029,7 +1029,7 @@ pub fn robotAI(a0: i32) {
     let mode = lw(mind + 2708);
     if full < heading {
         loop {
-            heading = last - full;
+            heading = ps2float::sub(last, full);
             swc1(a0 + 76, heading);
             last = heading;
             if !(full < heading) {
@@ -1039,7 +1039,7 @@ pub fn robotAI(a0: i32) {
     }
     if heading < 0.0_f32 {
         loop {
-            let wrapped = heading + 3.6e+02_f32;
+            let wrapped = ps2float::add(heading, 3.6e+02_f32);
             heading = wrapped;
             if !(wrapped < 0.0_f32) {
                 break;
@@ -1053,11 +1053,11 @@ pub fn robotAI(a0: i32) {
             let speed = lwc1(mind + 2876);
             let reached;
             if !(0.0_f32 < acceleration) {
-                let faster = speed + acceleration;
+                let faster = ps2float::add(speed, acceleration);
                 reached = 0.0_f32 < faster;
                 swc1(mind + 2876, faster);
             } else {
-                let slower = speed - acceleration;
+                let slower = ps2float::sub(speed, acceleration);
                 reached = slower < 0.0_f32;
                 swc1(mind + 2876, slower);
             }
@@ -1066,7 +1066,7 @@ pub fn robotAI(a0: i32) {
             }
         } else {
             let top = lwc1(mind + 2872);
-            let faster = lwc1(mind + 2876) + acceleration;
+            let faster = ps2float::add(lwc1(mind + 2876), acceleration);
             swc1(mind + 2876, faster);
             if top < faster {
                 swc1(mind + 2876, top);
@@ -1081,31 +1081,31 @@ pub fn robotAI(a0: i32) {
         sw(sp + 16, 0);
     }
     sw(sp + 20, 0);
-    let angle = (lwc1(a0 + 76) * lwc1(0x3ad99c)).pdiv(1.8e+02_f32);
+    let angle = ps2float::mul(lwc1(a0 + 76), lwc1(0x3ad99c)).pdiv(1.8e+02_f32);
     swc1(sp + 24, (lwc1(mind + 2876)).pdiv(6e+01_f32));
     matrixRotY(sp + 32, angle);
     matrixVecRotAligned(&[(sp + 32) as i64, (sp + 16) as i64]);
-    swc1(sp + 16, lwc1(a0 + 48) + lwc1(sp + 16));
+    swc1(sp + 16, ps2float::add(lwc1(a0 + 48), lwc1(sp + 16)));
     let time = lwc1(mind + 2892);
-    let double = time + time;
+    let double = ps2float::add(time, time);
     let wave = cosf(double);
-    let fast = lwc1(mind + 2892) * 5.0_f32;
-    let bob = wave * lwc1(0x3ad9a0) + lwc1(0x3ad9a4);
+    let fast = ps2float::mul(lwc1(mind + 2892), 5.0_f32);
+    let bob = ps2float::add(ps2float::mul(wave, lwc1(0x3ad9a0)), lwc1(0x3ad9a4));
     let wave = sinf(fast);
-    let faster = lwc1(mind + 2892) * 7.0_f32;
-    let bob = bob + wave * lwc1(0x3ad9a8);
+    let faster = ps2float::mul(lwc1(mind + 2892), 7.0_f32);
+    let bob = ps2float::add(bob, ps2float::mul(wave, lwc1(0x3ad9a8)));
     let wave = cosf(faster);
     let player = lw(g::currentplayer);
     let radius = lwc1(0x3ad9b0);
-    let bob = bob + wave * lwc1(0x3ad9ac);
-    swc1(sp + 24, lwc1(a0 + 56) + lwc1(sp + 24));
+    let bob = ps2float::add(bob, ps2float::mul(wave, lwc1(0x3ad9ac)));
+    swc1(sp + 24, ps2float::add(lwc1(a0 + 56), lwc1(sp + 24)));
     swc1(sp + 20, bob);
     let height = lwc1(player + 132);
     moveTestDoSlide(number, at, sp + 16, 0, 1, radius, height);
     let new_z = lwc1(sp + 24);
     let new_x = lwc1(sp + 16);
-    let move_z = new_z - lwc1(a0 + 120);
-    let move_x = new_x - lwc1(a0 + 112);
+    let move_z = ps2float::sub(new_z, lwc1(a0 + 120));
+    let move_x = ps2float::sub(new_x, lwc1(a0 + 112));
     swc1(a0 + 52, lwc1(sp + 20));
     swc1(sp + 4, 1.0_f32);
     swc1(sp + 8, move_z);

@@ -212,22 +212,22 @@ pub fn gunTick() {
     }
     let frames = lwc1(g::updateframesf);
     if speed > 0 {
-        swc1(player + 392, lwc1(player + 392) + (lwc1(player + 380) * lwc1(0x3ad450)).pdiv(speed as f32) * frames);
+        swc1(player + 392, ps2float::add(lwc1(player + 392), ps2float::mul(ps2float::mul(lwc1(player + 380), lwc1(0x3ad450)).pdiv(speed as f32), frames)));
     }
     let scale = lwc1(0x3ad454);
-    let phase = lwc1(player + 392) * 3.6e+02_f32;
+    let phase = ps2float::mul(lwc1(player + 392), 3.6e+02_f32);
     let half = 1.8e+02_f32;
-    let angle = (phase * scale).pdiv(half);
-    let amplitude = (lwc1(player + 380) * lwc1(0x3ad458)).pdiv(lw(player + 340) as f32);
+    let angle = ps2float::mul(phase, scale).pdiv(half);
+    let amplitude = ps2float::mul(lwc1(player + 380), lwc1(0x3ad458)).pdiv(lw(player + 340) as f32);
     let first = sinf(angle);
     let now = lw(g::currentplayer);
-    swc1(player + 396, amplitude * first);
-    let second_angle = ((phase + phase + 45.0_f32) * scale).pdiv(half);
+    swc1(player + 396, ps2float::mul(amplitude, first));
+    let second_angle = ps2float::mul(ps2float::add(ps2float::add(phase, phase), 45.0_f32), scale).pdiv(half);
     let second = sinf(second_angle);
     let now_again = lw(g::currentplayer);
     let right_gun = lw(record + 376);
     sw(g::righthandprevammo, 0);
-    swc1(now + 400, amplitude * second);
+    swc1(now + 400, ps2float::mul(amplitude, second));
     sw(now_again + 404, 0);
     if right_gun != -1 {
         sw(g::righthandprevammo, lw(record + (lw(right_gun * 400 + (g::guns + 16)) << 2) + 380));
@@ -248,7 +248,7 @@ pub fn gunTick() {
         gunCreatePlayerGun(player_now + 408, record + 268, 1);
         frames = lwc1(g::updateframesf);
     }
-    let timer = lwc1(record + 2912) + (frames).pdiv(6e+01_f32);
+    let timer = ps2float::add(lwc1(record + 2912), (frames).pdiv(6e+01_f32));
     let over = lwc1(0x3ad45c) < timer;
     swc1(record + 2912, timer);
     if over {
@@ -582,15 +582,15 @@ pub fn bgGlassMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, f12: f32, f13: f3
         let y0 = lwc1(a2 + 4);
         let mut i = 0;
         let x0 = lwc1(a2);
-        let dx = lwc1(a3) - x0;
+        let dx = ps2float::sub(lwc1(a3), x0);
         let z0 = lwc1(a2 + 8);
-        let dy = lwc1(a3 + 4) - y0;
+        let dy = ps2float::sub(lwc1(a3 + 4), y0);
         let first = lw(list);
-        let dz = lwc1(a3 + 8) - z0;
+        let dz = ps2float::sub(lwc1(a3 + 8), z0);
         let drop = lwc1(0x3acac4);
         swc1(sp + 16, x0);
-        swc1(sp + 20, y0 + f12);
-        let height = f13 - drop;
+        swc1(sp + 20, ps2float::add(y0, f12));
+        let height = ps2float::sub(f13, drop);
         swc1(sp + 24, z0);
         swc1(sp, dx);
         swc1(sp + 4, dy);
@@ -600,7 +600,7 @@ pub fn bgGlassMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, f12: f32, f13: f3
                 'b3: {
                     let glass = lw((i << 2) + list);
                     if 0.0_f32 <= lwc1(glass) {
-                        let distance = dx * dx + dy * dy + dz * dz + height * height;
+                        let distance = ps2float::add(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)), ps2float::mul(height, height));
                         let hit = bgHittestDistGlass(sp + 16, sp, glass + 16, glass + 56, glass + 96, glass + 136, sp + 32, sp + 48, distance);
                         if hit != 0 {
                             let source = 0x3a2670;
@@ -610,10 +610,10 @@ pub fn bgGlassMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, f12: f32, f13: f3
                             let mx = lwc1(sp);
                             let my = lwc1(sp + 4);
                             let mz = lwc1(sp + 8);
-                            let speed = ((mx * mx + my * my + mz * mz).abs().psqrt()).pdiv(lwc1(g::updateframesf));
+                            let speed = (ps2float::add(ps2float::add(ps2float::mul(mx, mx), ps2float::mul(my, my)), ps2float::mul(mz, mz)).abs().psqrt()).pdiv(lwc1(g::updateframesf));
                             let parts = lw(lw(lw(lw(a0 * 0x1210 + lw(g::chrinfo) + 3020) + 32)));
                             StatsAdd(32, a0, 1.0_f32);
-                            bgSmashGlass(glass, sp + 32, sp + 48, sp, sp + 64, speed * 1e+01_f32);
+                            bgSmashGlass(glass, sp + 32, sp + 48, sp, sp + 64, ps2float::mul(speed, 1e+01_f32));
                             let mut part = 0;
                             let mut info = lw(g::chrinfo);
                             let next = i + 1;
@@ -630,7 +630,7 @@ pub fn bgGlassMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, f12: f32, f13: f3
                                 chrSetLastHitPart(part);
                                 info = lw(g::chrinfo);
                             }
-                            propDamage(lw(a0 * 0x1210 + info + 3020), 0, sp + 32, -1, 0, 0, 0, 0, speed + lwc1(0x3acac8));
+                            propDamage(lw(a0 * 0x1210 + info + 3020), 0, sp + 32, -1, 0, 0, 0, 0, ps2float::add(speed, lwc1(0x3acac8)));
                             i = next;
                             break 'b3;
                         }

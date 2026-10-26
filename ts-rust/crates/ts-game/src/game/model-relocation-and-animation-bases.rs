@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1 (the 32 bits of `newrnd` as an unsigned number times 2^-32).
 fn random_unit() -> f32 {
-    (newrnd() as i32 as u32) as f32 * 2.3283064e-10_f32
+    ps2float::mul((newrnd() as i32 as u32) as f32, 2.3283064e-10_f32)
 }
 
 /// Add `delta` to the pointers of every bone (80 bytes) of a model that has been loaded at another address: the words at +8, +20 to +40, +12, +44, +48, +52 to +64, +16 and +72
@@ -63,9 +63,9 @@ pub fn allocateOverrideChunk(prop: i32, bone: i32, which: i32, flags: i32) {
 /// Take the light the map maker dialog chose (0xrrggbb00) apart into volume (the largest channel), saturation and hue in degrees (`lightvolume`, `lightsaturation`, `lighthue`) (@ 0x246318).
 pub fn mmSetLightFromRGB(rgb: i32) {
     let channel = |shift: u32, extra: i32| (((rgb as u32) >> shift) as i32 & extra) as f32;
-    let r = channel(23, 254) * 0.00390625_f32;
-    let g_ = channel(15, 254) * 0.00390625_f32;
-    let b = channel(7, 254) * 0.00390625_f32;
+    let r = ps2float::mul(channel(23, 254), 0.00390625_f32);
+    let g_ = ps2float::mul(channel(15, 254), 0.00390625_f32);
+    let b = ps2float::mul(channel(7, 254), 0.00390625_f32);
     let mut high = r;
     if r < g_ {
         high = g_;
@@ -85,22 +85,22 @@ pub fn mmSetLightFromRGB(rgb: i32) {
     let mut saturation = 0.0_f32;
     swc1(g::lightvolume, maximum);
     if !(maximum == saturation) {
-        saturation = ((maximum - minimum)).pdiv(maximum);
+        saturation = (ps2float::sub(maximum, minimum)).pdiv(maximum);
     }
     swc1(g::lightsaturation, saturation);
     if !(lwc1(g::lightsaturation) == 0.0) {
-        let spread = maximum - minimum;
+        let spread = ps2float::sub(maximum, minimum);
         if maximum == r {
-            swc1(g::lighthue, ((g_ - b)).pdiv(spread));
+            swc1(g::lighthue, (ps2float::sub(g_, b)).pdiv(spread));
         } else if maximum == g_ {
-            swc1(g::lighthue, ((b - r)).pdiv(spread) + 2.0);
+            swc1(g::lighthue, ps2float::add((ps2float::sub(b, r)).pdiv(spread), 2.0));
         } else if maximum == b {
-            swc1(g::lighthue, ((r - g_)).pdiv(spread) + 4.0);
+            swc1(g::lighthue, ps2float::add((ps2float::sub(r, g_)).pdiv(spread), 4.0));
         }
-        let hue = lwc1(g::lighthue) * 60.0;
+        let hue = ps2float::mul(lwc1(g::lighthue), 60.0);
         swc1(g::lighthue, hue);
         if hue < 0.0 {
-            swc1(g::lighthue, hue + 360.0);
+            swc1(g::lighthue, ps2float::add(hue, 360.0));
         }
         return;
     }
@@ -170,7 +170,7 @@ pub fn announceTick() {
     let mut countdown = lw(g::announcecountdown);
     let mut announce = lw(g::lastannounce);
     if countdown < 0 {
-        countdown = ((random_unit() + 0.5_f32) * 40.0_f32) as i32 * 60;
+        countdown = ps2float::mul(ps2float::add(random_unit(), 0.5_f32), 40.0_f32) as i32 * 60;
         sw(g::announcecountdown, countdown);
     }
     let now = countdown - lw(g::updateframesi);

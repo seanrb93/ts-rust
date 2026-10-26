@@ -298,14 +298,14 @@ pub fn propUpdate(prop: i32) {
     if kind != 8 {
         turn = lwc1(prop + 72);
     } else {
-        let dx = x - lwc1(prop + 112);
-        let dy = y - lwc1(prop + 116);
-        let dz = z - lwc1(prop + 120);
+        let dx = ps2float::sub(x, lwc1(prop + 112));
+        let dy = ps2float::sub(y, lwc1(prop + 116));
+        let dz = ps2float::sub(z, lwc1(prop + 120));
         swc1(sp, dx);
         swc1(sp + 4, dy);
         swc1(sp + 8, dz);
         let (ax, ay, az) = (lwc1(sp), lwc1(sp + 4), lwc1(sp + 8));
-        let moved = dptofp(sqrt(fptodp(ax * ax + ay * ay + az * az)));
+        let moved = dptofp(sqrt(fptodp(ps2float::add(ps2float::add(ps2float::mul(ax, ax), ps2float::mul(ay, ay)), ps2float::mul(az, az)))));
         if 0.0_f32 < moved {
             StatsAdd(46, lw(lw(prop + 352)), moved);
         }

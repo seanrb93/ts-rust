@@ -46,7 +46,7 @@ pub fn gvGetStringValue(var: i32) -> i32 {
             vafmt(&[0x3ae7e8, lw(var) as i64, digits as i64])
         }
     } else {
-        let shown = lw(var) as f32 * 1.5258789e-05_f32;
+        let shown = ps2float::mul(lw(var) as f32, 1.5258789e-05_f32);
         if lw(var + 24) == 0 {
             vafmt(&[0x3ae7e0, fptodp(shown)])
         } else {
@@ -86,7 +86,7 @@ pub fn challengeGetDisplayScore(out_label: i32, out_text: i32) {
                 }
             }
             let done = StatsGet(23, 0) as i32;
-            let target = (lw(entry + 16) as f32 * 1.5258789e-05_f32) as i32;
+            let target = ps2float::mul(lw(entry + 16) as f32, 1.5258789e-05_f32) as i32;
             let text = vafmt(&[0x3ae5b8, done as i64, target as i64]);
             sw(out_text, text);
             return;
@@ -117,7 +117,7 @@ pub fn hsv2col(hue: f32, saturation: f32, volume: f32) -> i32 {
     let mut hue = hue;
     if full <= hue {
         loop {
-            hue -= full;
+            hue = ps2float::sub(hue, full);
             if !(full <= hue) {
                 break;
             }
@@ -130,12 +130,12 @@ pub fn hsv2col(hue: f32, saturation: f32, volume: f32) -> i32 {
     let whole = dptofp(floored);
     let one = 1.0_f32;
     let sector = whole as i32;
-    let fraction = sector_f - whole;
+    let fraction = ps2float::sub(sector_f, whole);
     let top = 127.0_f32;
-    let low = (volume * (one - saturation) * top) as i32 & 255;
-    let high = (volume * top) as i32 & 255;
-    let falling = (volume * (one - saturation * fraction) * top) as i32 & 255;
-    let rising = (volume * (one - saturation * (one - fraction)) * top) as i32 & 255;
+    let low = ps2float::mul(ps2float::mul(volume, ps2float::sub(one, saturation)), top) as i32 & 255;
+    let high = ps2float::mul(volume, top) as i32 & 255;
+    let falling = ps2float::mul(ps2float::mul(volume, ps2float::sub(one, ps2float::mul(saturation, fraction))), top) as i32 & 255;
+    let rising = ps2float::mul(ps2float::mul(volume, ps2float::sub(one, ps2float::mul(saturation, ps2float::sub(one, fraction)))), top) as i32 & 255;
     if (sector as u32) >= 6 {
         return 0;
     }

@@ -5,7 +5,7 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// The size of a float as a double.
@@ -85,10 +85,10 @@ fn aim_at_target(mind: i32, target: i32) {
 
 /// Squared distance between two points.
 fn squared_distance(a: i32, b: i32) -> f32 {
-    let dx = lwc1(a) - lwc1(b);
-    let dy = lwc1(a + 4) - lwc1(b + 4);
-    let dz = lwc1(a + 8) - lwc1(b + 8);
-    dx * dx + dy * dy + dz * dz
+    let dx = ps2float::sub(lwc1(a), lwc1(b));
+    let dy = ps2float::sub(lwc1(a + 4), lwc1(b + 4));
+    let dz = ps2float::sub(lwc1(a + 8), lwc1(b + 8));
+    ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz))
 }
 
 /// The state 4 and 6 end: when the aim animation `anim` is playing the character may stop (state 7) after a while or a big change of height; else it starts the animation.
@@ -123,9 +123,9 @@ fn heading_move(a0: i32, mind: i32, sp: i32, scratch: i32, heading: f32, reach: 
     matrixVecRotAligned(&[scratch as i64, sp as i64]);
     let player = lw(g::currentplayer);
     let index = (mind - lw(g::chrinfo)).wrapping_mul(-0x795b3d1f);
-    swc1(mind + 2820, lwc1(sp) + lwc1(a0 + 48));
-    swc1(mind + 2824, lwc1(sp + 4) + lwc1(a0 + 52));
-    swc1(mind + 2828, lwc1(sp + 8) + lwc1(a0 + 56));
+    swc1(mind + 2820, ps2float::add(lwc1(sp), lwc1(a0 + 48)));
+    swc1(mind + 2824, ps2float::add(lwc1(sp + 4), lwc1(a0 + 52)));
+    swc1(mind + 2828, ps2float::add(lwc1(sp + 8), lwc1(a0 + 56)));
     moveTest(index >> 4, a0 + 48, mind + 2820, 0, 0, 0, reach, lwc1(player + 132))
 }
 
@@ -147,7 +147,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
         }
         1 => {
             let target = lw(mind + 2788);
-            if dpcmp(dp_abs(lwc1(a0 + 52) - lwc1(target + 52)), 0x3ff8000000000000_i64) <= 0 {
+            if dpcmp(dp_abs(ps2float::sub(lwc1(a0 + 52), lwc1(target + 52))), 0x3ff8000000000000_i64) <= 0 {
                 if dist < lwc1(weapon + (g::firerange + 4)) {
                     return go_to(mind, 2);
                 }
@@ -164,7 +164,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
             let target = lw(mind + 2788);
             aim_at_target(mind, target);
             let max_range = lwc1(weapon + (g::firerange + 4));
-            if !(dist < (max_range + lwc1(weapon + g::firerange)) * 0.5_f32) {
+            if !(dist < ps2float::mul(ps2float::add(max_range, lwc1(weapon + g::firerange)), 0.5_f32)) {
                 if dist < max_range {
                     enemySetMoveMode(a0, 1);
                     if !(enemyReactTime(a0) < lwc1(mind + 2912)) {
@@ -174,7 +174,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
                     sw(mind + 2892, 0);
                     return set_flags_and_stay(mind, flags | 2);
                 }
-                if dpcmp(dp_abs(lwc1(a0 + 52) - lwc1(target + 52)), 0x3ff8000000000000_i64) <= 0 {
+                if dpcmp(dp_abs(ps2float::sub(lwc1(a0 + 52), lwc1(target + 52))), 0x3ff8000000000000_i64) <= 0 {
                     return go_to(mind, 1);
                 }
             }
@@ -210,7 +210,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
                 sw(mind + 2728, 1);
                 sw(mind + 2708, flags2 & -5);
             }
-            if dist < lwc1(weapon + g::firerange) - 2.0_f32 {
+            if dist < ps2float::sub(lwc1(weapon + g::firerange), 2.0_f32) {
                 sw(mind + 2728, 12);
                 return stay(mind);
             }
@@ -223,8 +223,8 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
             go_to(mind, 3)
         }
         7 => {
-            if !((lwc1(weapon + (g::firerange + 4)) + 1.0_f32) < dist) {
-                if !(dist < lwc1(weapon + g::firerange) - 2.0_f32) {
+            if !(ps2float::add(lwc1(weapon + (g::firerange + 4)), 1.0_f32) < dist) {
+                if !(dist < ps2float::sub(lwc1(weapon + g::firerange), 2.0_f32)) {
                     enemySetMoveMode(a0, 8);
                 } else {
                     sw(mind + 2728, 12);
@@ -238,8 +238,8 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
             sw(mind + 2892, 0);
             let roll = random_unit();
             let skill = lwc1(mind + 2832);
-            if roll < skill * lwc1(0x3ad8f0) + lwc1(0x3ad8f4) {
-                if (lwc1(weapon + g::firerange) + 1.0_f32) < dist {
+            if roll < ps2float::add(ps2float::mul(skill, lwc1(0x3ad8f0)), lwc1(0x3ad8f4)) {
+                if ps2float::add(lwc1(weapon + g::firerange), 1.0_f32) < dist {
                     if !(skill < 0.5_f32) {
                         return go_to(mind, 3);
                     }
@@ -321,10 +321,10 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
                             swc1(mind + 2796, lwc1(at + 12));
                             swc1(mind + 2800, lwc1(at + 16));
                             swc1(mind + 2804, lwc1(at + 20));
-                            let dx = lwc1(a0 + 48) - lwc1(at + 12);
-                            let dy = lwc1(a0 + 52) - lwc1(at + 16);
-                            let dz = lwc1(a0 + 56) - lwc1(at + 20);
-                            if (range * range) < dx * dx + dy * dy + dz * dz {
+                            let dx = ps2float::sub(lwc1(a0 + 48), lwc1(at + 12));
+                            let dy = ps2float::sub(lwc1(a0 + 52), lwc1(at + 16));
+                            let dz = ps2float::sub(lwc1(a0 + 56), lwc1(at + 20));
+                            if ps2float::mul(range, range) < ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) {
                                 found = true;
                                 break;
                             }
@@ -353,10 +353,10 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
         10 => {
             enemySetMoveMode(a0, 1);
             swc1(mind + 2872, lwc1(mind + 2856));
-            let dx = lwc1(a0 + 48) - lwc1(mind + 2796);
-            let dy = lwc1(a0 + 52) - lwc1(mind + 2800);
-            let dz = lwc1(a0 + 56) - lwc1(mind + 2804);
-            if !((dx * dx + dy * dy + dz * dz) < lwc1(0x3ad8fc)) {
+            let dx = ps2float::sub(lwc1(a0 + 48), lwc1(mind + 2796));
+            let dy = ps2float::sub(lwc1(a0 + 52), lwc1(mind + 2800));
+            let dz = ps2float::sub(lwc1(a0 + 56), lwc1(mind + 2804));
+            if !(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < lwc1(0x3ad8fc)) {
                 return stay(mind);
             }
             let flags = lw(mind + 2704);
@@ -390,21 +390,21 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
                     }
                 }
             }
-            let dy = lwc1(a0 + 52) - lwc1(target + 52);
-            let dx = lwc1(a0 + 48) - lwc1(target + 48);
-            let dz = lwc1(a0 + 56) - lwc1(target + 56);
+            let dy = ps2float::sub(lwc1(a0 + 52), lwc1(target + 52));
+            let dx = ps2float::sub(lwc1(a0 + 48), lwc1(target + 48));
+            let dz = ps2float::sub(lwc1(a0 + 56), lwc1(target + 56));
             if dpcmp(dp_abs(dy), ld(0x3a9de0)) > 0 {
                 return go_to(mind, 3);
             }
             let weapon_now = lw(mind + 376);
-            let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
+            let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
             let range = weapon_now * 12 + g::firerange;
             let player = lw(g::currentplayer);
             let reach = lwc1(0x3ad904);
             let index = (mind - lw(g::chrinfo)).wrapping_mul(-0x795b3d1f);
-            swc1(mind + 2820, dx * inverse * (lwc1(range) + 2.0_f32) + lwc1(target + 48));
-            swc1(mind + 2824, dy * inverse * (lwc1(range) + 2.0_f32) + lwc1(target + 52));
-            swc1(mind + 2828, dz * inverse * (lwc1(range) + 2.0_f32) + lwc1(target + 56));
+            swc1(mind + 2820, ps2float::add(ps2float::mul(ps2float::mul(dx, inverse), ps2float::add(lwc1(range), 2.0_f32)), lwc1(target + 48)));
+            swc1(mind + 2824, ps2float::add(ps2float::mul(ps2float::mul(dy, inverse), ps2float::add(lwc1(range), 2.0_f32)), lwc1(target + 52)));
+            swc1(mind + 2828, ps2float::add(ps2float::mul(ps2float::mul(dz, inverse), ps2float::add(lwc1(range), 2.0_f32)), lwc1(target + 56)));
             moveTest(index >> 4, a0 + 48, mind + 2820, 0, 0, 0, reach, lwc1(player + 132));
             let travel = squared_distance(a0 + 48, mind + 2820);
             if lwc1(0x3ad908) < travel {
@@ -427,9 +427,9 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
             swc1(mind + 2804, z);
             swc1(mind + 2796, x);
             swc1(mind + 2800, y);
-            let dz = lwc1(a0 + 56) - z;
-            let dx = lwc1(a0 + 48) - x;
-            if (dx * dx + dz * dz) < lwc1(0x3ad90c) {
+            let dz = ps2float::sub(lwc1(a0 + 56), z);
+            let dx = ps2float::sub(lwc1(a0 + 48), x);
+            if ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz)) < lwc1(0x3ad90c) {
                 return go_to(mind, 1);
             }
             if lw(mind + 0x1194) != 0 {
@@ -447,10 +447,10 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
             } else {
                 extractAnimRootData(a0, 608, sp + 416, sp + 420, sp + 424, 0);
             }
-            let heading = (lwc1(a0 + 80) * lwc1(0x3ad910)).pdiv(1.8e+02_f32);
+            let heading = ps2float::mul(lwc1(a0 + 80), lwc1(0x3ad910)).pdiv(1.8e+02_f32);
             sw(sp + 4, 0);
             sw(sp + 8, 0);
-            swc1(sp, lwc1(sp + 420) - lwc1(sp + 416));
+            swc1(sp, ps2float::sub(lwc1(sp + 420), lwc1(sp + 416)));
             let hit = heading_move(a0, mind, sp, sp + 96, heading, lwc1(0x3ad914));
             if (hit & 2) != 0 {
                 return go_to(mind, 3);
@@ -489,10 +489,10 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
         }
         16 => {
             extractAnimRootData(a0, 447, sp + 428, sp + 432, sp + 436, 0);
-            let heading = (lwc1(a0 + 80) * lwc1(0x3ad918)).pdiv(1.8e+02_f32);
+            let heading = ps2float::mul(lwc1(a0 + 80), lwc1(0x3ad918)).pdiv(1.8e+02_f32);
             sw(sp + 4, 0);
             sw(sp + 8, 0);
-            swc1(sp, lwc1(sp + 432) - lwc1(sp + 428));
+            swc1(sp, ps2float::sub(lwc1(sp + 432), lwc1(sp + 428)));
             let hit = heading_move(a0, mind, sp, sp + 160, heading, lwc1(0x3ad91c));
             if (hit & 2) != 0 {
                 return go_to(mind, 3);
@@ -552,7 +552,7 @@ fn melee_attack(a0: i32, mind: i32, sp: i32, dist: f32) -> Flow {
     if armed == 0 {
         if (curAnim(a0, 526) != 0 || curAnim(a0, 527) != 0 || curAnim(a0, 528) != 0 || curAnim(a0, 529) != 0) && (lw(a0 + 16) & 128) == 0 {
             let mut hit = 0;
-            matrixTransRotY(sp + 224, lwc1(a0 + 48), lwc1(a0 + 52), lwc1(a0 + 56), (lwc1(a0 + 76) * lwc1(0x3ad920)).pdiv(1.8e+02_f32));
+            matrixTransRotY(sp + 224, lwc1(a0 + 48), lwc1(a0 + 52), lwc1(a0 + 56), ps2float::mul(lwc1(a0 + 76), lwc1(0x3ad920)).pdiv(1.8e+02_f32));
             let state_data = lw(a0 + 32);
             sceVu0MulMatrix(sp + 288, sp + 224, lw(state_data + 4) + (lw(lw(state_data + 92) + 20) << 6));
             let f1_2 = lwc1(sp + 340);
@@ -571,9 +571,9 @@ fn melee_attack(a0: i32, mind: i32, sp: i32, dist: f32) -> Flow {
             let f4_2 = lwc1(sp + 352);
             let f5_2 = lwc1(sp + 356);
             let f6_2 = lwc1(sp + 360);
-            let f5_3 = f5_2 + (lwc1(sp + 340) - f5_2) * 1.5_f32;
-            let f6_3 = f6_2 + (lwc1(sp + 344) - f6_2) * 1.5_f32;
-            swc1(sp + 368, f4_2 + (lwc1(sp + 336) - f4_2) * 1.5_f32);
+            let f5_3 = ps2float::add(f5_2, ps2float::mul(ps2float::sub(lwc1(sp + 340), f5_2), 1.5_f32));
+            let f6_3 = ps2float::add(f6_2, ps2float::mul(ps2float::sub(lwc1(sp + 344), f6_2), 1.5_f32));
+            swc1(sp + 368, ps2float::add(f4_2, ps2float::mul(ps2float::sub(lwc1(sp + 336), f4_2), 1.5_f32)));
             swc1(sp + 372, f5_3);
             swc1(sp + 376, f6_3);
             let first_frame = lwc1(mind + 2920) == 0.0_f32 && lwc1(mind + 2924) == 0.0_f32 && lwc1(mind + 2928) == 0.0_f32;
@@ -581,18 +581,18 @@ fn melee_attack(a0: i32, mind: i32, sp: i32, dist: f32) -> Flow {
                 hit = propSwipeTest(a0, sp + 352, mind + 2920, sp + 368, sp + 384, 0);
             }
             if hit != 0 {
-                let dx = lwc1(sp + 368) - lwc1(sp + 352);
+                let dx = ps2float::sub(lwc1(sp + 368), lwc1(sp + 352));
                 let dz = lwc1(sp + 376);
-                let dy = lwc1(sp + 372) - lwc1(sp + 356);
+                let dy = ps2float::sub(lwc1(sp + 372), lwc1(sp + 356));
                 let base_z = lwc1(sp + 360);
                 swc1(sp + 400, dx);
-                let dz = dz - base_z;
+                let dz = ps2float::sub(dz, base_z);
                 swc1(sp + 404, dy);
                 swc1(sp + 408, dz);
-                let inverse = (1.0_f32).pdiv((dx * dx + dy * dy + dz * dz).abs().psqrt());
-                let nx = lwc1(sp + 400) * inverse;
-                let ny = lwc1(sp + 404) * inverse;
-                swc1(sp + 408, lwc1(sp + 408) * inverse);
+                let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
+                let nx = ps2float::mul(lwc1(sp + 400), inverse);
+                let ny = ps2float::mul(lwc1(sp + 404), inverse);
+                swc1(sp + 408, ps2float::mul(lwc1(sp + 408), inverse));
                 swc1(sp + 400, nx);
                 swc1(sp + 404, ny);
                 propDamage(hit, a0, sp + 384, 1, sp + 368, sp + 400, 0, 0, lwc1(0x3ad924));
@@ -649,7 +649,7 @@ fn melee_attack(a0: i32, mind: i32, sp: i32, dist: f32) -> Flow {
 fn pad_attack(a0: i32, mind: i32) -> Flow {
     let target = lw(mind + 2788);
     sw(mind + 2728, 0);
-    let height = dp_abs(lwc1(a0 + 52) - lwc1(target + 52));
+    let height = dp_abs(ps2float::sub(lwc1(a0 + 52), lwc1(target + 52)));
     if dpcmp(height, 0x3ff8000000000000_i64) <= 0 {
         let wanted = enemyGetTargetPad(a0);
         sw(mind + 684, wanted);
@@ -666,10 +666,10 @@ fn pad_attack(a0: i32, mind: i32) -> Flow {
             swc1(mind + 2796, lwc1(at + 12));
             swc1(mind + 2800, lwc1(at + 16));
             swc1(mind + 2804, lwc1(at + 20));
-            let dx = lwc1(a0 + 48) - lwc1(at + 12);
-            let dy = lwc1(a0 + 52) - lwc1(at + 16);
-            let dz = lwc1(a0 + 56) - lwc1(at + 20);
-            if !((dx * dx + dy * dy + dz * dz) < limit) {
+            let dx = ps2float::sub(lwc1(a0 + 48), lwc1(at + 12));
+            let dy = ps2float::sub(lwc1(a0 + 52), lwc1(at + 16));
+            let dz = ps2float::sub(lwc1(a0 + 56), lwc1(at + 20));
+            if !(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)) < limit) {
                 return check_target(mind, lw(mind + 2788));
             }
             let left = lw(mind + 1688);
@@ -684,14 +684,14 @@ fn pad_attack(a0: i32, mind: i32) -> Flow {
             }
             return check_target(mind, lw(mind + 2788));
         }
-        if (lwc1(mind + 2832) + 0.5_f32 + 3.0_f32) < lwc1(mind + 2912) {
+        if ps2float::add(ps2float::add(lwc1(mind + 2832), 0.5_f32), 3.0_f32) < lwc1(mind + 2912) {
             sw(mind + 2704, lw(mind + 2704) | 6);
         }
         enemySetMoveMode(a0, 8);
         return Flow::Return;
     }
     enemySetMoveMode(a0, 8);
-    if !(((lwc1(mind + 2832) + 0.5_f32) * 3.0_f32) < lwc1(mind + 2912)) {
+    if !(ps2float::mul(ps2float::add(lwc1(mind + 2832), 0.5_f32), 3.0_f32) < lwc1(mind + 2912)) {
         return check_target(mind, lw(mind + 2788));
     }
     if lw(mind + 2772) == 0 {
@@ -715,10 +715,10 @@ pub fn attack(a0: i32) {
     swc1(mind + 2796, lwc1(target + 48));
     swc1(mind + 2800, lwc1(target + 52));
     swc1(mind + 2804, lwc1(target + 56));
-    let dx = lwc1(a0 + 48) - lwc1(target + 48);
-    let dy = lwc1(a0 + 52) - lwc1(target + 52);
-    let dz = lwc1(a0 + 56) - lwc1(target + 56);
-    let dist = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+    let dx = ps2float::sub(lwc1(a0 + 48), lwc1(target + 48));
+    let dy = ps2float::sub(lwc1(a0 + 52), lwc1(target + 52));
+    let dz = ps2float::sub(lwc1(a0 + 56), lwc1(target + 56));
+    let dist = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
     if lw(mind + 2772) != 0 {
         let kind = lw(mind + 8);
         if kind == 0 || kind == 1 {

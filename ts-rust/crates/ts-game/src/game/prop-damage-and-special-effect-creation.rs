@@ -5,14 +5,14 @@ use crate::*;
 
 /// A random number from 0 up to 1.
 fn random_unit() -> f32 {
-    random_as_float() * 2.3283064e-10_f32
+    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
 }
 
 /// An unsigned 32 bit number as a float.
 fn uint_to_float(value: i32) -> f32 {
     if value < 0 {
         let half = (value & 1 | ((value as u32) >> 1) as i32) as f32;
-        half + half
+        ps2float::add(half, half)
     } else {
         value as f32
     }
@@ -75,9 +75,9 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
     if v1_2 != 8 {
         let v0_27 = lw(a0 + 4);
         if ((v0_27 - 201) as u32) >= (2 as u32) {
-            swc1(a0 + 532, lwc1(a0 + 532) + f21_1);
+            swc1(a0 + 532, ps2float::add(lwc1(a0 + 532), f21_1));
         } else {
-            swc1(a0 + 532, lwc1(a0 + 532) + f21_1 * lwc1(0x3acd64));
+            swc1(a0 + 532, ps2float::add(lwc1(a0 + 532), ps2float::mul(f21_1, lwc1(0x3acd64))));
         }
         let v0_28 = lw(a0 + 400);
         let a2_11 = lw(sp + 16);
@@ -104,12 +104,12 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
             if (lw(v1_3 + 80) & 32) != 0 {
                 if lw(v1_3 + 72) != 6 {
                     let v0_4 = challengeGetSetup();
-                    f21_1 = f21_1 * lwc1((lw(s5_1) << 4) + lw(v0_4 + 48) + 4);
+                    f21_1 = ps2float::mul(f21_1, lwc1((lw(s5_1) << 4) + lw(v0_4 + 48) + 4));
                     if s1_1 == 0 {
                         break 'b9;
                     }
                     let v0_5 = challengeGetSetup();
-                    f21_1 = f21_1 * lwc1((lw(s1_1) << 4) + lw(v0_5 + 48) + 8);
+                    f21_1 = ps2float::mul(f21_1, lwc1((lw(s1_1) << 4) + lw(v0_5 + 48) + 8));
                 }
             }
             if s1_1 == 0 {
@@ -362,7 +362,7 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
                 if v0_14 != 0 {
                     break 'b31;
                 }
-                f21_1 = f21_1 * lwc1((lw(lw(s4_1 + 24) + 92) << 2) + g::handicapmods_364);
+                f21_1 = ps2float::mul(f21_1, lwc1((lw(lw(s4_1 + 24) + 92) << 2) + g::handicapmods_364));
             }
         }
         v0_13 = lw(g::invincible);
@@ -415,29 +415,29 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
                 }
                 if a1 != 0 {
                     if lw(a1 + 356) == 0 {
-                        let f1_3 = lwc1(a1 + 48) - lwc1(a0 + 48);
+                        let f1_3 = ps2float::sub(lwc1(a1 + 48), lwc1(a0 + 48));
                         let f0_6 = lwc1(a1 + 56);
-                        let f2_1 = lwc1(a1 + 52) - lwc1(a0 + 52);
+                        let f2_1 = ps2float::sub(lwc1(a1 + 52), lwc1(a0 + 52));
                         let f5_1 = lwc1(a0 + 56);
                         let f6_1 = 1e+02_f32;
                         swc1(sp, f1_3);
-                        let f0_7 = f0_6 - f5_1;
+                        let f0_7 = ps2float::sub(f0_6, f5_1);
                         swc1(sp + 4, f2_1);
-                        let f3_1 = f1_3 * f1_3 + f2_1 * f2_1 + f0_7 * f0_7;
+                        let f3_1 = ps2float::add(ps2float::add(ps2float::mul(f1_3, f1_3), ps2float::mul(f2_1, f2_1)), ps2float::mul(f0_7, f0_7));
                         swc1(sp + 8, f0_7);
                         if f3_1 < f6_1 {
-                            let f0_8 = f6_1 - f3_1;
-                            f9_1 = f9_1 + ((f0_8 + f0_8)).pdiv((f8_1 * f6_1));
+                            let f0_8 = ps2float::sub(f6_1, f3_1);
+                            f9_1 = ps2float::add(f9_1, (ps2float::add(f0_8, f0_8)).pdiv(ps2float::mul(f8_1, f6_1)));
                         }
                     }
                 }
                 if s4_1 != 0 {
-                    f0_9 = f8_1 * f7_1;
+                    f0_9 = ps2float::mul(f8_1, f7_1);
                     break 'b35;
                 }
             }
             if a1 == 0 {
-                f0_9 = f8_1 * f7_1;
+                f0_9 = ps2float::mul(f8_1, f7_1);
             } else {
                 if lw(a1 + 356) != 0 {
                     let v1_11 = lw(g::curgameparms + 76);
@@ -448,17 +448,17 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
                         f8_1 = 3.0_f32;
                     }
                     if v1_11 != 2 {
-                        f0_9 = f8_1 * f7_1;
+                        f0_9 = ps2float::mul(f8_1, f7_1);
                         break 'b35;
                     }
                     f8_1 = 1.75_f32;
                 }
-                f0_9 = f8_1 * f7_1;
+                f0_9 = ps2float::mul(f8_1, f7_1);
             }
         }
-        f21_1 = f21_1 * (f0_9 * f9_1);
+        f21_1 = ps2float::mul(f21_1, ps2float::mul(f0_9, f9_1));
     }
-    let mut f21_2 = f21_1 * f23_1;
+    let mut f21_2 = ps2float::mul(f21_1, f23_1);
     if s4_1 != 0 {
         let a0_25 = g::curgameparms;
         if lw(a0_25 + 72) == 7 {
@@ -508,8 +508,8 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
         if f2_2 < f21_2 {
             f1_4 = f2_2;
         }
-        f21_2 = f21_2 - f1_4;
-        swc1(s5_1 + 12, f2_2 - f1_4);
+        f21_2 = ps2float::sub(f21_2, f1_4);
+        swc1(s5_1 + 12, ps2float::sub(f2_2, f1_4));
     }
     let f1_5;
     if !(0.0_f32 < f21_2) {
@@ -526,12 +526,12 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
     }
     let f0_11;
     if lw(g::curgameparms + 72) != 4 {
-        f0_11 = f1_5 - f21_2;
+        f0_11 = ps2float::sub(f1_5, f21_2);
     } else if a0 != lw(g::escort) {
-        f0_11 = f1_5 - f21_2;
+        f0_11 = ps2float::sub(f1_5, f21_2);
     } else {
-        f21_2 = f21_2 * lwc1(0x3acd54);
-        f0_11 = f1_5 - f21_2;
+        f21_2 = ps2float::mul(f21_2, lwc1(0x3acd54));
+        f0_11 = ps2float::sub(f1_5, f21_2);
     }
     let f0_12;
     'b58: {
@@ -555,7 +555,7 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
     if s4_1 != 0 {
         let a1_22 = g::hudparms;
         let a0_30 = lw(s4_1) * 352 + a1_22;
-        sw(a0_30 + 268, lw(a0_30 + 268) + (f21_2 * 6e+02_f32) as i32);
+        sw(a0_30 + 268, lw(a0_30 + 268) + ps2float::mul(f21_2, 6e+02_f32) as i32);
         let v1_14 = lw(s4_1) * 352 + a1_22;
         if lw(v1_14 + 268) >= 601 {
             sw(v1_14 + 268, 600);
@@ -569,10 +569,10 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
                 swc1(s4_1 + 1780, lwc1(v0_18 + v1_15 + 4));
             } else {
                 swc1(s4_1 + 1780, lwc1(0x3acd5c));
-                swc1(s4_1 + 1776, f24_1 * 5.0_f32);
+                swc1(s4_1 + 1776, ps2float::mul(f24_1, 5.0_f32));
             }
         } else {
-            let f0_13 = if !(f24_1 < 0.25_f32) { 1.0_f32 } else { f24_1 * 4.0_f32 };
+            let f0_13 = if !(f24_1 < 0.25_f32) { 1.0_f32 } else { ps2float::mul(f24_1, 4.0_f32) };
             swc1(s4_1 + 1776, f0_13);
             swc1(s4_1 + 1780, lwc1(0x3acd58));
         }
@@ -838,7 +838,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     let f14_7 = lwc1(a1 + 8);
                                     let f12_10 = lwc1(a1);
                                     let f15_7 = 0.0_f32;
-                                    let f13_7 = lwc1(a1 + 4) + 1.0_f32 + lwc1(0x3ad660);
+                                    let f13_7 = ps2float::add(ps2float::add(lwc1(a1 + 4), 1.0_f32), lwc1(0x3ad660));
                                     let v0_34 = specialPropNew(a0_29, -1, f12_10, f13_7, f14_7, f15_7);
                                     let s0_7 = g::fxgroups;
                                     sw(s0_7 + a7 * 92 + 56, v0_34);
@@ -890,24 +890,24 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                         let mut s1_7 = 0;
                                         if lw(lw(g::fxgroups + a7 * 92 + 72) + 24) > 0 {
                                             loop {
-                                                let f12_11 = lwc1(sp + 32) - random_as_float() * scale * 1e+01_f32;
+                                                let f12_11 = ps2float::sub(lwc1(sp + 32), ps2float::mul(ps2float::mul(random_as_float(), scale), 1e+01_f32));
                                                 let v0_37 = fptoui(f12_11);
-                                                let f12_12 = lwc1(sp + 36) - random_as_float() * scale * 1e+01_f32;
+                                                let f12_12 = ps2float::sub(lwc1(sp + 36), ps2float::mul(ps2float::mul(random_as_float(), scale), 1e+01_f32));
                                                 let v0_39 = fptoui(f12_12);
-                                                let f12_13 = lwc1(sp + 40) - random_as_float() * scale * 1e+01_f32;
+                                                let f12_13 = ps2float::sub(lwc1(sp + 40), ps2float::mul(ps2float::mul(random_as_float(), scale), 1e+01_f32));
                                                 let v0_41 = fptoui(f12_13);
                                                 let a0_31 = lw(a7 * 92 + (g::fxgroups + 72)) + 992 + s1_7 * 12;
                                                 let f1_11 = random_as_float();
-                                                swc1(a0_31, (f1_11 * scale - 0.5_f32) * lwc1(0x3ad664));
+                                                swc1(a0_31, ps2float::mul(ps2float::sub(ps2float::mul(f1_11, scale), 0.5_f32), lwc1(0x3ad664)));
                                                 let a0_32 = lw(a7 * 92 + (g::fxgroups + 72)) + 996 + s1_7 * 12;
                                                 let f1_13 = random_as_float();
-                                                swc1(a0_32, (f1_13 * scale - 0.5_f32) * lwc1(0x3ad668));
+                                                swc1(a0_32, ps2float::mul(ps2float::sub(ps2float::mul(f1_13, scale), 0.5_f32), lwc1(0x3ad668)));
                                                 let a3_2 = lw(a7 * 92 + (g::fxgroups + 72)) + 1000 + s1_7 * 12;
                                                 let f2_6 = random_as_float();
                                                 let a1_28 = s1_7 << 2;
                                                 let a0_33 = a7 * 92 + (g::fxgroups + 72);
                                                 let a2_10 = v0_37 | v0_39 << 8 | v0_41 << 16;
-                                                swc1(a3_2, (f2_6 * scale - 0.5_f32) * lwc1(0x3ad66c));
+                                                swc1(a3_2, ps2float::mul(ps2float::sub(ps2float::mul(f2_6, scale), 0.5_f32), lwc1(0x3ad66c)));
                                                 sw(lw(a0_33) + a1_28 + 2592, 0);
                                                 let a0_34 = lw(a0_33) + 2192 + a1_28;
                                                 swc1(a0_34, uint_to_float(a2_10));
@@ -925,7 +925,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                         let f2_8 = 1.0_f32;
                                         let f1_15 = lwc1(0x3ad670);
                                         swc1(s2_7 + 48, lwc1(v0_45 + 12));
-                                        swc1(s2_7 + 52, lwc1(v0_45 + 16) + f2_8 + f1_15);
+                                        swc1(s2_7 + 52, ps2float::add(ps2float::add(lwc1(v0_45 + 16), f2_8), f1_15));
                                         swc1(s2_7 + 56, lwc1(v0_45 + 20));
                                         swc1(s3_5 + 928, f2_8);
                                         swc1(s2_7 + 40, f2_8);
@@ -946,13 +946,13 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                             let f22_2 = lwc1(0x3ad674);
                                             loop {
                                                 let a1_30 = lw(s0_9) + 992 + s2_8;
-                                                swc1(a1_30, (random_as_float() * f21_4 - f20_7) * f22_2);
+                                                swc1(a1_30, ps2float::mul(ps2float::sub(ps2float::mul(random_as_float(), f21_4), f20_7), f22_2));
                                                 let a1_31 = lw(s0_9) + 996 + s2_8;
-                                                swc1(a1_31, (random_as_float() * f21_4 - f20_7) * lwc1(0x3ad678));
+                                                swc1(a1_31, ps2float::mul(ps2float::sub(ps2float::mul(random_as_float(), f21_4), f20_7), lwc1(0x3ad678)));
                                                 let a1_32 = lw(s0_9) + 1000 + s2_8;
-                                                let f0_40 = random_as_float() * f21_4;
+                                                let f0_40 = ps2float::mul(random_as_float(), f21_4);
                                                 let a0_37 = s1_9 << 2;
-                                                swc1(a1_32, (f0_40 - f20_7) * f22_2);
+                                                swc1(a1_32, ps2float::mul(ps2float::sub(f0_40, f20_7), f22_2));
                                                 sw(lw(s0_9) + a0_37 + 2592, 0);
                                                 let a0_38 = lw(s0_9) + 2192 + a0_37;
                                                 swc1(a0_38, uint_to_float(s4_1));
@@ -973,7 +973,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     let f1_16 = lwc1(0x3ad67c);
                                     s1_4 = v0_50;
                                     swc1(s2_4 + 48, lwc1(v0_50 + 12));
-                                    f0_19 = lwc1(v0_50 + 16) + f2_4 + f1_16;
+                                    f0_19 = ps2float::add(ps2float::add(lwc1(v0_50 + 16), f2_4), f1_16);
                                     break 'b8;
                                 }
                                 2 | 3 => {
@@ -1015,18 +1015,18 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                             let f21_3 = 0.5_f32;
                                             loop {
                                                 let a1_22 = lw(s0_6) + 992 + s2_5;
-                                                let f0_22 = random_as_float() * f20_6 - f21_3;
-                                                swc1(a1_22, f0_22 + f0_22);
+                                                let f0_22 = ps2float::sub(ps2float::mul(random_as_float(), f20_6), f21_3);
+                                                swc1(a1_22, ps2float::add(f0_22, f0_22));
                                                 let a1_23 = lw(s0_6) + 996 + s2_5;
-                                                let f0_23 = random_as_float() * f20_6;
-                                                swc1(a1_23, f0_23 + f0_23);
+                                                let f0_23 = ps2float::mul(random_as_float(), f20_6);
+                                                swc1(a1_23, ps2float::add(f0_23, f0_23));
                                                 let a1_24 = lw(s0_6) + 1000 + s2_5;
-                                                let f0_25 = random_as_float() * f20_6;
+                                                let f0_25 = ps2float::mul(random_as_float(), f20_6);
                                                 let a0_26 = s1_5 << 2;
                                                 let f1_9 = lwc1(0x3ad650);
                                                 s1_5 = s1_5 + 1;
-                                                let f0_27 = f0_25 - f21_3;
-                                                swc1(a1_24, f0_27 + f0_27);
+                                                let f0_27 = ps2float::sub(f0_25, f21_3);
+                                                swc1(a1_24, ps2float::add(f0_27, f0_27));
                                                 sw(lw(s0_6) + a0_26 + 2592, 0);
                                                 swc1(lw(s0_6) + a0_26 + 2192, f1_9);
                                                 s2_5 = s2_5 + 12;
@@ -1044,7 +1044,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     let f2_5 = lwc1(0x3ad654);
                                     swc1(s2_6 + 48, lwc1(v0_33 + 12));
                                     let f3_1 = 13.0_f32;
-                                    swc1(s2_6 + 52, lwc1(v0_33 + 16) + 1.0_f32 - f2_5);
+                                    swc1(s2_6 + 52, ps2float::sub(ps2float::add(lwc1(v0_33 + 16), 1.0_f32), f2_5));
                                     swc1(s2_6 + 56, lwc1(v0_33 + 20));
                                     swc1(s3_4 + 928, f3_1);
                                     swc1(s2_6 + 40, f3_1);
@@ -1055,14 +1055,14 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     a0_12 = 295;
                                     a1_8 = -1;
                                     f14_1 = lwc1(a1 + 8);
-                                    f13_1 = lwc1(a1 + 4) + 1.0_f32;
+                                    f13_1 = ps2float::add(lwc1(a1 + 4), 1.0_f32);
                                     f12_4 = lwc1(a1);
                                 }
                                 5 => {
                                     a0_12 = a5 + 296;
                                     a1_8 = -1;
                                     f14_1 = lwc1(a1 + 8);
-                                    f13_1 = lwc1(a1 + 4) + 1.0_f32;
+                                    f13_1 = ps2float::add(lwc1(a1 + 4), 1.0_f32);
                                     f12_4 = lwc1(a1);
                                 }
                                 6 => {
@@ -1070,7 +1070,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     let s0_4 = a5 + 296;
                                     let f21_1 = 1.0_f32;
                                     let f12_5 = lwc1(a1);
-                                    let f13_2 = lwc1(a1 + 4) + f21_1;
+                                    let f13_2 = ps2float::add(lwc1(a1 + 4), f21_1);
                                     let f14_2 = lwc1(a1 + 8);
                                     let f15_1 = 0.0_f32;
                                     let s6_1 = g::fxgroups;
@@ -1083,7 +1083,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     swc1(v0_15 + 72, 0.0_f32);
                                     let f20_2 = 9e+01_f32;
                                     let f12_6 = lwc1(a1);
-                                    let f13_3 = lwc1(a1 + 4) + f21_1;
+                                    let f13_3 = ps2float::add(lwc1(a1 + 4), f21_1);
                                     let f14_3 = lwc1(a1 + 8);
                                     let v0_16 = specialPropNew(s0_4, -1, f12_6, f13_3, f14_3, f20_2);
                                     sw(s6_1 + a7 * 92 + 60, v0_16);
@@ -1093,7 +1093,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     swc1(v0_16 + 72, f20_2);
                                     let f20_3 = 1.8e+02_f32;
                                     let f12_7 = lwc1(a1);
-                                    let f13_4 = lwc1(a1 + 4) + f21_1;
+                                    let f13_4 = ps2float::add(lwc1(a1 + 4), f21_1);
                                     let f14_4 = lwc1(a1 + 8);
                                     let v0_17 = specialPropNew(s0_4, -1, f12_7, f13_4, f14_4, f20_3);
                                     sw(s6_1 + a7 * 92 + 64, v0_17);
@@ -1103,7 +1103,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     swc1(v0_17 + 72, f20_3);
                                     let f20_4 = 2.7e+02_f32;
                                     let f14_5 = lwc1(a1 + 8);
-                                    let f13_5 = lwc1(a1 + 4) + f21_1;
+                                    let f13_5 = ps2float::add(lwc1(a1 + 4), f21_1);
                                     let f12_8 = lwc1(a1);
                                     let v0_18 = specialPropNew(s0_4, -1, f12_8, f13_5, f14_5, f20_4);
                                     sw(s6_1 + a7 * 92 + 68, v0_18);
@@ -1147,14 +1147,14 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                             let f21_2 = lwc1(0x3ad658);
                                             loop {
                                                 let a1_15 = lw(a0_19) + 992 + s2_3;
-                                                swc1(a1_15, (random_as_float() * f20_5 - f22_1) * f21_2);
+                                                swc1(a1_15, ps2float::mul(ps2float::sub(ps2float::mul(random_as_float(), f20_5), f22_1), f21_2));
                                                 let a1_16 = lw(a0_19) + 996 + s2_3;
-                                                let f0_14 = random_as_float() * f20_5;
-                                                swc1(a1_16, f0_14 + f0_14);
+                                                let f0_14 = ps2float::mul(random_as_float(), f20_5);
+                                                swc1(a1_16, ps2float::add(f0_14, f0_14));
                                                 let a1_17 = lw(a0_19) + 1000 + s2_3;
-                                                let f0_16 = random_as_float() * f20_5;
+                                                let f0_16 = ps2float::mul(random_as_float(), f20_5);
                                                 let a0_20 = s1_2 << 2;
-                                                swc1(a1_17, (f0_16 - f22_1) * f21_2);
+                                                swc1(a1_17, ps2float::mul(ps2float::sub(f0_16, f22_1), f21_2));
                                                 sw(lw(a0_19) + a0_20 + 2592, 0);
                                                 let a0_21 = lw(a0_19) + 2192 + a0_20;
                                                 swc1(a0_21, uint_to_float(s3_2));
@@ -1174,7 +1174,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     f2_4 = lwc1(0x3ad65c);
                                     s1_4 = v0_24;
                                     swc1(s2_4 + 48, lwc1(v0_24 + 12));
-                                    f0_19 = lwc1(v0_24 + 16) + 1.0_f32 - f2_4;
+                                    f0_19 = ps2float::sub(ps2float::add(lwc1(v0_24 + 16), 1.0_f32), f2_4);
                                     break 'b8;
                                 }
                                 7 => {
@@ -1191,14 +1191,14 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     let v0_11 = particleNewTrail(s2_2, 14, a2_3, 60);
                                     sw(s2_2, v0_11);
                                     let f1_4 = random_as_float();
-                                    swc1(a7 * 92 + (s0_3 + 8), (f1_4 * scale - 0.5_f32) * 1e+01_f32);
+                                    swc1(a7 * 92 + (s0_3 + 8), ps2float::mul(ps2float::sub(ps2float::mul(f1_4, scale), 0.5_f32), 1e+01_f32));
                                     let f2_2 = random_as_float();
-                                    swc1(a7 * 92 + (g::fxgroups + 84), f2_2 * scale + 1.0_f32);
+                                    swc1(a7 * 92 + (g::fxgroups + 84), ps2float::add(ps2float::mul(f2_2, scale), 1.0_f32));
                                     let f1_6 = random_as_float();
                                     a1_7 = a7 * 92 + (g::fxgroups + 88);
-                                    let f0_10 = f1_6 * scale;
+                                    let f0_10 = ps2float::mul(f1_6, scale);
                                     f1_8 = 1e+01_f32;
-                                    f0_11 = f0_10 - 0.5_f32;
+                                    f0_11 = ps2float::sub(f0_10, 0.5_f32);
                                     break 'b6;
                                 }
                                 9 => {
@@ -1248,22 +1248,22 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                         if lw(lw(g::fxgroups + a7 * 92 + 72) + 24) > 0 {
                                             loop {
                                                 let f20_1 = (s0_2 as f32).pdiv(lw(lw(a1_4 - 0x3d98 + a7 * 92 + 72) + 24) as f32);
-                                                let f12_1 = lwc1(sp + 48) - random_as_float() * scale * 1e+01_f32;
+                                                let f12_1 = ps2float::sub(lwc1(sp + 48), ps2float::mul(ps2float::mul(random_as_float(), scale), 1e+01_f32));
                                                 let v0_5 = fptoui(f12_1);
-                                                let f12_2 = lwc1(sp + 52) - random_as_float() * scale * 1e+01_f32;
+                                                let f12_2 = ps2float::sub(lwc1(sp + 52), ps2float::mul(ps2float::mul(random_as_float(), scale), 1e+01_f32));
                                                 let v0_7 = fptoui(f12_2);
-                                                let f12_3 = lwc1(sp + 56) - random_as_float() * scale * 1e+01_f32;
+                                                let f12_3 = ps2float::sub(lwc1(sp + 56), ps2float::mul(ps2float::mul(random_as_float(), scale), 1e+01_f32));
                                                 let v0_9 = fptoui(f12_3);
                                                 let a1_5 = a7 * 92 + (g::fxgroups + 72);
                                                 let a6_1 = v0_5 | v0_7 << 8 | v0_9 << 16;
                                                 let a4_1 = g::g_SinTable;
                                                 let f5_1 = lwc1(0x3ad688);
                                                 let a5_1 = s0_2 << 2;
-                                                let a0_8 = ((f20_1 * f20_1 * f20_1 * 3.6e+02_f32 * lwc1(0x3ad680)).pdiv(1.8e+02_f32) * lwc1(0x3ad684) + 0.5_f32) as i32;
-                                                swc1(lw(a1_5) + s0_2 * 12 + 992, lwc1(((a0_8 + 512 & 2047) << 2) + a4_1) * f5_1);
+                                                let a0_8 = ps2float::add(ps2float::mul(ps2float::mul(ps2float::mul(ps2float::mul(ps2float::mul(f20_1, f20_1), f20_1), 3.6e+02_f32), lwc1(0x3ad680)).pdiv(1.8e+02_f32), lwc1(0x3ad684)), 0.5_f32) as i32;
+                                                swc1(lw(a1_5) + s0_2 * 12 + 992, ps2float::mul(lwc1(((a0_8 + 512 & 2047) << 2) + a4_1), f5_1));
                                                 sw(lw(a1_5) + s0_2 * 12 + 996, 0);
-                                                swc1(lw(a1_5) + s0_2 * 12 + 1000, lwc1(((a0_8 & 2047) << 2) + a4_1) * f5_1);
-                                                swc1(lw(a1_5) + a5_1 + 2592, (1.0_f32 - f20_1) * 6e+01_f32);
+                                                swc1(lw(a1_5) + s0_2 * 12 + 1000, ps2float::mul(lwc1(((a0_8 & 2047) << 2) + a4_1), f5_1));
+                                                swc1(lw(a1_5) + a5_1 + 2592, ps2float::mul(ps2float::sub(1.0_f32, f20_1), 6e+01_f32));
                                                 let a0_9 = lw(a1_5) + 2192 + a5_1;
                                                 swc1(a0_9, uint_to_float(a6_1));
                                                 s0_2 = s0_2 + 1;
@@ -1310,7 +1310,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                     result = 0;
                     break 'b4;
                 }
-                swc1(a1_7, f1_8 * f0_11);
+                swc1(a1_7, ps2float::mul(f1_8, f0_11));
             }
         }
         result = a7 * 92 + g::fxgroups;

@@ -16,9 +16,9 @@ pub fn pickupposAdd(pos: i32) -> i32 {
         let signs = [(-1.0_f32, -1.0_f32), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)];
         for (i, (sx, sz)) in signs.iter().enumerate() {
             let at = corners + 12 * i as i32;
-            swc1(at, if *sx < 0.0 { x - half } else { x + half });
-            swc1(at + 4, y + height);
-            swc1(at + 8, if *sz < 0.0 { z - half } else { z + half });
+            swc1(at, if *sx < 0.0 { ps2float::sub(x, half) } else { ps2float::add(x, half) });
+            swc1(at + 4, ps2float::add(y, height));
+            swc1(at + 8, if *sz < 0.0 { ps2float::sub(z, half) } else { ps2float::add(z, half) });
         }
         for (i, v) in [0.0_f32, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0].iter().enumerate() {
             swc1(texture + 4 * i as i32, *v);

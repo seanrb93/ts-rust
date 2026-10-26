@@ -12,7 +12,7 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
     let mut nearest = far;
     let loudness;
     if position == 0 {
-        loudness = (lhu(sound + 20) as f32).pdiv(1e+02_f32) * (0x1fff - base) as f32;
+        loudness = ps2float::mul((lhu(sound + 20) as f32).pdiv(1e+02_f32), (0x1fff - base) as f32);
     } else {
         let count = lw(g::lvnumplayers);
         let mut i = 0;
@@ -23,12 +23,12 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
             let z = lwc1(position + 8);
             loop {
                 let player = i * 1820 + players;
-                let dx = x - lwc1(player + 152);
+                let dx = ps2float::sub(x, lwc1(player + 152));
                 swc1(sp, dx);
-                let dy = y - lwc1(player + 156);
+                let dy = ps2float::sub(y, lwc1(player + 156));
                 swc1(sp + 4, dy);
-                let dz = z - lwc1(player + 160);
-                let squared = dx * dx + dy * dy + dz * dz;
+                let dz = ps2float::sub(z, lwc1(player + 160));
+                let squared = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz));
                 swc1(sp + 8, dz);
                 if squared < nearest {
                     nearest = squared;
@@ -46,7 +46,7 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
         if range < distance {
             distance = range;
         }
-        loudness = (lhu(sound + 20) as f32).pdiv(1e+02_f32) * (0x1fff - base) as f32 * (((range - distance)).pdiv(range));
+        loudness = ps2float::mul(ps2float::mul((lhu(sound + 20) as f32).pdiv(1e+02_f32), (0x1fff - base) as f32), ((ps2float::sub(range, distance)).pdiv(range)));
     }
     let volume = base + loudness as i32;
     sw(left, volume);
@@ -58,13 +58,13 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
             matrixVecRotAligned(&[matrix as i64, sp as i64]);
             let x = lwc1(sp);
             let z = lwc1(sp + 8);
-            let side = (x).pdiv((x * x + z * z).abs().psqrt());
+            let side = (x).pdiv(ps2float::add(ps2float::mul(x, x), ps2float::mul(z, z)).abs().psqrt());
             if 0.0_f32 < side {
-                sw(left, (volume as f32 * (1.0_f32 - side)) as i32);
+                sw(left, ps2float::mul(volume as f32, ps2float::sub(1.0_f32, side)) as i32);
                 shifted = true;
             } else {
                 let full = volume as f32;
-                sw(right, (side * full + full) as i32);
+                sw(right, ps2float::add(ps2float::mul(side, full), full) as i32);
             }
         }
     }

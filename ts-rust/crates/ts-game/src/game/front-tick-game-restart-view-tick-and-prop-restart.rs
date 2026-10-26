@@ -135,34 +135,34 @@ pub fn viewTick() {
     let buttons = joyBut(0);
     let half_turn = 1.8e+02_f32;
     sw(g::viewmatrix, memdbAlloc(64));
-    swc1(g::view_angx, lwc1(g::view_angx) + joyGetAxis(0, 0) * 4.0_f32);
+    swc1(g::view_angx, ps2float::add(lwc1(g::view_angx), ps2float::mul(joyGetAxis(0, 0), 4.0_f32)));
     let stick_y = joyGetAxis(0, 3);
     let angle_y = lwc1(g::view_angy);
     sw(g::view_camdir, 0);
     swc1(direction + 8, 1.0_f32);
-    let angle_y = angle_y + stick_y * -4.0_f32;
+    let angle_y = ps2float::add(angle_y, ps2float::mul(stick_y, -4.0_f32));
     sw(direction + 4, 0);
     swc1(g::view_angy, angle_y);
-    matrixRotX(sp + 32, (angle_y * to_radians).pdiv(half_turn));
+    matrixRotX(sp + 32, ps2float::mul(angle_y, to_radians).pdiv(half_turn));
     matrixVecMulAligned(&[(sp + 32) as i64, direction as i64]);
-    matrixRotY(sp + 32, (lwc1(g::view_angx) * to_radians).pdiv(half_turn));
+    matrixRotY(sp + 32, ps2float::mul(lwc1(g::view_angx), to_radians).pdiv(half_turn));
     matrixVecMulAligned(&[(sp + 32) as i64, direction as i64]);
     let forward = joyGetAxis(0, 1);
-    swc1(g::view_campos, lwc1(g::view_campos) + lwc1(g::view_camdir) * forward);
+    swc1(g::view_campos, ps2float::add(lwc1(g::view_campos), ps2float::mul(lwc1(g::view_camdir), forward)));
     let forward = joyGetAxis(0, 1);
     let dz = lwc1(direction + 8);
-    swc1(position + 8, lwc1(position + 8) + dz * forward);
+    swc1(position + 8, ps2float::add(lwc1(position + 8), ps2float::mul(dz, forward)));
     if (buttons & 64) != 0 {
-        swc1(position + 4, lwc1(position + 4) + lwc1(0x3ac814));
+        swc1(position + 4, ps2float::add(lwc1(position + 4), lwc1(0x3ac814)));
     }
     if (buttons & 16) != 0 {
-        swc1(position + 4, lwc1(position + 4) - lwc1(0x3ac818));
+        swc1(position + 4, ps2float::sub(lwc1(position + 4), lwc1(0x3ac818)));
     }
     let dy = lwc1(direction + 4);
-    let target_z = lwc1(position + 8) + dz;
+    let target_z = ps2float::add(lwc1(position + 8), dz);
     let matrix = lw(g::viewmatrix);
-    let target_x = lwc1(g::view_campos) + lwc1(g::view_camdir);
-    swc1(sp + 4, lwc1(position + 4) + dy);
+    let target_x = ps2float::add(lwc1(g::view_campos), lwc1(g::view_camdir));
+    swc1(sp + 4, ps2float::add(lwc1(position + 4), dy));
     swc1(sp + 8, target_z);
     swc1(sp, target_x);
     matrixLookAt(matrix, position, sp, sp + 16);

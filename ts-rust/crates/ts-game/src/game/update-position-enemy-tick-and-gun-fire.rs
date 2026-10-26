@@ -42,27 +42,27 @@ pub fn updatePos(a0: i32) {
                                 break 'b2;
                             }
                             let y = lwc1(a0 + 52);
-                            let dx = lwc1(mind + 2796) - lwc1(a0 + 48);
+                            let dx = ps2float::sub(lwc1(mind + 2796), lwc1(a0 + 48));
                             let z = lwc1(a0 + 56);
                             let lift = lwc1(0x3ad810);
                             swc1(sp + 96, dx);
-                            let dy = lwc1(mind + 2800) + lift - y;
+                            let dy = ps2float::sub(ps2float::add(lwc1(mind + 2800), lift), y);
                             swc1(sp + 100, dy);
-                            let dz = lwc1(mind + 2804) - z;
+                            let dz = ps2float::sub(lwc1(mind + 2804), z);
                             swc1(sp + 104, dz);
                             let vx = lwc1(sp + 64);
                             let vy = lwc1(sp + 68);
                             let vz = lwc1(sp + 72);
-                            let mut scale = ps2float::mul(ps2float::div(1.0_f32, ps2float::sqrt(dx * dx + dy * dy + dz * dz)), ps2float::sqrt(vx * vx + vy * vy + vz * vz));
+                            let mut scale = ps2float::mul(ps2float::div(1.0_f32, ps2float::sqrt(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)))), ps2float::sqrt(ps2float::add(ps2float::add(ps2float::mul(vx, vx), ps2float::mul(vy, vy)), ps2float::mul(vz, vz))));
                             let step_x = lwc1(sp + 96);
                             if scale < lwc1(0x3ad814) {
                                 scale = 0.0_f32;
                             }
-                            let move_x = step_x * scale;
-                            let move_z = lwc1(sp + 104) * scale;
-                            let new_y = lwc1(a0 + 52) + lwc1(sp + 100) * scale;
-                            let new_z = lwc1(a0 + 56) + move_z;
-                            swc1(a0 + 48, lwc1(a0 + 48) + move_x);
+                            let move_x = ps2float::mul(step_x, scale);
+                            let move_z = ps2float::mul(lwc1(sp + 104), scale);
+                            let new_y = ps2float::add(lwc1(a0 + 52), ps2float::mul(lwc1(sp + 100), scale));
+                            let new_z = ps2float::add(lwc1(a0 + 56), move_z);
+                            swc1(a0 + 48, ps2float::add(lwc1(a0 + 48), move_x));
                             swc1(a0 + 52, new_y);
                             swc1(a0 + 56, new_z);
                             swc1(mind + 0x1198, new_y);
@@ -79,13 +79,13 @@ pub fn updatePos(a0: i32) {
                 }
                 let after;
                 'b9: {
-                    let turn = (lwc1(a0 + 76) * lwc1(0x3ad7fc)).pdiv(1.8e+02_f32);
+                    let turn = ps2float::mul(lwc1(a0 + 76), lwc1(0x3ad7fc)).pdiv(1.8e+02_f32);
                     matrixRotY(sp, turn);
                     matrixVecRotAligned(&[sp as i64, (sp + 64) as i64]);
                     let data_now = lw(a0 + 32);
-                    let z = lwc1(a0 + 56) + lwc1(sp + 72);
+                    let z = ps2float::add(lwc1(a0 + 56), lwc1(sp + 72));
                     let animation = lw(data_now + 96) - 566;
-                    swc1(sp + 80, lwc1(a0 + 48) + lwc1(sp + 64));
+                    swc1(sp + 80, ps2float::add(lwc1(a0 + 48), lwc1(sp + 64)));
                     swc1(sp + 88, z);
                     if (animation as u32) >= (41 as u32) {
                         swc1(sp + 84, lwc1(mind + 0x1198));
@@ -93,13 +93,13 @@ pub fn updatePos(a0: i32) {
                         let mut y = lwc1(a0 + 52);
                         let floor = lwc1(mind + 0x1198);
                         let mut rise = lwc1(sp + 68);
-                        if (y - 1.0_f32) < floor {
-                            let low = floor - lwc1(0x3ad800);
+                        if ps2float::sub(y, 1.0_f32) < floor {
+                            let low = ps2float::sub(floor, lwc1(0x3ad800));
                             swc1(a0 + 52, low);
                             y = low;
                             rise = lwc1(sp + 68);
                         }
-                        let target = y + rise;
+                        let target = ps2float::add(y, rise);
                         swc1(sp + 84, target);
                         let floor = lwc1(mind + 0x1198);
                         if !(target < floor) {
@@ -127,13 +127,13 @@ pub fn updatePos(a0: i32) {
                         let result = moveTestDoSlide(number, at, sp + 80, 0, 1, lwc1(0x3ad804), lwc1(player + 132));
                         mind_flags = lw(mind + 2704);
                         if (result & 1) == 0 {
-                            if lwc1(0x3ad808) < lwc1(mind + 2956) - lwc1(mind + 0x1198) {
+                            if lwc1(0x3ad808) < ps2float::sub(lwc1(mind + 2956), lwc1(mind + 0x1198)) {
                                 x_now = lwc1(sp + 80);
                                 if (mind_flags & 0x2000) != 0 {
                                     break 'b14;
                                 }
                                 'b16: {
-                                    let y = lwc1(a0 + 52) - lwc1(0x3ad80c);
+                                    let y = ps2float::sub(lwc1(a0 + 52), lwc1(0x3ad80c));
                                     let z = lwc1(sp + 88);
                                     let flags = lw(mind + 2708) | 0x1000;
                                     swc1(a0 + 48, lwc1(sp + 80));
@@ -141,7 +141,7 @@ pub fn updatePos(a0: i32) {
                                     swc1(a0 + 56, z);
                                     sw(mind + 2708, flags);
                                     setAnim(a0, 469, 0.25_f32, 1.0_f32);
-                                    if !(7.0_f32 < lwc1(mind + 2956) - lwc1(mind + 0x1198)) {
+                                    if !(7.0_f32 < ps2float::sub(lwc1(mind + 2956), lwc1(mind + 0x1198))) {
                                         sw(mind + 2864, 0);
                                     } else {
                                         let hard = lw(mind + 2708) & 32;
@@ -179,7 +179,7 @@ pub fn updatePos(a0: i32) {
             enemySetRoom(a0, room_flag);
         } else {
             let lowest = lwc1(0x3ad7f0);
-            let speed = lwc1(mind + 2864) - lwc1(g::updateframesf) * lwc1(0x3ad7ec);
+            let speed = ps2float::sub(lwc1(mind + 2864), ps2float::mul(lwc1(g::updateframesf), lwc1(0x3ad7ec)));
             swc1(mind + 2864, speed);
             if speed < lowest {
                 swc1(mind + 2864, lowest);
@@ -201,7 +201,7 @@ pub fn updatePos(a0: i32) {
                     let product = dpmul(product, frames);
                     let down = dpdiv(product, 0x404e000000000000_i64);
                     let down = dptofp(down);
-                    let turn = (lwc1(a0 + 76) * lwc1(0x3ad7f4)).pdiv(1.8e+02_f32);
+                    let turn = ps2float::mul(lwc1(a0 + 76), lwc1(0x3ad7f4)).pdiv(1.8e+02_f32);
                     swc1(sp + 72, down);
                     matrixRotY(sp, turn);
                     matrixVecRotAligned(&[sp as i64, (sp + 64) as i64]);
@@ -209,12 +209,12 @@ pub fn updatePos(a0: i32) {
                     let frames = lwc1(g::updateframesf);
                     let z = lwc1(a0 + 56);
                     let fall = lwc1(sp + 72);
-                    swc1(sp + 80, lwc1(a0 + 48) + lwc1(sp + 64));
+                    swc1(sp + 80, ps2float::add(lwc1(a0 + 48), lwc1(sp + 64)));
                     let player = lw(g::currentplayer);
                     let radius = lwc1(0x3ad7f8);
-                    let drop = lwc1(mind + 2864) * frames;
-                    swc1(sp + 88, z + fall);
-                    swc1(sp + 84, y + drop);
+                    let drop = ps2float::mul(lwc1(mind + 2864), frames);
+                    swc1(sp + 88, ps2float::add(z, fall));
+                    swc1(sp + 84, ps2float::add(y, drop));
                     let result = moveTestDoSlide(number, at, sp + 80, 0, 1, radius, lwc1(player + 132));
                     if (result & 1) == 0 {
                         if curAnim(a0, 469) != 0 {
@@ -270,11 +270,11 @@ pub fn updatePos(a0: i32) {
                     if !(speed < 0.0_f32) {
                         return;
                     }
-                    let faster = speed + lwc1(mind + 2868);
+                    let faster = ps2float::add(speed, lwc1(mind + 2868));
                     reached = 0.0_f32 < faster;
                     swc1(mind + 2876, faster);
                 } else {
-                    let slower = speed - lwc1(mind + 2868);
+                    let slower = ps2float::sub(speed, lwc1(mind + 2868));
                     reached = slower < 0.0_f32;
                     swc1(mind + 2876, slower);
                 }
@@ -286,7 +286,7 @@ pub fn updatePos(a0: i32) {
             let top = if (flags & 16) == 0 { lwc1(mind + 2856) } else { lwc1(mind + 2860) };
             swc1(mind + 2872, top);
             let top = lwc1(mind + 2872);
-            let slower = lwc1(mind + 2876) - lwc1(mind + 2868);
+            let slower = ps2float::sub(lwc1(mind + 2876), lwc1(mind + 2868));
             swc1(mind + 2876, slower);
             if top < slower {
                 swc1(mind + 2876, top);
@@ -300,7 +300,7 @@ pub fn updatePos(a0: i32) {
         let top;
         let mut speed;
         if (flags & 2) == 0 {
-            let moved = lwc1(mind + 2876) + lwc1(mind + 2868);
+            let moved = ps2float::add(lwc1(mind + 2876), lwc1(mind + 2868));
             speed = moved;
             swc1(mind + 2876, moved);
             top = lwc1(mind + 2872);
@@ -310,7 +310,7 @@ pub fn updatePos(a0: i32) {
                 if !(speed < 0.0_f32) {
                     top = lwc1(mind + 2872);
                 } else {
-                    let faster = speed + lwc1(mind + 2868);
+                    let faster = ps2float::add(speed, lwc1(mind + 2868));
                     let reached = 0.0_f32 < faster;
                     swc1(mind + 2876, faster);
                     speed = 0.0_f32;
@@ -322,7 +322,7 @@ pub fn updatePos(a0: i32) {
                     top = lwc1(mind + 2872);
                 }
             } else {
-                let slower = speed - lwc1(mind + 2868);
+                let slower = ps2float::sub(speed, lwc1(mind + 2868));
                 let reached = slower < 0.0_f32;
                 swc1(mind + 2876, slower);
                 speed = 0.0_f32;
@@ -336,7 +336,7 @@ pub fn updatePos(a0: i32) {
         } else {
             let side = checkSide(a0, mind + 2820, 0.0_f32);
             let current = lwc1(mind + 2876);
-            let moved = if side != 0 { current - lwc1(mind + 2868) } else { current + lwc1(mind + 2868) };
+            let moved = if side != 0 { ps2float::sub(current, lwc1(mind + 2868)) } else { ps2float::add(current, lwc1(mind + 2868)) };
             speed = moved;
             swc1(mind + 2876, moved);
             top = lwc1(mind + 2872);
@@ -372,23 +372,23 @@ pub fn enemyTick(a0: i32) {
     let step = (lwc1(g::updateframesf)).pdiv(6e+01_f32);
     let f4 = lwc1(mind + 2952);
     let f5 = lwc1(mind + 2948);
-    let f2 = lwc1(mind + 2896) + step;
-    let f0 = lwc1(mind + 2908) + step;
-    let f3 = lwc1(mind + 2912) + step;
-    swc1(mind + 2892, lwc1(mind + 2892) + step);
+    let f2 = ps2float::add(lwc1(mind + 2896), step);
+    let f0 = ps2float::add(lwc1(mind + 2908), step);
+    let f3 = ps2float::add(lwc1(mind + 2912), step);
+    swc1(mind + 2892, ps2float::add(lwc1(mind + 2892), step));
     swc1(mind + 2896, f2);
     swc1(mind + 2908, f0);
     swc1(mind + 2912, f3);
-    swc1(mind + 2952, f4 + step);
-    swc1(mind + 2948, f5 + step);
+    swc1(mind + 2952, ps2float::add(f4, step));
+    swc1(mind + 2948, ps2float::add(f5, step));
     if state != 0x2000 {
         if state != 0x20000 {
-            swc1(mind + 2904, lwc1(mind + 2904) + step);
+            swc1(mind + 2904, ps2float::add(lwc1(mind + 2904), step));
         }
     }
     let frames = lwc1(g::updateframesf);
     if state != 16 {
-        StatsAdd(65, lw(mind), frames * lwc1(0x3ad7e8));
+        StatsAdd(65, lw(mind), ps2float::mul(frames, lwc1(0x3ad7e8)));
     }
     let hold = lw(mind + 0x11a4);
     if hold != 0 {
@@ -413,7 +413,7 @@ pub fn enemyTick(a0: i32) {
                 if (flags_a & 2) != 0 {
                     if (flags_b & 16) == 0 {
                         let set = flags_b | 16;
-                        if (1.0_f32 - lwc1(mind + 2832)) < lwc1(mind + 2952) {
+                        if ps2float::sub(1.0_f32, lwc1(mind + 2832)) < lwc1(mind + 2952) {
                             sw(mind + 2952, 0);
                             sw(mind + 2708, set);
                         }
@@ -421,7 +421,7 @@ pub fn enemyTick(a0: i32) {
                     break 'b8;
                 }
                 if (flags_b & 16) != 0 {
-                    if (lwc1(mind + 2832) * 5.0_f32) < lwc1(mind + 2952) {
+                    if ps2float::mul(lwc1(mind + 2832), 5.0_f32) < lwc1(mind + 2952) {
                         sw(mind + 2952, 0);
                         sw(mind + 2708, flags_b & -17);
                     }
@@ -685,7 +685,7 @@ pub fn gunFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32, a7
             if lw(sp) == 0 {
                 limit = lwc1(0x3ad330);
             }
-            let charge = lwc1(bullet + 72) + (((lw(a2 + 152) as f32)).pdiv(6e+01_f32) - lwc1(0x3ad334));
+            let charge = ps2float::add(lwc1(bullet + 72), ps2float::sub(((lw(a2 + 152) as f32)).pdiv(6e+01_f32), lwc1(0x3ad334)));
             swc1(bullet + 72, charge);
             if limit <= charge {
                 sw(bullet + 48, 0);
@@ -768,7 +768,7 @@ pub fn gunFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32, a7
                 swc1(bullet + 20, height);
                 swc1(bullet + 12, width);
                 let z = lwc1(a1 + 80);
-                let turn = lwc1(a0 + 76) + 1.8e+02_f32;
+                let turn = ps2float::add(lwc1(a0 + 76), 1.8e+02_f32);
                 let x = lwc1(a1 + 72);
                 let y = lwc1(a1 + 76);
                 let prop = propNew(223, x, y, z, turn);
@@ -927,9 +927,9 @@ pub fn gunFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32, a7
                 sw(prop + 16, flags);
                 let random = random_as_float();
                 sw(bullet + 64, 0);
-                swc1(bullet + 60, (random * 2.3283064e-10_f32 - 0.5_f32) * 7e+01_f32);
+                swc1(bullet + 60, ps2float::mul(ps2float::sub(ps2float::mul(random, 2.3283064e-10_f32), 0.5_f32), 7e+01_f32));
                 let random = random_as_float();
-                swc1(bullet + 68, (random * 2.3283064e-10_f32 - 0.5_f32) * 7e+01_f32);
+                swc1(bullet + 68, ps2float::mul(ps2float::sub(ps2float::mul(random, 2.3283064e-10_f32), 0.5_f32), 7e+01_f32));
             }
             _ => {
                 // kind 19
@@ -947,11 +947,11 @@ pub fn gunFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32, a7
                 sw(prop + 16, flags | 0x40000000);
                 let random = random_as_float();
                 sw(bullet + 64, 0);
-                swc1(bullet + 60, (random * 2.3283064e-10_f32 - 0.5_f32) * 7e+01_f32);
+                swc1(bullet + 60, ps2float::mul(ps2float::sub(ps2float::mul(random, 2.3283064e-10_f32), 0.5_f32), 7e+01_f32));
                 let random = random_as_float();
-                swc1(bullet + 68, (random * 2.3283064e-10_f32 - 0.5_f32) * 7e+01_f32);
+                swc1(bullet + 68, ps2float::mul(ps2float::sub(ps2float::mul(random, 2.3283064e-10_f32), 0.5_f32), 7e+01_f32));
                 let height = lwc1(bullet + 52);
-                let raised = if lw(sp) != 0 { height + lwc1(0x3ad380) } else { height + lwc1(0x3ad37c) };
+                let raised = if lw(sp) != 0 { ps2float::add(height, lwc1(0x3ad380)) } else { ps2float::add(height, lwc1(0x3ad37c)) };
                 swc1(bullet + 52, raised);
             }
         }

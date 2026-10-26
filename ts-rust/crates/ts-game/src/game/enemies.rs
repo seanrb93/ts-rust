@@ -158,10 +158,10 @@ pub fn closestpadinlist(pos: i32, count: i32, list: i32) -> i32 {
     for i in 0..count.max(0) {
         let pad = lw(list + 4 * i);
         let at = pad * 28 + lw(g::levelpads);
-        let dx = lwc1(at + 12) - lwc1(pos);
-        let dy = lwc1(at + 16) - lwc1(pos + 4);
-        let dz = lwc1(at + 20) - lwc1(pos + 8);
-        let dist = (dx * dx + dy * dy + dz * dz).abs().psqrt();
+        let dx = ps2float::sub(lwc1(at + 12), lwc1(pos));
+        let dy = ps2float::sub(lwc1(at + 16), lwc1(pos + 4));
+        let dz = ps2float::sub(lwc1(at + 20), lwc1(pos + 8));
+        let dist = ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt();
         if dist < best_dist {
             best_dist = dist;
             best = pad;
