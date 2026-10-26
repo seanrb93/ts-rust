@@ -25,6 +25,10 @@ fn play_unless_playing(chr: i32, anim: i32, blend: f32) {
     }
 }
 
+/// The fifth argument of `curAnimBases` (the animation to look for when the first is in none of the families) that the original never sets: the register it comes from holds whatever the
+/// callers left in it (a value that is no animation), so no animation matches.  Passing 0 would match an empty second slot.
+const STALE_T0: i32 = 0x7000_0000;
+
 /// The animation of a character that stands still (the end of the standing logic): when it was fired at it may flinch (animation 463, or 462 / 464 / 460 by the weapon it
 /// holds); otherwise it takes the idle animation 3, or the aiming one 113 when it aims (a different blend when it has bases).
 fn idle_animation(a0: i32, mind: i32, blend: f32, flinch_chance: f32, aim_blend: f32) {
@@ -51,7 +55,7 @@ fn idle_animation(a0: i32, mind: i32, blend: f32, flinch_chance: f32, aim_blend:
         return;
     }
     if (lw(mind + 2716) & 0x80000) != 0 {
-        if curAnimBases(a0, 113, 0, 0, 0) == 0 {
+        if curAnimBases(a0, 113, 0, 0, STALE_T0) == 0 {
             setAnim(a0, 113, aim_blend, 1.0_f32);
             return;
         }
@@ -291,8 +295,8 @@ pub fn setAnimation(a0: i32) {
             break 'choice;
         }
         if (lw(mind + 2716) & 0x80000) != 0 {
-            if curAnimBases(a0, 113, 0, 0, 0) == 0 {
-                setAnim(a0, 113, lwc1(0x3ad83c), 1.0_f32);
+            if curAnimBases(a0, 113, 0, 0, STALE_T0) == 0 {
+                setAnim(a0, 113, lwc1(0x3ad82c), 1.0_f32);
                 break 'choice;
             }
         }

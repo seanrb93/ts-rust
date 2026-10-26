@@ -280,7 +280,7 @@ pub fn exec_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> 
             }
             if let Some(watch) = watch_pc {
                 if pc == watch {
-                    println!("  entered {pc:#x} from {:#x}: a0 {:#x} f12 {:#x}", cpu.r[31], cpu.r[4], cpu.f[12]);
+                    println!("  entered {pc:#x} from {:#x}: a0 {:#x} a1 {:#x} a2 {:#x} a3 {:#x} t0 {:#x} f12 {:#x}", cpu.r[31], cpu.r[4], cpu.r[5], cpu.r[6], cpu.r[7], cpu.r[8], cpu.f[12]);
                 }
             }
             if let Some(name) = ctx.externs.get(&pc) {
