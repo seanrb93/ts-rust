@@ -113,10 +113,11 @@ pub fn draw_menuitem(item: i32) {
         let low = lw(value + 4);
         let thumb = (((flags as u32) >> 6) as i32 ^ 1) & 1;
         let high = lw(value + 8) - low;
-        let x = lhu(item) as i32;
-        let y = lhu(item + 2) as i32 + 14;
+        let x = pane_x(lhu(item) as i32);
+        let y = pane_y(lhu(item + 2) as i32 + 14);
         let width = lw(value) - low;
         draw_slider(x, y, width, high, thumb);
+        slider_arrows_hook(item, x, y);
         return;
     }
     let dim = flags & 64;
@@ -127,11 +128,11 @@ pub fn draw_menuitem(item: i32) {
     sw(sp, text);
     let place;
     if (lhu(entry + 10) & 256) == 0 {
-        place = lw(value + 28);
+        place = value_place(lw(value + 28));
     } else {
         let font = textSelect(lw(g::menuitem_bigfont));
         sw(sp + 4, font);
-        place = lw(value + 28);
+        place = value_place(lw(value + 28));
     }
     let mut right = place;
     if place == 0 {
@@ -144,6 +145,7 @@ pub fn draw_menuitem(item: i32) {
             right = if lw(g::window + 12) >= 500 { x + 448 + window } else { x + 320 + window };
         }
     }
+    let right = weapons_set_shift(value, right);
     let window = g::window;
     let line = right;
     let y = lw(window + 20) + lhu(item + 2) as i32;

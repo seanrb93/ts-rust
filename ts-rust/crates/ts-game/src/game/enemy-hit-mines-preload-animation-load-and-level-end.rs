@@ -476,8 +476,11 @@ pub fn specialfxIsSpace(a0: i32, a1: i32, a2: i32) -> i32 {
 /// The tick of the confirm end game page: the button 64 on the first item leaves the player's menu, on the second ends the game for everyone (the level is completed with the
 /// flag 0x20000000); otherwise the menu ticks and its items are made (@ 0x20fa70).
 pub fn confirmendgame_pageTick(a0: i32) {
+    if av_confirm_pressed_x(a0) {
+        return;
+    }
     if (joyNewBut(lw(lw(g::currentplayer))) & 64) == 0 {
-        let menu = g::confirmendgame_menu;
+        let menu = av_confirm_table_or(a0, g::confirmendgame_menu);
         ingame_menutick(a0, menu);
         let made = std_menumake(lw(a0 + 8), menu);
         sw(a0 + 12, lw(a0 + 12) + made);

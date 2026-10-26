@@ -114,6 +114,7 @@ pub fn statsupdate_pageDraw(a0: i32) {
 
 /// Take the page out of the stack of pages of the menu `a0`: it is recorded at `a1`, the sound 142 plays and the depth drops (@ 0x20e1e8).
 pub fn outPage(a0: i32, a1: i32) {
+    av_page_out_hook();
     let menu = a0 * 92 + 0x1fb3240;
     sw(menu + (lhu(menu + 4) << 2) + 52, a1);
     soundStart(142, 0);
@@ -198,6 +199,9 @@ pub fn exitmapmaker() {
 
 /// Put the page `a1` into the stack of pages of the menu `a0`: it is recorded, the sound 140 plays and the depth rises (@ 0x20e190).
 pub fn inPage(a0: i32, a1: i32) {
+    if av_in_page_x(a0, a1) {
+        return;
+    }
     let menu = a0 * 92 + 0x1fb3240;
     sw(menu + (lhu(menu + 4) << 2) + 52, a1);
     soundStart(140, 0);
@@ -206,7 +210,7 @@ pub fn inPage(a0: i32, a1: i32) {
 
 /// The tick of the main set-up page: the in-game menu ticks with the main set-up menu, and the count of items grows by the items made (@ 0x210fc8).
 pub fn mainsetup_pageTick(a0: i32) {
-    let menu = g::mainsetup_menu;
+    let menu = av_mainsetup_menu_or(g::mainsetup_menu);
     ingame_menutick(a0, menu);
     let made = std_menumake(lw(a0 + 8), menu);
     sw(a0 + 12, lw(a0 + 12) + made);

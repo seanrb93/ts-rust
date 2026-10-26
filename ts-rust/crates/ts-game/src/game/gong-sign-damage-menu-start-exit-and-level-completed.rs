@@ -34,6 +34,7 @@ pub fn pubsignDamage(a0: i32, _a1: i32, _a2: i32, _a3: i32, _a4: i32, a5: i32, f
 
 /// Take the page out of the stack of pages of the front end: the acting sounds of the four players stop and the previous page comes back, or the stack is empty (@ 0x230148).
 pub fn pageOut() {
+    av_page_out_hook();
     let mut player = 0;
     let mut depth;
     loop {

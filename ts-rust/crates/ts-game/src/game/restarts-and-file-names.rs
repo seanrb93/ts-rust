@@ -70,5 +70,5 @@ pub fn debugmenuTick() {
 pub fn frontPageSet(page: i32, number: i32) {
     let front = lw(g::front);
     sw(front + 28, page);
-    sw(front + 24, number);
+    sw(front + 24, av_front_page_or(number));
 }

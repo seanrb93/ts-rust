@@ -250,6 +250,9 @@ pub fn enemyAwake(a0: i32) {
 /// The tick of the number of players page: the pads are scanned; the count of players is limited by the pads present and the items for more than that are dimmed; the buttons
 /// 64 and 2112 choose the count and go on to the sign-on page; otherwise the menu ticks (@ 0x23fd70).
 pub fn nplayers_pageTick(a0: i32) {
+    if av_nplayers_exit_x(a0) {
+        return;
+    }
     let ports = joyUpdatePorts();
     frontfxTick(1);
     pageRoot();

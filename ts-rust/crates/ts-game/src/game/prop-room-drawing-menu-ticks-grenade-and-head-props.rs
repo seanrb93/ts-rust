@@ -107,17 +107,28 @@ pub fn bulletProcessGlasshits(a0: i32, a1: i32) {
 /// (@ 0x2364c8).
 pub fn audiovideo_pageTick(a0: i32) {
     let language = (lw(g::cur_language) << 2) + g::languages;
-    sw(((lw(0x3aff2c) - 1) << 3) + 0x1fc1308, 0);
-    pageSet(lw(lw(language) + 480), g::audiovideo_page);
-    frontfxTick(0);
+    if !av_ingame_x() {
+        sw(((lw(0x3aff2c) - 1) << 3) + 0x1fc1308, 0);
+    }
+    let title = av_title_or(a0, lw(lw(language) + 480));
+    if !av_ingame_x() {
+        pageSet(title, g::audiovideo_page);
+    }
+    if !av_ingame_x() {
+        frontfxTick(0);
+    }
     let items = g::i04b00;
     let music = if lw(g::gv_playmusic) == 0 { lhu(items + 42) | 0x4040 } else { lhu(items + 42) & 0xbfbf };
     sh(items + 42, music);
     let items = g::i04b00;
     let sound = if lw(g::gv_playsound) == 0 { lhu(items + 106) | 0x4040 } else { lhu(items + 106) & 0xbfbf };
     sh(items + 106, sound);
-    let menu = g::audiovideo_menu;
-    menutick_230238(a0, menu);
+    let menu = av_menu_or(a0, g::audiovideo_menu);
+    if av_ingame_x() {
+        ingame_menutick(a0, menu);
+    } else {
+        menutick_230238(a0, menu);
+    }
     let made = std_menumake(lw(a0 + 8), menu);
     sw(a0 + 12, made);
 }

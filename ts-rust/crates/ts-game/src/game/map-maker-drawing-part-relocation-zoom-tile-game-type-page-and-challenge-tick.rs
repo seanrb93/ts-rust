@@ -260,7 +260,7 @@ pub fn gametype_pageTick(a0: i32) {
         sh(items + 74, cleared74 | 64);
     }
     let page_item;
-    if players < 3 {
+    if players < story_players() {
         page_item = lhu(a0 + 4);
     } else {
         sh(items + 10, lhu(items + 10) | 64);
@@ -270,7 +270,7 @@ pub fn gametype_pageTick(a0: i32) {
         let language = lw(g::cur_language);
         let mut skip = false;
         if !(page_item < 4) {
-            if page_item >= 7 {
+            if gt_item_far(page_item) {
                 skip = true;
             } else if page_item < 5 {
                 skip = true;
@@ -287,15 +287,15 @@ pub fn gametype_pageTick(a0: i32) {
             sh(a0 + 4, 2);
         }
         let flags = lhu(items + 74);
-        sh(items + 38, 70);
-        sh(items + 6, 50);
+        sh(items + 38, gt_y(70));
+        sh(items + 6, gt_y(50));
         sh(items + 74, flags | 0x4200);
     } else {
         let flags = lhu(items + 74);
-        sh(items + 6, 40);
-        sh(items + 70, 80);
+        sh(items + 6, gt_y(40));
+        sh(items + 70, gt_y(80));
         sh(items + 74, flags & 0xbdff);
-        sh(items + 38, 60);
+        sh(items + 38, gt_y(60));
     }
     let level = levelAvail(105);
     let language = lw(g::cur_language);
@@ -342,7 +342,10 @@ pub fn gametype_pageTick(a0: i32) {
         pageOut();
         joyClearAll(0);
     }
-    let menu = g::gamemode_menu;
+    if av_gametype_exit_x(a0) {
+        return;
+    }
+    let menu = av_gamemode_menu_or(g::gamemode_menu);
     menutick_230238(a0, menu);
     let made = std_menumake(lw(a0 + 8), menu);
     sw(a0 + 12, made);

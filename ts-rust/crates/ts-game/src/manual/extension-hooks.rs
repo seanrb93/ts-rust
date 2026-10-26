@@ -190,3 +190,289 @@ pub fn dynamite_roll(v: f32, left: i32, gun: i32) -> f32 {
         v
     }
 }
+
+// ---- the Audio / Video Options page, the pause menu and the front end pages (`avmenu.rs`) -----------------------------------------------
+
+/// The Game Options page is shown inside a level (the pause menu).
+#[inline]
+pub fn av_ingame_x() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        av_ingame()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}
+
+/// The menu table of the Audio / Video Options page: the port's own (graphics settings added, screen position removed) or the game's (`own`).
+#[inline]
+pub fn av_menu_or(page: i32, own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        av_menu(page)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = page;
+        own
+    }
+}
+
+/// The title of the Audio / Video Options page.
+#[inline]
+pub fn av_title_or(page: i32, title: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        av_title(page, title)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = page;
+        title
+    }
+}
+
+/// The title of a page of the pause menu.
+#[inline]
+pub fn av_pause_title_or(page: i32, title: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        av_pause_title(page, title)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = page;
+        title
+    }
+}
+
+/// The page the front end goes to.
+#[inline]
+pub fn av_front_page_or(page: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        av_front_page(page)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        page
+    }
+}
+
+/// The triangle button on the page of the number of players asks whether to exit the game: true when it was dealt with.
+#[inline]
+pub fn av_nplayers_exit_x(page: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        av_nplayers_exit(page)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = page;
+        false
+    }
+}
+
+/// Choosing Exit Game asks in the question box instead of opening a page: true when it was dealt with.
+#[inline]
+pub fn av_gametype_exit_x(page: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        av_gametype_exit(page)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = page;
+        false
+    }
+}
+
+/// The menu of the end game confirmation page.
+#[inline]
+pub fn av_confirm_table_or(page: i32, own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        av_confirm_table(page)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = page;
+        own
+    }
+}
+
+/// The end game page's press was dealt with by the exit confirmation.
+#[inline]
+pub fn av_confirm_pressed_x(page: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        av_confirm_pressed(page)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = page;
+        false
+    }
+}
+
+/// The menu of the SETUP page.
+#[inline]
+pub fn av_mainsetup_menu_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        av_mainsetup_menu()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// The menu of the game type page.
+#[inline]
+pub fn av_gamemode_menu_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        av_gamemode_menu()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// Going into a page of the pause menu was dealt with.
+#[inline]
+pub fn av_in_page_x(player: i32, page: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        av_in_page(player, page)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = player;
+        let _ = page;
+        false
+    }
+}
+
+/// A page is left (`pageOut`, `outPage`): the page of the pause menu that was opened in the port's own way is closed.
+#[inline]
+pub fn av_page_out_hook() {
+    #[cfg(feature = "extensions")]
+    av_page_out();
+}
+
+/// The number of players that STORY is open to (the console game: one or two; the port: up to four).
+#[inline]
+pub fn story_players() -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        5
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        3
+    }
+}
+
+/// STORY, ARCADE and CHALLENGE sit 14 higher on the game type page (the page has room above them).
+#[inline]
+pub fn gt_y(y: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        y - 14
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        y
+    }
+}
+
+/// An item of the game type page from 7 up that has no text of its own (the port's rows 9 to 12 have).
+#[inline]
+pub fn gt_item_far(item: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        item >= 7 && !(9..=12).contains(&item)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        item >= 7
+    }
+}
+
+// ---- the item drawing --------------------------------------------------------------------------------------------------------------
+
+/// The arrows beside the bar of a slider while the cursor is on it.
+#[inline]
+pub fn slider_arrows_hook(item: i32, x: i32, y: i32) {
+    #[cfg(feature = "extensions")]
+    slider_arrows(item, x, y);
+    #[cfg(not(feature = "extensions"))]
+    let _ = (item, x, y);
+}
+
+/// The slider's bar is drawn from the corner of the pane the page is in (not from the screen's corner: in the second and later panes of a split
+/// screen it was not seen).
+#[inline]
+pub fn pane_x(x: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        lw(g::window) + x
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        x
+    }
+}
+
+/// As `pane_x`, for the height.
+#[inline]
+pub fn pane_y(y: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        lw(g::window + 20) + y
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        y
+    }
+}
+
+/// A value of a menu item that has a place of its own is placed from the corner of the pane too.
+#[inline]
+pub fn value_place(place: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        if place != 0 {
+            place + lw(g::window)
+        } else {
+            0
+        }
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        place
+    }
+}
+
+/// The value and the arrows of the weapon set on the weapon page follow the box of the selected weapons to the right.
+#[inline]
+pub fn weapons_set_shift(value: i32, right: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        if value == g::gv_weaponset && weapons_page_active() {
+            right + 24
+        } else {
+            right
+        }
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = value;
+        right
+    }
+}

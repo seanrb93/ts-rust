@@ -305,6 +305,7 @@ pub fn topmenuGfx(menu: i32) {
     if lh(record + 2) == 0 && (lw(record + 8) & 0x400008) == 0x400008 {
         title = lw(texts + 0x1050);
     }
+    let title = av_pause_title_or(lw(record + (lhu(record + 4) << 2) + 12), title);
     let width = textWidth(title);
     let top = lw(g::window + 20);
     let spare = lw(g::window + 12) - width;
