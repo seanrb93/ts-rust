@@ -670,9 +670,9 @@ pub fn calMatrices(a0: i32) {
                 let f2_15 = lwc1(sp + 420);
                 let a0_40 = a0_39 + s0_7;
                 let f3_15 = lwc1(sp + 424);
-                swc1(sp + 416, lwc1(sp + 416) + lwc1(v0_24 + 48));
-                swc1(sp + 420, f2_15 + lwc1(v0_24 + 52));
-                swc1(sp + 424, f3_15 + lwc1(v0_24 + 56));
+                swc1(sp + 416, ps2float::add(lwc1(sp + 416), lwc1(v0_24 + 48)));
+                swc1(sp + 420, ps2float::add(f2_15, lwc1(v0_24 + 52)));
+                swc1(sp + 424, ps2float::add(f3_15, lwc1(v0_24 + 56)));
                 sceVu0CopyMatrix(a0_40, sp + 368);
                 if lw(lw(a0 + 92) + 20) < s3_4 {
                     break 'b49;
