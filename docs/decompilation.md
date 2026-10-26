@@ -92,7 +92,7 @@ makes `exit` panic with "trap:" instead of ending the process), so the functions
 the signalling forms of the FPU compares and `__divdi3`; and in the small-number pass a run in which the original writes round past the end of RAM (and so over its own code) is left
 out like a timeout.  `TS_VERIFY_FROM=n` starts a run at test number `n` (to find a failing test).  Not machine-verified for their own reasons: `memReset` (it clears a buffer the size of
 which is empty in the test memory), `profileTimeGet` and `timeTickEnd` (they return the port's clock), and the functions that call `vafmt`/`vsprintf` or a function pointer
-(`challengeFormatScore`, `gameFormatTime`, `menuitemGfx`, `menuitemCalcSize`, `hudRestart`, `obFreeTextures`, `hudReset`).
+(`challengeFormatScore`, `gameFormatTime`, `menuitemGfx`, `menuitemCalcSize`, `hudRestart`, `obFreeTextures`, `hudReset`).  `bgSmashGlass` fails its random test 4 for a reason that is not in the port: `particleNewGlass` writes zeros through the random pane data over the machine code of `soundStartRange` (words at 0x205638 and 0x205644), so the interpreter, which runs the code from memory, never queues the sound, while the port, which has no code in memory, does.
 
 ## Functions that were machine translated
 
