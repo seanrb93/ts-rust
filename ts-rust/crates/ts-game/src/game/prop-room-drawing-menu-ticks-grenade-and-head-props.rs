@@ -21,7 +21,9 @@ pub fn propGfxRoom(a0: i32, a1: i32) {
                     let window = g::window;
                     dlSetClip(lw(window), lw(window + 20), lw(window + 4), lw(window + 24));
                 }
+                let mirrored = punch_label_begin(prop);
                 obInstGfx(lw(prop + 32), a1);
+                punch_label_end(mirrored);
             }
             i += 1;
             if i >= lw(count_at + ROOM_PROP_COUNTS) {

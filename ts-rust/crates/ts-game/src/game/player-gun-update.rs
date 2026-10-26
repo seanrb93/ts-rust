@@ -165,6 +165,7 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
         let flags = lhu(inst + 292);
         sw((lw(s1_13) << 2) + 0x1fe99b0, 0);
         sw(a0 + 156, 1);
+        punch_swing_hook(lw(a0 + 12));
         sh(inst + 292, flags | 0x8000);
         obInstSetAnim(inst, anim, lwc1(0x3ad3cc));
         if lw(g::updateframesi) <= 0 {
@@ -207,6 +208,7 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
             swc1(sp + 224, ps2float::add(f4_5, ps2float::mul(ps2float::sub(lwc1(sp + 192), f4_5), 2.5_f32)));
             swc1(sp + 228, f5_5);
             swc1(sp + 232, f6_4);
+            punch_mirror_points_hook(lw(a0 + 12), s5_1, sp + 208, sp + 224);
             if lwc1(mind + 2920) == 0.0_f32 && lwc1(mind + 2924) == 0.0_f32 && lwc1(mind + 2928) == 0.0_f32 {
                 break 'b33;
             }
@@ -369,7 +371,9 @@ fn hold_gun(a0: i32, a1: i32, s3_1: i32, s4_1: i32, s7_1: i32) -> Option<i32> {
             let slot = ammo_kind << 2;
             if mode == 1 {
                 let less = (left_ammo < right_ammo) as i32;
-                if lw(s4_1 + slot + 272) > 0 {
+                if dual_no_clip(wanted) {
+                    fp = less;
+                } else if lw(s4_1 + slot + 272) > 0 {
                     if less != 0 {
                         fp = 1;
                     } else if lw(player + 600) != mode {
@@ -495,7 +499,7 @@ pub fn gunUpdate(a0: i32, a1: i32) {
             swc1(prop + 76, ps2float::sub(1.8e+02_f32, ps2float::mul(f0_3, f21_2)));
             prop = lw(a0 + 12);
             state = lw(a0);
-            swc1(prop + 88, ps2float::add(sway, -2.0_f32));
+            swc1(prop + 88, dynamite_roll(ps2float::add(sway, -2.0_f32), a1, gun));
         }
     }
     let mut result = Some(prop);
