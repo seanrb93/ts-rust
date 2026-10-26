@@ -373,7 +373,12 @@ impl Config {
 
     /// The renderer's share of the settings.
     pub fn render_settings(&self) -> ts_render::Settings {
-        ts_render::Settings { render_scale: self.render_scale, internal_height: self.internal_height, sharp: self.upscale_sharp, msaa: self.msaa, filter: self.filter, aniso: self.aniso, aspect: self.aspect, hud: self.hud }
+        // (without `extensions` the picture is the game's own 4:3 whatever the window's shape: no widescreen layout of the HUD and menus)
+        #[cfg(not(feature = "extensions"))]
+        let aspect = Some(4.0 / 3.0);
+        #[cfg(feature = "extensions")]
+        let aspect = self.aspect;
+        ts_render::Settings { render_scale: self.render_scale, internal_height: self.internal_height, sharp: self.upscale_sharp, msaa: self.msaa, filter: self.filter, aniso: self.aniso, aspect, hud: self.hud }
     }
 }
 

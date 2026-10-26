@@ -137,7 +137,10 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
         p.surface.configure(p.renderer.device(), &p.config);
     }
     let cfg = crate::config::get();
+    #[cfg(feature = "extensions")]
     ts_sdk::set_view(cfg.aspect.unwrap_or(size.width as f32 / size.height as f32), cfg.fov);
+    #[cfg(not(feature = "extensions"))]
+    ts_sdk::set_view(4.0 / 3.0, cfg.fov);
     if p.presents % 120 == 0 {
         p.monitor_hz = p.window.current_monitor().and_then(|m| m.refresh_rate_millihertz()).map(|m| m as f32 / 1000.0);
     }
