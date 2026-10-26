@@ -163,7 +163,7 @@ pub fn menuTick() {
                 menuEnd();
             }
         }
-        if (joyNewBut(lw(lw(g::currentplayer))) & 2048) != 0 {
+        if (joyNewBut(lw(lw(g::currentplayer))) & menu_back_buttons()) != 0 {
             menuEnd();
             return;
         }

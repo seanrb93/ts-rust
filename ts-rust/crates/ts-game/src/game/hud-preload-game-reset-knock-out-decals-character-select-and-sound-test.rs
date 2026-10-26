@@ -283,6 +283,9 @@ pub fn gmKnockOutTick() {
                 let random = newrnd();
                 let modulo = lw(0x3afeec);
                 if modulo == 0 {
+                    if no_bag_spawns() {
+                        return;
+                    }
                     trap("break");
                 }
                 let mut pick = ((random as i32 as u32) % (modulo as u32)) as i32;

@@ -38,6 +38,9 @@ pub fn findweapon(enemy: i32) {
                             if pad == 0 {
                                 enemySetMoveMode(enemy, 8);
                                 enemySetMoveMode(enemy, 512);
+                                if bot_idle_punch(record) {
+                                    return;
+                                }
                                 enemySetIdleAnimation(enemy);
                                 return;
                             }

@@ -104,6 +104,7 @@ pub fn reflectionsPropTick(prop: i32) {
 /// picture; "`" moves down half a line; a character above 127 is turned to the 7-bit one (or a capital's letter); the width of a character is the font's, or in the number fonts
 /// (flag 2) 6 for "/", 5 for "." and ":", else the font's number width (@ 0x202a88).
 pub fn textSize(width: i32, height: i32, text: i32) {
+    let text = button_text_or(text);
     let frame = Frame::new(64);
     let sp = frame.sp();
     let font = lw(g::curfont);

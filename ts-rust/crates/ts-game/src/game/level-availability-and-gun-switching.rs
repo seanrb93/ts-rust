@@ -31,6 +31,9 @@ pub fn levelAvail(level: i32) -> i32 {
 
 /// The set-up (the arcade modes and what they use) of level `level`, or 0 (@ 0x2279b8).
 pub fn lvGetARCADESetup(level: i32) -> i32 {
+    if let Some(setup) = custom_setup_x(level) {
+        return setup;
+    }
     let offset = level - 1;
     let mut setup = 0;
     if (offset as u32) < 105 {

@@ -566,6 +566,9 @@ pub fn bulletStraightLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) -> i3
 /// remaining move is projected along the wall and tried again (and once more along the direction of the second wall). For a player a move that ends close enough to
 /// where it started is cancelled and the floor the character stood on is kept.
 pub fn moveTestDoSlide(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, f12: f32, f13: f32) -> i32 {
+    if noclip_slide_x(a1, a2) {
+        return 0;
+    }
     let frame = Frame::new(352);
     let sp = frame.sp();
     let target_x = lwc1(a2);

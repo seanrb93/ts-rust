@@ -69,7 +69,7 @@ pub fn mcseqSlotMakeName(a0: i32) -> i32 {
     let word = text(1460);
     let length = strlen(word);
     sprintf(&[buffer as i64, 0x3ae8a0, text(1460) as i64]);
-    sb(length + 1 + buffer, port + 49);
+    slot_name_number(buffer, length, port);
     if slots >= 2 {
         sb(length + 2 + buffer, 45);
         sb(length + buffer + 3, (a0 & 3) + 65);

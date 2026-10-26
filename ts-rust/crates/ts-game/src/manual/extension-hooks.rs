@@ -676,3 +676,228 @@ pub fn mm_unlimited_x() -> bool {
         false
     }
 }
+
+// ---- the texts, the textures, the developer menu, the input, the bots, the big pool and the room tables ------------------------------
+
+/// The text with the names of the buttons for the device in use (the console's texts name the PlayStation controller's).
+#[inline]
+pub fn button_text_or(text: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        button_text(text)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        text
+    }
+}
+
+/// The name of a memory card slot (`mcseqSlotMakeName`) had the number of the slot after it ("SAVE SLOT 1"): the name alone now.  `buffer` holds
+/// the name and a space, `length` is the length of the name, `port` the number of the port.
+#[inline]
+pub fn slot_name_number(buffer: i32, length: i32, port: i32) {
+    #[cfg(feature = "extensions")]
+    {
+        let _ = port;
+        sb(length + buffer, 0);
+        sb(length + 1 + buffer, 0);
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = (buffer, length);
+        sb(length + 1 + buffer, port + 49);
+    }
+}
+
+/// The texture loader has loaded a picture: the renderer is told which file it came from (a mod can have a picture of any size for it).
+#[inline]
+pub fn tex_loaded_hook(tbp0: i32, name: i32, parms: i32) {
+    #[cfg(feature = "extensions")]
+    tex_loaded(tbp0, name, parms);
+    #[cfg(not(feature = "extensions"))]
+    let _ = (tbp0, name, parms);
+}
+
+/// A level with no bag spawn points (Ron has none) has nothing to put a bag on: the console game stops at a break there.
+#[inline]
+pub fn no_bag_spawns() -> bool {
+    cfg!(feature = "extensions")
+}
+
+/// The developer menu's Exit Level hands the reset a block of stack that the console happened to leave clear.
+#[inline]
+pub fn clear_reset_block(sp: i32) {
+    #[cfg(feature = "extensions")]
+    memset(sp, 0, 112);
+    #[cfg(not(feature = "extensions"))]
+    let _ = sp;
+}
+
+/// Noclip (developer menu): the player's move is not tested against the level, it goes where the stick points.
+#[inline]
+pub fn noclip_slide_x(from: i32, target: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        noclip_slide(from, target)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = (from, target);
+        false
+    }
+}
+
+/// The buttons that go back one menu in the developer menu: the console's start (2048) and, in the port, the triangle (16) too.
+#[inline]
+pub fn menu_back_buttons() -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        2048 | 16
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        2048
+    }
+}
+
+/// The aim assistance is off for the player who uses the keyboard and the mouse.
+#[inline]
+pub fn autoaim_off_x() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        autoaim_off()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}
+
+/// The right stick turns the view as fast as the Controls option says.
+#[inline]
+pub fn look_scale(speed: f32) -> f32 {
+    #[cfg(feature = "extensions")]
+    {
+        speed * ts_sdk::pad::look_sensitivity()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        speed
+    }
+}
+
+/// A bot without a weapon in a level that has none to pick up goes after its target (bare handed) instead of standing still (`findweapon`): gives
+/// true when the bot was set to do it.
+#[inline]
+pub fn bot_idle_punch(record: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        if ts_sdk::bots_punch() {
+            sw(record + 2720, lw(record + 2716));
+            sw(record + 2716, 128);
+            sw(record + 2892, 0);
+            return true;
+        }
+        false
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = record;
+        false
+    }
+}
+
+/// An allocation of the level pool is made in the port's big pool (a level of a mod).
+#[inline]
+pub fn big_wants_x(size: i32) -> bool {
+    #[cfg(feature = "extended-tables")]
+    {
+        big_wants(size)
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = size;
+        false
+    }
+}
+
+/// The address of an allocation in the big pool.
+#[inline]
+pub fn big_alloc_x(size: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        big_alloc(size)
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = size;
+        0
+    }
+}
+
+/// The level pool is reset: the big pool is too.
+#[inline]
+pub fn big_reset_hook() {
+    #[cfg(feature = "extended-tables")]
+    big_reset();
+}
+
+/// The arcade set-up of a level of a mod.
+#[inline]
+pub fn custom_setup_x(level: i32) -> Option<i32> {
+    #[cfg(feature = "extended-tables")]
+    {
+        custom_setup(level)
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = level;
+        None
+    }
+}
+
+/// The number of the props and of the model instances a level has room for (300 in the console game).
+#[inline]
+pub fn level_instances() -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        1000
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        300
+    }
+}
+
+/// The room `room` is `index` rooms deep in the list of the rooms at the distance `distance` (`bgGfx`): a byte for each room of the game's
+/// level of 200 rooms, a halfword for each of the port's 480.
+#[inline]
+pub fn room_slot_write(index: i32, distance: i32, room: i32) {
+    #[cfg(feature = "extended-tables")]
+    sh((index << 1) + distance * 1024 + 0x2500000, room);
+    #[cfg(not(feature = "extended-tables"))]
+    sb(index + distance * 200 + 0x1fc4a78, room);
+}
+
+/// The room at place `index` of the rooms at the distance `distance`.
+#[inline]
+pub fn room_slot_read(distance: i32, index: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        lhu(distance * 1024 + (index << 1) + 0x2500000)
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        lbu(distance * 200 + index + 0x1fc4a78)
+    }
+}
+
+/// The debug string of the rooms drawn is a stack buffer that is a room longer than the frame when a level has more than the game's rooms: it is
+/// written only for the game's own.
+#[inline]
+pub fn room_letter_write(at: i32, letter: i32) {
+    #[cfg(feature = "extended-tables")]
+    let _ = (at, letter);
+    #[cfg(not(feature = "extended-tables"))]
+    sb(at, letter);
+}

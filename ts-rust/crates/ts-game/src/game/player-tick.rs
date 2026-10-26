@@ -71,7 +71,7 @@ fn vector_to_target(sp: i32, p: i32, target: i32, scale: f32, drop: f32, out: i3
 fn find_auto_aim_target(sp: i32, p: i32, chr: i32, gun: i32) -> i32 {
     let mut best = lwc1(0x3ad01c);
     let mut target = -1;
-    if lhu(gun + 2) & 128 == 0 {
+    if lhu(gun + 2) & 128 == 0 || autoaim_off_x() {
         return target;
     }
     if gunDoesAutoAim(chr) == 0 {
@@ -773,7 +773,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     if lw(p + 296) != 6 {
         let dt = frames();
         let stance = lw(p + 288);
-        swc1(p + 276, ps2float::add(lwc1(p + 276), ps2float::mul(ps2float::mul(ps2float::mul(turn, lwc1(0x3ad054)), ((lwc1(p + 260)).pdiv(60.0_f32))), dt)));
+        swc1(p + 276, ps2float::add(lwc1(p + 276), ps2float::mul(ps2float::mul(look_scale(ps2float::mul(turn, lwc1(0x3ad054))), ((lwc1(p + 260)).pdiv(60.0_f32))), dt)));
         if stance == 2 && lhu(lw(p + 24) + 2) & 8 != 0 {
             let pitch = lwc1(p + 284);
             let eased = ps2float::sub(pitch, ps2float::mul(ps2float::mul(pitch, lwc1(0x3ad058)), dt));
@@ -783,7 +783,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
                 sw(p + 288, 1);
             }
         } else {
-            swc1(p + 284, ps2float::add(lwc1(p + 284), ps2float::mul(ps2float::mul(ps2float::mul(look, lwc1(0x3ad05c)), ((lwc1(p + 260)).pdiv(60.0_f32))), frames())));
+            swc1(p + 284, ps2float::add(lwc1(p + 284), ps2float::mul(ps2float::mul(look_scale(ps2float::mul(look, lwc1(0x3ad05c))), ((lwc1(p + 260)).pdiv(60.0_f32))), frames())));
         }
         if lwc1(p + 276) < 0.0_f32 {
             loop {

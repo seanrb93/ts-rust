@@ -5,7 +5,7 @@ use crate::*;
 /// Get the memory of the props (up to 300 of 592 bytes, 20 on level 102), doors, cars, remotes, character remotes, heads, pick-ups and graphics pointers from the level area, clear the
 /// 713 entries of the prop table (28 bytes) and of the table of walls and floors (16 bytes) and the 80 bytes at 0x1fd0d50, restart the wall memory and the props (@ 0x267020).
 pub fn propReset() {
-    let max = if (lw(g::lvlevelnum) ^ 102) == 0 { 20 } else { 300 };
+    let max = if (lw(g::lvlevelnum) ^ 102) == 0 { 20 } else { level_instances() };
     sw(g::max_props, max);
     let props = memAlloc(max * 592, 1);
     sw(g::levelprops, props);
@@ -23,7 +23,7 @@ pub fn propReset() {
     sw(g::levelpickups, pickups);
     let pointers = memAlloc(0x12c0, 1);
     sw(g::levelgfxpointers, pointers);
-    let mut left = 712;
+    let mut left = PROP_LAST;
     let mut at = PROPTABLE + 20;
     loop {
         sw(at - 16, 0);
@@ -34,7 +34,7 @@ pub fn propReset() {
             break;
         }
     }
-    let mut left = 712;
+    let mut left = PROP_LAST;
     let mut at = PWFTAB;
     loop {
         sw(at, 0);

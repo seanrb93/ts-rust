@@ -506,6 +506,7 @@ pub fn emLoadTexture(a0: i32, a1: i32, a2: i32) {
     let mode = if lw(texture + 8) == 0 { 0 } else { 2_i64 };
     let clamp = if lw(texture + 12) == 0 { mode | wrap_x | wrap_y } else { mode | wrap_y | (wrap_x | 8_i64) };
     put_register(at, clamp, 8);
+    tex_loaded_hook(lw(sp + 48), a1, a2);
 }
 
 /// The text of a time of the clock of the console (kept in the buffer `rettime_96`): `a0` is the time as a number, or -1 for a time that is not known, which gives the text at 0x3afc38. Gives the buffer.

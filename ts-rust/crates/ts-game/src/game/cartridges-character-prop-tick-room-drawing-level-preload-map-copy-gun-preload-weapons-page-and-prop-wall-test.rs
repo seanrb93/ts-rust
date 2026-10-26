@@ -304,7 +304,7 @@ pub fn bgGfx() {
                 let counter = (distance << 2) + 0x1fc4a10;
                 let count = lw(counter);
                 sw(counter, count + 1);
-                sb(count + distance * 200 + 0x1fc4a78, room);
+                room_slot_write(count, distance, room);
             }
             let tens = room.wrapping_rem(10);
             let at = sp + (room - 1);
@@ -312,7 +312,7 @@ pub fn bgGfx() {
             if tens == 9 {
                 letter = 58;
             }
-            sb(at, letter);
+            room_letter_write(at, letter);
             room += 1;
             if room >= rooms + 1 {
                 break;
@@ -350,7 +350,7 @@ pub fn bgGfx() {
                 let next_level = level - 1;
                 loop {
                     'room: {
-                        let number = lbu(level * 200 + i + 0x1fc4a78);
+                        let number = room_slot_read(level, i);
                         let current = lw(lw(g::currentplayer));
                         let data = number * 20 + lw((current << 2) + g::roomdata);
                         let near = lw(data + 12);

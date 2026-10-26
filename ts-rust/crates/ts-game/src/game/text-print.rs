@@ -7,6 +7,7 @@ use crate::*;
 /// 7-bit one, and a capital's accent (from the table `capsinfo`) is drawn over it in the accent font; the number fonts (flag 2) give "1" 4 less width and "/" 7 width with 1 less
 /// before, "." and ":" 5. The dither matrix and the z buffer test are set for the drawing and put back (@ 0x2024f0).
 pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
+    let text = button_text_or(text);
     let frame = Frame::new(128);
     let sp = frame.sp();
     let font = lw(g::curfont);

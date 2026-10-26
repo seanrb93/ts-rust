@@ -6,6 +6,7 @@ use crate::*;
 /// the place (the font flags 4 and 8 set, so that the drawing leaves the dither and does not reset it), then in its own colour on the place; the dither matrix is set to 2 for all of it and
 /// put back (@ 0x2023b0).
 pub fn textOutline(x: i32, y: i32, text: i32, colour: i32, outline: i32) {
+    let text = button_text_or(text);
     let frame = Frame::new(16);
     let sp = frame.sp();
     sw(sp, x);

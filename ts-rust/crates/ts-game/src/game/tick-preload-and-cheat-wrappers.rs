@@ -140,6 +140,7 @@ pub fn signonMakeFileId() -> i32 {
 pub fn exitlevel() {
     let frame = Frame::new(128);
     let sp = frame.sp();
+    clear_reset_block(sp);
     sw(sp + 64, if (lw(g::lvgamenum) ^ 1) == 0 { 101 } else { 102 });
     gameDeferedReset(sp);
 }

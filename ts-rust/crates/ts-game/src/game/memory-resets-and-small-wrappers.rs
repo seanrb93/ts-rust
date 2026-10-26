@@ -163,7 +163,7 @@ pub fn obResetTextures() {
 
 /// Get and clear the memory of the object instances (328 bytes each: 20 on level 102, else 300) and restart them (@ 0x25d198).
 pub fn obReset() {
-    let count = if (lw(g::lvlevelnum) ^ 102) == 0 { 20 } else { 300 };
+    let count = if (lw(g::lvlevelnum) ^ 102) == 0 { 20 } else { level_instances() };
     sw(g::max_instances, count);
     let memory = memAlloc(count * 328, 1);
     let count = lw(g::max_instances);
@@ -175,6 +175,7 @@ pub fn obReset() {
 /// Set up the memory areas: the level area is the buffer after its first 0x72b000 bytes (all of it free), cleared, with the local area growing down from its end; the memory
 /// marks are put and the allocator restarted (@ 0x201bb0).
 pub fn memReset() {
+    big_reset_hook();
     let buffer = lw(g::memBuffer);
     let size = lw(g::memBufferSize);
     let skip = 0x72b000;

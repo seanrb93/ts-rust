@@ -43,7 +43,9 @@ pub fn vtxlistWaterxyz(source: i32, out: i32, count: i32, table: i32) {
 /// (@ 0x201c38).
 pub fn memAlloc(size: i32, area: i32) -> i32 {
     let at;
-    if area == 1 {
+    if area == 1 && big_wants_x(size) {
+        at = big_alloc_x(size);
+    } else if area == 1 {
         let free = lw(g::mem_level_free);
         at = lw(g::mem_level_at);
         if free < size {
