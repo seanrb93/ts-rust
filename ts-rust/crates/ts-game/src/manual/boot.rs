@@ -203,12 +203,18 @@ fn demo_resync() {
 
 pub fn present_frame() {
     ts_sdk::present_sync();
+    // (what is not in the original's code is behind `extensions`: without it the game's state is changed only by the game)
+    #[cfg(feature = "extensions")]
     chr_names_once();
+    #[cfg(feature = "extensions")]
     mouse_look_tick();
+    #[cfg(feature = "extensions")]
     debug_menu_tick();
     fx_stress();
     av_frame_end();
+    #[cfg(feature = "extensions")]
     apply_view();
+    #[cfg(feature = "extensions")]
     demo_resync();
     page_log();
     fix_signon_cursor();
@@ -240,6 +246,7 @@ pub fn present_frame() {
     }
     // "Unlock Everything": the game's own switch for it (what its cheat code sets) is kept on while the option is on
     static UNLOCKED: AtomicBool = AtomicBool::new(false);
+    #[cfg(feature = "extensions")]
     if ts_sdk::unlock_all() {
         sw(g::val1, 1);
         UNLOCKED.store(true, Ordering::Relaxed);

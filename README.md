@@ -117,6 +117,10 @@ so the port keeps its own copy of the page's item table (in RAM above the consol
 (`menu::PortAv` supplies the rows and takes the changes) and drops the screen-position item; `patches.py` makes
 `audiovideo_pageTick` use it.
 
+## Extensions (off in a normal build)
+
+The port is built to match the original's logic exactly.  What it adds to the game's state is behind the `extensions` feature (`ts-port`, passed on to `ts-game`), which is off: the widescreen and field-of-view rewrite of the camera constants (`apply_view`), mouse look, the debug menu reset at level load, the new names of the two TimeSplitter characters, the PC wording of the memory card texts, the demo random-state resync and the unlock-all option (the game's own cheat flag).  With it off, the `unlock_all` and `mouse_look` settings and the widescreen field of view have no effect on the game.  The larger tables (`extended-tables`) and frame rates above 60 Hz (`high-framerate`) are separate features, also off.  The sign-on cursor fix stays on because the emulated memory card needs it for the menus to work.
+
 ## Frame rates above 60 Hz
 
 This section describes the extension that is switched off in a normal build (`high-framerate` feature of `ts-port`).  The game code in `ts-game/src/game` is the original's logic and does not contain the patches described here (the `running_i()` and `gameframe_f()` tests, the continuous animation phases); they have to be put back before the feature is used.

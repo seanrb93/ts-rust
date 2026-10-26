@@ -14,3 +14,5 @@ watch = ["ts-rt/watch"]
 shadow = ["ts-rt/shadow", "ts-sdk/shadow"]
 # the port tables that are larger than the game's own (props and rooms, weapon combinations, levels of mods): off while the code is made to match the original exactly
 extended-tables = []
+# what the port adds to the game and its state (widescreen and field of view, mouse look, the debug menu reset, new character names, PC texts, demo resync, the unlock option): off while the code is made to match the original exactly
+extensions = []

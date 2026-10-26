@@ -78,7 +78,12 @@ fn native(s: &str) -> Option<String> {
     (t != s).then_some(t)
 }
 
+/// The game's own texts are used as they are.
+#[cfg(not(feature = "extensions"))]
+pub fn native_text_init() {}
+
 /// Replace the texts of the memory card and the console in the table of English texts.
+#[cfg(feature = "extensions")]
 pub fn native_text_init() {
     let table = lw(g::languages);
     let mut at = TEXT_AT;
