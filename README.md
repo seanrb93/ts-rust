@@ -67,7 +67,7 @@ Changes apply at once and are saved to `ts-port.ini` next to the executable (cre
 | `width`, `height` | Window size in windowed mode (also set by dragging the window's edge or by the Resolution row). |
 | `vsync` | as named. |
 | `stick_deadzone`, `stick_sensitivity` | Gamepad sticks, with PCSX2's defaults: dead zone 0 (none; the game has its own) and sensitivity 1.33 (the stick's range is stretched by a third and cut off at the ends, so a round modern gate reaches the console pad's values). Both sticks. |
-| `framerate` | Game frame rate while a level is played: `60` (the original), a higher number, or `display` (the monitor's refresh rate). Above 60 the game logic itself runs at that rate (movement, aiming, animation and effects are all advanced by the real frame time, so no in-between pictures are needed (the old frame interpolation option was removed); menus, loading, pause and the retry screens stay at 60. Frame times are measured, so a PC that cannot keep up simply gets a lower rate at the same game speed. See "Frame rates above 60 Hz" below. |
+| `framerate` | **Ignored unless the port is built with `--features high-framerate`: the game runs at its own 60 Hz, because the logic is made to match the original exactly and the changes for other rates are not in it.**  Game frame rate while a level is played: `60` (the original), a higher number, or `display` (the monitor's refresh rate). Above 60 the game logic itself runs at that rate (movement, aiming, animation and effects are all advanced by the real frame time, so no in-between pictures are needed (the old frame interpolation option was removed); menus, loading, pause and the retry screens stay at 60. Frame times are measured, so a PC that cannot keep up simply gets a lower rate at the same game speed. See "Frame rates above 60 Hz" below. |
 
 ## How it works
 
@@ -118,6 +118,8 @@ so the port keeps its own copy of the page's item table (in RAM above the consol
 `audiovideo_pageTick` use it.
 
 ## Frame rates above 60 Hz
+
+This section describes the extension that is switched off in a normal build (`high-framerate` feature of `ts-port`).  The game code in `ts-game/src/game` is the original's logic and does not contain the patches described here (the `running_i()` and `gameframe_f()` tests, the continuous animation phases); they have to be put back before the feature is used.
 
 The game measures how long a frame takes in 60 Hz *ticks* (`updateframesf`, a float that scales movement, animation and
 timers; `updateframesi`, the whole ticks, for counters and timeouts) and was written to cope with frames of 1-5 ticks.  With

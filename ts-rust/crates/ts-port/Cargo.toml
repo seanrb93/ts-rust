@@ -23,3 +23,5 @@ calltrace = ["ts-game/calltrace", "ts-rt/calltrace", "ts-sdk/calltrace"]
 watch = ["ts-game/watch", "ts-rt/watch"]
 shadow = ["ts-game/shadow", "ts-rt/shadow", "dep:ts-verify"]
 extended-tables = ["ts-game/extended-tables"]
+# frame rates above 60 Hz (the `framerate` setting): off while the code is made to match the original exactly
+high-framerate = []

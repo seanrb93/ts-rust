@@ -473,17 +473,27 @@ impl Config {
 
     /// the frame rate to run the game at, given the refresh rate of the monitor (if known)
     pub fn logic_hz(&self, monitor_hz: Option<f32>) -> f32 {
-        if self.framerate == 0 {
-            let hz = monitor_hz.unwrap_or(60.0).max(60.0);
-            // with vsync the monitor sets the pace (the game waits for the picture before it, and its frame time is the
-            // measured one); the game's own timer must not compete with it
-            if self.vsync {
-                hz * 1.03
+        // (without `high-framerate` the game runs at its own 60 Hz whatever `framerate` says: the logic is made to match the
+        // original exactly, and the changes that let it run at other rates are not in it)
+        #[cfg(not(feature = "high-framerate"))]
+        {
+            let _ = monitor_hz;
+            60.0
+        }
+        #[cfg(feature = "high-framerate")]
+        {
+            if self.framerate == 0 {
+                let hz = monitor_hz.unwrap_or(60.0).max(60.0);
+                // with vsync the monitor sets the pace (the game waits for the picture before it, and its frame time is the
+                // measured one); the game's own timer must not compete with it
+                if self.vsync {
+                    hz * 1.03
+                } else {
+                    hz
+                }
             } else {
-                hz
+                self.framerate as f32
             }
-        } else {
-            self.framerate as f32
         }
     }
 
