@@ -1,11 +1,21 @@
 //! A deliberately small R5900 interpreter used ONLY to check the decompiler's output.
 //! It implements the integer / FPU / load-store subset that appears in the game's code, with the console's arithmetic for division and square roots (`ts_rt::ps2float`: a zero
-//! divisor gives the largest float, the root of a negative number is the root of its absolute value) and plain IEEE-754 for the rest, so any difference between the two executions is a decompiler bug.
+//! divisor gives the largest float, the root of a negative number is the root of its absolute value) and, unless `TS_VERIFY_CLAMP=0`, the console's clamping of overflows in additions and multiplications, so any difference between the two executions is a decompiler bug.
 
 use ts_rt::*;
 
 pub const SENTINEL: u32 = 0xFFFF_FFF0;
 pub const STEP_LIMIT: u64 = 60_000_000;
+
+/// Whether additions, subtractions and multiplications give the console's results (an overflow is the largest float, not infinity: `TS_VERIFY_CLAMP=0` turns it off).  The hand-written
+/// code leaves overflows to the host except at the places that need it, so the tests on random memory (huge numbers everywhere) run with it off.
+fn clamp() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("TS_VERIFY_CLAMP").map_or(true, |v| v != "0"))
+}
+fn fadd(x: f32, y: f32) -> f32 { if clamp() { ps2float::add(x, y) } else { x + y } }
+fn fsub(x: f32, y: f32) -> f32 { if clamp() { ps2float::sub(x, y) } else { x - y } }
+fn fmul(x: f32, y: f32) -> f32 { if clamp() { ps2float::mul(x, y) } else { x * y } }
 
 /// The number of instructions after which a run of the original is given up (`TS_VERIFY_STEPS` changes it: the loads of big files need more).
 fn step_limit() -> u64 {
@@ -463,22 +473,22 @@ impl Cpu {
             16 => {
                 let (x, y) = (self.fr(fs), self.fr(ft));
                 match w & 63 {
-                    0 => self.setf(fd, x + y),
-                    1 => self.setf(fd, x - y),
-                    2 => self.setf(fd, x * y),
+                    0 => self.setf(fd, fadd(x, y)),
+                    1 => self.setf(fd, fsub(x, y)),
+                    2 => self.setf(fd, fmul(x, y)),
                     3 => self.setf(fd, ps2float::div(x, y)),
                     4 => self.setf(fd, ps2float::sqrt(y)),
                     5 => self.setf(fd, x.abs()),
                     6 => self.setf(fd, x),
                     7 => self.setf(fd, -x),
                     22 => self.setf(fd, ps2float::rsqrt(x, y)),
-                    24 => self.acc = x + y,
-                    25 => self.acc = x - y,
-                    26 => self.acc = x * y,
-                    28 => self.setf(fd, self.acc + x * y),
-                    29 => self.setf(fd, self.acc - x * y),
-                    30 => self.acc += x * y,
-                    31 => self.acc -= x * y,
+                    24 => self.acc = fadd(x, y),
+                    25 => self.acc = fsub(x, y),
+                    26 => self.acc = fmul(x, y),
+                    28 => self.setf(fd, fadd(self.acc, fmul(x, y))),
+                    29 => self.setf(fd, fsub(self.acc, fmul(x, y))),
+                    30 => self.acc = fadd(self.acc, fmul(x, y)),
+                    31 => self.acc = fsub(self.acc, fmul(x, y)),
                     36 => self.f[fd] = (x as i32) as u32,
                     40 => self.setf(fd, x.max(y)),
                     41 => self.setf(fd, x.min(y)),

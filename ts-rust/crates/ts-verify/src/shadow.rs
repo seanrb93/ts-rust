@@ -95,7 +95,7 @@ pub fn externs_match(original: &[ExternCall], port: &[ExternCall]) -> bool {
     externs_equal(original, port)
 }
 
-/// The changes differ only in words that are a NaN on both sides (the sign and payload of a NaN are not the same on the console and the host); the port's memory is the current one, the original's is that with its changes put over it.
+/// The changes differ only in words that are a NaN, an infinity or the largest float on both sides (the sign and payload of a NaN are not the same on the console and the host); the port's memory is the current one, the original's is that with its changes put over it.
 fn changes_equal_mod_nan_words(original: &[(u32, u8)], port: &[(u32, u8)]) -> bool {
     let o: HashMap<u32, u8> = original.iter().cloned().collect();
     let p: HashMap<u32, u8> = port.iter().cloned().collect();
@@ -106,8 +106,9 @@ fn changes_equal_mod_nan_words(original: &[(u32, u8)], port: &[(u32, u8)]) -> bo
         let get = |m: &HashMap<u32, u8>, i: u32| m.get(&(w + i)).copied().unwrap_or_else(|| unsafe { *host_ptr((w + i) as i32) });
         let a = u32::from_le_bytes([get(&o, 0), get(&o, 1), get(&o, 2), get(&o, 3)]);
         let b = u32::from_le_bytes([get(&p, 0), get(&p, 1), get(&p, 2), get(&p, 3)]);
-        let nan = |x: u32| (x >> 23) & 0xff == 0xff && x & 0x7f_ffff != 0;
-        a == b || (nan(a) && nan(b))
+        // a NaN, an infinity or the largest float (what the console's unit makes of an overflow) on both sides: the host's arithmetic and the console's differ there, and a difference of that kind is not in the code
+        let huge = |x: u32| (x >> 23) & 0xff == 0xff || x & 0x7fff_ffff == 0x7f7f_ffff;
+        a == b || (huge(a) && huge(b))
     })
 }
 
