@@ -117,8 +117,8 @@ pub fn ipGfx() {
     if lw((number << 2) + g::ipfisheye) != 0 {
         let to_radians = lwc1(0x3ad484);
         let half_turn = 1.8e+02_f32;
-        let strength = sinf(ps2float::mul(lw(g::gameframe) as f32, to_radians).pdiv(half_turn));
-        let slow = sinf(ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, 0.5_f32), to_radians).pdiv(half_turn));
+        let strength = sinf(ps2float::mul(gameframe_x(), to_radians).pdiv(half_turn));
+        let slow = sinf(ps2float::mul(ps2float::mul(gameframe_x(), 0.5_f32), to_radians).pdiv(half_turn));
         let mut ratio = fptodp(slow);
         if dpcmp(ratio, 0_i64) < 0 {
             ratio = dpsub(0_i64, ratio);

@@ -59,7 +59,7 @@ pub fn enemyTimeSplitterAttack(chr: i32) {
             }
             if curAnim(chr, 549) != 0 && curAnimComplete(lw(chr + 32)) != 0 {
                 setAnim(chr, 553, 0.25_f32, 1.0_f32);
-                if lw(g::updateframesi) <= 0 {
+                if frames_gate() <= 0.0_f32 {
                     return;
                 }
                 soundDelayStartEx(170, chr + 48, 65, 0);

@@ -92,7 +92,7 @@ fn last_hit_texture(sp: i32) -> i32 {
 
 /// The kinds 2 to 4: a shot that goes straight, leaves a tracer, and bounces off a wall some of the times.
 fn tracer_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
-    if lw(g::updateframesi) <= 0 {
+    if frames_gate() <= 0.0_f32 {
         return Exit::Done;
     }
     if 2.0_f32 <= lwc1(b + 72) {
@@ -144,7 +144,7 @@ fn tracer_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
 
 /// The kinds 5 to 7: a shot that goes straight, with sparks of sprites on a wall and a pulse after a bounce.
 fn spark_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
-    if lw(g::updateframesi) <= 0 {
+    if frames_gate() <= 0.0_f32 {
         return Exit::Done;
     }
     if 2.0_f32 <= lwc1(b + 72) {
@@ -207,7 +207,7 @@ fn spark_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
 
 /// The kinds 8 and 9: a rocket; it flies with the pull down, and explodes where it hits.
 fn rocket_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
-    if lw(g::updateframesi) <= 0 {
+    if frames_gate() <= 0.0_f32 {
         return Exit::Done;
     }
     if 3.0_f32 <= lwc1(b + 72) {
@@ -394,7 +394,7 @@ fn grenade_moves(sp: i32, b: i32) -> i32 {
         swc1(b + 56, new_z);
         if !(ps2float::add(ps2float::add(ps2float::mul(new_x, new_x), ps2float::mul(new_y, new_y)), ps2float::mul(new_z, new_z)) < slow) {
             let dt = frames();
-            if lw(g::updateframesi) > 0 {
+            if frames_gate() > 0.0_f32 {
                 let lift = ps2float::mul(dt, lwc1(0x3ad214));
                 let bounces = lw(b + 212) + 1;
                 sw(b + 212, bounces);
@@ -418,7 +418,7 @@ fn grenade_moves(sp: i32, b: i32) -> i32 {
 
 /// The kinds 10 to 13: a grenade; it bounces off what it hits (making a sound the first 4 times) and explodes after 3 ticks (the kinds 10 and 13 explode only by their age: what they hit makes them bounce).
 fn grenade_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
-    if lw(g::updateframesi) > 0 {
+    if frames_gate() > 0.0_f32 {
         let mut hit = bulletNonStraightLineTest(b, sp, sp + 48, sp + 64, sp + 208);
         let kind = lw(b);
         if kind == 10 || kind == 13 {
@@ -673,7 +673,7 @@ fn mine_sticks(sp: i32, b: i32, hit: i32) {
 /// The kinds 14 to 16: a mine; it flies and sticks to what it hits (a character it follows, until the character is hidden); the kind 15 spins and explodes after 6 ticks, and the kind 16 makes a sound each tick and tells the props that are near.
 fn mine_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
     let mut kind = lw(b);
-    if lw(g::updateframesi) > 0 {
+    if frames_gate() > 0.0_f32 {
         'work: {
             if kind == 15 && 6.0_f32 <= lwc1(b + 72) {
                 let at = b + 24;
@@ -944,7 +944,7 @@ fn thrown_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
 
 /// The kind 19: a thing that lands and sits; when it is at rest its prop fades out and the bullet goes. The owner is told its place in all the cases it is not gone.
 fn sitting_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
-    if lw(g::updateframesi) > 0 {
+    if frames_gate() > 0.0_f32 {
         let step_x = lwc1(sp);
         let at_rest = step_x == 0.0_f32 && lwc1(sp + 4) == 0.0_f32 && lwc1(sp + 8) == 0.0_f32;
         if at_rest {

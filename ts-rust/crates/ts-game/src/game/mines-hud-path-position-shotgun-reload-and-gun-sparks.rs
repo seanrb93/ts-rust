@@ -25,7 +25,7 @@ pub fn hudMinesGfx(prop: i32, y: i32) {
     let right = if big != 0 { edge - 6 } else { edge - 14 };
     let height = if lw(window + 92) != 0 { 16 } else { 22 };
     let pulse = |scale_a: i32, scale_b: i32| -> i32 {
-        let wave = ps2float::add(lwc1((((ps2float::add(ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, lwc1(scale_a)), lwc1(scale_b)), 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable), 1.0_f32);
+        let wave = ps2float::add(lwc1((((ps2float::add(ps2float::mul(ps2float::mul(gameframe_x(), lwc1(scale_a)), lwc1(scale_b)), 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable), 1.0_f32);
         dptoli(dpmul(dpmul(fptodp(wave), 0x4059000000000000_i64), 0x3fe0000000000000_i64)) + 27
     };
     if lw(sp + 16) > 0 {

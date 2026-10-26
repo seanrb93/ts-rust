@@ -247,7 +247,7 @@ pub fn vtxlistWaterxyzPre(part: i32, prop: i32) {
 pub fn lobsterPropTick(prop: i32) {
     let frame = Frame::new(80);
     let sp = frame.sp();
-    let time = lw(g::gameframe) as f32;
+    let time = gameframe_x();
     let table = g::g_SinTable;
     let state = lw(prop + 352);
     let phase = lwc1(state + 104);

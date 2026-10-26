@@ -606,7 +606,7 @@ fn melee_attack(a0: i32, mind: i32, sp: i32, dist: f32) -> Flow {
         if dist < 2.5_f32 {
             if dpcmp(dp_abs(lwc1(mind + 2780)), 0x4034000000000000_i64) < 0 {
                 enemySetMoveMode(a0, 8);
-                if lw(g::updateframesi) > 0 {
+                if frames_gate() > 0.0_f32 {
                     let pick = newrnd();
                     soundStart((pick & 1_i64) as i32 + 171, a0 + 48);
                 }

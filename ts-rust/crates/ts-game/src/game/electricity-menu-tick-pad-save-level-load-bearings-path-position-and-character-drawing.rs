@@ -33,7 +33,7 @@ pub fn electricityPropTick(a0: i32) {
                             let mut coordinate = coordinates;
                             let mut source_uv = lw(entry + 52);
                             let mut source = lw(entry + 48);
-                            let time = ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, 12.0_f32), lwc1(0x3acef8));
+                            let time = ps2float::mul(ps2float::mul(gameframe_x(), 12.0_f32), lwc1(0x3acef8));
                             if lw(g::updateframesi) != 0 {
                                 swc1(offset + g::electricityTextureOffset, ps2float::mul(random_as_float(), 2.3283064e-10_f32));
                             }

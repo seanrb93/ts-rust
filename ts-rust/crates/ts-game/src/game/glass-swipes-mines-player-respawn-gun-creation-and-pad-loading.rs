@@ -554,7 +554,7 @@ pub fn enemyAILaunchHandler1() {
         }
         doorOpen(door_a);
         doorOpen(door_b);
-        if lw(g::updateframesi) > 0 {
+        if frames_gate() > 0.0_f32 {
             soundStart(45, 0);
         }
         let link = padGetLinkNum(link_a, link_b);
@@ -737,7 +737,7 @@ pub fn gmLastStandTick() {
                 let mut deadline = lw(record + 252);
                 let mut now = lw(g::gameframe);
                 if deadline == 0 {
-                    let set = ps2float::add(lw(g::gameframe) as f32, ps2float::mul(lwc1(info + 16), 6e+01_f32)) as i32;
+                    let set = ps2float::add(gameframe_x(), ps2float::mul(lwc1(info + 16), 6e+01_f32)) as i32;
                     sw(record + 252, set);
                     deadline = set;
                     now = lw(g::gameframe);

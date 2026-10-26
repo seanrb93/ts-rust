@@ -168,7 +168,7 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
         punch_swing_hook(lw(a0 + 12));
         sh(inst + 292, flags | 0x8000);
         obInstSetAnim(inst, anim, lwc1(0x3ad3cc));
-        if lw(g::updateframesi) <= 0 {
+        if frames_gate() <= 0.0_f32 {
             sw(mind + 2928, 0);
         } else {
             let at = s5_1 + 48;
@@ -347,7 +347,7 @@ fn hold_gun(a0: i32, a1: i32, s3_1: i32, s4_1: i32, s7_1: i32) -> Option<i32> {
             return Some(lw(a0 + 12));
         }
         let wanted = s7_1 * 400;
-        if lw(g::updateframesi) <= 0 {
+        if frames_gate() <= 0.0_f32 {
             return Some(lw(a0 + 12));
         }
         let mut s7_3 = 0;

@@ -470,7 +470,7 @@ pub fn doorNewInVolume(a0: i32, a1: i32, a2: i32) {
 /// (@ 0x2cb5b8).
 pub fn enemyPlayActivationSound(a0: i32) {
     let record = lw(a0 + 352);
-    if lw(g::updateframesi) > 0 {
+    if frames_gate() > 0.0_f32 {
         let kind = lh(record + 4);
         if kind == 78 {
             soundDelayStartEx(816, a0 + 48, 20, 0);

@@ -151,7 +151,7 @@ pub fn hologramPropTick(prop: i32) {
         swc1(g::hologramAlpha, limit);
     }
     set_alpha_of_colours(prop, sp, fptoui(ps2float::mul(now, 127.0_f32)));
-    let wave = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3acf88));
+    let wave = ps2float::mul(gameframe_x(), lwc1(0x3acf88));
     swc1(prop + 76, wave);
     swc1(prop + 72, wave);
 }

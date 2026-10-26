@@ -10,7 +10,7 @@ pub fn vtxlistWaterst(source: i32, out: i32, count: i32) {
     let mut to = out;
     let mut left = count;
     let mut offset_s = lwc1(g::waterOffsets);
-    let wave = ps2float::add(offset_s, ps2float::mul(lwc1((((ps2float::add(ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ace70)), lwc1(0x3ace74)), 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable), lwc1(0x3ace78)));
+    let wave = ps2float::add(offset_s, ps2float::mul(lwc1((((ps2float::add(ps2float::mul(ps2float::mul(gameframe_x(), lwc1(0x3ace70)), lwc1(0x3ace74)), 0.5_f32) as i32) & 2047) << 2) + g::g_SinTable), lwc1(0x3ace78)));
     if left > 0 {
         let one = 1.0_f32;
         loop {

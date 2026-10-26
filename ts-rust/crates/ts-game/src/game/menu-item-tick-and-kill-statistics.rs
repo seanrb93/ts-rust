@@ -131,7 +131,7 @@ pub fn StatsKillMade(killer: i32, victim: i32) {
                     k = lw(killer);
                 }
                 let stamps = g::matchstats + 1276;
-                let now = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ac86c));
+                let now = ps2float::mul(gameframe_x(), lwc1(0x3ac86c));
                 let count_at = k * 1368 + times;
                 let position = lw(k * 1368 + ring);
                 sw(count_at, lw(count_at) + 1);
@@ -183,7 +183,7 @@ pub fn StatsKillMade(killer: i32, victim: i32) {
                 }
                 let last = g::matchstats + 1364;
                 let factor = lwc1(0x3ac870);
-                let quick = ps2float::mul(lw(g::gameframe) as f32, factor) < ps2float::add(lwc1(base + last), 2.0_f32);
+                let quick = ps2float::mul(gameframe_x(), factor) < ps2float::add(lwc1(base + last), 2.0_f32);
                 let streak_at = base + run;
                 if quick {
                     sw(streak_at, lw(streak_at) + 1);
@@ -196,7 +196,7 @@ pub fn StatsKillMade(killer: i32, victim: i32) {
                     StatsSet(7, slot, lw(slot * 1368 + run) as f32);
                 }
                 let slot = lw(killer);
-                swc1(slot * 1368 + last, ps2float::mul(lw(g::gameframe) as f32, factor));
+                swc1(slot * 1368 + last, ps2float::mul(gameframe_x(), factor));
             }
         }
     } else {

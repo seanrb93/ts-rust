@@ -106,12 +106,12 @@ pub fn setTimeSplitterAnimation(a0: i32) {
                                 if !(random < lwc1(0x3ad87c)) {
                                     if !(random < lwc1(0x3ad880)) {
                                         setAnim(a0, 554, 0.25_f32, 1.0_f32);
-                                        if lw(g::updateframesi) > 0 {
+                                        if frames_gate() > 0.0_f32 {
                                             soundDelayStartEx(170, a0 + 48, 65, 0);
                                         }
                                     } else {
                                         setAnim(a0, 553, 0.25_f32, 1.0_f32);
-                                        if lw(g::updateframesi) > 0 {
+                                        if frames_gate() > 0.0_f32 {
                                             soundDelayStartEx(170, a0 + 48, 65, 0);
                                         }
                                     }
@@ -169,7 +169,7 @@ pub fn setTimeSplitterAnimation(a0: i32) {
                         } else {
                             let anim = if !(random < lwc1(0x3ad888)) { 554 } else { 553 };
                             setAnim(a0, anim, 0.25_f32, 1.0_f32);
-                            if lw(g::updateframesi) > 0 {
+                            if frames_gate() > 0.0_f32 {
                                 soundDelayStartEx(170, a0 + 48, 65, 0);
                             }
                         }

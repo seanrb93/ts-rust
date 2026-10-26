@@ -72,13 +72,13 @@ pub fn frontfxLogoGfx(mode: i32) {
         let scale = ld(0x3a18b0);
         let half = 0x3fe0000000000000_i64;
         let quarter = 0.5_f32;
-        let sway = ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, rate_a), rate_b);
+        let sway = ps2float::mul(ps2float::mul(gameframe_x(), rate_a), rate_b);
         let offset_c = lwc1(0x3ac930);
         let screen = ld(0x3a18b8);
         let three_quarters = 0.75_f32;
         let doubled = ps2float::add(sway, sway);
         let index = dptoli(dpadd(dpmul(dpmul(fptodp(doubled), radians), scale), half));
-        let sway = ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, rate_a), rate_b);
+        let sway = ps2float::mul(ps2float::mul(gameframe_x(), rate_a), rate_b);
         let bright_a = ps2float::add(ps2float::mul(lwc1(((index & 2047) << 2) + table), quarter), offset_c);
         let doubled = ps2float::add(sway, sway);
         let index = dptoli(dpadd(dpmul(dpadd(dpmul(fptodp(doubled), radians), radians), scale), half));

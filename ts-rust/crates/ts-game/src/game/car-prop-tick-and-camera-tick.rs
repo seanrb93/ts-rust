@@ -60,7 +60,7 @@ pub fn carPropTick(a0: i32) {
             matrixRotZXY(matrices(), x, y, z);
         } else if kind >= 312 {
             if kind == 312 {
-                let frames = lw(g::gameframe) as f32;
+                let frames = gameframe_x();
                 let scale = lwc1(0x3ace34);
                 let phase = ps2float::add(ps2float::mul(ps2float::mul(frames, lwc1(0x3ace30)), scale), 0.5_f32);
                 swc1(data + 104, ps2float::add(lwc1(data + 104), ps2float::mul(lwc1(g::updateframesf), 31.0_f32)));
@@ -140,7 +140,7 @@ pub fn carPropTick(a0: i32) {
                 break 'b4;
             }
             if kind == 313 {
-                let frames = lw(g::gameframe) as f32;
+                let frames = gameframe_x();
                 let scale = lwc1(0x3ace20);
                 let mut flags = 0;
                 if 0.5_f32 < lwc1(((ps2float::add(ps2float::mul(ps2float::mul(frames, lwc1(0x3ace1c)), scale), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable) {

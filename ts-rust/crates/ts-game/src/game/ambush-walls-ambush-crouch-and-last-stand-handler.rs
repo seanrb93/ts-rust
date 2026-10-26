@@ -595,7 +595,7 @@ pub fn enemyAIFutureLastStandHandler() {
                                         let language = lw(g::cur_language);
                                         if count == 0 {
                                             let text = vafmt(&[0x3afd80, lw(lw((language << 2) + g::languages) + 428) as i64, lw(0x3b01d8) as i64]);
-                                            if lw(g::updateframesi) > 0 {
+                                            if frames_gate() > 0.0_f32 {
                                                 soundStart(220, 0);
                                             }
                                             let players = lw(g::lvnumplayers);
@@ -722,7 +722,7 @@ pub fn enemyAIFutureLastStandHandler() {
                             lw(strings + 440) as i64,
                             0x2f0000,
                         ]);
-                        if lw(g::updateframesi) > 0 {
+                        if frames_gate() > 0.0_f32 {
                             soundStart(220, 0);
                         }
                         let players = lw(g::lvnumplayers);

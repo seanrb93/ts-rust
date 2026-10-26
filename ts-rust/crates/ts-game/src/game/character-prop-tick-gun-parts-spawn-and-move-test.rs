@@ -209,7 +209,7 @@ pub fn chrPropTick(a0: i32) {
             obInstSetOverrideCol(lw(a0 + 32), 0, 0, 0, 0.0_f32);
         } else {
             let strength = amount.abs().psqrt();
-            let wave = ps2float::add(ps2float::mul(ps2float::mul(ps2float::add(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(lw(g::gameframe) as f32, 6.0_f32).pdiv(6e+01_f32), lwc1(0x3acc74)), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable), 1.0_f32), 0.5_f32), 0.5_f32), 0.5_f32);
+            let wave = ps2float::add(ps2float::mul(ps2float::mul(ps2float::add(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(gameframe_x(), 6.0_f32).pdiv(6e+01_f32), lwc1(0x3acc74)), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable), 1.0_f32), 0.5_f32), 0.5_f32), 0.5_f32);
             let hold = lw(mind + 0x11a4);
             let glow = ps2float::mul(wave, strength);
             if hold == 0 {
@@ -424,7 +424,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
     }
     let sin_table = g::g_SinTable;
     let phase_scale = lwc1(0x3ad388);
-    let phase = (lw(g::gameframe) as f32).pdiv(2e+01_f32);
+    let phase = (gameframe_x()).pdiv(2e+01_f32);
     let half = 0.5_f32;
     let step = lwc1(g::updateframesf);
     let owner_y = lwc1(owner + 52);

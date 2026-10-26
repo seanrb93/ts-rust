@@ -26,7 +26,7 @@ pub fn greenthingPropTick(prop: i32) {
                 let z = lwc1(source + 8);
                 let radius = ps2float::add(ps2float::mul(x, x), ps2float::mul(z, z)).abs().psqrt();
                 let k = lwc1(0x3acf6c);
-                let time = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3acf68));
+                let time = ps2float::mul(gameframe_x(), lwc1(0x3acf68));
                 swc1(at, x);
                 i += 1;
                 let height_scale = lwc1(0x3acf74);
@@ -58,7 +58,7 @@ pub fn streamersPropTick(prop: i32) {
         let mut at = out;
         let mut source = lw(bone + 48);
         let mut i = 0;
-        let time = ps2float::add(lw(g::gameframe) as f32, (lw(state + 4) << 5) as f32);
+        let time = ps2float::add(gameframe_x(), (lw(state + 4) << 5) as f32);
         let double_time = ps2float::add(time, time);
         if count > 0 {
             loop {
@@ -217,7 +217,7 @@ pub fn laserPropTick(prop: i32) {
     }
     let k = lwc1(0x3acf90);
     let table = g::g_SinTable;
-    let time = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3acf8c));
+    let time = ps2float::mul(gameframe_x(), lwc1(0x3acf8c));
     let rate = lwc1(0x3acf94);
     let half = 0.5_f32;
     let matrix = lw(model + 4);

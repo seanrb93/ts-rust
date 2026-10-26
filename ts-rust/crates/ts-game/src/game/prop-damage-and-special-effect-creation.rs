@@ -30,7 +30,7 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
     sw(sp + 20, a4);
     sw(sp + 24, a5);
     sw(sp + 28, a7);
-    if lw(g::updateframesi) == 0 {
+    if frames_gate() == 0.0_f32 {
         return;
     }
     if a0 != 0 {

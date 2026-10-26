@@ -143,7 +143,7 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                     swc1(sp + 488 + k * 16, ps2float::add(base_z, ps2float::mul(ps2float::sub(lwc1(points_z + 12 + k * 12), base_z), 0.5_f32)));
                 }
                 if kind == 2 {
-                    if lw(g::updateframesi) > 0 {
+                    if frames_gate() > 0.0_f32 {
                         let roll = newrnd();
                         if (roll & 31_i64) == 0_i64 {
                             sb(glow + 148, 160);

@@ -243,11 +243,11 @@ pub fn creditsBgTick() {
     let one = 1.0_f32;
     let layers = g::layerrot;
     let half_turn = ld(0x3a9890);
-    let first = sinf(ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ad768)));
-    let second_angle = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ad76c));
+    let first = sinf(ps2float::mul(gameframe_x(), lwc1(0x3ad768)));
+    let second_angle = ps2float::mul(gameframe_x(), lwc1(0x3ad76c));
     swc1(g::layerrot, ps2float::add(first, one));
     let second = sinf(second_angle);
-    let third_angle = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ad770));
+    let third_angle = ps2float::mul(gameframe_x(), lwc1(0x3ad770));
     swc1(layers + 4, ps2float::add(second, one));
     let third = sinf(third_angle);
     let wave = lwc1(g::randomsinewavetime);

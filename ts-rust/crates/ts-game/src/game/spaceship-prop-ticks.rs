@@ -4,20 +4,20 @@ use crate::*;
 
 /// The big ship: its height (+52) is its rest height (+40) and a sine of the game's time, scaled (@ 0x27af08).
 pub fn bigshipPropTick(prop: i32) {
-    let time = lw(g::gameframe) as f32;
+    let time = gameframe_x();
     swc1(prop + 52, ps2float::add(lwc1(prop + 40), ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(time, lwc1(0x3acf5c)), lwc1(0x3acf60)), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable), lwc1(0x3acf64))));
 }
 
 /// The third ship: like the big ship with one constant for the rate and the size (@ 0x27aeb0).
 pub fn spaceship3PropTick(prop: i32) {
     let scale = lwc1(0x3acf54);
-    let time = lw(g::gameframe) as f32;
+    let time = gameframe_x();
     swc1(prop + 52, ps2float::add(lwc1(prop + 40), ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(time, scale), lwc1(0x3acf58)), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable), scale)));
 }
 
 /// The outer wheels: the height is the rest height, a constant and a sine (@ 0x27aa18).
 pub fn outerwheelsPropTick(prop: i32) {
-    let time = lw(g::gameframe) as f32;
+    let time = gameframe_x();
     swc1(prop + 52, ps2float::add(ps2float::add(lwc1(prop + 40), lwc1(0x3acf10)), ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(time, lwc1(0x3acf08)), lwc1(0x3acf0c)), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable), lwc1(0x3acf14))));
 }
 
@@ -26,7 +26,7 @@ pub fn innerwheelsPropTick(prop: i32) {
     let rest = lwc1(prop + 40);
     let mut size = rest;
     let mut sign = 1.0_f32;
-    let time = ps2float::mul(lw(g::gameframe) as f32, 2.5_f32);
+    let time = ps2float::mul(gameframe_x(), 2.5_f32);
     if rest < 0.0_f32 {
         size = -rest;
         sign = -1.0_f32;
@@ -36,7 +36,7 @@ pub fn innerwheelsPropTick(prop: i32) {
 
 /// The second ship: it moves in a Lissajous curve round its rest place (+36, +40, +44) by three sines of the game's time (@ 0x27add8).
 pub fn spaceship2PropTick(prop: i32) {
-    let time = lw(g::gameframe) as f32;
+    let time = gameframe_x();
     let scale = lwc1(0x3acf48);
     let table = g::g_SinTable;
     let half = 0.5_f32;

@@ -901,3 +901,71 @@ pub fn room_letter_write(at: i32, letter: i32) {
     #[cfg(not(feature = "extended-tables"))]
     sb(at, letter);
 }
+
+// ---- frame rates above 60 Hz (`boot.rs`: `timeTickStart` hands the game fractions of a tick) -------------------------------------------
+
+/// The time this frame stands for, as the game's code asks "is the game running?" (`updateframesi` compared with 0): at a high frame rate most
+/// frames complete no whole tick, so the frame time is used then.
+#[inline]
+pub fn frames_gate() -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        lwc1(g::updateframesf)
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        lw(g::updateframesi) as f32
+    }
+}
+
+/// The integer tick counter as a float, used as the time base of animations: the continuous time at a high frame rate.
+#[inline]
+pub fn gameframe_x() -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        gameframe_f()
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        lw(g::gameframe) as f32
+    }
+}
+
+/// A value that is only tested against 0 ("the game is running") before it is used: at least 1 whenever time passes at a high frame rate.
+#[inline]
+pub fn running_x() -> i32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        running_i()
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        lw(g::updateframesi)
+    }
+}
+
+/// A constant that the original adds on every call (a HUD ring angle, a spin) scaled by the time of the frame at a high frame rate.
+#[inline]
+pub fn per_frame(v: f32) -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        v * lwc1(g::tickframesf)
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        v
+    }
+}
+
+/// As `per_frame`, scaled by `updateframesf`.
+#[inline]
+pub fn per_update(v: f32) -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        v * lwc1(g::updateframesf)
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        v
+    }
+}

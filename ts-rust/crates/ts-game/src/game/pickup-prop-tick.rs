@@ -91,7 +91,7 @@ pub fn pickupPropTick(a0: i32) {
                         } else if ((lw(a0 + 4) - 342) as u32) < (11 as u32) {
                             flags = lw(a0 + 16);
                         } else {
-                            let time = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3acc00));
+                            let time = ps2float::mul(gameframe_x(), lwc1(0x3acc00));
                             let a = fptodp(time);
                             let b = fptodp(lwc1(data + 104));
                             let c = dpmul(b, ld(0x3a7dd8));

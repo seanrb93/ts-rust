@@ -311,7 +311,7 @@ fn state_wait(a0: i32, mind: i32, sp: i32) {
             n += 1;
         } else if lw(data + 296) != 0 {
             n += 1;
-        } else if lw(g::updateframesi) <= 0 {
+        } else if frames_gate() <= 0.0_f32 {
             n += 1;
         } else {
             let dx = ps2float::sub(lwc1(player + 48), lwc1(a0 + 48));

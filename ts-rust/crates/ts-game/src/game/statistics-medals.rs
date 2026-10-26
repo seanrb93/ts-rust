@@ -39,7 +39,7 @@ fn matchstat(player: i32, at: i32) -> f32 {
 pub fn StatsCalcMedals() {
     let frame = Frame::new(3056);
     let sp = frame.sp();
-    let mut seconds = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ac87c));
+    let mut seconds = ps2float::mul(gameframe_x(), lwc1(0x3ac87c));
     let mut total_use = 0.0_f32;
     if seconds == total_use {
         seconds = lwc1(0x3ac880);
@@ -228,7 +228,7 @@ pub fn StatsCalcMedals() {
                 if count > 0 {
                     let scale = lwc1(scale_at);
                     loop {
-                        if 1.2e+02_f32 < ps2float::mul(lw(g::gameframe) as f32, scale) {
+                        if 1.2e+02_f32 < ps2float::mul(gameframe_x(), scale) {
                             if StatsGet(stat, q) < 1.0_f32 {
                                 swc1(flag(sp, q, late_medal), 1.0_f32);
                             }
@@ -570,7 +570,7 @@ pub fn StatsCalcMedals() {
             let mut p = 0;
             loop {
                 sw(p * 12 + (pass << 2) + g::medals, -1);
-                if 6e+01_f32 < ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ac8c0)) {
+                if 6e+01_f32 < ps2float::mul(gameframe_x(), lwc1(0x3ac8c0)) {
                     let slot = p * 12 + (pass << 2) + g::medals;
                     let mut tries = 0;
                     loop {

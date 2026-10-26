@@ -328,7 +328,7 @@ pub fn enemyAIMansionHandler1() {
             if lw(g::totactivespawnedchars) < 2 {
                 sw(g::story_state1, 2);
                 doorOpen(14);
-                if lw(g::updateframesi) > 0 {
+                if frames_gate() > 0.0_f32 {
                     soundStart(43, 0);
                     return;
                 }

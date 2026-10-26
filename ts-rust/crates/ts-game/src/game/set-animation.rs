@@ -14,7 +14,7 @@ pub fn setAnim(chr: i32, anim: i32, blend: f32, extra: f32) {
     let mut info = lw(chr + 352);
     let info_first = info;
     let scale = lwc1(info + 2840);
-    if lw(g::updateframesi) == 0 {
+    if frames_gate() == 0.0_f32 {
         return;
     }
     let mut state = lw(chr + 32);

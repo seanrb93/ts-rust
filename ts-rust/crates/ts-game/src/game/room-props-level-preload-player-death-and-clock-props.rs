@@ -217,7 +217,7 @@ pub fn gunFireSfx(a0: i32, a1: i32, a2: i32) {
     let gun = lw(a0) * 400 + base;
     let sound = if (lw(g::allowedcheats) & 32 & (lw(g::unlockedcheats) & lw(g::selectedcheats))) == 0 { lw(gun + 44) } else { lw(gun + 48) };
     let delayed = lw(gun + 52);
-    if lw(g::updateframesi) > 0 {
+    if frames_gate() > 0.0_f32 {
         if sound >= 0 {
             soundStart(sound, a2);
         }

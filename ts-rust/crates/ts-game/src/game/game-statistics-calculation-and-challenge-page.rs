@@ -15,7 +15,7 @@ fn slot_kept(id: i32) -> bool {
 /// Work out the derived statistics of every slot that is kept: the shots per hit (10, 11) and the shares of the hits by place (18 to 22) from the counts, the gun with the most
 /// kills (43, 44, 45) over the 33 guns (or the special 33 when the stat 63 beats it), and the damage per second (59) over the game's time (@ 0x221468).
 pub fn StatsCalc() {
-    let mut seconds = ps2float::mul(lw(g::gameframe) as f32, lwc1(0x3ac874));
+    let mut seconds = ps2float::mul(gameframe_x(), lwc1(0x3ac874));
     if seconds == 0.0_f32 {
         seconds = lwc1(0x3ac878);
     }

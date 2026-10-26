@@ -154,7 +154,7 @@ pub fn updatePos(a0: i32) {
                                                     break 'b16;
                                                 }
                                             }
-                                            if lw(g::updateframesi) > 0 {
+                                            if frames_gate() > 0.0_f32 {
                                                 soundStart(205, at);
                                             }
                                         }
@@ -230,7 +230,7 @@ pub fn updatePos(a0: i32) {
                 }
                 sw(mind + 2708, flags_now & -0x1001);
                 if (flags_now & 32) != 0 {
-                    if lw(g::updateframesi) > 0 {
+                    if frames_gate() > 0.0_f32 {
                         soundStart(206, at);
                     }
                     chrSelectDeathAnim(a0, -1, 0, 0, 0, 0);
