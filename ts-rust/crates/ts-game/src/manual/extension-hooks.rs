@@ -1168,3 +1168,17 @@ pub fn file_log_hook(name: i32) {
     #[cfg(not(feature = "extensions"))]
     let _ = name;
 }
+
+/// A function that draws sprites at screen positions it worked out by projecting 3D points (the glows of lights, lens flares) is running: the display
+/// list it writes is recorded so that the widescreen handling leaves the sprites where the projection put them.
+#[inline]
+pub fn world_sprite_guard() -> Option<crate::manual::hooks::Guard> {
+    #[cfg(feature = "extensions")]
+    {
+        Some(crate::manual::hooks::enter())
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        None
+    }
+}

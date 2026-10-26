@@ -461,6 +461,7 @@ pub fn mmmain_pageTick(a0: i32) {
 /// Draw the flares, glow sprites and torches of the current player with the z-buffer test: first the glow sprite of every light of the player (a second, smaller one for a
 /// tinted light), then the flares and the torches (@ 0x2a6b78).
 pub fn zbtestGfx() {
+    let _hk = world_sprite_guard();
     let texture = lw(g::glowtexnum);
     let mut i = 0;
     let info = texture * 40 + lw(lw(g::thistexbuf) + 4);

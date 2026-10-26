@@ -218,7 +218,7 @@ pub fn gunTick() {
     let phase = ps2float::mul(lwc1(player + 392), 3.6e+02_f32);
     let half = 1.8e+02_f32;
     let angle = ps2float::mul(phase, scale).pdiv(half);
-    let amplitude = ps2float::mul(lwc1(player + 380), lwc1(0x3ad458)).pdiv(lw(player + 340) as f32);
+    let amplitude = ps2float::mul(lwc1(player + 380), lwc1(0x3ad458)).pdiv(ticks_of(lw(player + 340)));
     let first = sinf(angle);
     let now = lw(g::currentplayer);
     swc1(player + 396, ps2float::mul(amplitude, first));
