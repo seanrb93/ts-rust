@@ -109,7 +109,7 @@ def main():
                 result.append('    if ts_rt::capture::enabled() { ts_rt::capture::hook("%s", &[%s], &[%s]); }' % (m.group(1), ', '.join(ints), ', '.join(floats)))
                 if m.group(1) in addresses and len(ints) <= 8 and len(floats) <= 8:
                     # for `--features shadow`: the original code is run on the same memory before the function and the memory they change is compared
-                    result.append('    #[cfg(feature = "shadow")]\n    let _shadow = ts_rt::shadow::enter(%s, "%s", [%s], [%s]);' % (addresses[m.group(1)], m.group(1), ', '.join((ints + ['0'] * 8)[:8]), ', '.join(floats + ['0.0'] * (8 - len(floats)))))
+                    result.append('    #[cfg(feature = "shadow")]\n    let _shadow = ts_rt::shadow::enter(%s, "%s", [%s], [%s]);' % (addresses[m.group(1)], m.group(1), ', '.join((ints + ['0'] * 4 + ['0x7000_0000'] * 4)[:8][:max(len(ints), 4)] + ['0x7000_0000'] * (8 - max(len(ints), 4))), ', '.join(floats + ['0.0'] * (8 - len(floats)))))
                 count += 1
             open(path, 'w', encoding='utf8').write('\n'.join(result))
     print('hooked %d functions' % count)
