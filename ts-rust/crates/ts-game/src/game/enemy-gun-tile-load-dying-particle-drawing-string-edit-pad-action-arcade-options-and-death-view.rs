@@ -1161,7 +1161,7 @@ pub fn padact_pageTick(a0: i32) {
                             }
                             let cost = mmMapCost();
                             let mut language = lw(g::cur_language);
-                            if (cost + 1) < 0x1389 {
+                            if (cost + 1) < mm_cost_limit() {
                                 let size = mmCalcFileSize();
                                 let pad_now = lw(g::aimpadinfo);
                                 if ((size + 4) as u32) < (0x1ffd as u32) {
@@ -1283,7 +1283,7 @@ pub fn arcadeoptions_pageTick(a0: i32) {
     botsetInit(chrset_read());
     checkAllowedTeams();
     let language = lw(g::cur_language);
-    let items = g::i0410 + 32;
+    let items = opt_items_or(g::i0410) + 32;
     let mut source = 0;
     let mut count = 0;
     let mut text = 0;
@@ -1354,12 +1354,12 @@ pub fn arcadeoptions_pageTick(a0: i32) {
     }
     let state = 0x1fc11f8;
     let mode_data = lw(state + 48);
-    let page = g::i0410;
+    let page = opt_items_or(g::i0410);
     sh(page + 368, total);
     let mut cursor = page + 44;
     let teamplay = lw(g::gv_teamplay);
     let mut j = 1;
-    sw(g::i0410, lw((lh(mode_data * 12 + g::gamemodedata) << 2) + lw((language << 2) + g::languages)));
+    sw(opt_items_or(g::i0410), lw((lh(mode_data * 12 + g::gamemodedata) << 2) + lw((language << 2) + g::languages)));
     'teams: {
         loop {
             j += 1;
@@ -1393,13 +1393,13 @@ pub fn arcadeoptions_pageTick(a0: i32) {
             }
         }
     }
-    let page = g::i0410;
+    let page = opt_items_or(g::i0410);
     if language != 0 {
         let flags = lhu(page + 394) & 0xfeff;
         sh(page + 362, lhu(page + 362) & 0xfeff);
         sh(page + 394, flags);
     }
-    let page = g::i0410;
+    let page = opt_items_or(g::i0410);
     sh(page + 358, 111);
     sh(page + 390, 125);
     sh(page + 422, 146);
@@ -1423,13 +1423,13 @@ pub fn arcadeoptions_pageTick(a0: i32) {
     sh(page + 362, flags_b);
     let current = lhu(a0 + 4);
     if current >= 12 {
-        if current < 14 {
+        if arcade_edit_row(current) {
             text = lw(lw((language << 2) + g::languages) + 924);
         } else if current == 14 {
             text = lw(lw((language << 2) + g::languages) + 512);
         }
     }
-    let page = g::i0410;
+    let page = opt_items_or(g::i0410);
     let options = lw(state + 48);
     sw(page + 480, text);
     storeGameModeOptions(options);
@@ -1499,7 +1499,7 @@ pub fn arcadeoptions_pageTick(a0: i32) {
         let _ = applied;
         sw(front + 12, lw(front + 12) & -49);
     }
-    let menu = g::arcadeoptions_menu;
+    let menu = av_opt_ready_or(g::arcadeoptions_menu);
     menutick_230238(a0, menu);
     let made = std_menumake(lw(a0 + 8), menu);
     sw(a0 + 12, made);

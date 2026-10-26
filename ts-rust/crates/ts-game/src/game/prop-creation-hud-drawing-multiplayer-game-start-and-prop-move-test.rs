@@ -404,7 +404,7 @@ pub fn hudGfx() {
                 let player = lw(g::currentplayer);
                 if left_visible != 0 {
                     let window_left = lw(g::window);
-                    let x = if lw(g::window + 88) != 0 { window_left + 60 } else { window_left + 80 };
+                    let x = if lw(g::window + 88) != 0 { window_left + ammo_left_edge(60) } else { window_left + ammo_left_edge(80) };
                     hudAmmoGfx(lw(lw(player + 384) + 352) + 268, player + 408, x);
                 }
                 let mut player = lw(g::currentplayer);

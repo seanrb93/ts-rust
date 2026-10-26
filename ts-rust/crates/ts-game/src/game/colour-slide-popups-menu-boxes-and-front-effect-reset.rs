@@ -138,6 +138,9 @@ pub fn menuitemmake(menu: i32, at: i32, item: i32) {
 /// Draw the bar of the map maker's memory used at (`x`, `y`): 100 wide, filled in proportion to the cost of the map (the cost over 50), red and flashing when the cost has passed
 /// the limit of 5001; the text of the language (at +3580) is put before it (@ 0x24b508).
 pub fn mmDrawMemFree(x: i32, y: i32) {
+    if mm_unlimited_x() {
+        return;
+    }
     let mut border = 128;
     let used = lw(g::mapcost) / 50;
     let mut free_colour = 0x5080;

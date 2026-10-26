@@ -18,7 +18,7 @@ pub fn statsupdate_pageTick() {
                         break 'b1;
                     }
                 } else {
-                    let state = splitMessageTick(lw(0x3aff38));
+                    let state = save_prompt_state(lw(0x3aff38));
                     if state != 0 {
                         splitMessageClear(lw(0x3aff38));
                     }
@@ -52,6 +52,7 @@ pub fn statsupdate_pageTick() {
                     }
                 }
                 pageSet(0, g::nplayers_page);
+                save_flow_hook(false);
                 setlastgamemodepage();
                 return;
             }

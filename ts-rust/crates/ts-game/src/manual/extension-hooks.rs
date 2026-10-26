@@ -476,3 +476,203 @@ pub fn weapons_set_shift(value: i32, right: i32) -> i32 {
         right
     }
 }
+
+// ---- the save flow, the arcade pages, the MapMaker options -----------------------------------------------------------------------------
+
+/// The state of the message about saving the game's data after a match (`statsupdate_pageTick`): the port answers it with Yes at once.
+#[inline]
+pub fn save_prompt_state(player: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        if lw(player * 260 + 0x1fc1488) != 0 {
+            save_flow(true);
+            2
+        } else {
+            0
+        }
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        splitMessageTick(player)
+    }
+}
+
+/// The save flow ends (`statsupdate_pageTick`).
+#[inline]
+pub fn save_flow_hook(on: bool) {
+    #[cfg(feature = "extensions")]
+    save_flow(on);
+    #[cfg(not(feature = "extensions"))]
+    let _ = on;
+}
+
+/// The message of the memory card sequencer that has only an OK is answered with it while the save flow runs.
+#[inline]
+pub fn save_flow_active_x() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        save_flow_active()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}
+
+/// The ammo of the left hand sits as close to the edge as the right hand's does.
+#[inline]
+pub fn ammo_left_edge(offset: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        offset - 10
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        offset
+    }
+}
+
+/// An arcade level of the port that the console game does not list (Ron, 25) is available.
+#[inline]
+pub fn level_added_avail(level: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        level == 25
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = level;
+        false
+    }
+}
+
+/// The tune of a level: the player's choice on the arcade options page, or the level's own (`own`).
+#[inline]
+pub fn av_level_music_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        av_level_music(own)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// The number of the arcade levels (the console game lists 19; the port adds Ron after MapMaker).
+#[inline]
+pub fn av_arcade_count_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        let _ = own;
+        av_arcade_count()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// The list of the arcade levels in memory.
+#[inline]
+pub fn av_arcade_levels_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        let _ = own;
+        av_arcade_levels()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// The items of the arcade options page: a copy in the port's memory with a row more (Level Music), or the game's own (`own`).
+#[inline]
+pub fn opt_items_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        let _ = own;
+        av_opt_menu() + 16
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// The menu of the arcade options page.
+#[inline]
+pub fn av_opt_ready_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        let _ = own;
+        av_opt_ready()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// The rows of the arcade options page that show the Edit legend (Weapon Set, Bot Set and, in the port, Level Music).
+#[inline]
+pub fn arcade_edit_row(row: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        row < 14 || row == 15
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        row < 14
+    }
+}
+
+/// The menu of the MapMaker's Options page.
+#[inline]
+pub fn mm_options_menu_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        let _ = own;
+        mm_options_menu()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// The MapMaker's Options page: a slider changed with X, a row that takes the limit of the map away.
+#[inline]
+pub fn mm_options_tick_hook(page: i32) {
+    #[cfg(feature = "extensions")]
+    mm_options_tick(page);
+    #[cfg(not(feature = "extensions"))]
+    let _ = page;
+}
+
+/// The cost a MapMaker map may have (5001 in the console game).
+#[inline]
+pub fn mm_cost_limit() -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        mm_limit()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        0x1389
+    }
+}
+
+/// The map has no limit: its cost is not shown.
+#[inline]
+pub fn mm_unlimited_x() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        mm_unlimited()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}

@@ -194,8 +194,8 @@ pub fn arcade_pageTick(a0: i32) {
     let mut next = current_level + 1;
     let next_level;
     loop {
-        let candidate = if next >= 19 { 0 } else { next };
-        if levelAvail(lw((candidate << 2) + g::arcadelevels)) != 0 {
+        let candidate = if next >= av_arcade_count_or(19) { 0 } else { next };
+        if levelAvail(lw((candidate << 2) + av_arcade_levels_or(g::arcadelevels))) != 0 {
             next_level = candidate;
             break;
         }
@@ -207,8 +207,8 @@ pub fn arcade_pageTick(a0: i32) {
     let mut previous = current_level - 1;
     let previous_level;
     loop {
-        let candidate = if -1 >= previous { 18 } else { previous };
-        if levelAvail(lw((candidate << 2) + g::arcadelevels)) != 0 {
+        let candidate = if -1 >= previous { av_arcade_count_or(19) - 1 } else { previous };
+        if levelAvail(lw((candidate << 2) + av_arcade_levels_or(g::arcadelevels))) != 0 {
             previous_level = candidate;
             break;
         }
@@ -245,7 +245,7 @@ pub fn arcade_pageTick(a0: i32) {
     }
     let state = 0x1fc11f8;
     let level = lw(state + 36);
-    sw(state + 40, lw((level << 2) + g::arcadelevels));
+    sw(state + 40, lw((level << 2) + av_arcade_levels_or(g::arcadelevels)));
     let page_items;
     'maker: {
         let items = g::i0400;

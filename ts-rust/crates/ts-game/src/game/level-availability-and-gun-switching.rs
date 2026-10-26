@@ -5,6 +5,9 @@ use crate::*;
 /// Whether level `level` is available: the story levels by `levelAvailSTORY`, the arcade levels by their unlock items (the compound, streets, future, site, bank, graveyard,
 /// spaceship, mall and lab), the levels 26, 99 and 102 always, 105 by the items of the last part of the story, the rest not (@ 0x224dd0).
 pub fn levelAvail(level: i32) -> i32 {
+    if level_added_avail(level) {
+        return 1;
+    }
     let offset = level - 2;
     if (offset as u32) < 104 {
         match offset {

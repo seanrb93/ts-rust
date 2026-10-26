@@ -128,7 +128,7 @@ pub fn mmDeleteAllMarked() {
 
 /// Restart the music for the level: the tune of the level is looked up (none when the music is off), opened, set to volume and started (@ 0x205c78).
 pub fn musicRestart() {
-    let tune = lvGetTuneNum();
+    let tune = av_level_music_or(lvGetTuneNum());
     sw(g::tunenum, tune);
     if lw(g::gv_playmusic) == 0 {
         sw(g::tunenum, 0);
@@ -308,8 +308,9 @@ pub fn loadingPreload() {
 
 /// The tick of the map maker's settings page: a press of the buttons 2304 leaves the menu; otherwise the menu ticks and its items are made (@ 0x24cbf0).
 pub fn settings_pageTick(a0: i32) {
+    mm_options_tick_hook(a0);
         if (joyNewBut(0) & 2304) == 0 {
-        let menu = g::settings_menu;
+        let menu = mm_options_menu_or(g::settings_menu);
         menutick_24c3a8(a0, menu);
         let made = menumake(lw(a0 + 8), menu);
         sw(a0 + 12, made);

@@ -33,7 +33,7 @@ pub fn mmUpdateMapCost() {
         }
     }
     let flags = lw(g::editflags);
-    if (lw(g::mapcost) + flying) < 0x1389 {
+    if (lw(g::mapcost) + flying) < mm_cost_limit() {
         sw(g::editflags, flags & -0x400001);
     } else {
         sw(g::editflags, lw(g::editflags) | 0x400000);
@@ -71,7 +71,7 @@ pub fn mmPlaceObject(list: i32) -> i32 {
         }
     }
     let map_cost = mmMapCost();
-    if (map_cost + cost) < 0x1389 {
+    if (map_cost + cost) < mm_cost_limit() {
         let size = mmCalcFileSize();
         if ((size + objects * 36 + (items << 2)) as u32) < 0x1ffd_u32 {
             let next = lw(list + 56);

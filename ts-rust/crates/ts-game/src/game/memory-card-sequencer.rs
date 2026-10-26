@@ -745,6 +745,10 @@ pub fn mcseq_pageTick(a0: i32) {
                         sw(g::mcseq_msgflags, flags);
                     }
                 }
+                if save_flow_active_x() && lw(g::mcseq_msgflags) == 2 {
+                    sw(g::mcseq_msgflags, 2 | 32);
+                    flags = lw(g::mcseq_msgflags);
+                }
                 if flags & 2 != 0 {
                     let pressed = joyNewBut(lw(0x3affdc));
                     flags = lw(g::mcseq_msgflags);
