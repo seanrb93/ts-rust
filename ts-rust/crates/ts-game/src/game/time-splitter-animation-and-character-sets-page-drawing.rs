@@ -294,7 +294,7 @@ pub fn chrsets_pageDraw(a0: i32) {
     let s3 = if part == 0 { 0x6e6e6e80 } else { 0x40404080 };
     zoomboxDraw(288, 47, 575, 168, s5, s3);
     let language = lw(g::cur_language);
-    let title = if lw(g::gv_chrset) >= 8 {
+    let title = if chrset_read() >= 8 {
         lw(lw((language << 2) + g::languages) + 1676)
     } else {
         lw(lw((language << 2) + g::languages) + 1672)
@@ -407,7 +407,7 @@ pub fn chrsets_pageDraw(a0: i32) {
     if state == 2 {
         s3_2 = 0x6e6e6e80;
     } else {
-        s3_2 = if 7 >= lw(g::gv_chrset) { 0x20202040 } else { 0x40404080 };
+        s3_2 = if 7 >= chrset_read() { 0x20202040 } else { 0x40404080 };
     }
     let s5_3 = if (state ^ 2) == 0 { 0x2040 } else { 128 };
     zoomboxDraw(64, 47, 263, 168, s5_3, s3_2);
@@ -528,7 +528,7 @@ pub fn chrsets_pageDraw(a0: i32) {
     let kind = lw(0x3aff58);
     if (mode & 1) == 0 {
         let alpha = lbu(g::flashalpha);
-        if lw(g::gv_chrset) >= 8 {
+        if chrset_read() >= 8 {
             let mut scroll = lw(0x3aff64);
             let colour = (((alpha as u32) >> 1) as i32) << 24 | 128 | (alpha << 8 | alpha << 16);
             if (lw(0x3aff50) - scroll) >= 11 {

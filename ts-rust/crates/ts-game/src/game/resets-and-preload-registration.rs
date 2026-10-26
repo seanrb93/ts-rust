@@ -65,7 +65,7 @@ pub fn splitMessageStart(number: i32, kind: i32, text: i32) {
 
 /// The weapon combination at place `place` of the chosen weapon set (the game's own list for set 0, else the preset's, 20 bytes a set from `gunpresets` + 160); -1 gives 0 (@ 0x232d48).
 pub fn frontmpgGetGunComboNum(place: i32) -> i32 {
-    let set = lw(g::gv_weaponset);
+    let set = weaponset_read();
     let list = if set == 0 { g::gunzpack } else { set * 20 + (g::gunpresets + 160) };
     let combo = lw((place << 2) + list);
     if !(0 | combo) == 0 { 0 } else { combo }

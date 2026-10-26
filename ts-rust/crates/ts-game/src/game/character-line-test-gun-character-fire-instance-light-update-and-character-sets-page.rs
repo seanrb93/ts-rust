@@ -1101,11 +1101,13 @@ pub fn obInstLightUpdate(a0: i32) {
 /// The tick of the page of the character sets (@ 0x2345f8) for the page `a0`: the list of the characters that can be chosen is made, and the keys move the cursor in the list
 /// of the 10 characters of the set (state 3) or in the whole list (state 2), pick characters, swap them and change what goes in the 4 columns (state 3 columns 0 to 3).
 pub fn chrsets_pageTick(a0: i32) {
+    #[cfg(feature = "extensions")]
+        bots_randomise(a0);
     let frame = Frame::new(176);
     let sp = frame.sp();
     let page = g::chrsets_page;
     let mut index = 0;
-    let set = lw(g::gv_chrset);
+    let set = chrset_read();
     let builtin = (set < 8) as i32;
     pageSet(lw(lw((lw(g::cur_language) << 2) + g::languages) + 504), page);
     frontfxTick(0);
@@ -1626,7 +1628,7 @@ pub fn chrsets_pageTick(a0: i32) {
             text = lw(strings + 676);
         }
     } else {
-        text = lw(strings + 1680);
+        text = bots_legend_or(lw(strings + 1680), builtin);
     }
     sw(g::i0500 + 96, text);
     if shown == 1 {

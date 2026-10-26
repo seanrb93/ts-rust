@@ -1166,7 +1166,7 @@ pub fn weapons_pageDraw(a0: i32) {
     let old_font = textSelect(1);
     sw(sp + 56, old_font);
     pagebackgroundGfx_230688(a0);
-    let weaponset = lw(g::gv_weaponset);
+    let weaponset = weaponset_read();
     let colours = 0x3a1b80;
     let second = ld(colours + 8);
     let third = lw(colours + 16);
@@ -1176,7 +1176,7 @@ pub fn weapons_pageDraw(a0: i32) {
     let picked = if weaponset == 0 { g::gunzpack } else { weaponset * 20 + (g::gunpresets + 160) };
     zoomboxDraw(312, 52, 575, 119, 0x2040, 0x6e6e6e80);
     let language = lw(g::cur_language);
-    let title = if lw(g::gv_weaponset) == 0 { lw(lw((language << 2) + g::languages) + 1652) } else { lw(lw((language << 2) + g::languages) + 1648) };
+    let title = if weaponset_read() == 0 { lw(lw((language << 2) + g::languages) + 1652) } else { lw(lw((language << 2) + g::languages) + 1648) };
     let mut entry = picked;
     let width = textWidth(title);
     let mut i = 0;
@@ -1227,7 +1227,7 @@ pub fn weapons_pageDraw(a0: i32) {
                 break 'item;
             }
         }
-        line_colour = if lw(g::gv_weaponset) != 0 { 0x20202040 } else { 0x40404080 };
+        line_colour = if weaponset_read() != 0 { 0x20202040 } else { 0x40404080 };
     }
     let current = lhu(a0 + 4);
     let box_colour = if (current ^ 1) == 0 { 0x2040 } else { 128 };
@@ -1264,7 +1264,7 @@ pub fn weapons_pageDraw(a0: i32) {
         zoomboxDraw(65, row * 11 + 65, 264, row * 11 + 74, 0, colour);
     }
     let alpha = lbu(g::flashalpha);
-    if lw(g::gv_weaponset) == 0 {
+    if weaponset_read() == 0 {
         let mut top = lw(g::gunzlistrowtop);
         let colour = ((((alpha as u32) >> 1) as i32) << 24) | 128 | (alpha << 8 | alpha << 16);
         if (lw(0x3aff4c) - top) >= 11 {

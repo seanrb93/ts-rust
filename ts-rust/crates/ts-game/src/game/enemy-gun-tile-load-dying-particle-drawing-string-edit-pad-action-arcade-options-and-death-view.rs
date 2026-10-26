@@ -1280,7 +1280,7 @@ pub fn padact_pageTick(a0: i32) {
 pub fn arcadeoptions_pageTick(a0: i32) {
     pageSet(lw(lw((lw(g::cur_language) << 2) + g::languages) + 496), g::arcadeoptions_page);
     frontfxTick(0);
-    botsetInit(lw(g::gv_chrset));
+    botsetInit(chrset_read());
     checkAllowedTeams();
     let language = lw(g::cur_language);
     let items = g::i0410 + 32;

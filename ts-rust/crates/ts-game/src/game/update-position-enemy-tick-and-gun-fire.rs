@@ -358,6 +358,8 @@ pub fn updatePos(a0: i32) {
 /// The tick of a computer character `a0` (@ 0x2bb470): its clocks go on, its name of state (+2736, 30 letters) is set and the function of its state (+2716) runs: asleep, awake,
 /// patrolling, attacking, defending, dying, spawning, following, the ambush states and so on.
 pub fn enemyTick(a0: i32) {
+    #[cfg(feature = "extensions")]
+        bot_punch(a0);
     let mind = lw(a0 + 352);
     if lw(g::numactivechars) == 0 {
         return;

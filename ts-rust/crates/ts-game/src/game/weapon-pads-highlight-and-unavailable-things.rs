@@ -150,7 +150,7 @@ pub fn checkUnavailableThings() {
     sw(g::gunzlistrow, 0);
     sw(g::gunzlistrowtop, 0);
     if weaponsetAvail(8) == 0 {
-        if (lw(g::gv_weaponset) - 1) == 8 {
+        if (weaponset_read() - 1) == 8 {
             sw(g::gv_weaponset, 3);
         }
         let pack = g::gunzpack;
@@ -177,7 +177,7 @@ pub fn checkUnavailableThings() {
             }
         }
     }
-    let bot_set = lw(g::gv_chrset);
+    let bot_set = chrset_read();
     if bot_set < 8 && botsetAvail(bot_set) == 0 {
         sw(g::gv_chrset, 0);
     }

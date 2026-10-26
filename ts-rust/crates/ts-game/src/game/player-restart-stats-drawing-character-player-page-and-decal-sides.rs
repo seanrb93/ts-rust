@@ -433,6 +433,8 @@ pub fn drawStats() {
 /// The tick of the character page of the multiplayer game (@ 0x237600) for the page `a0`. The player of the page (`lw(front)`) goes from the main menu (state 2) to the
 /// handicap menu (state 3), the team menu (state 4) and then waits to be ready (state 5); the game starts when every player is ready and the first player pushes start.
 pub fn chrplayer_pageTick(a0: i32) {
+    #[cfg(feature = "extensions")]
+        char_randomise(a0);
     let mut menu = 0;
     let signon = signonGet(lw(lw(g::front)));
     let record = lw(g::signonarray) + signon * 2936 + 32;

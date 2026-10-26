@@ -783,6 +783,8 @@ pub fn gunPreload() {
 /// Tick of the weapons page (@ 0x2333f0): the list of the weapons that can be picked is built (the last one only when the weapon set 8 is available), up and down move
 /// the cursor in the list, accept fills the first free slot of the picked weapons and the second button clears the last one, and left and right change the weapon set.
 pub fn weapons_pageTick(a0: i32) {
+    #[cfg(feature = "extensions")]
+        weapons_randomise(a0);
     pageSet(lw(lw((lw(g::cur_language) << 2) + g::languages) + 500), g::weapons_page);
     frontfxTick(0);
     sw(0x3aff4c, 0);
@@ -860,7 +862,7 @@ pub fn weapons_pageTick(a0: i32) {
                                     let current = lhu(a0 + 4);
                                     let id = current & 0xffff;
                                     if id == 2 {
-                                        if lw(g::gv_weaponset) != 0 {
+                                        if weaponset_read() != 0 {
                                             item = current;
                                             break 'input;
                                         }
@@ -956,7 +958,7 @@ pub fn weapons_pageTick(a0: i32) {
             }
             language = lw(g::cur_language);
             if item == 2 {
-                let text = if lw(g::gv_weaponset) != 0 { 0 } else { lw(lw((lw(g::cur_language) << 2) + g::languages) + 1656) };
+                let text = if weaponset_read() != 0 { 0 } else { weapons_legend_or(lw(lw((lw(g::cur_language) << 2) + g::languages) + 1656)) };
                 let front = lw(g::front);
                 sw(g::i0600 + 64, text);
                 sw(front + 12, lw(front + 12) & -49);

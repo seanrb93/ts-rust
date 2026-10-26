@@ -83,20 +83,25 @@ pub fn calculateClockTime() {
 
 /// Step the character set setting down (wrapping from 0 to 10) until one that is available is found (sets 8 and above always are), with the sound 141 (@ 0x234510).
 pub fn chrsetDec() {
+    #[cfg(feature = "extensions")]
+    {
+        chrset_step(-1);
+        return;
+    }
     soundStart(141, 0);
-    let mut effective = lw(g::gv_chrset);
+    let mut effective = chrset_read();
     loop {
         let value = effective - 1;
         sw(g::gv_chrset, value);
         if value < 0 {
             sw(g::gv_chrset, 10);
         }
-        let set = lw(g::gv_chrset);
+        let set = chrset_read();
         if set >= 8 {
             break;
         }
         let available = botsetAvail(set);
-        effective = lw(g::gv_chrset);
+        effective = chrset_read();
         if available != 0 {
             break;
         }
@@ -105,20 +110,25 @@ pub fn chrsetDec() {
 
 /// Step the character set setting up (wrapping from 10 to 0) until one that is available is found (@ 0x234588).
 pub fn chrsetInc() {
+    #[cfg(feature = "extensions")]
+    {
+        chrset_step(1);
+        return;
+    }
     soundStart(141, 0);
-    let mut effective = lw(g::gv_chrset);
+    let mut effective = chrset_read();
     loop {
         let value = effective + 1;
         sw(g::gv_chrset, value);
         if value >= 11 {
             sw(g::gv_chrset, 0);
         }
-        let set = lw(g::gv_chrset);
+        let set = chrset_read();
         if set >= 8 {
             break;
         }
         let available = botsetAvail(set);
-        effective = lw(g::gv_chrset);
+        effective = chrset_read();
         if available != 0 {
             break;
         }
@@ -231,20 +241,25 @@ pub fn specialfxIsOutdoors(a0: i32, a1: i32) -> i32 {
 
 /// Step the weapon set setting down (wrapping from 0 to 9) until one that is available is found (set 0 always is), with the sound 141 (@ 0x232df0).
 pub fn weaponSetDec() {
+    #[cfg(feature = "extensions")]
+    {
+        weapon_set_step(-1);
+        return;
+    }
     soundStart(141, 0);
-    let mut effective = lw(g::gv_weaponset);
+    let mut effective = weaponset_read();
     loop {
         let value = effective - 1;
         sw(g::gv_weaponset, value);
         if value < 0 {
             sw(g::gv_weaponset, 9);
         }
-        let set = lw(g::gv_weaponset);
+        let set = weaponset_read();
         if set == 0 {
             break;
         }
         let available = weaponsetAvail(set - 1);
-        effective = lw(g::gv_weaponset);
+        effective = weaponset_read();
         if available != 0 {
             break;
         }
@@ -253,20 +268,25 @@ pub fn weaponSetDec() {
 
 /// Step the weapon set setting up (wrapping from 9 to 0) until one that is available is found (@ 0x232e68).
 pub fn weaponSetInc() {
+    #[cfg(feature = "extensions")]
+    {
+        weapon_set_step(1);
+        return;
+    }
     soundStart(141, 0);
-    let mut effective = lw(g::gv_weaponset);
+    let mut effective = weaponset_read();
     loop {
         let value = effective + 1;
         sw(g::gv_weaponset, value);
         if value >= 10 {
             sw(g::gv_weaponset, 0);
         }
-        let set = lw(g::gv_weaponset);
+        let set = weaponset_read();
         if set == 0 {
             break;
         }
         let available = weaponsetAvail(set - 1);
-        effective = lw(g::gv_weaponset);
+        effective = weaponset_read();
         if available != 0 {
             break;
         }
