@@ -174,7 +174,7 @@ fn ambush_wall(a0: i32, idle: i32, rise: i32, constants: [i32; 3], leaves: bool)
                 // state 4: waiting for the time to end, then back to the pad
                 if lwc1(mind + 2732) < lwc1(mind + 2892) {
                     let complete = curAnimComplete(lw(a0 + 32));
-                    let frames = lw(g::updateframesi);
+                    let frames = running_x();
                     if complete != 0 {
                         if frames > 0 {
                             soundStart(138, 0);
@@ -829,7 +829,7 @@ pub fn enemyAIFutureLastStandHandler() {
                             }
                             sw(chr * 0x1210 + chrinfo + 2788, lw((base << 3) + (g::bases + 4)));
                         }
-                        let frames = lw(g::updateframesi);
+                        let frames = running_x();
                         swc1(0x3b01cc, lwc1(0x3ada84));
                         sw(chr * 0x1210 + chrinfo + 2772, 1);
                         if frames <= 0 {

@@ -258,14 +258,14 @@ pub fn updateShotgunReload(reload: i32) {
         swc1(shell + 76, lwc1(model_now + 76));
         swc1(shell + 88, lwc1(model_now + 88));
     } else {
-        let y1 = ps2float::add(lwc1(first + 52), lwc1(first + 64));
-        let z1 = ps2float::add(lwc1(first + 56), lwc1(first + 68));
-        swc1(first + 48, ps2float::add(lwc1(first + 48), lwc1(first + 60)));
+        let y1 = ps2float::add(lwc1(first + 52), per_update(lwc1(first + 64)));
+        let z1 = ps2float::add(lwc1(first + 56), per_update(lwc1(first + 68)));
+        swc1(first + 48, ps2float::add(lwc1(first + 48), per_update(lwc1(first + 60))));
         swc1(first + 52, y1);
         swc1(first + 56, z1);
-        let y2 = ps2float::add(lwc1(second + 52), lwc1(second + 64));
-        let z2 = ps2float::add(lwc1(second + 56), lwc1(second + 68));
-        swc1(second + 48, ps2float::add(lwc1(second + 48), lwc1(second + 60)));
+        let y2 = ps2float::add(lwc1(second + 52), per_update(lwc1(second + 64)));
+        let z2 = ps2float::add(lwc1(second + 56), per_update(lwc1(second + 68)));
+        swc1(second + 48, ps2float::add(lwc1(second + 48), per_update(lwc1(second + 60))));
         swc1(second + 52, y2);
         swc1(second + 56, z2);
     }

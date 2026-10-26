@@ -249,7 +249,7 @@ pub fn playerDirtyPosReset() {
             offset += 1820;
             playerSetStartPos(player);
             let count = lw(g::lvnumplayers);
-            sw(player + 340, 1);
+            store_one_tick(player + 340);
             sw(player + 292, 1);
             if i >= count {
                 break;

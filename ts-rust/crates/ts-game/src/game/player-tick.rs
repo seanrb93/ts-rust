@@ -292,7 +292,7 @@ fn move_on_ground(sp: i32, p: i32, chr: i32, m: &Motion) -> i32 {
             swc1(p + 864, speed_z);
             sw(chr + 2864, 0);
         } else {
-            let fall = (-lwc1(p + 376)).pdiv(lw(p + 340) as f32);
+            let fall = (-lwc1(p + 376)).pdiv(ticks_of(lw(p + 340)));
             swc1(p + 864, ps2float::mul(slide_z, 8.0_f32).pdiv(60.0_f32));
             swc1(p + 856, ps2float::mul(slide_x, 8.0_f32).pdiv(60.0_f32));
             swc1(chr + 2864, fall);
@@ -608,13 +608,13 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     for (to, from) in [(344, 140), (348, 144), (352, 148), (356, 152), (360, 156), (364, 160), (368, 276), (372, 284)] {
         swc1(p + to, lwc1(p + from));
     }
-    if frames_before > 0 {
+    if ticks_of(frames_before) > 0.0_f32 {
         sw(p + 340, frames_before);
     }
 
     // The run button.
     let mode = lw(p + 296);
-    sw(p + 292, lw(g::updateframesi));
+    store_update_ticks(p + 292);
     if mode == 4 || lw(g::padlinkedit) == 1 || mode == 6 || mode == 7 {
         sw(p + 20, lw(p + 20) & -2);
     } else if lhu(lw(p + 24) + 2) & 4 == 0 {

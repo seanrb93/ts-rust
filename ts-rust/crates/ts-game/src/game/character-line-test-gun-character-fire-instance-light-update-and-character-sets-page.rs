@@ -423,7 +423,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
     if target == 0 {
         return;
     }
-    let frames = lw(g::updateframesi);
+    let frames = running_x();
     if lw(a0 + 12) == 0 {
         return;
     }

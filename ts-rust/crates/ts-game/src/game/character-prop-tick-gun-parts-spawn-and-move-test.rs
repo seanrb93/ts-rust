@@ -409,7 +409,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
         kind = lw(a1);
         if lw(a0 + 156) == 0 {
             if lw(a0 + 152) >= lw(gun + 388) {
-                frames_now = lw(g::updateframesi);
+                frames_now = running_x();
                 if kind != 18 {
                     if frames_now <= 0 {
                         break 'fire;

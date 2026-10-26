@@ -969,3 +969,76 @@ pub fn per_update(v: f32) -> f32 {
         v
     }
 }
+
+/// The animation time of the frame before the last one (`spaceship1PropTick`): `now` is the integer tick counter.
+#[inline]
+pub fn gameframe_before(now: i32) -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        let _ = now;
+        gameframe_f() - lwc1(g::updateframesf)
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        (now - lw(g::updateframesi)) as f32
+    }
+}
+
+/// The tick counter `tick` as a float for an animation (the continuous time at a high frame rate).
+#[inline]
+pub fn gameframe_tick_x(tick: i32) -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        let _ = tick;
+        gameframe_f()
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        tick as f32
+    }
+}
+
+/// The ticks of this frame as a float (the whole ticks in the console game, the frame time at a high frame rate).
+#[inline]
+pub fn update_ticks_f() -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        lwc1(g::updateframesf)
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        lw(g::updateframesi) as f32
+    }
+}
+
+/// The ticks of this frame are stored in the word `at` (the player's: the speed is the distance moved divided by them): an integer in the console
+/// game, a float at a high frame rate.
+#[inline]
+pub fn store_update_ticks(at: i32) {
+    #[cfg(feature = "high-framerate")]
+    swc1(at, lwc1(g::updateframesf));
+    #[cfg(not(feature = "high-framerate"))]
+    sw(at, lw(g::updateframesi));
+}
+
+/// The ticks word `at` is set to 1.
+#[inline]
+pub fn store_one_tick(at: i32) {
+    #[cfg(feature = "high-framerate")]
+    swc1(at, 1.0_f32);
+    #[cfg(not(feature = "high-framerate"))]
+    sw(at, 1);
+}
+
+/// A ticks word of the player (the integer of the console game, the float's bits at a high frame rate) as a float.
+#[inline]
+pub fn ticks_of(raw: i32) -> f32 {
+    #[cfg(feature = "high-framerate")]
+    {
+        f32::from_bits(raw as u32)
+    }
+    #[cfg(not(feature = "high-framerate"))]
+    {
+        raw as f32
+    }
+}

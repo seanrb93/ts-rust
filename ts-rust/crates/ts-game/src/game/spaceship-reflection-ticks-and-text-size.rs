@@ -10,7 +10,7 @@ pub fn spaceship1PropTick(prop: i32) {
     let frame = Frame::new(48);
     let sp = frame.sp();
     let now = lw(g::gameframe);
-    let time = now as f32;
+    let time = gameframe_x();
     let k = lwc1(0x3acf28);
     let half = 0.5_f32;
     let table = g::g_SinTable;
@@ -21,7 +21,7 @@ pub fn spaceship1PropTick(prop: i32) {
     let y_at = ((ps2float::add(ps2float::mul(ps2float::mul(time, lwc1(0x3acf2c)), k), half) as i32 & 2047) << 2) + table;
     let base_y = lwc1(prop + 40);
     let bones = model - lw(model) * 80;
-    let later = ps2float::add(ps2float::mul(ps2float::mul((now - lw(g::updateframesi)) as f32, k3), k), half) as i32;
+    let later = ps2float::add(ps2float::mul(ps2float::mul(gameframe_before(now), k3), k), half) as i32;
     let base_z = lwc1(prop + 44);
     swc1(prop + 48, ps2float::add(lwc1(prop + 36), ps2float::mul(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(time, lwc1(0x3acf24)), k), half) as i32 & 2047) << 2) + table), lwc1(0x3acf30)), lwc1(state + 32))));
     let z_at = ((ps2float::add(ps2float::mul(ps2float::mul(time, k3), k), half) as i32 & 2047) << 2) + table;
@@ -80,7 +80,7 @@ pub fn reflectionsPropTick(prop: i32) {
                 let table = g::g_SinTable;
                 let eight = 8.0_f32;
                 i += 1;
-                let time = ps2float::mul(tick as f32, lwc1(0x3ace98));
+                let time = ps2float::mul(gameframe_tick_x(tick), lwc1(0x3ace98));
                 let k = lwc1(0x3acea0);
                 let half = 0.5_f32;
                 let k_z = lwc1(0x3aceac);

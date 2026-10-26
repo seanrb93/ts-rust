@@ -222,7 +222,7 @@ pub fn blastringGfx() {
         let angle_at = ring * 36 + (base - 8);
         matrixroll(lw(sp + 640), ring * 36 + base, lwc1(angle_at));
         let full = 3.6e+02_f32;
-        let angle = ps2float::add(lwc1(angle_at), lwc1(base + offset - 4));
+        let angle = ps2float::add(lwc1(angle_at), per_frame(lwc1(base + offset - 4)));
         swc1(angle_at, angle);
         let frames;
         if !(full < angle) {

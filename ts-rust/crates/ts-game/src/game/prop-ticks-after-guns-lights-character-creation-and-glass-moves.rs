@@ -211,8 +211,8 @@ pub fn gunTick() {
         speed = lw(player + 340);
     }
     let frames = lwc1(g::updateframesf);
-    if speed > 0 {
-        swc1(player + 392, ps2float::add(lwc1(player + 392), ps2float::mul(ps2float::mul(lwc1(player + 380), lwc1(0x3ad450)).pdiv(speed as f32), frames)));
+    if ticks_of(speed) > 0.0_f32 {
+        swc1(player + 392, ps2float::add(lwc1(player + 392), ps2float::mul(ps2float::mul(lwc1(player + 380), lwc1(0x3ad450)).pdiv(ticks_of(speed)), frames)));
     }
     let scale = lwc1(0x3ad454);
     let phase = ps2float::mul(lwc1(player + 392), 3.6e+02_f32);

@@ -13,7 +13,7 @@ pub fn vtxlistWaterxyz(source: i32, out: i32, count: i32, table: i32) {
         let now = lw(g::gameframe);
         loop {
             let x = lwc1(from);
-            let time = now as f32;
+            let time = gameframe_x();
             let z = lwc1(from + 8);
             swc1(to, x);
             let at = i << 2;

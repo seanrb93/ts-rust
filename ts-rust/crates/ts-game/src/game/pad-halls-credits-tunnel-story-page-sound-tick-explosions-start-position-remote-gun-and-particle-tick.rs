@@ -922,7 +922,7 @@ pub fn gunRemoteFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32) {
     sw(sp + 160, a4);
     let model = lw(a0 + 32);
     let definition = lw(model);
-    let frames = lw(g::updateframesi);
+    let frames = running_x();
     let data = lw(a0 + 352);
     let gun = lw(a1) * 400 + g::guns;
     let clip = lw(gun + 20);

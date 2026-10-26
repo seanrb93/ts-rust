@@ -505,7 +505,7 @@ pub fn dying(a0: i32) {
             let clamped = if -1 >= index { 0 } else { index };
             let slot = (if clamped >= 20 { 19 } else { clamped }) << 2;
             if lwc1(slot + g::deathSoundTime) < lwc1(model + 100) {
-                let frames = lw(g::updateframesi);
+                let frames = running_x();
                 if lw(state + 2728) != 99 {
                     if frames > 0 {
                         soundStart(lw(slot + g::deathSound), a0 + 48);
@@ -607,7 +607,7 @@ pub fn dying(a0: i32) {
         let clamped = if -1 >= index { 0 } else { index };
         let slot = (if clamped >= 20 { 19 } else { clamped }) << 2;
         if lwc1(slot + g::deathSoundTime) < lwc1(model + 100) {
-            let frames = lw(g::updateframesi);
+            let frames = running_x();
             if lw(state + 2728) != 99 {
                 if frames > 0 {
                     soundStart(lw(slot + g::deathSound), a0 + 48);

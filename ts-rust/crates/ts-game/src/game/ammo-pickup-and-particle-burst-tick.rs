@@ -83,7 +83,7 @@ pub fn particleBurstTick(group: i32) {
             swc1(pz, ps2float::add(lwc1(pz), ps2float::mul(lwc1(vz), frame_time)));
             swc1(vy, ps2float::add(lwc1(vy), ps2float::mul(lwc1(infos + lw(group + 4) * 104 + 52), frame_time)));
             let floor = lwc1(group + 40);
-            let running = lw(g::updateframesi);
+            let running = running_x();
             if lwc1(py) < floor {
                 let friction = infos + 92;
                 if running > 0 {
