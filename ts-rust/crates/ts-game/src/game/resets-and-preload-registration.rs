@@ -142,7 +142,7 @@ pub fn zbtestResetAfter() {
 pub fn emResetTexBuffer(n: i32) {
     let buffer = n * 0x1a18 + g::texbuf;
     memset(lw(buffer + 4), 0, lw(buffer + 0x1a14) * 40);
-    memset(buffer + 8, 0, 0x1800);
+    tex_slots_clear(buffer);
     memset(buffer + 0x1808, 0, 512);
     sw(buffer + 0x1a08, lw(buffer + 0x1a14) - 1);
 }

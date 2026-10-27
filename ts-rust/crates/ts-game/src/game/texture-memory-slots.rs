@@ -17,11 +17,12 @@ const SLOT_FIRST: i32 = 0x1a0c;
 /// it goes at 0 (@ 0x2b6c20).
 pub fn emGetNextPos(tex: i32, small: i32) -> i32 {
     let buffer = lw(g::thistexbuf);
+    let slots = tex_slots(buffer);
     if small != 0 {
         let mut slot = lw(buffer + SLOT_COUNT) - 1;
         // a slot that is partly used with room for another
         while slot >= 0 {
-            let at = buffer + slot * 12;
+            let at = slots + slot * 12;
             if (lw(at + 12) & 1) != 0 && (lw(at + 8) as u32) < 8 {
                 break;
             }
@@ -30,15 +31,15 @@ pub fn emGetNextPos(tex: i32, small: i32) -> i32 {
         if slot < 0 {
             // else the last free slot
             slot = lw(buffer + SLOT_COUNT) - 1;
-            while slot >= 0 && (lw(buffer + slot * 12 + 12) & 3) != 0 {
+            while slot >= 0 && (lw(slots + slot * 12 + 12) & 3) != 0 {
                 slot -= 1;
             }
             if slot < 0 {
                 return 0;
             }
         }
-        let flags_at = buffer + 12 + slot * 12;
-        let used_at = buffer + 8 + slot * 12;
+        let flags_at = slots + 12 + slot * 12;
+        let used_at = slots + 8 + slot * 12;
         sw(flags_at, lw(flags_at) | 1);
         sw(tex + 24, ((lw(buffer + SLOT_FIRST) + slot) << 5) + (lw(used_at) << 2));
         sw(used_at, lw(used_at) + 1);
@@ -81,6 +82,7 @@ pub fn emGetNextPos(tex: i32, small: i32) -> i32 {
     }
     let size_y = lw(entry + 4);
     let buffer = lw(g::thistexbuf);
+    let slots = tex_slots(buffer);
     if 64 < size_y as u32 {
         blocks *= ((size_y as u32) / 64) as i32;
     }
@@ -88,15 +90,15 @@ pub fn emGetNextPos(tex: i32, small: i32) -> i32 {
     // a slot already used by this size, with a free place for the mask
     let mut slot = 0;
     while slot < count {
-        let at = buffer + slot * 12;
+        let at = slots + slot * 12;
         if (lw(at + 12) & 2) != 0 && lw(at + 16) == entry && lw(at + 8) != -1 {
             let mut bit = 0;
             loop {
                 let position = lbu(entry + 12 + bit);
                 let place = ((mask as u32) >> (position & 31)) as i32;
-                if (lw(buffer + 8 + slot * 12) & place) == 0 {
+                if (lw(slots + 8 + slot * 12) & place) == 0 {
                     sw(tex + 16, ((lw(buffer + SLOT_FIRST) + slot) << 5) + position);
-                    let mut flags_at = buffer + 12 + slot * 12;
+                    let mut flags_at = slots + 12 + slot * 12;
                     for _ in 0..blocks {
                         let flags = lw(flags_at);
                         let used = lw(flags_at - 4) | place;
@@ -121,9 +123,9 @@ pub fn emGetNextPos(tex: i32, small: i32) -> i32 {
         return 0;
     }
     loop {
-        if (lw(buffer + 12 + slot * 12) & 3) == 0 {
+        if (lw(slots + 12 + slot * 12) & 3) == 0 {
             sw(tex + 16, (lw(buffer + SLOT_FIRST) + slot) << 5);
-            let mut flags_at = buffer + 12 + slot * 12;
+            let mut flags_at = slots + 12 + slot * 12;
             for _ in 0..blocks {
                 sw(flags_at - 4, mask);
                 sw(flags_at + 4, entry);

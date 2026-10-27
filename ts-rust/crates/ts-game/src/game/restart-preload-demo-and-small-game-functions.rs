@@ -182,13 +182,14 @@ pub fn preloadAddTexName(a0: i32, a1: i32) {
 pub fn emCreateTexBuffer(a0: i32, a1: i32, a2: i32, a3: i32) {
     let buffer = a0 * 0x1a18 + g::texbuf;
     sw(buffer + 0x1a0c, a1);
-    sw(buffer + 0x1a10, a2);
+    sw(buffer + 0x1a10, tex_slot_count(a2));
     sw(buffer + 0x1a14, a3);
     let data = memAlloc(a3 << 7, 1);
     let count = lw(buffer + 0x1a14);
     sw(buffer, data);
     let records = memAlloc(count * 40 + 15 & -16, 1);
     sw(buffer + 4, records);
+    tex_slots_create(buffer);
     emResetTexBuffer(a0);
 }
 

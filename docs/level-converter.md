@@ -37,8 +37,8 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   wall stops only what comes from the side the face points to: a thin wall needs a face for each side.
 - Pads for the bots are laid on the floors (`--pad-spacing`; at most `--max-pads`) and linked to their neighbours, in groups the game finds routes by.
 - Pictures are made into the game's texture files: sides of powers of two, at most 256, at most 65536 pixels.  Surfaces with see-through pixels are drawn
-  after the solid ones.  Of a map with more than `--max-textures` (200) materials, those that cover least are drawn with the picture of the most alike colour among the rest.  The
-  texture files are made smaller until they add up to `--texture-budget` (1800 KB: the game's texture memory holds about 2800, and its own levels use up to 670).
+  after the solid ones.  Of a map with more than `--max-textures` (480: the game has 512 texture records) materials, those that cover least are drawn with the picture of the most alike colour among the rest.  The
+  texture files are made smaller until they add up to `--texture-budget` (24000 KB).  The texture memory of the original game is 4 MB (about 2800 KB for the level); the port's `extended-tables` build gives a level of a mod all the 17 bits of block address it keeps (about 31000 KB, `ts_rt::gswide`: the bits above the 14 of the hardware go to unused bits of TEX0, MIPTBP and BITBLTBUF), so a level made with the defaults needs that build; for a build without it use `--max-textures 200 --texture-budget 1800`, or textures past the memory draw black.
 - Axes and size: Source and GoldSrc maps are z up and 72 units tall for a player: they are turned and scaled by 0.025 (`--scale`, `--up`).  A model is taken as it
   is: the game's rooms are about 20 units across and a player about 1.8 high.  `--flip` turns the faces round if the level comes out inside out.
 - **Music.**  `--music song.mp3` (any audio file; ffmpeg is needed, `pip install imageio-ffmpeg` will do, unless it is already `.opus`) makes the level play that song: it is

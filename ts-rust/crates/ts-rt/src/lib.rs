@@ -14,6 +14,7 @@ pub mod int;
 pub mod ps2float;
 pub mod loader;
 pub mod texnames;
+pub mod gswide;
 #[cfg(feature = "trace")]
 pub mod trace;
 #[cfg(feature = "calltrace")]

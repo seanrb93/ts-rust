@@ -54,11 +54,11 @@ pub fn sceDmaGetChan(args: &[i64]) -> i32 {
 /// exactly as libgs does; the game later patches its `giftag1` with the quad-word count.
 pub fn sceGsSetDefLoadImage(args: &[i64]) -> i32 {
     let lp = args[0] as i32;
-    let (dbp, dbw, dpsm) = (args[1] & 0x3fff, args[2] & 0x3f, args[3] & 0x3f);
+    let (dbp, dbw, dpsm) = (args[1] as u64 & (ts_rt::gswide::WIDE_BLOCKS as u64 - 1), args[2] & 0x3f, args[3] & 0x3f);
     let (x, y, w, h) = (args[4] & 0x7ff, args[5] & 0x7ff, args[6] & 0xfff, args[7] & 0xfff);
     sd(lp, 4 | (1 << 15) | (0xe << 60)); // giftag0: NLOOP=4, EOP, REGS=A+D (NREG 1)
     sd(lp + 8, 0xe);
-    sd(lp + 16, dbp << 32 | dbw << 48 | dpsm << 56); // BITBLTBUF
+    sd(lp + 16, (ts_rt::gswide::bitbltbuf_dbp_bits(dbp) | (dbw as u64) << 48 | (dpsm as u64) << 56) as i64); // BITBLTBUF
     sd(lp + 24, 0x50);
     sd(lp + 32, x << 32 | y << 48); // TRXPOS
     sd(lp + 40, 0x51);

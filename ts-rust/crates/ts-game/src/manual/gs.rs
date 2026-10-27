@@ -9,7 +9,7 @@ pub fn sjeGsExecLoadImage(desc: i32, data: i32) {
     let trxpos = ld(desc + 32) as u64;
     let trxreg = ld(desc + 48) as u64;
     ts_sdk::image_upload(&ts_sdk::ImageUpload {
-        dbp: ((bitbltbuf >> 32) & 0x3fff) as u32,
+        dbp: ts_rt::gswide::bitbltbuf_dbp(bitbltbuf),
         dbw: ((bitbltbuf >> 48) & 0x3f) as u32,
         psm: ((bitbltbuf >> 56) & 0x3f) as u32,
         x: ((trxpos >> 32) & 0x7ff) as u32,

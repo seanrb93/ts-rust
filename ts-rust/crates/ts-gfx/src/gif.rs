@@ -107,17 +107,17 @@ impl Gif {
         let c = self.cur();
         let tme = (self.prim >> 4) & 1 != 0;
         let tex = tme.then(|| TexKey {
-            tbp0: (c.tex0 & 0x3fff) as u32,
-            tbw: ((c.tex0 >> 14) & 0x3f) as u32,
+            tbp0: ts_rt::gswide::tex0_tbp(c.tex0),
+            tbw: ((c.tex0 >> 14) & 0xf) as u32,
             psm: ((c.tex0 >> 20) & 0x3f) as u32,
             tw: ((c.tex0 >> 26) & 0xf) as u32,
             th: ((c.tex0 >> 30) & 0xf) as u32,
             tcc: ((c.tex0 >> 34) & 1) as u32,
             tfx: ((c.tex0 >> 35) & 3) as u32,
-            cbp: ((c.tex0 >> 37) & 0x3fff) as u32,
+            cbp: if (c.tex0 >> 20) & 0x3f == 0x13 { ts_rt::gswide::tex0_cbp8(c.tex0) } else { ((c.tex0 >> 37) & 0x3fff) as u32 },
             cpsm: ((c.tex0 >> 51) & 0xf) as u32,
             csm: ((c.tex0 >> 55) & 1) as u32,
-            csa: ((c.tex0 >> 56) & 0x1f) as u32,
+            csa: if (c.tex0 >> 20) & 0x3f == 0x13 { 0 } else { ((c.tex0 >> 56) & 0x1f) as u32 },
         });
         let x0 = (c.scissor & 0x7ff) as i32;
         let x1 = ((c.scissor >> 16) & 0x7ff) as i32;
@@ -352,7 +352,7 @@ impl Gif {
     }
 
     fn image_data(&mut self, frame: &mut Frame, data: &[u8]) {
-        let dbp = ((self.bitbltbuf >> 32) & 0x3fff) as u32;
+        let dbp = ts_rt::gswide::bitbltbuf_dbp(self.bitbltbuf);
         let dbw = ((self.bitbltbuf >> 48) & 0x3f) as u32;
         let psm = ((self.bitbltbuf >> 56) & 0x3f) as u32;
         let x = ((self.trxpos >> 32) & 0x7ff) as u32;

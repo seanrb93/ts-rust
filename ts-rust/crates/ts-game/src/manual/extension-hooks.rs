@@ -1196,3 +1196,101 @@ pub fn eternal_overflow_x(size: i32) -> Option<i32> {
         None
     }
 }
+
+/// The TEX0 bits of the block address of a texture (the game or'ed the address in as it was): with the extension the address can be wider than the 14 bits of the hardware,
+/// and the bits above them go to the bits of TEX0 that the game does not use (`ts_rt::gswide`).
+#[inline]
+pub fn gs_tex0_tbp(addr: i64) -> i64 {
+    #[cfg(feature = "extended-tables")]
+    {
+        ts_rt::gswide::tex0_tbp_bits(addr as u64) as i64
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    addr
+}
+
+/// The TEX0 bits of the palette address of a small texture (the game shifted the address up to the CBP field).
+#[inline]
+pub fn gs_tex0_cbp(addr: i64) -> i64 {
+    #[cfg(feature = "extended-tables")]
+    {
+        ts_rt::gswide::tex0_cbp_bits(addr as u64) as i64
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        addr << 37
+    }
+}
+
+/// An address field of MIPTBP1 or MIPTBP2 (before the game shifts it to its place): as the game or'ed it in, or with the bits above the 14 of the hardware.
+#[inline]
+pub fn gs_mip_tbp(addr: i64) -> i64 {
+    #[cfg(feature = "extended-tables")]
+    {
+        ts_rt::gswide::mip_tbp_bits(addr as u64) as i64
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    addr
+}
+
+/// A block address kept in the game's memory: a halfword in the original, a word when the addresses are wider than 16 bits.
+#[inline]
+pub fn gs_address_at(at: i32) -> i64 {
+    #[cfg(feature = "extended-tables")]
+    {
+        lw(at) as i64
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        lh(at) as i64
+    }
+}
+
+/// The number of slots the texture buffer of a level gets (`slots` is the original's).  With the extension a level can use all the 17 bits of block address.
+#[inline]
+pub fn tex_slot_count(slots: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        if slots == 352 { (ts_rt::gswide::WIDE_BLOCKS as i32 >> 5) - 160 } else { slots }
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    slots
+}
+
+/// Where the records of the slots of a texture buffer are, as the address that `+ 8 + slot * 12` is added to: the buffer itself in the original, with the extension a
+/// block of its own whose address is kept at +8 of the buffer (the 512 slots inside the buffer are too few).
+#[inline]
+pub fn tex_slots(buffer: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        lw(buffer + 8) - 8
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    buffer
+}
+
+/// Make the records of the slots of a texture buffer that has `lw(buffer + 0x1a10)` slots (nothing in the original: they are inside the buffer).
+#[inline]
+pub fn tex_slots_create(buffer: i32) {
+    #[cfg(feature = "extended-tables")]
+    {
+        let at = memAlloc(lw(buffer + 0x1a10) * 12 + 15 & -16, 1);
+        sw(buffer + 8, at);
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    let _ = buffer;
+}
+
+/// Empty the slots of a texture buffer.
+#[inline]
+pub fn tex_slots_clear(buffer: i32) {
+    #[cfg(feature = "extended-tables")]
+    {
+        let at = lw(buffer + 8);
+        if at != 0 {
+            memset(at, 0, lw(buffer + 0x1a10) * 12);
+        }
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    memset(buffer + 8, 0, 0x1800);
+}

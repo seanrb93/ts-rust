@@ -378,7 +378,7 @@ fn upload_level(texture: i32, position: i32, level_at: i32, width_at: i32) {
     let format = if lbu(texture + 36) & 1 == 0 { 0 } else { 19 };
     sceGsSetDefLoadImage(&[
         target as i64,
-        lh(level_at) as i64,
+        gs_address_at(level_at),
         lh(width_at) as i64,
         format,
         0,
@@ -453,7 +453,7 @@ pub fn emLoadTexture(a0: i32, a1: i32, a2: i32) {
     if lbu(texture + 36) & 1 != 0 {
         // The palette is uploaded as a picture of 16 by 16.
         let target = g::pTex;
-        sceGsSetDefLoadImage(&[target as i64, lh(texture + 24) as i64, 1, 0, 0, 0, 16, 16]);
+        sceGsSetDefLoadImage(&[target as i64, gs_address_at(texture + 24), 1, 0, 0, 0, 16, 16]);
         FlushCache(0);
         WaitSema(lw(g::gsavail_sid));
         sjeGsExecLoadImage(target, lw(texture + 28));
@@ -486,26 +486,26 @@ pub fn emLoadTexture(a0: i32, a1: i32, a2: i32) {
     if lbu(texture + 36) & 1 == 0 {
         let width_log = PowerOf2(lhu(texture));
         let height_log = PowerOf2(lhu(texture + 2));
-        tex0 = lwu(sp + 48) | 0x400000000_i64 | ((width_log as i64) << 26 | lwu(sp + 80) << 14) | (height_log as i64) << 30;
+        tex0 = gs_tex0_tbp(lwu(sp + 48)) | 0x400000000_i64 | ((width_log as i64) << 26 | lwu(sp + 80) << 14) | (height_log as i64) << 30;
     } else {
         let width_log = PowerOf2(lhu(texture));
         let height_log = PowerOf2(lhu(texture + 2));
-        tex0 = lwu(sp + 48)
+        tex0 = gs_tex0_tbp(lwu(sp + 48))
             | -0x8000000000000000_i64
             | (lwu(sp + 80) << 14 | 0x400000000_i64)
-            | ((width_log as i64) << 26 | 0x1300000_i64 | ((height_log as i64) << 30 | lwu(texture + 24) << 37));
+            | ((width_log as i64) << 26 | 0x1300000_i64 | ((height_log as i64) << 30 | gs_tex0_cbp(lwu(texture + 24))));
     }
     at = put_register(at, tex0, 6);
     let miptbp1 = if lbu(texture + 36) & 2 == 0 {
         0_i64
     } else {
-        lwu(sp + 52) | lwu(sp + 92) << 54 | (lwu(sp + 88) << 34 | lwu(sp + 56) << 20) | (lwu(sp + 84) << 14 | lwu(sp + 60) << 40)
+        gs_mip_tbp(lwu(sp + 52)) | lwu(sp + 92) << 54 | (lwu(sp + 88) << 34 | gs_mip_tbp(lwu(sp + 56)) << 20) | (lwu(sp + 84) << 14 | gs_mip_tbp(lwu(sp + 60)) << 40)
     };
     at = put_register(at, miptbp1, 52);
     let miptbp2 = if lbu(texture + 36) & 2 == 0 || (lbu(texture + 37) as u32) < 4 {
         0_i64
     } else {
-        lwu(sp + 64) | lwu(sp + 104) << 54 | (lwu(sp + 100) << 34 | lwu(sp + 68) << 20) | (lwu(sp + 96) << 14 | lwu(sp + 72) << 40)
+        gs_mip_tbp(lwu(sp + 64)) | lwu(sp + 104) << 54 | (lwu(sp + 100) << 34 | gs_mip_tbp(lwu(sp + 68)) << 20) | (lwu(sp + 96) << 14 | gs_mip_tbp(lwu(sp + 72)) << 40)
     };
     at = put_register(at, miptbp2, 54);
     let wrap_x = ((lhu(texture) - 1) as i64) << 14;

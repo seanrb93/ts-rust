@@ -16,7 +16,7 @@ pub fn tex_loaded(tbp0: i32, name: i32, parms: i32) {
         at += 1;
     }
     if std::env::var_os("TS_TEXNAMES").is_some() {
-        eprintln!("[texname] {:#x} {s}", tbp0 & 0x3fff);
+        eprintln!("[texname] {:#x} {s}", tbp0 & 0x1ffff);
     }
-    ts_rt::texnames::note_texture((tbp0 & 0x3fff) as u32, &s);
+    ts_rt::texnames::note_texture((tbp0 & 0x1ffff) as u32, &s);
 }
