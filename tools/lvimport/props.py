@@ -280,6 +280,7 @@ def add_props(sc, props, models, material, exists, opts):
             pts = np.array([p for _mat, tris in meshes for tri in tris for p, _n, _uv in tri])
             half = float(np.abs(pts[:, :2]).max()) * abs(float(scale)) + 1e-6
             span = 0.65 * float(max(world[1][0] - world[0][0], world[1][1] - world[0][1]))
+            solid = False
             if span > half:
                 m = m * (span / half)
                 o = np.array([(world[0][0] + world[1][0]) / 2.0, (world[0][1] + world[1][1]) / 2.0, o[2]])

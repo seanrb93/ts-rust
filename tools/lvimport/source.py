@@ -134,22 +134,20 @@ def load(path, opts):
     headnode = struct.unpack_from('<i', models, 36)[0]
     ent_models = brush_entity_models(ents, len(models) // 48, opts, SHAPE_ENTITIES, DOOR_ENTITIES,
                                      lambda m: max(abs(b - a) for a, b in zip(struct.unpack_from('<3f', models, 48 * m), struct.unpack_from('<3f', models, 48 * m + 12))))
+    # (a brush entity with an origin brush has its geometry round the origin of the entity: it is moved to its place; those of the 3D skybox are left out)
+    ent_origin = {}
+    for e in ents:
+        mk = str(e.get('model', ''))
+        if mk.startswith('*') and mk[1:].isdigit() and 'origin' in e:
+            try:
+                ent_origin[int(mk[1:])] = np.array([float(x) for x in e['origin'].split()])
+            except ValueError:
+                pass
     if ent_models:
         names = {}
         for _m, _solid, cn in ent_models:
             names[cn] = names.get(cn, 0) + 1
         print('brush entities: ' + ', '.join(f'{n} {c}' for c, n in sorted(names.items())))
-    if not opts.get('drawn_collision'):
-        coll, nb = world_brushes(d, L, planes, headnode, bool(opts.get('clip_brushes')))
-        for m, solid, _cn in ent_models:
-            if solid:
-                more, nb2 = world_brushes(d, L, planes, struct.unpack_from('<i', models, 48 * m + 36)[0], bool(opts.get('clip_brushes')))
-                coll += more
-                nb += nb2
-        sc.collision = coll
-        print(f'collision: {nb} brushes, {len(coll)} polygons')
-    else:
-        sc.collide_drawn = True
     texinfo = [struct.unpack_from('<16f2i', texinfo_raw, 72 * i) for i in range(len(texinfo_raw) // 72)]
     texdata = [struct.unpack_from('<3f4i', texdata_raw, 32 * i) for i in range(len(texdata_raw) // 32)]
 
@@ -161,9 +159,11 @@ def load(path, opts):
     face_ids = []
     # (the faces of the world, then those of the brush entities that are part of the level)
     all_faces = list(range(first, first + count))
+    face_owner = [None] * count
     for m, _solid, _cn in ent_models:
         f0, c0 = struct.unpack_from('<2i', models, 48 * m + 40)
         all_faces += range(f0, f0 + c0)
+        face_owner += [m] * c0
     for fi in all_faces:
         fe, ne = struct.unpack_from('<ih', faces_raw, FS * fi + 4)
         vi = []
@@ -185,6 +185,26 @@ def load(path, opts):
         world_lo, world_hi = wv.min(axis=0) - 512.0, wv.max(axis=0) + 512.0
         sky_org = sky[0]
         opts['sky'] = (sky_org, sky_scale, world_lo, world_hi)
+    def place(m):
+        return ent_origin.get(m, np.zeros(3))
+
+    def in_world(m):
+        o_ = place(m)
+        lo_ = np.array(struct.unpack_from('<3f', models, 48 * m)) + o_
+        hi_ = np.array(struct.unpack_from('<3f', models, 48 * m + 12)) + o_
+        return not (np.any(hi_ < opts['world'][0] - 512.0) or np.any(lo_ > opts['world'][1] + 512.0))
+    if not opts.get('drawn_collision'):
+        coll, nb = world_brushes(d, L, planes, headnode, bool(opts.get('clip_brushes')))
+        for m, solid, _cn in ent_models:
+            if solid and in_world(m):
+                more, nb2 = world_brushes(d, L, planes, struct.unpack_from('<i', models, 48 * m + 36)[0], bool(opts.get('clip_brushes')))
+                o_ = place(m)
+                coll += [[q + o_ for q in poly] for poly in more]
+                nb += nb2
+        sc.collision = coll
+        print(f'collision: {nb} brushes, {len(coll)} polygons')
+    else:
+        sc.collide_drawn = True
     cache = {}
 
     def material(name, flags):
@@ -228,6 +248,10 @@ def load(path, opts):
         name = tex_name(td)
         if name.startswith('tools/'):
             continue
+        owner = face_owner[n] if n < len(face_owner) else None
+        if owner is not None and not in_world(owner):
+            continue
+        shift = place(owner) if owner is not None else np.zeros(3)
         pts = verts[face_ids[n]]
         if len(pts) < 3:
             continue
@@ -306,7 +330,7 @@ def load(path, opts):
             if n in sky_faces:
                 sc.add([(q[i] - sky_org) * sky_scale for i in order], [uv[i] for i in order], [cols[i] for i in order], name, False)
             else:
-                sc.add([q[i] for i in order], [uv[i] for i in order], [cols[i] for i in order], name)
+                sc.add([q[i] + shift for i in order], [uv[i] for i in order], [cols[i] for i in order], name)
     if not opts.get('no_props'):
         placed = props_mod.static_props(d, lump_data(d, 35)[0], version) + props_mod.entity_props(ents)
         if placed:

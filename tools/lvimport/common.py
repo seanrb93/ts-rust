@@ -262,5 +262,8 @@ def brush_entity_models(ents, nmodels, opts, shapes, doors, extent=None):
         if extent is not None and extent(m) > MAX_ENTITY_SIZE:
             continue
         seen.add(m)
-        out.append((m, low.get('solidity', '0') != '1', e.get('classname', '')))
+        # (what is see-through, a sheet of water or glass made of a brush, and what the map says is not solid does not stop players)
+        see_through = low.get('rendermode', '0') not in ('0', '') and low.get('renderamt', '255') != '255'
+        solid = low.get('solidity', '0') != '1' and e.get('classname', '') != 'func_illusionary' and not see_through
+        out.append((m, solid, e.get('classname', '')))
     return out
