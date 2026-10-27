@@ -153,12 +153,16 @@ def components(faces_vertices):
     return sorted(groups.values(), key=len, reverse=True)
 
 
-def keep_playable(faces_vertices, points, markers, drop_points=(), fraction=0.05):
-    """The set of faces to keep: the connected groups that are at least `fraction` of the largest, leaving out those that contain one of the
-    `drop_points` (the camera of a 3D skybox) unless they contain a marker (a player start).  `points[v]` is the position of vertex v."""
+def keep_playable(faces_vertices, points, markers, drop_points=(), fraction=0.0):
+    """The set of faces to keep: the connected groups of faces, leaving out the 3D skybox, which is the groups that contain one of the `drop_points`
+    (the camera of a 3D skybox) or lie outside the box of the largest group (the skybox is out of the map's own space) unless they contain a marker
+    (a player start).  The parts of the map that are not joined to the rest (tunnels, platforms, tables, the glass) are kept: `fraction` of the largest
+    group is the least size of a group.  `points[v]` is the position of vertex v."""
     groups = components(faces_vertices)
     if not groups:
         return set()
+    allv = np.array([points[v] for i in groups[0] for v in faces_vertices[i]])
+    wlo, whi = allv.min(axis=0) - 512.0, allv.max(axis=0) + 512.0
     keep = set()
     for g in groups:
         if len(g) < fraction * len(groups[0]) and g is not groups[0]:
@@ -166,8 +170,9 @@ def keep_playable(faces_vertices, points, markers, drop_points=(), fraction=0.05
         vs = np.array([points[v] for i in g for v in faces_vertices[i]])
         lo, hi = vs.min(axis=0) - 1.0, vs.max(axis=0) + 1.0
         inside = lambda q: bool(np.all(q >= lo) and np.all(q <= hi))
-        if g is not groups[0] and any(inside(d) for d in drop_points) and not any(inside(m) for _, m in markers):
-            continue
+        if g is not groups[0] and not any(inside(m) for _, m in markers):
+            if any(inside(d) for d in drop_points) or np.any(vs.min(axis=0) < wlo) or np.any(vs.max(axis=0) > whi):
+                continue
         keep.update(g)
     return keep
 
