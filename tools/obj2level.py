@@ -823,20 +823,40 @@ def cut_big(polys, lo, w):
 
 
 def assign_collision(coll, boxes):
-    """The collision polygons of each room: a polygon goes to the room whose box (seen from above) has its centre in it, else to the nearest."""
+    """The collision polygons of each room: a polygon that reaches over the edge of a room is cut there (a floor wider than a room would be missing in
+    the other rooms, and players would fall through it); the pieces go to the rooms whose boxes (seen from above) they lie in."""
     rooms = [[] for _ in boxes]
+    if len(boxes) == 1:
+        rooms[0] = list(coll)
+        return rooms
     for p in coll:
-        c = p.centre()
-        best, bd = 0, 1e30
+        xs = [q[0] for q in p.p]
+        zs = [q[2] for q in p.p]
+        x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
+        hit = False
         for i, bx in enumerate(boxes):
-            dx = max(bx[0] - c[0], 0.0, c[0] - bx[3])
-            dz = max(bx[2] - c[2], 0.0, c[2] - bx[5])
-            d = dx * dx + dz * dz
-            if d < bd:
-                best, bd = i, d
-                if d == 0.0:
-                    break
-        rooms[best].append(p)
+            if bx[1] < -9000.0 or bx[3] <= x0 or bx[0] >= x1 or bx[5] <= z0 or bx[2] >= z1:
+                continue
+            parts = [p]
+            if x0 < bx[0] or x1 > bx[3] or z0 < bx[2] or z1 > bx[5]:
+                for axis, value, below in ((0, bx[3], True), (0, bx[0], False), (2, bx[5], True), (2, bx[2], False)):
+                    nxt = []
+                    for q in parts:
+                        nxt += clip_poly(q, axis, value, below)
+                    parts = nxt
+            for q in parts:
+                if np.linalg.norm(q.normal()) > 0.5:
+                    rooms[i].append(q)
+                    hit = True
+        if not hit:
+            c = p.centre()
+            best, bd = 0, 1e30
+            for i, bx in enumerate(boxes):
+                dx = max(bx[0] - c[0], 0.0, c[0] - bx[3])
+                dz = max(bx[2] - c[2], 0.0, c[2] - bx[5])
+                if dx * dx + dz * dz < bd:
+                    best, bd = i, dx * dx + dz * dz
+            rooms[best].append(p)
     return rooms
 
 
@@ -915,25 +935,18 @@ def split_rooms(polys, args, coll=None):
                     first, second, v = j, i, B[3 + axis]
                 else:
                     continue
-                # the heights: where both rooms have a floor (else a band of the room that has any)
-                hts = [h for h in bands[i] if any(abs(h - g) <= 3.0 for g in bands[j])]
-                if not hts:
-                    y0, y1 = max(A[1], B[1]), min(A[4], B[4])
-                    if y1 - y0 < 1.0:
-                        continue
-                    hts = None
-                for h in (hts if hts is not None else [None]):
-                    if h is None:
-                        yy0, yy1 = y0, min(y1, y0 + 14.0)
-                    else:
-                        yy0, yy1 = h - 2.0, h + 12.0
-                    if axis == 0:
-                        quad = [(v, yy0, lo_o), (v, yy1, lo_o), (v, yy1, hi_o), (v, yy0, hi_o)]
-                        nrm = (1.0, 0.0, 0.0)
-                    else:
-                        quad = [(lo_o, yy0, v), (hi_o, yy0, v), (hi_o, yy1, v), (lo_o, yy1, v)]
-                        nrm = (0.0, 0.0, 1.0)
-                    portals.append((first + 1, second + 1, nrm, quad))
+                # one opening over the whole height of both rooms: the game sees the next room only through the screen box of the portal, so a low opening
+                # would show only a strip of what is beyond it
+                if min(A[4], B[4]) - max(A[1], B[1]) < 0.5:
+                    continue
+                yy0, yy1 = min(A[1], B[1]) - 1.0, max(A[4], B[4]) + 1.0
+                if axis == 0:
+                    quad = [(v, yy0, lo_o), (v, yy1, lo_o), (v, yy1, hi_o), (v, yy0, hi_o)]
+                    nrm = (1.0, 0.0, 0.0)
+                else:
+                    quad = [(lo_o, yy0, v), (hi_o, yy0, v), (hi_o, yy1, v), (lo_o, yy1, v)]
+                    nrm = (0.0, 0.0, 1.0)
+                portals.append((first + 1, second + 1, nrm, quad))
     return rooms, boxes, portals
 
 
