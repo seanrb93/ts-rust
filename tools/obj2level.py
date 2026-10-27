@@ -899,6 +899,40 @@ def assign_collision(coll, boxes):
     return rooms
 
 
+def cut_into_boxes(polys, boxes):
+    """The polygons cut at the edges of the boxes (x0, z0, x1, z1, seen from above) that tile the plane: the pieces in each box."""
+    out = [[] for _ in boxes]
+    cell = 8.0
+    index = {}
+    for i, b in enumerate(boxes):
+        for gx in range(int(b[0] // cell), int(b[2] // cell) + 1):
+            for gz in range(int(b[1] // cell), int(b[3] // cell) + 1):
+                index.setdefault((gx, gz), []).append(i)
+    for p in polys:
+        xs = [q[0] for q in p.p]
+        zs = [q[2] for q in p.p]
+        x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
+        seen = set()
+        for gx in range(int(x0 // cell), int(x1 // cell) + 1):
+            for gz in range(int(z0 // cell), int(z1 // cell) + 1):
+                for i in index.get((gx, gz), ()):
+                    if i in seen:
+                        continue
+                    seen.add(i)
+                    b = boxes[i]
+                    if b[2] < x0 - 1e-6 or b[0] > x1 + 1e-6 or b[3] < z0 - 1e-6 or b[1] > z1 + 1e-6:
+                        continue
+                    parts = [p]
+                    if x0 < b[0] - 1e-6 or x1 > b[2] + 1e-6 or z0 < b[1] - 1e-6 or z1 > b[3] + 1e-6:
+                        for axis, value, below in ((0, b[2], True), (0, b[0], False), (2, b[3], True), (2, b[1], False)):
+                            nxt = []
+                            for q in parts:
+                                nxt += clip_poly(q, axis, value, below)
+                            parts = nxt
+                    out[i] += [q for q in parts if np.linalg.norm(q.normal()) > 1e-6 and (poly_area(q) > 1e-6 or x1 - x0 < 1e-6 or z1 - z0 < 1e-6)]
+    return out
+
+
 def split_rooms(polys, args, coll=None):
     allp = np.array([v for p in polys for v in p.p])
     lo, hi = allp.min(axis=0), allp.max(axis=0)
@@ -938,6 +972,11 @@ def split_rooms(polys, args, coll=None):
             leaves.append((x0, z0, x1, z1, ps))
     for k in sorted(cells):
         divide(lo[0] + k[0] * r, lo[2] + k[1] * r, lo[0] + (k[0] + 1) * r, lo[2] + (k[1] + 1) * r, cells[k])
+    # (a room is drawn through the screen box of what leads to it and nothing outside its own box is seen: a polygon that reaches over the edge of its room,
+    # when the room was split in four, is cut there)
+    if len(leaves) > len(cells):
+        rooms = cut_into_boxes([q for l in leaves for q in l[4]], [(l[0], l[1], l[2], l[3]) for l in leaves])
+        leaves = [(l[0], l[1], l[2], l[3], rooms[i]) for i, l in enumerate(leaves)]
     rooms = [l[4] for l in leaves]
     # (each room's box is as tall as its own surfaces, a little more: a portal as tall as the whole level, over a plain, is a thing the game's
     # clipping of what is seen through it does not manage near the camera)
