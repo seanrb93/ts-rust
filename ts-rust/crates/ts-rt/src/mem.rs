@@ -4,7 +4,7 @@
 
 use std::sync::atomic::{AtomicPtr, Ordering};
 
-pub const RAM_SIZE: u32 = 0x0800_0000; // 128 MiB: 32 MiB of PS2 RAM, the port's tables, the native heap, the big memory pool (ts-game bigpool.rs) and the stack
+pub const RAM_SIZE: u32 = 0x1000_0000; // 256 MiB (the hardware registers start there): 32 MiB of PS2 RAM, the port's tables, the native heap, the big memory pool and the eternal overflow (ts-game bigpool.rs) and the stack
 pub const SPR_BASE: u32 = 0x7000_0000;
 pub const SPR_SIZE: u32 = 0x4000;
 /// First address available to the native heap (`malloc`), above the game's 32 MiB.

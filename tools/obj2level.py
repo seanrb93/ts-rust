@@ -40,8 +40,8 @@ Options:
     --music FILE     music of its own for the level: any audio file (needs ffmpeg unless it is .opus); it is made Opus and the level plays it
     --min-light X    how bright the darkest surfaces are, 0..1 (default 0.35 for maps of Source and GoldSrc, whose lightmaps are only averaged here; else 0)
     --max-polygon W  polygons wider than W units are cut into pieces (default 0: not); makes the file larger
-    --texture-budget KB  the textures are made smaller until their files add up to this (default 640; the game's own levels use up to 670)
-    --max-size MB    about how large the level's BG file may be (default 28; the game's own largest is 2.7; the port's big memory pool is 32): the smallest surfaces that are not floors are left out above it
+    --texture-budget KB  the textures are made smaller until their files add up to this (default 1800; the game's own levels use up to 670; the video memory holds about 2800)
+    --max-size MB    about how large the level's BG file may be (default 80; the game's own largest is 2.7; the port's big memory pool is 96): the smallest surfaces that are not floors are left out above it
     --light-detail N Source maps: faces whose light varies much are cut every N luxels of their lightmap (16 luxels is 6.4 game units; default 16; 0: one brightness
                      for each face) and every vertex gets the light at its place
     --prop-budget N  Source maps: the most polygons the props may add (default 0: no limit; above N the props that are small for their polygons are left out)
@@ -49,7 +49,7 @@ Options:
     --models DIR     Source maps: a `models` folder (the game's own models unpacked); may be given more than once
     --no-entities    maps: leave out the brush entities that are only a shape (func_brush, func_wall, func_breakable, ...), which are part of the level otherwise
     --doors closed   maps: make the doors part of the level, closed (they are left out by default)
-    --max-textures N the most textures (default 90)
+    --max-textures N the most textures (default 200; the game's texture memory has 352 places, small textures share one)
     --materials DIR  a `materials` folder (Source: the game's own pictures; may be given more than once); --wad FILE|DIR for GoldSrc
     --blender EXE    the Blender to use for .blend files
     --radius R       keep only what is within R units (a square) of --center x,z (default: the first spawn): large maps do not fit in the game
@@ -978,8 +978,8 @@ def main():
     ap.add_argument('--max-polygon', type=float, default=0.0, help='polygons are cut into pieces no wider than this (0: not)')
     ap.add_argument('--spawn-at', default=None, help='x,z (game units): players start only here (a test aid)')
     ap.add_argument('--no-translucent', action='store_true', help='leave out surfaces drawn see-through (a test aid)')
-    ap.add_argument('--texture-budget', type=float, default=640.0, help='the most KB of texture files (the video memory of the console has room for about 400 beside what the characters and weapons use)')
-    ap.add_argument('--max-size', type=float, default=28.0, help='about how large the BG file may be, in MB')
+    ap.add_argument('--texture-budget', type=float, default=1800.0, help='the most KB of texture files (the texture memory of the game holds about 2800 beside what the characters and weapons use)')
+    ap.add_argument('--max-size', type=float, default=80.0, help='about how large the BG file may be, in MB')
     ap.add_argument('--prop-budget', type=int, default=0, help='Source maps: the most polygons the props may add (0, the default: no limit)')
     ap.add_argument('--no-props', action='store_true', help='Source maps: leave out the props (the models the map places)')
     ap.add_argument('--models', action='append', default=[], help="Source maps: a `models` folder with the models of the map (the game's own unpacked); may be given more than once")
@@ -987,7 +987,7 @@ def main():
     ap.add_argument('--doors', choices=('skip', 'closed'), default='skip', help='Source maps: doors are left out (the default) or made part of the level, closed')
     ap.add_argument('--no-brushes', action='store_true', help='Source maps: make the collision from the drawn faces instead of the brushes')
     ap.add_argument('--light-detail', type=int, default=16, help='Source maps: polygons whose light varies are cut every this many lightmap luxels (0: one brightness for a face)')
-    ap.add_argument('--max-textures', type=int, default=90)
+    ap.add_argument('--max-textures', type=int, default=200)
     ap.add_argument('--materials', action='append', default=[])
     ap.add_argument('--wad', action='append', default=[])
     ap.add_argument('--blender', default=None)

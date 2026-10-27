@@ -37,8 +37,8 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   wall stops only what comes from the side the face points to: a thin wall needs a face for each side.
 - Pads for the bots are laid on the floors (`--pad-spacing`; at most `--max-pads`) and linked to their neighbours, in groups the game finds routes by.
 - Pictures are made into the game's texture files: sides of powers of two, at most 256, at most 65536 pixels.  Surfaces with see-through pixels are drawn
-  after the solid ones.  Of a map with more than `--max-textures` (90) materials, those that cover least are drawn with the picture of the most alike colour among the rest.  The
-  texture files are made smaller until they add up to `--texture-budget` (640 KB, the most the game's own levels use).
+  after the solid ones.  Of a map with more than `--max-textures` (200) materials, those that cover least are drawn with the picture of the most alike colour among the rest.  The
+  texture files are made smaller until they add up to `--texture-budget` (1800 KB: the game's texture memory holds about 2800, and its own levels use up to 670).
 - Axes and size: Source and GoldSrc maps are z up and 72 units tall for a player: they are turned and scaled by 0.025 (`--scale`, `--up`).  A model is taken as it
   is: the game's rooms are about 20 units across and a player about 1.8 high.  `--flip` turns the faces round if the level comes out inside out.
 - **Music.**  `--music song.mp3` (any audio file; ffmpeg is needed, `pip install imageio-ffmpeg` will do, unless it is already `.opus`) makes the level play that song: it is
@@ -68,9 +68,9 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   skybox room, a room of tools) are dropped.
 - **Size.**  The game's own levels have at most 70,000 vertices, 109 rooms and a 2.7 MB BG file.  The port's tables were made larger (`manual/proptable.rs` and the patches of
   `tools/patches.py`), so a level can have up to 480 rooms (props in the rooms numbered 205 to 212 are drawn in the passes the game keeps for those numbers, which may show as a prop drawn through
-  a wall), and a level of a mod (the numbers 31 to 99) makes its large allocations (256 KB and more: the BG file, the biggest textures, ...) in a pool of 32 MB of the port's own (`manual/bigpool.rs`;
+  a wall), and a level of a mod (the numbers 31 to 99) makes its large allocations (256 KB and more: the BG file, the biggest textures, ...) in a pool of 96 MB of the port's own (`manual/bigpool.rs`;
   the game's pool of 21 MB cannot be longer, for the stacks and static data are after it, but the port's memory is not the console's).  The full Station Square of Garry's Mod (6.9 MB, 40,000 polygons,
-  232 rooms) was played.  `--max-size` (default 28 MB; the port's big pool for the levels of mods is 32 MB) leaves the smallest polygons that are not floors out above that size.  Station Square with its props (90,000 polygons, 331 rooms, a 14 MB BG file) loads and plays.  A big map can also be made smaller by choosing a part of it:
+  232 rooms) was played.  `--max-size` (default 80 MB; the port's big pool for the levels of mods is 96 MB) leaves the smallest polygons that are not floors out above that size.  Station Square with its props (90,000 polygons, 331 rooms, a 14 MB BG file) loads and plays.  A big map can also be made smaller by choosing a part of it:
   `--radius 70 --center x,z` (game units, a square; the first spawn is the default centre) keeps what is within 70 units (a Source map of 16000 units is 400 units across).
 - **Rooms.**  `--room-size 25` splits the level into rooms of 25 x 25 units joined by portals: what is far away is not drawn.  A map of Source or GoldSrc size wants it.
 

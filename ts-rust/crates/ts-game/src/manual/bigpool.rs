@@ -3,14 +3,14 @@
 //! The game keeps its level in a pool of about 21 MB (`memAlloc(size, 1)`, reset by `memReset` at the start of a level), after the program in the
 //! console's 32 MB; above the pool are the stacks, a display list buffer and the program's other static data, so the pool cannot be made longer.
 //! The port has more memory than the console, so a level of a mod (the numbers 31 to 99) has its allocations of 256 KB or more (the level's
-//! model, the biggest of its textures, ...) made in a pool of 32 MB of the port's own, which is emptied (and cleared, as the game's pool is) when the
+//! model, the biggest of its textures, ...) made in a pool of 96 MB of the port's own, which is emptied (and cleared, as the game's pool is) when the
 //! level pool is.  The rest of the level is allocated where it always was.
 
 use crate::*;
 use std::sync::atomic::{AtomicI32, Ordering};
 
 pub const BIG_BASE: i32 = 0x400_0000;
-const BIG_SIZE: i32 = 0x200_0000;
+const BIG_SIZE: i32 = 0x600_0000;
 pub const BIG_MIN: i32 = 0x4_0000;
 static BIG_AT: AtomicI32 = AtomicI32::new(0);
 
@@ -44,9 +44,9 @@ pub fn big_reset() {
 
 /// The game's eternal memory (`memAlloc(size, 2)`: what lasts from the start: the characters, the weapons, the tables of textures) is a block of
 /// 0x72b000 bytes that the game fills almost to the last byte, so a level of a mod with more than about 150 textures of its own (each takes some of it) made
-/// the game exit when it ran out.  Past the end of it the allocations are made in 8 MB of the port's own, which is never emptied.
-const ETERNAL_BASE: i32 = 0x600_0000;
-const ETERNAL_SIZE: i32 = 0x80_0000;
+/// the game exit when it ran out.  Past the end of it the allocations are made in 32 MB of the port's own, which is never emptied.
+const ETERNAL_BASE: i32 = 0xa00_0000;
+const ETERNAL_SIZE: i32 = 0x200_0000;
 static ETERNAL_AT: AtomicI32 = AtomicI32::new(0);
 
 /// An allocation of the eternal memory that does not fit in the game's block: the address, or `None` when this is full too.
