@@ -24,6 +24,7 @@ static GFX: Mutex<Option<ts_gfx::Gfx>> = Mutex::new(None);
 static PROFILE_WINDOW: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(u64::MAX);
 static PROFILE_END: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 static SHOTS: Mutex<Vec<(u64, String)>> = Mutex::new(Vec::new());
+pub(crate) static MARK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 /// Scripted pad input for headless testing: (first frame, frame count, buttons, sticks [rx, ry, lx, ly]).
 static PAD_SCRIPT: Mutex<Vec<(u64, u64, u16, [u8; 4], usize)>> = Mutex::new(Vec::new());
 /// Test clock (`TS_TICKCLOCK=1`): while a level is running the "frame" numbers of `--press`, `--screenshot`, `--profile` and
@@ -160,10 +161,47 @@ fn in_game_now(f: &ts_gfx::scene::Frame) -> bool {
 }
 
 
+/// `TS_PLAYLOG=1`: where the first player is, every few frames, in `play-log.txt` beside the program, and with F9 a mark with a picture (`mark-N.png`), so that a
+/// session of play can be read afterwards: where the player fell, stuck or passed through something.
+fn play_log(n: u64) {
+    if std::env::var_os("TS_PLAYLOG").is_none() || ts_rt::lw(ts_game::g::gamestate) != 3 || ts_rt::lw(ts_game::g::players) == 0 {
+        return;
+    }
+    let prop = ts_rt::lw(ts_rt::lw(ts_game::g::players) + 384);
+    if prop == 0 {
+        return;
+    }
+    let mark = MARK.swap(false, std::sync::atomic::Ordering::Relaxed);
+    if n % 6 != 0 && !mark {
+        return;
+    }
+    use std::io::Write;
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("play-log.txt") {
+        let p = ts_rt::lw(ts_game::g::players);
+        let _ = writeln!(
+            f,
+            "{}{} {:.2} {:.2} {:.2} room {} mode {} yaw {:.1}",
+            if mark { "MARK " } else { "" },
+            n,
+            ts_rt::lwc1(prop + 48),
+            ts_rt::lwc1(prop + 52),
+            ts_rt::lwc1(prop + 56),
+            ts_rt::lw(prop + 12),
+            ts_rt::lw(p + 296),
+            ts_rt::lwc1(p + 136)
+        );
+    }
+    if mark {
+        let path = format!("mark-{n}.png");
+        SHOTS.lock().unwrap().push((n + 1, path));
+    }
+}
+
 fn process_frame(n: u64, list: i32, world: Vec<(i32, i32)>) {
     if n % 120 == 0 && std::env::var_os("TS_PERFLOG").is_some() {
         eprintln!("[perf] {}", ts_sdk::perf::report().replace('\n', " | "));
     }
+    play_log(n);
     let dumping = DUMP_FRAMES.lock().unwrap().contains(&n);
     ts_gfx::trace::enable(dumping);
     ts_gfx::trace::enable_vu(std::env::var("TS_VUTRACE").is_ok());

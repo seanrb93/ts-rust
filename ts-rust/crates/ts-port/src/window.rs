@@ -459,6 +459,10 @@ impl ApplicationHandler for App {
                                 if code == KeyCode::F10 {
                                     std::process::exit(0);
                                 }
+                                if code == KeyCode::F9 {
+                                    // (with TS_PLAYLOG: a mark in the play log and a picture, to show where something is wrong)
+                                    crate::MARK.store(true, std::sync::atomic::Ordering::Relaxed);
+                                }
                             }
                             self.keys.insert(code);
                             if !matches!(code, KeyCode::F1 | KeyCode::F2 | KeyCode::F3 | KeyCode::F10 | KeyCode::F11) {
