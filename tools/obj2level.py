@@ -1000,6 +1000,59 @@ def fill_floors(coll, polys, translucent):
     return coll + added
 
 
+def fill_walls(coll, polys, water):
+    """The drawn solid walls that have no collision wall in their plane: where brushes overlap or are covered the collision of a wall can be missing and players walk
+    through it.  A drawn wall that is not covered is added, stopping from both sides.  `water(mat)` says whether a material is water."""
+    cell = 4.0
+    grid = {}
+    walls = []
+    for p in coll:
+        n = p.normal()
+        if abs(n[1]) > 0.3:
+            continue
+        a = np.array(p.p)
+        c = a.mean(axis=0)
+        t = np.array([-n[2], 0.0, n[0]])
+        poly2 = [((v - c) @ t, v[1]) for v in a]
+        wall = (n, c, t, poly2)
+        walls.append(wall)
+        for gx in range(int(a[:, 0].min() // cell), int(a[:, 0].max() // cell) + 1):
+            for gz in range(int(a[:, 2].min() // cell), int(a[:, 2].max() // cell) + 1):
+                grid.setdefault((gx, gz), []).append(wall)
+
+    def covered(q):
+        for n, c, t, poly2 in grid.get((int(q[0] // cell), int(q[2] // cell)), ()):
+            if abs((q - c) @ n) > 0.25:
+                continue
+            u, y = (q - c) @ t, q[1]
+            inside = False
+            for i in range(len(poly2)):
+                (u0, y0), (u1, y1) = poly2[i - 1], poly2[i]
+                if (y0 > y) != (y1 > y) and u < (u1 - u0) * (y - y0) / (y1 - y0) + u0:
+                    inside = not inside
+            if inside:
+                return True
+        return False
+    added = []
+    for p in polys:
+        n = p.normal()
+        if not p.solid or abs(n[1]) > 0.3 or water(p.mat):
+            continue
+        a = np.array(p.p)
+        c = a.mean(axis=0)
+        if np.ptp(a[:, 1]) < 0.3:
+            continue
+        samples = [c] + [0.7 * v + 0.3 * c for v in a]
+        if all(covered(q) for q in samples):
+            continue
+        q = [np.array(v) for v in p.p]
+        added.append(Poly(q, [(0.0, 0.0)] * len(q), [(1.0, 1.0, 1.0)] * len(q), '', True))
+        r = [np.array(v) for v in reversed(p.p)]
+        added.append(Poly(r, [(0.0, 0.0)] * len(r), [(1.0, 1.0, 1.0)] * len(r), '', True))
+    print(f'{len(added) // 2} drawn walls added to the collision (they had none)')
+    return coll + added
+
+
 def assign_collision(coll, boxes):
     """The collision polygons of each room: a polygon that reaches over the edge of a room is cut there (a floor wider than a room would be missing in
     the other rooms, and players would fall through it); the pieces go to the rooms whose boxes (seen from above) they lie in."""
@@ -1328,6 +1381,7 @@ def main():
         rooms, boxes, portals = split_rooms(polys, args, coll)
     if coll is not None:
         coll = fill_floors(coll, polys, lambda m: m in scene.mats and bool(scene.mats[m].translucent))
+        coll = fill_walls(coll, polys, lambda m: m in scene.mats and ('water' in m.lower()))
         coll = drop_risers(coll)
     rooms_coll = assign_collision(coll, boxes) if coll is not None else None
     rooms, boxes, portals, rooms_coll = leave_special_rooms(rooms, boxes, portals, rooms_coll)
