@@ -941,6 +941,49 @@ def drop_risers(coll):
     return out
 
 
+def fill_floors(coll, polys, translucent):
+    """The drawn floors that have no collision floor at their height: where brushes overlap or cover each other, the floor that is seen can be missing from
+    the brushes' collision and players fall through it.  `translucent(mat)` says whether a material is see-through (water, glass: not stood on)."""
+    cell = 4.0
+    grid = {}
+    floors = []
+    for p in coll:
+        if p.normal()[1] > FLOOR_NY:
+            f = [np.asarray(v) for v in p.p]
+            floors.append(f)
+            xs = [v[0] for v in f]
+            zs = [v[2] for v in f]
+            for gx in range(int(min(xs) // cell), int(max(xs) // cell) + 1):
+                for gz in range(int(min(zs) // cell), int(max(zs) // cell) + 1):
+                    grid.setdefault((gx, gz), []).append(f)
+
+    def covered(x, z, y):
+        for f in grid.get((int(x // cell), int(z // cell)), ()):
+            h = sum(v[1] for v in f) / len(f)
+            if abs(h - y) > 0.15:
+                continue
+            inside = False
+            for i in range(len(f)):
+                a, b = f[i - 1], f[i]
+                if (a[2] > z) != (b[2] > z) and x < (b[0] - a[0]) * (z - a[2]) / (b[2] - a[2]) + a[0]:
+                    inside = not inside
+            if inside:
+                return True
+        return False
+    added = []
+    for p in polys:
+        if not p.solid or p.normal()[1] < 0.85 or translucent(p.mat):
+            continue
+        pts = [np.asarray(v) for v in p.p]
+        c = sum(pts) / len(pts)
+        samples = [c] + [0.7 * v + 0.3 * c for v in pts]
+        if all(covered(q[0], q[2], q[1]) for q in samples):
+            continue
+        added.append(Poly([np.array(v) for v in p.p], [(0.0, 0.0)] * len(p.p), [(1.0, 1.0, 1.0)] * len(p.p), '', True))
+    print(f'{len(added)} drawn floors added to the collision (they had none)')
+    return coll + added
+
+
 def assign_collision(coll, boxes):
     """The collision polygons of each room: a polygon that reaches over the edge of a room is cut there (a floor wider than a room would be missing in
     the other rooms, and players would fall through it); the pieces go to the rooms whose boxes (seen from above) they lie in."""
@@ -1269,6 +1312,7 @@ def main():
         rooms, boxes, portals = split_rooms(polys, args, coll)
     if coll is not None:
         coll = drop_risers(coll)
+        coll = fill_floors(coll, polys, lambda m: m in scene.mats and bool(scene.mats[m].translucent))
     rooms_coll = assign_collision(coll, boxes) if coll is not None else None
     rooms, boxes, portals, rooms_coll = leave_special_rooms(rooms, boxes, portals, rooms_coll)
     bg = write_bg(polys, tex_numbers, args, rooms, boxes, portals, rooms_coll)
