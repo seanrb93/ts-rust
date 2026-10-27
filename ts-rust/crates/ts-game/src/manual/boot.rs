@@ -378,6 +378,13 @@ pub fn present_frame() {
             }
         }
     }
+    // test aid: TS_WHERE=1 writes where the first player is (x, y, z and the room) every 20 frames, to say where in a level something is wrong
+    if std::env::var_os("TS_WHERE").is_some() && lw(g::gamestate) == 3 && lw(g::players) != 0 && ts_sdk::frame_count() % 20 == 0 {
+        let prop = lw(lw(g::players) + 384);
+        if prop != 0 {
+            eprintln!("[where] x {:.1} y {:.1} z {:.1} room {}", lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), lw(prop + 12));
+        }
+    }
     if std::env::var_os("TS_PAINTEST").is_some() && lw(g::gamestate) == 3 {
         // test aid: every player is in pain (the red vignette of the HUD)
         for i in 0..4 {

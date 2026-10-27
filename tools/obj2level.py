@@ -505,14 +505,15 @@ def clean_floor(pts):
     return [tuple(float(c) for c in q) for q in v]
 
 
-STEP_HEIGHT = 0.95        # the game walks up what is lower than this only on a floor (a wall of any height stops the player): the risers of steps are left out
+STEP_HEIGHT = 1.0         # the game walks up what is lower than about this only on a floor (a wall of any height stops the player): the risers of steps are left out
+CURB_HEIGHT = 0.45        # a wall lower than this is never in the way (a kerb, a low edge)
 
 
 def _on_floor(x, z, y, floors):
     """Whether the point (x, z) is over a floor that is at the height y (within a little)."""
     for f in floors:
         ys = [v[1] for v in f]
-        if min(ys) - 0.06 > y or max(ys) + 0.06 < y:
+        if min(ys) - 0.15 > y or max(ys) + 0.15 < y:
             continue
         inside = False
         for i in range(len(f)):
@@ -561,7 +562,7 @@ def collision(polys):
             if best < 1e-6:
                 continue
             lo, hi = min(v[1] for v in p.p), max(v[1] for v in p.p)
-            if hi - lo <= STEP_HEIGHT and abs(n[1]) < 0.1 and is_riser(p, n, lo, hi, floors):
+            if hi - lo <= CURB_HEIGHT or (hi - lo <= STEP_HEIGHT + 0.005 and is_riser(p, n, lo, hi, floors)):
                 continue
             a, b = p.p[pair[0]], p.p[pair[1]]
             # (a wall stops what comes from one side only: the open side is to the right of the edge's direction seen from above, which is
