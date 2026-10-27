@@ -1431,3 +1431,34 @@ pub fn tex_memory(n: i32, part: i32, size: i32) -> i32 {
         memAlloc(size, 1)
     }
 }
+
+/// How many portals deep the rooms are drawn (`bgGfx`: the game draws them from the farthest): the rooms of a level of a mod are many and the open ones show
+/// hundreds of them, more than the translation of the console's graphics does at 60 frames a second, so the depth follows the work of the last frames: a room is
+/// drawn only up to the depth at which the frame stays under about 100,000 vertices.  The levels of the game are drawn as they always were.
+#[inline]
+pub fn room_depth_limit(max_level: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        use std::sync::atomic::{AtomicI32, AtomicU32, Ordering};
+        static LIMIT: AtomicI32 = AtomicI32::new(24);
+        static FRAME: AtomicU32 = AtomicU32::new(0);
+        if !(31..=99).contains(&lw(g::lvlevelnum)) {
+            return max_level;
+        }
+        let f = FRAME.fetch_add(1, Ordering::Relaxed);
+        if f % 6 == 0 {
+            let verts = ts_sdk::perf::last_verts();
+            let l = LIMIT.load(Ordering::Relaxed);
+            if verts > 110_000 {
+                LIMIT.store((l - 1).max(3), Ordering::Relaxed);
+            } else if verts < 75_000 {
+                LIMIT.store((l + 1).min(24), Ordering::Relaxed);
+            }
+        }
+        max_level.min(LIMIT.load(Ordering::Relaxed))
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        max_level
+    }
+}

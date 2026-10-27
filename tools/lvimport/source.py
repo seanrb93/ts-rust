@@ -238,6 +238,10 @@ def load(path, opts):
         water = bool(flags & WARP) or name.startswith('water') or 'water' in name.split('/')[:2]
         translucent = params.get('$translucent') in ('1', 'true') or params.get('$alphatest') in ('1', 'true') or bool(flags & TRANS) or water
         alphatest = params.get('$alphatest') in ('1', 'true')
+        # (glass: the picture it has is the reflection of its surroundings, and the surface is clear)
+        glass = str(params.get('$surfaceprop', '')).lower() == 'glass' and not water
+        if glass:
+            translucent = True
         inner = loader
         if loader is not None and not (translucent or alphatest):
             # (the alpha of an ordinary texture is a mask for something else: the surface is solid)
@@ -245,6 +249,8 @@ def load(path, opts):
         m = Material(key, loader, (0.5, 0.5, 0.5), translucent=translucent or alpha < 0.999)
         if water and inner is not None:
             m._loader = lambda inner=inner: _water(inner())
+        elif glass and inner is not None:
+            m._loader = lambda inner=inner: _faded(inner(), 0.3)
         elif inner is not None and '$envmap' in params:
             # (a surface that shows the sky or the room round it: glass is nearly clear by its alpha and a metal is plain grey, and both are the colour
             # that the material gives; the reflection itself is not made)
@@ -554,7 +560,7 @@ def _reflective(im, translucent, tint, env=None):
     elif tint is not None and flat:
         a[:, :, :3] = np.clip(a[:, :, :3].astype(np.float64) * np.array(tint) * 2.0, 0, 255).astype(np.uint8)
     if translucent:
-        a[:, :, 3] = np.maximum(a[:, :, 3], 90)
+        a[:, :, 3] = np.maximum(a[:, :, 3], 55)
     return Image.fromarray(a, 'RGBA')
 
 

@@ -339,7 +339,7 @@ pub fn bgGfx() {
     dlSetBlend(1);
     dlSetZB(2);
     propGfxRoom(212, 1);
-    let mut level = lw((lw(lw(g::currentplayer)) << 2) + g::maxlevel);
+    let mut level = room_depth_limit(lw((lw(lw(g::currentplayer)) << 2) + g::maxlevel));
     if level >= 0 {
         loop {
             let count = lw((level << 2) + 0x1fc4a10);

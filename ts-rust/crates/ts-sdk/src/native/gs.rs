@@ -275,6 +275,7 @@ pub fn depth_store(d: Vec<u16>) {
 
 /// Frame-time statistics for the on-screen FPS counter.
 pub mod perf {
+    static LAST_VERTS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     use std::sync::Mutex;
     use std::time::{Duration, Instant};
 
@@ -375,9 +376,15 @@ pub mod perf {
         a.f_worker += d.as_secs_f64();
     }
     pub fn set_counts(draws: usize, verts: usize) {
+        LAST_VERTS.store(verts, std::sync::atomic::Ordering::Relaxed);
         let mut a = ACC.lock().unwrap();
         a.draws = draws;
         a.verts = verts;
+    }
+
+    /// The vertices of the last frame the graphics translated (what a level of a mod adapts how far it draws by).
+    pub fn last_verts() -> usize {
+        LAST_VERTS.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     /// Call once per presented frame.
