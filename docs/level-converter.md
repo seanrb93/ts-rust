@@ -54,7 +54,12 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   drawn in the average colour the map recorded for it.  GoldSrc textures are in the map, or in the `.wad` files its worldspawn lists (found next to the map, or in the
   folders given with `--wad <dir or file>`).
 - **Light.**  Both engines light surfaces with lightmaps (see Light below for what is made of them).
-- **What is left out.**  Props, doors and other brush entities, the 3D skybox, sky, trigger, clip and other tool faces.  Parts that are not connected to the main level (a
+- **Brush entities.**  The ones that are only a shape are part of the level, with their collision: `func_brush`, `func_wall`, `func_wall_toggle`, `func_illusionary`,
+  `func_breakable`, `func_button` and, where they start, the rotating and moving parts (`func_rotating`, `func_movelinear`, `func_tracktrain`, `func_physbox` in Source;
+  `func_conveyor`, `func_pendulum`, `func_plat`, `func_train` in GoldSrc).  Entities that are not drawn (render mode 10, or a render amount of 0) or start disabled are left out.
+  Doors (`func_door`, `func_door_rotating`) are left out too, because a closed door would shut rooms off: `--doors closed` makes them part of the level, closed.  `--no-entities`
+  leaves all of them out.  Source maps (BSP and VMF) and GoldSrc maps are handled alike; nothing moves, so a part that is meant to move stays where the map starts it.
+- **What is left out.**  Props, the 3D skybox, entities that move or act (triggers, water, ladders), sky, trigger, clip and other tool faces.  Parts that are not connected to the main level (a
   skybox room, a room of tools) are dropped.
 - **Size.**  The game's own levels have at most 70,000 vertices, 109 rooms and a 2.7 MB BG file.  The port's tables were made larger (`manual/proptable.rs` and the patches of
   `tools/patches.py`), so a level can have up to 480 rooms (props in the rooms numbered 205 to 212 are drawn in the passes the game keeps for those numbers, which may show as a prop drawn through
@@ -83,4 +88,4 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
 
 The game's bots work out their routes when the match starts.  This takes longer the more pads and links there are, and a level with all its pads in one group
 took minutes; pads are therefore grouped (about 16 each) and `--max-pads` is 450.  Textures that are not powers of two draw washed out, so the converter makes them powers of two.
-Reflections, glass that breaks, doors, lifts, moving parts and props are not made: a level is static geometry.
+Reflections, glass that breaks, moving parts and props are not made, and doors only closed with `--doors closed`: a level is static geometry.

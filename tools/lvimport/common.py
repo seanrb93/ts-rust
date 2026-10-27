@@ -224,3 +224,32 @@ def newell(pts):
         n[1] += (a[2] - b[2]) * (a[0] + b[0])
         n[2] += (a[0] - b[0]) * (a[1] + b[1])
     return n
+
+
+def brush_entity_wanted(e, opts, shapes, doors):
+    """Is the brush entity `e` made part of the level: one of the classes in `shapes` that is drawn and starts enabled, or in `doors` when
+    `opts['doors']` is `closed` (the default leaves doors out: a closed door would shut the level's rooms off)?  False when entities are off."""
+    if opts.get('entities', True) is False:
+        return False
+    cn = e.get('classname', '')
+    if cn not in shapes and not (cn in doors and opts.get('doors') == 'closed'):
+        return False
+    low = {k.lower(): v for k, v in e.items() if isinstance(v, str)}
+    rm = low.get('rendermode', '0')
+    return not (rm == '10' or (rm not in ('0', '') and low.get('renderamt', '255') == '0') or low.get('startdisabled') == '1')
+
+
+def brush_entity_models(ents, nmodels, opts, shapes, doors):
+    """[(model number, stops players, class)] of the brush entities (those whose `model` is `*N`) that `brush_entity_wanted` takes."""
+    out, seen = [], set()
+    for e in ents:
+        low = {k.lower(): v for k, v in e.items()}
+        model = low.get('model', '')
+        if not model.startswith('*') or not model[1:].isdigit():
+            continue
+        m = int(model[1:])
+        if m == 0 or m >= nmodels or m in seen or not brush_entity_wanted(e, opts, shapes, doors):
+            continue
+        seen.add(m)
+        out.append((m, low.get('solidity', '0') != '1', e.get('classname', '')))
+    return out

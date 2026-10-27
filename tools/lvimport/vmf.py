@@ -1,5 +1,5 @@
 """Hammer map sources (.vmf): the brushes of the world are turned into polygons (each face of a brush is its plane cut by the planes of the others),
-with the texture coordinates of the face's `uaxis` and `vaxis`.  Displacements are made too.  Entities' brushes are left out; player starts and weapons
+with the texture coordinates of the face's `uaxis` and `vaxis`.  Displacements are made too.  The brushes of the entities that are only a shape (`func_brush`, `func_wall`, ...) are made too, doors with `--doors closed`; player starts and weapons
 become markers.  Pictures are found as for a BSP (`--materials`, or a `materials` folder near the file).
 """
 import os
@@ -9,8 +9,8 @@ import struct
 import numpy as np
 
 from . import vtf
-from .common import Material, Scene, markers_from_entities
-from .source import Materials, _opaque, _water
+from .common import Material, Scene, markers_from_entities, brush_entity_wanted
+from .source import Materials, _opaque, _water, SHAPE_ENTITIES, DOOR_ENTITIES
 
 TOKEN = re.compile(r'"((?:[^"\\]|\\.)*)"|([{}])|//[^\n]*|([A-Za-z_]\w*)')
 
@@ -150,6 +150,11 @@ def load(path, opts):
         elif name == 'entity':
             e = {k: v for k, v in items if isinstance(v, str)}
             ents.append(e)
+            # (the brushes of an entity that is only a shape are part of the level)
+            if brush_entity_wanted(e, opts, SHAPE_ENTITIES, DOOR_ENTITIES):
+                for k, v in items:
+                    if k == 'solid':
+                        solid(v, sc, material, size_of)
     markers_from_entities(ents, sc)
     return sc
 

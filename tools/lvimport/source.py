@@ -2,7 +2,9 @@
 17 to 21, also as `.bsp.bz2`) and `.vmf` files of Hammer.
 
 From a BSP the world model (model 0) is read: faces with their texture coordinates and brightness (from the lightmap), and displacements (terrain).
-Props, brush entities (doors, lifts) and the 3D skybox are left out.  Player starts become `spawn` markers and weapons `weapon1` .. `weapon5`.
+Props and the 3D skybox are left out.  The brush entities that are only a shape (`func_brush`, `func_wall`, `func_illusionary`, `func_breakable`, buttons, and
+the starting place of lifts and rotating parts) are part of the level, with their collision; doors only with `--doors closed`.  Player starts become `spawn`
+markers and weapons `weapon1` .. `weapon5`.
 
 Pictures: a surface's material (`.vmt`) names a texture (`.vtf`).  They are looked for in the map's own pack (custom materials are inside the
 BSP), then in the `materials` folders given with `--materials` (the game's own can be unpacked with a tool such as GCFScape or Crowbar), and next to
@@ -20,7 +22,7 @@ import numpy as np
 from PIL import Image
 
 from . import vtf
-from .common import Material, Scene, newell, brush_polygons, clip_halfspace, keep_playable, markers_from_entities, parse_entities
+from .common import Material, Scene, newell, brush_polygons, clip_halfspace, keep_playable, markers_from_entities, parse_entities, brush_entity_models
 
 SKIP_FLAGS = 0x2 | 0x4 | 0x40 | 0x80 | 0x100 | 0x200        # sky2d, sky, trigger, nodraw, hint, skip
 WARP, TRANS = 0x8, 0x10
@@ -127,8 +129,19 @@ def load(path, opts):
                 pass
 
     headnode = struct.unpack_from('<i', models, 36)[0]
+    ent_models = brush_entity_models(ents, len(models) // 48, opts, SHAPE_ENTITIES, DOOR_ENTITIES)
+    if ent_models:
+        names = {}
+        for _m, _solid, cn in ent_models:
+            names[cn] = names.get(cn, 0) + 1
+        print('brush entities: ' + ', '.join(f'{n} {c}' for c, n in sorted(names.items())))
     if not opts.get('no_brushes'):
         coll, nb = world_brushes(d, L, planes, headnode)
+        for m, solid, _cn in ent_models:
+            if solid:
+                more, nb2 = world_brushes(d, L, planes, struct.unpack_from('<i', models, 48 * m + 36)[0])
+                coll += more
+                nb += nb2
         sc.collision = coll
         print(f'collision: {nb} brushes, {len(coll)} polygons')
     texinfo = [struct.unpack_from('<16f2i', texinfo_raw, 72 * i) for i in range(len(texinfo_raw) // 72)]
@@ -140,7 +153,12 @@ def load(path, opts):
 
     FS = 56
     face_ids = []
-    for fi in range(first, first + count):
+    # (the faces of the world, then those of the brush entities that are part of the level)
+    all_faces = list(range(first, first + count))
+    for m, _solid, _cn in ent_models:
+        f0, c0 = struct.unpack_from('<2i', models, 48 * m + 40)
+        all_faces += range(f0, f0 + c0)
+    for fi in all_faces:
         fe, ne = struct.unpack_from('<ih', faces_raw, FS * fi + 4)
         vi = []
         for k in range(ne):
@@ -148,7 +166,8 @@ def load(path, opts):
             e = edges[abs(se)]
             vi.append(int(e[0] if se >= 0 else e[1]))
         face_ids.append(vi)
-    keep = keep_playable(face_ids, verts, sc.markers, drop_points=sky)
+    keep = keep_playable(face_ids[:count], verts, sc.markers, drop_points=sky)
+    keep = set(keep) | set(range(count, len(all_faces)))
     cache = {}
 
     def material(name, flags):
@@ -169,7 +188,7 @@ def load(path, opts):
         sc.mats[name] = m
         return m
 
-    for n, fi in enumerate(range(first, first + count)):
+    for n, fi in enumerate(all_faces):
         if n not in keep:
             continue
         o = FS * fi
@@ -265,6 +284,11 @@ def load(path, opts):
             sc.add([q[i] for i in order], [uv[i] for i in order], [cols[i] for i in order], name)
     return sc
 
+
+# brush entities that are only a shape: they are drawn, and stop players, where they start
+SHAPE_ENTITIES = ('func_brush', 'func_wall', 'func_wall_toggle', 'func_illusionary', 'func_breakable', 'func_button', 'func_rotating', 'func_movelinear',
+                  'func_physbox', 'func_tracktrain')
+DOOR_ENTITIES = ('func_door', 'func_door_rotating', 'func_movelinear_door')
 
 SOLID_CONTENTS = 0x1 | 0x2 | 0x8 | 0x4000 | 0x10000        # solid, window, grate, moveable, player clip
 

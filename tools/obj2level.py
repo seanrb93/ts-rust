@@ -44,6 +44,8 @@ Options:
     --max-size MB    about how large the level's BG file may be (default 16; the game's own largest is 2.7): the smallest surfaces that are not floors are left out above it
     --light-detail N Source maps: faces whose light varies much are cut every N luxels of their lightmap (16 luxels is 6.4 game units; default 16; 0: one brightness
                      for each face) and every vertex gets the light at its place
+    --no-entities    maps: leave out the brush entities that are only a shape (func_brush, func_wall, func_breakable, ...), which are part of the level otherwise
+    --doors closed   maps: make the doors part of the level, closed (they are left out by default)
     --max-textures N the most textures (default 90)
     --materials DIR  a `materials` folder (Source: the game's own pictures; may be given more than once); --wad FILE|DIR for GoldSrc
     --blender EXE    the Blender to use for .blend files
@@ -956,6 +958,8 @@ def main():
     ap.add_argument('--no-translucent', action='store_true', help='leave out surfaces drawn see-through (a test aid)')
     ap.add_argument('--texture-budget', type=float, default=640.0, help='the most KB of texture files (the video memory of the console has room for about 400 beside what the characters and weapons use)')
     ap.add_argument('--max-size', type=float, default=16.0, help='about how large the BG file may be, in MB')
+    ap.add_argument('--no-entities', action='store_true', help='Source maps: leave out the brush entities (func_brush, func_wall, func_breakable, ...) that are only a shape')
+    ap.add_argument('--doors', choices=('skip', 'closed'), default='skip', help='Source maps: doors are left out (the default) or made part of the level, closed')
     ap.add_argument('--no-brushes', action='store_true', help='Source maps: make the collision from the drawn faces instead of the brushes')
     ap.add_argument('--light-detail', type=int, default=16, help='Source maps: polygons whose light varies are cut every this many lightmap luxels (0: one brightness for a face)')
     ap.add_argument('--max-textures', type=int, default=90)
@@ -970,7 +974,7 @@ def main():
     args = ap.parse_args()
     if not 31 <= args.number <= 99:
         sys.exit('--number has to be 31 to 99')
-    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'no_brushes': args.no_brushes, 'light_detail': args.light_detail})
+    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'no_brushes': args.no_brushes, 'light_detail': args.light_detail, 'entities': not args.no_entities, 'doors': args.doors})
     polys, markers = build_polys(scene, args)
     coll = build_polys.coll
     if not polys:

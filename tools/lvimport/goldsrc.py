@@ -3,7 +3,8 @@
 The world model (model 0) is read: its faces with their texture coordinates, the textures inside the map or in the `.wad` files given with `--wad`
 (Half-Life's own are in `halflife.wad` and the game folder's `.wad` files; the map's `wad` entity names the ones it uses and they are looked for
 next to the map and in the folders given), and a brightness for each face from the map's light.  Entities: player starts become `spawn`
-markers and weapons `weapon1` .. `weapon5`.  Skies, clips, triggers and other tool textures are left out; water is drawn see-through.
+markers and weapons `weapon1` .. `weapon5`; the brush entities that are only a shape (`func_wall`, `func_illusionary`, `func_breakable`, buttons, and
+the starting place of rotating and moving parts) are part of the level, doors only with `--doors closed`.  Skies, clips, triggers and other tool textures are left out; water is drawn see-through.
 """
 import os
 import struct
@@ -11,7 +12,12 @@ import struct
 import numpy as np
 from PIL import Image
 
-from .common import Material, Scene, newell, keep_playable, markers_from_entities, parse_entities
+from .common import Material, Scene, newell, keep_playable, markers_from_entities, parse_entities, brush_entity_models
+
+# brush entities that are only a shape: they are drawn where they start; doors only with `--doors closed`
+SHAPES = ('func_wall', 'func_illusionary', 'func_breakable', 'func_button', 'func_rotating', 'func_conveyor', 'func_pendulum', 'func_plat', 'func_train',
+          'func_wall_toggle')
+DOORS = ('func_door', 'func_door_rotating')
 
 SKIP = ('sky', 'clip', 'null', 'aaatrigger', 'trigger', 'origin', 'hint', 'skip', 'noclip', 'bevel', 'contentwater', 'blocklight', 'black_hidden',
         'env/', 'solidhint')
@@ -71,7 +77,8 @@ def load(path, opts):
     light = lump(d, 8)
     edges = np.frombuffer(lump(d, 12), dtype='<u2').reshape(-1, 2)
     surfedges = np.frombuffer(lump(d, 13), dtype='<i4')
-    model0 = struct.unpack_from('<9f7i', lump(d, 14), 0)
+    models_raw = lump(d, 14)
+    model0 = struct.unpack_from('<9f7i', models_raw, 0)
     first, count = model0[14], model0[15]
 
     # textures: in the map, or in the wads
@@ -104,7 +111,18 @@ def load(path, opts):
     texinfo = [struct.unpack_from('<8f2i', texinfo_raw, 40 * i) for i in range(len(texinfo_raw) // 40)]
 
     face_pts, face_ids = [], []
-    for fi in range(first, first + count):
+    # (the faces of the world, then those of the brush entities that are part of the level)
+    all_faces = list(range(first, first + count))
+    ent_models = brush_entity_models(ents, len(models_raw) // 64, opts, SHAPES, DOORS)
+    if ent_models:
+        names = {}
+        for _m, _solid, cn in ent_models:
+            names[cn] = names.get(cn, 0) + 1
+        print('brush entities: ' + ', '.join(f'{n} {c}' for c, n in sorted(names.items())))
+    for m, _solid, _cn in ent_models:
+        mm = struct.unpack_from('<9f7i', models_raw, 64 * m)
+        all_faces += range(mm[14], mm[14] + mm[15])
+    for fi in all_faces:
         plane, side, fe, ne, ti = struct.unpack_from('<HHiHH', faces_raw, 20 * fi)
         vi = []
         for k in range(ne):
@@ -112,9 +130,10 @@ def load(path, opts):
             e = edges[abs(se)]
             vi.append(int(e[0] if se >= 0 else e[1]))
         face_ids.append(vi)
-    keep = keep_playable(face_ids, verts, sc.markers, drop_points=())
+    keep = keep_playable(face_ids[:count], verts, sc.markers, drop_points=())
+    keep = set(keep) | set(range(count, len(all_faces)))
     n_used = 0
-    for n, fi in enumerate(range(first, first + count)):
+    for n, fi in enumerate(all_faces):
         if n not in keep:
             continue
         plane, side, fe, ne, ti = struct.unpack_from('<HHiHH', faces_raw, 20 * fi)
