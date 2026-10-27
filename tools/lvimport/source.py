@@ -137,11 +137,11 @@ def load(path, opts):
         for _m, _solid, cn in ent_models:
             names[cn] = names.get(cn, 0) + 1
         print('brush entities: ' + ', '.join(f'{n} {c}' for c, n in sorted(names.items())))
-    if opts.get('brush_collision'):
-        coll, nb = world_brushes(d, L, planes, headnode)
+    if not opts.get('drawn_collision'):
+        coll, nb = world_brushes(d, L, planes, headnode, bool(opts.get('clip_brushes')))
         for m, solid, _cn in ent_models:
             if solid:
-                more, nb2 = world_brushes(d, L, planes, struct.unpack_from('<i', models, 48 * m + 36)[0])
+                more, nb2 = world_brushes(d, L, planes, struct.unpack_from('<i', models, 48 * m + 36)[0], bool(opts.get('clip_brushes')))
                 coll += more
                 nb += nb2
         sc.collision = coll
@@ -303,10 +303,10 @@ SHAPE_ENTITIES = ('func_brush', 'func_wall', 'func_wall_toggle', 'func_illusiona
                   'func_physbox', 'func_tracktrain')
 DOOR_ENTITIES = ('func_door', 'func_door_rotating', 'func_movelinear_door')
 
-SOLID_CONTENTS = 0x1 | 0x2 | 0x8 | 0x4000 | 0x10000        # solid, window, grate, moveable, player clip
+SOLID_CONTENTS = 0x1 | 0x2 | 0x8 | 0x4000        # solid, window, grate, moveable (the player clip brushes, 0x10000, are invisible walls: only with `--clip-brushes`)
 
 
-def world_brushes(d, L, planes, headnode):
+def world_brushes(d, L, planes, headnode, clip=False):
     """The collision of the world: the polygons of the sides of the brushes that stop players (solid, window, grate, player clip), the invisible
     ones included, with the ones that are inside other brushes left out.  Returns (polygons, number of brushes); each polygon is a list of points."""
     nodes = L(5)
@@ -333,7 +333,7 @@ def world_brushes(d, L, planes, headnode):
     solids = []
     for bi in sorted(mine):
         first, num, contents = (int(x) for x in brushes[bi])
-        if not contents & SOLID_CONTENTS:
+        if not contents & (SOLID_CONTENTS | (0x10000 if clip else 0)):
             continue
         sd = sides[first:first + num]
         if (sd['disp'] > 0).any():

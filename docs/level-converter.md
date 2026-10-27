@@ -76,8 +76,8 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
 
 ## Collision and rooms
 
-- **Source maps: collision.**  What is seen is what stops: the drawn faces that are solid (not water or glass; a prop only when the map says it is solid) give the floors and walls.  With `--brush-collision` the solid brushes of the world (solid, window, grate, player clip: the invisible walls too) give them instead, with the sides that
-  are inside other brushes left out.  `--drop-material S` leaves out polygons by material name.  Displacements (terrain) collide by their triangles.
+- **Source maps: collision.**  The solid brushes of the world (solid, window, grate; the player clip brushes only with `--clip-brushes`) give the floors and walls, with the sides that
+  are inside other brushes left out, and the props that the map says are solid stop players from every side.  `--drawn-collision` makes them from the drawn solid faces instead (a wall of one face does not stop from behind).  `--drop-material S` leaves out polygons by material name.  Displacements (terrain) collide by their triangles.
 - **The game's room boxes.**  The game works out a room's box from its floors and walls and clips what it sees of the room with it, so the box has to hold everything drawn of the room.  The
   converter adds two walls a thousandth of a unit long at the corners of what is drawn; without them, rooms whose floors and walls cover less than the drawing were cut off or missing (the black ground
   of the first Station Square mod).
