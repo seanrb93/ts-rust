@@ -69,6 +69,17 @@ class Materials:
             data = self.read(f'materials/{base.replace(chr(92), "/").lower()}.vtf')
             if data:
                 loader = lambda data=data: vtf.read_vtf(data)
+        if loader is None:
+            # (a material that does not name its picture, as a window with a cube map, uses the picture that has its own name, or that of the material it patches)
+            tries = [f'materials/{name}.vtf']
+            if 'include' in params:
+                inc = params['include'].replace(chr(92), '/').lower()
+                tries.insert(0, (inc[:-4] if inc.endswith('.vmt') else inc) + '.vtf')
+            for rel in tries:
+                data = self.read(rel)
+                if data:
+                    loader = lambda data=data: vtf.read_vtf(data)
+                    break
         return loader, params
 
 
@@ -143,6 +154,16 @@ def load(path, opts):
                 ent_origin[int(mk[1:])] = np.array([float(x) for x in e['origin'].split()])
             except ValueError:
                 pass
+    ent_alpha = {}
+    for e in ents:
+        mk = str(e.get('model', ''))
+        if mk.startswith('*') and mk[1:].isdigit():
+            low_ = {k.lower(): v for k, v in e.items() if isinstance(v, str)}
+            if low_.get('rendermode', '0') not in ('0', ''):
+                try:
+                    ent_alpha[int(mk[1:])] = min(1.0, max(0.0, float(low_.get('renderamt', '255')) / 255.0))
+                except ValueError:
+                    pass
     if ent_models:
         names = {}
         for _m, _solid, cn in ent_models:
@@ -207,10 +228,13 @@ def load(path, opts):
         sc.collide_drawn = True
     cache = {}
 
-    def material(name, flags):
-        if name in cache:
-            return cache[name]
+    def material(name, flags, alpha=1.0):
+        key = name if alpha >= 0.999 else f'{name}@a{round(alpha * 255)}'
+        if key in cache:
+            return cache[key]
         loader, params = mats.material(name)
+        if os.environ.get('TS_DBGMAT') and os.environ['TS_DBGMAT'] in name:
+            print('MATPARAMS', name, params)
         water = bool(flags & WARP) or name.startswith('water') or 'water' in name.split('/')[:2]
         translucent = params.get('$translucent') in ('1', 'true') or params.get('$alphatest') in ('1', 'true') or bool(flags & TRANS) or water
         alphatest = params.get('$alphatest') in ('1', 'true')
@@ -218,16 +242,30 @@ def load(path, opts):
         if loader is not None and not (translucent or alphatest):
             # (the alpha of an ordinary texture is a mask for something else: the surface is solid)
             loader = lambda inner=inner: _opaque(inner())
-        m = Material(name, loader, (0.5, 0.5, 0.5), translucent=translucent)
+        m = Material(key, loader, (0.5, 0.5, 0.5), translucent=translucent or alpha < 0.999)
         if water and inner is not None:
             m._loader = lambda inner=inner: _water(inner())
         elif inner is not None and '$envmap' in params:
             # (a surface that shows the sky or the room round it: glass is nearly clear by its alpha and a metal is plain grey, and both are the colour
             # that the material gives; the reflection itself is not made)
-            tint = _vec3(params.get('$color') or params.get('$envmaptint') or '')
-            m._loader = lambda inner=inner, tr=translucent, tint=tint: _reflective(inner(), tr, tint)
-        cache[name] = m
-        sc.mats[name] = m
+            tint = _vec3(params.get('$color') or '')
+            env = None
+            envname = str(params.get('$envmap') or '')
+            if envname and not envname.lower().startswith('env_cubemap'):
+                try:
+                    env_loader, _p = mats.material(envname)
+                    if env_loader is not None:
+                        env = env_loader()
+                except Exception:
+                    env = None
+            m._loader = lambda inner=inner, tr=translucent, tint=tint, env=env: _reflective(inner(), tr, tint, env)
+        if alpha < 0.999:
+            # (a brush entity that is drawn see-through, glass: its surfaces are as clear as it says)
+            base_loader = m._loader if m._loader is not None else inner
+            if base_loader is not None:
+                m._loader = lambda base_loader=base_loader, alpha=alpha: _faded(base_loader(), alpha)
+        cache[key] = m
+        sc.mats[key] = m
         return m
 
     for n, fi in enumerate(all_faces):
@@ -272,7 +310,8 @@ def load(path, opts):
                 ex = a[:, 3].astype(np.int8).astype(np.float64)
                 lin = (a[:, :3].astype(np.float64) / 255.0) * (2.0 ** ex)[:, None]
                 lum = np.clip(lin.mean(axis=1) ** (1 / 2.2) * 1.3, 0.15, 1.0).reshape(lsize[1] + 1, lsize[0] + 1)
-        m = material(name, flags)
+        m = material(name, flags, ent_alpha.get(owner, 1.0) if owner is not None else 1.0)
+        name = m.name
         if m._loader is None:
             # (no picture found: the colour the map recorded; shaded in the colour, there is no picture)
             m.color = tuple(float(min(1.0, max(0.05, c ** (1 / 2.2)))) for c in refl)
@@ -482,6 +521,12 @@ def _opaque(im):
     return Image.fromarray(a, 'RGBA')
 
 
+def _faded(im, alpha):
+    a = np.asarray(im.convert('RGBA')).copy()
+    a[:, :, 3] = (a[:, :, 3].astype(np.float64) * alpha).astype(np.uint8)
+    return Image.fromarray(a, 'RGBA')
+
+
 def _vec3(text):
     """The colour of a material parameter such as `[1 0.8 0.2]` or `{255 200 50}` as three numbers 0 to 1, or None."""
     try:
@@ -493,9 +538,20 @@ def _vec3(text):
     return tuple(x / 255.0 if '{' in text else x for x in v)
 
 
-def _reflective(im, translucent, tint):
+def _reflective(im, translucent, tint, env=None):
     a = np.asarray(im.convert('RGBA')).copy()
-    if tint is not None and float(a[:, :, :3].reshape(-1, 3).std(axis=0).max()) < 40:
+    flat = float(a[:, :, :3].reshape(-1, 3).std(axis=0).max()) < 40
+    if env is not None:
+        # (the colour of what the surface shows: the mean of the cube map picture it reflects)
+        e = np.asarray(env.convert('RGBA'))[:, :, :3].reshape(-1, 3).astype(np.float64)
+        mean = e.mean(axis=0)
+        peak = np.percentile(e, 90, axis=0)
+        shown = 0.5 * mean + 0.5 * peak
+        if flat:
+            a[:, :, :3] = np.clip(0.3 * a[:, :, :3].astype(np.float64) + 0.9 * shown, 0, 255).astype(np.uint8)
+        else:
+            a[:, :, :3] = np.clip(0.75 * a[:, :, :3].astype(np.float64) + 0.35 * shown, 0, 255).astype(np.uint8)
+    elif tint is not None and flat:
         a[:, :, :3] = np.clip(a[:, :, :3].astype(np.float64) * np.array(tint) * 2.0, 0, 255).astype(np.uint8)
     if translucent:
         a[:, :, 3] = np.maximum(a[:, :, 3], 90)

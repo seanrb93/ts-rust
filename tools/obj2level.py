@@ -527,17 +527,38 @@ def _on_floor(x, z, y, floors):
     return False
 
 
+def _floor_under(x, z, y, floors):
+    """The height of the highest floor under (x, z) that is not above y (a little more), or None."""
+    best = None
+    for f in floors:
+        ys = [v[1] for v in f]
+        h = sum(ys) / len(ys)
+        if h > y + 0.15 or (best is not None and h <= best):
+            continue
+        inside = False
+        for i in range(len(f)):
+            a, b = f[i - 1], f[i]
+            if (a[2] > z) != (b[2] > z) and x < (b[0] - a[0]) * (z - a[2]) / (b[2] - a[2]) + a[0]:
+                inside = not inside
+        if inside:
+            best = h
+    return best
+
+
 def is_riser(p, n, lo, hi, floors):
-    """A low wall that has a floor at its top behind it and a floor at its foot in front of it is the riser of a step."""
+    """A wall that has a floor at its top behind it and a floor in front of it that is at most a step lower is the riser of a step (the wall itself can be
+    taller: the side of a brush goes down past the floor in front of it)."""
     pts = np.array(p.p)
     top = pts[pts[:, 1] > hi - 0.01]
-    foot = pts[pts[:, 1] < lo + 0.01]
-    if len(top) == 0 or len(foot) == 0:
+    if len(top) == 0:
         return False
-    m_top, m_foot = top.mean(axis=0), foot.mean(axis=0)
+    m_top = top.mean(axis=0)
     back = (m_top[0] - n[0] * 0.15, m_top[2] - n[2] * 0.15)
-    front = (m_foot[0] + n[0] * 0.15, m_foot[2] + n[2] * 0.15)
-    return _on_floor(back[0], back[1], hi, floors) and _on_floor(front[0], front[1], lo, floors)
+    if not _on_floor(back[0], back[1], hi, floors):
+        return False
+    mid = pts.mean(axis=0)
+    foot = _floor_under(mid[0] + n[0] * 0.15, mid[2] + n[2] * 0.15, hi, floors)
+    return foot is not None and hi - foot <= STEP_HEIGHT + 0.005
 
 
 def collision(polys):
@@ -564,7 +585,7 @@ def collision(polys):
             if best < 1e-6:
                 continue
             lo, hi = min(v[1] for v in p.p), max(v[1] for v in p.p)
-            if hi - lo <= CURB_HEIGHT or (hi - lo <= STEP_HEIGHT + 0.005 and is_riser(p, n, lo, hi, floors)):
+            if hi - lo <= CURB_HEIGHT or is_riser(p, n, lo, hi, floors):
                 continue
             a, b = p.p[pair[0]], p.p[pair[1]]
             # (a wall stops what comes from one side only: the open side is to the right of the edge's direction seen from above, which is
@@ -1083,7 +1104,7 @@ def main():
     ap.add_argument('--music', default=None, help='an audio file (mp3, ogg, wav, flac, opus, ...) the level plays')
     ap.add_argument('--min-light', type=float, default=None, help='how bright the darkest surfaces are, 0..1 (default 0.35 for maps with lightmaps, else 0)')
     ap.add_argument('--max-polygon', type=float, default=0.0, help='polygons are cut into pieces no wider than this (0: not)')
-    ap.add_argument('--spawn-at', default=None, help='x,z (game units): players start only here (a test aid)')
+    ap.add_argument('--spawn-at', default=None, help='x,z or x,z,y (game units): players start only here (a test aid; without y the lowest pad there)')
     ap.add_argument('--no-translucent', action='store_true', help='leave out surfaces drawn see-through (a test aid)')
     ap.add_argument('--texture-budget', type=float, default=24000.0, help='the most KB of texture files (the texture memory of a build with extended-tables holds about 31000 beside what the characters and weapons use; the original game 2800, then use 1800)')
     ap.add_argument('--max-size', type=float, default=80.0, help='about how large the BG file may be, in MB')
@@ -1115,8 +1136,10 @@ def main():
     if not polys:
         sys.exit('no faces')
     if args.spawn_at:
-        sx, sz = (float(x) for x in args.spawn_at.split(','))
-        markers = [(k, v) for k, v in markers if not k.lower().startswith('spawn')] + [('spawn', np.array([sx, float('nan'), sz]))]
+        sv = [float(x) for x in args.spawn_at.split(',')]
+        sx, sz = sv[0], sv[1]
+        sy = sv[2] if len(sv) > 2 else float('nan')
+        markers = [(k, v) for k, v in markers if not k.lower().startswith('spawn')] + [('spawn', np.array([sx, sy, sz]))]
     print(f'{scene.label}: {len(polys)} polygons, {len(scene.mats)} materials, {len(markers)} markers')
     if args.no_translucent:
         polys = [p for p in polys if not scene.mats[p.mat].image() or not scene.mats[p.mat].translucent]
