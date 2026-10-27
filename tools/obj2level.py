@@ -825,6 +825,7 @@ def cut_big(polys, lo, w):
 def assign_collision(coll, boxes):
     """The collision polygons of each room: a polygon that reaches over the edge of a room is cut there (a floor wider than a room would be missing in
     the other rooms, and players would fall through it); the pieces go to the rooms whose boxes (seen from above) they lie in."""
+    M = 0.3     # (the pieces of neighbouring rooms overlap a little: standing on the line between two rooms is not standing on nothing)
     rooms = [[] for _ in boxes]
     if len(boxes) == 1:
         rooms[0] = list(coll)
@@ -835,11 +836,11 @@ def assign_collision(coll, boxes):
         x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
         hit = False
         for i, bx in enumerate(boxes):
-            if bx[1] < -9000.0 or bx[3] <= x0 or bx[0] >= x1 or bx[5] <= z0 or bx[2] >= z1:
+            if bx[1] < -9000.0 or bx[3] + M <= x0 or bx[0] - M >= x1 or bx[5] + M <= z0 or bx[2] - M >= z1:
                 continue
             parts = [p]
-            if x0 < bx[0] or x1 > bx[3] or z0 < bx[2] or z1 > bx[5]:
-                for axis, value, below in ((0, bx[3], True), (0, bx[0], False), (2, bx[5], True), (2, bx[2], False)):
+            if x0 < bx[0] - M or x1 > bx[3] + M or z0 < bx[2] - M or z1 > bx[5] + M:
+                for axis, value, below in ((0, bx[3] + M, True), (0, bx[0] - M, False), (2, bx[5] + M, True), (2, bx[2] - M, False)):
                     nxt = []
                     for q in parts:
                         nxt += clip_poly(q, axis, value, below)
