@@ -274,6 +274,13 @@ def add_props(sc, props, models, material, exists, opts):
             continue
         m = angle_matrix(*ang) * scale
         o = np.array(org)
+        sky = opts.get('sky')
+        in_sky = bool(sky) and bool(np.any(o < sky[2]) or np.any(o > sky[3]))
+        if in_sky:
+            # (a prop of the 3D skybox: scaled up round the origin of the map)
+            o = (o - sky[0]) * sky[1]
+            m = m * sky[1]
+            solid = False
         n_props += 1
         for mat, tris in meshes:
             paths = [m_ for m_ in mat if exists(m_ + '.vmt')] or list(mat) or ['materials/tools/toolsnodraw']

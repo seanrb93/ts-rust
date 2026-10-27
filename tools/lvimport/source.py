@@ -122,10 +122,12 @@ def load(path, opts):
     sc.min_light = 0.35
     markers_from_entities(ents, sc)
     sky = []
+    sky_scale = 16.0
     for e in ents:
         if e.get('classname') == 'sky_camera':
             try:
                 sky.append(np.array([float(x) for x in e['origin'].split()]))
+                sky_scale = float(e.get('scale', 16) or 16)
             except (KeyError, ValueError):
                 pass
 
@@ -171,7 +173,17 @@ def load(path, opts):
             vi.append(int(e[0] if se >= 0 else e[1]))
         face_ids.append(vi)
     keep = keep_playable(face_ids[:count], verts, sc.markers, drop_points=sky)
+    sky_faces = set(range(count)) - set(keep) if sky and opts.get('skybox') else set()
     keep = set(keep) | set(range(count, len(all_faces)))
+    # the 3D skybox: its faces and props are small and far away; they are put where the sky shows them, scaled up round the origin of the map (the player is
+    # taken to stand there), so that the distant scenery is part of the level
+    world_lo = world_hi = None
+    if sky_faces:
+        wv = np.array([verts[v] for n_ in keep if n_ < count for v in face_ids[n_]])
+        world_lo, world_hi = wv.min(axis=0) - 512.0, wv.max(axis=0) + 512.0
+        sky_org = sky[0]
+        opts = dict(opts)
+        opts['sky'] = (sky_org, sky_scale, world_lo, world_hi)
     cache = {}
 
     def material(name, flags):
@@ -193,7 +205,7 @@ def load(path, opts):
         return m
 
     for n, fi in enumerate(all_faces):
-        if n not in keep:
+        if n not in keep and n not in sky_faces:
             continue
         o = FS * fi
         planenum, side = struct.unpack_from('<HB', faces_raw, o)
@@ -285,7 +297,10 @@ def load(path, opts):
                 cols = [(c, c, c) for c in (shade_at(x) for x in q)]
             else:
                 cols = [(flat, flat, flat)] * len(q)
-            sc.add([q[i] for i in order], [uv[i] for i in order], [cols[i] for i in order], name)
+            if n in sky_faces:
+                sc.add([(q[i] - sky_org) * sky_scale for i in order], [uv[i] for i in order], [cols[i] for i in order], name, False)
+            else:
+                sc.add([q[i] for i in order], [uv[i] for i in order], [cols[i] for i in order], name)
     if not opts.get('no_props'):
         placed = props_mod.static_props(d, lump_data(d, 35)[0], version) + props_mod.entity_props(ents)
         if placed:

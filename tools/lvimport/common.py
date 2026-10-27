@@ -244,7 +244,7 @@ def brush_entity_wanted(e, opts, shapes, doors):
     return not (rm == '10' or (rm not in ('0', '') and low.get('renderamt', '255') == '0') or low.get('startdisabled') == '1')
 
 
-MAX_ENTITY_SIZE = 4096.0       # (units: a brush entity wider than this is a helper that spans the map, not a shape in it)
+MAX_ENTITY_SIZE = 1.0e12       # (no limit: levels are of any size)
 
 
 def brush_entity_models(ents, nmodels, opts, shapes, doors, extent=None):

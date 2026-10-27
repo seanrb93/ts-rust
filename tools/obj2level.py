@@ -48,6 +48,7 @@ Options:
     --no-props       Source maps: leave out the props (the models of the map, found in its own pack or in `models` folders next to it or given with --models)
     --models DIR     Source maps: a `models` folder (the game's own models unpacked); may be given more than once
     --drop-material S leave out the polygons of the materials with S in their names (more than once for more)
+    --skybox         Source maps: the 3D skybox is scaled up and made part of the level (slow)
     --drawn-collision Source maps: collision from the drawn solid faces instead of the brushes
     --clip-brushes   Source maps: the player clip brushes (invisible walls) stop players too
     --no-entities    maps: leave out the brush entities that are only a shape (func_brush, func_wall, func_breakable, ...), which are part of the level otherwise
@@ -1085,8 +1086,9 @@ def main():
     ap.add_argument('--no-props', action='store_true', help='Source maps: leave out the props (the models the map places)')
     ap.add_argument('--models', action='append', default=[], help="Source maps: a `models` folder with the models of the map (the game's own unpacked); may be given more than once")
     ap.add_argument('--no-entities', action='store_true', help='Source maps: leave out the brush entities (func_brush, func_wall, func_breakable, ...) that are only a shape')
-    ap.add_argument('--doors', choices=('skip', 'closed'), default='skip', help='Source maps: doors are left out (the default) or made part of the level, closed')
+    ap.add_argument('--doors', choices=('skip', 'closed'), default='closed', help='Source maps: doors are made part of the level, closed (the default), or left out')
     ap.add_argument('--drop-material', action='append', help='leave out the polygons of the materials whose name has this in it (may be given more than once)')
+    ap.add_argument('--skybox', action='store_true', help='Source maps: the 3D skybox is scaled up and made part of the level (its big polygons are cut into many rooms: slow)')
     ap.add_argument('--drawn-collision', action='store_true', help='Source maps: make the collision from the drawn solid faces instead of the brushes')
     ap.add_argument('--clip-brushes', action='store_true', help='Source maps: the player clip brushes (invisible walls) stop players too')
     ap.add_argument('--light-detail', type=int, default=16, help='Source maps: polygons whose light varies are cut every this many lightmap luxels (0: one brightness for a face)')
@@ -1102,7 +1104,7 @@ def main():
     args = ap.parse_args()
     if not 31 <= args.number <= 99:
         sys.exit('--number has to be 31 to 99')
-    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'drawn_collision': args.drawn_collision, 'clip_brushes': args.clip_brushes, 'light_detail': args.light_detail, 'entities': not args.no_entities, 'doors': args.doors, 'no_props': args.no_props, 'prop_budget': args.prop_budget, 'models': args.models})
+    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'drawn_collision': args.drawn_collision, 'skybox': args.skybox, 'clip_brushes': args.clip_brushes, 'light_detail': args.light_detail, 'entities': not args.no_entities, 'doors': args.doors, 'no_props': args.no_props, 'prop_budget': args.prop_budget, 'models': args.models})
     polys, markers = build_polys(scene, args)
     coll = build_polys.coll
     if not polys:
