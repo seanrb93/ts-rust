@@ -178,11 +178,12 @@ def load(path, opts):
     # the 3D skybox: its faces and props are small and far away; they are put where the sky shows them, scaled up round the origin of the map (the player is
     # taken to stand there), so that the distant scenery is part of the level
     world_lo = world_hi = None
+    wv = np.array([verts[v] for n_ in keep if n_ < count for v in face_ids[n_]])
+    opts = dict(opts)
+    opts['world'] = (wv.min(axis=0), wv.max(axis=0))
     if sky_faces:
-        wv = np.array([verts[v] for n_ in keep if n_ < count for v in face_ids[n_]])
         world_lo, world_hi = wv.min(axis=0) - 512.0, wv.max(axis=0) + 512.0
         sky_org = sky[0]
-        opts = dict(opts)
         opts['sky'] = (sky_org, sky_scale, world_lo, world_hi)
     cache = {}
 
@@ -200,6 +201,11 @@ def load(path, opts):
         m = Material(name, loader, (0.5, 0.5, 0.5), translucent=translucent)
         if water and inner is not None:
             m._loader = lambda inner=inner: _water(inner())
+        elif inner is not None and '$envmap' in params:
+            # (a surface that shows the sky or the room round it: glass is nearly clear by its alpha and a metal is plain grey, and both are the colour
+            # that the material gives; the reflection itself is not made)
+            tint = _vec3(params.get('$color') or params.get('$envmaptint') or '')
+            m._loader = lambda inner=inner, tr=translucent, tint=tint: _reflective(inner(), tr, tint)
         cache[name] = m
         sc.mats[name] = m
         return m
@@ -449,6 +455,26 @@ def _orient(tris, corners):
 def _opaque(im):
     a = np.asarray(im.convert('RGBA')).copy()
     a[:, :, 3] = 255
+    return Image.fromarray(a, 'RGBA')
+
+
+def _vec3(text):
+    """The colour of a material parameter such as `[1 0.8 0.2]` or `{255 200 50}` as three numbers 0 to 1, or None."""
+    try:
+        v = [float(x) for x in text.replace('[', ' ').replace(']', ' ').replace('{', ' ').replace('}', ' ').split()]
+    except ValueError:
+        return None
+    if len(v) != 3:
+        return None
+    return tuple(x / 255.0 if '{' in text else x for x in v)
+
+
+def _reflective(im, translucent, tint):
+    a = np.asarray(im.convert('RGBA')).copy()
+    if tint is not None and float(a[:, :, :3].reshape(-1, 3).std(axis=0).max()) < 40:
+        a[:, :, :3] = np.clip(a[:, :, :3].astype(np.float64) * np.array(tint) * 2.0, 0, 255).astype(np.uint8)
+    if translucent:
+        a[:, :, 3] = np.maximum(a[:, :, 3], 90)
     return Image.fromarray(a, 'RGBA')
 
 

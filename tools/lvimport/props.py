@@ -274,6 +274,15 @@ def add_props(sc, props, models, material, exists, opts):
             continue
         m = angle_matrix(*ang) * scale
         o = np.array(org)
+        world = opts.get('world')
+        if world is not None and 'sky' in key.rsplit('/', 1)[-1]:
+            # (a sky made of a model, a box or a dome round the map: it is made large enough to hold the whole level)
+            pts = np.array([p for _mat, tris in meshes for tri in tris for p, _n, _uv in tri])
+            half = float(np.abs(pts[:, :2]).max()) * abs(float(scale)) + 1e-6
+            span = 0.65 * float(max(world[1][0] - world[0][0], world[1][1] - world[0][1]))
+            if span > half:
+                m = m * (span / half)
+                o = np.array([(world[0][0] + world[1][0]) / 2.0, (world[0][1] + world[1][1]) / 2.0, o[2]])
         sky = opts.get('sky')
         in_sky = bool(sky) and bool(np.any(o < sky[2]) or np.any(o > sky[3]))
         if in_sky:

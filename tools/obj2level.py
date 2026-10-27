@@ -80,7 +80,7 @@ FLOOR_NY = 0.5            # a face whose normal points up more than this is a fl
 MAX_TEX = 256             # the largest side of a texture file (65536 pixels in all)
 MAX_ROOM_CHUNKS = 96      # (the game's largest room has 104 chunks and 5246 vertices)
 MAX_ROOM_VERTS = 4800
-MAX_ROOMS = 468          # the tables hold 512 rooms (the game's own held 200); twelve more are left empty (see leave_special_rooms)
+MAX_ROOMS = 560          # the tables hold 1100 props and 512 + the number of a room is a prop number: the rooms of a level are at most 575 (twelve more are left empty, see leave_special_rooms)
 MODES = {'dm': 1, 'bagtag': 2, 'ctb': 4, 'escort': 8, 'ko': 16, 'ls': 32}
 
 
@@ -785,6 +785,11 @@ def pick_spread(pads, count, taken=()):
 
 
 def nearest_pad(pads, point):
+    if point[1] is None or point[1] != point[1]:
+        # (only the place on the plan is given: the lowest of the pads round it, so not one on a roof or a prop)
+        dmin = min((p[0] - point[0]) ** 2 + (p[2] - point[2]) ** 2 for p in pads)
+        near = [i for i, p in enumerate(pads) if (p[0] - point[0]) ** 2 + (p[2] - point[2]) ** 2 <= dmin + 4.0]
+        return min(near, key=lambda i: pads[i][1])
     best, bi = 1e30, 0
     for i, p in enumerate(pads):
         d = (p[0] - point[0]) ** 2 + (p[1] - point[1]) ** 2 + (p[2] - point[2]) ** 2
@@ -1111,7 +1116,7 @@ def main():
         sys.exit('no faces')
     if args.spawn_at:
         sx, sz = (float(x) for x in args.spawn_at.split(','))
-        markers = [(k, v) for k, v in markers if not k.lower().startswith('spawn')] + [('spawn', np.array([sx, 2.0, sz]))]
+        markers = [(k, v) for k, v in markers if not k.lower().startswith('spawn')] + [('spawn', np.array([sx, float('nan'), sz]))]
     print(f'{scene.label}: {len(polys)} polygons, {len(scene.mats)} materials, {len(markers)} markers')
     if args.no_translucent:
         polys = [p for p in polys if not scene.mats[p.mat].image() or not scene.mats[p.mat].translucent]
