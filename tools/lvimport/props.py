@@ -79,8 +79,9 @@ def static_props(d, gamelump, version):
             ox, oy, oz, ax, ay, az = struct.unpack_from('<6f', data, o)
             ptype = struct.unpack_from('<H', data, o + 24)[0]
             skin = struct.unpack_from('<i', data, o + 32)[0] if stride >= 36 else 0
+            solid = data[o + 30] if stride >= 31 else 0
             if ptype < len(names):
-                out.append((names[ptype], (ox, oy, oz), (ax, ay, az), skin, 1.0))
+                out.append((names[ptype], (ox, oy, oz), (ax, ay, az), skin, 1.0, solid != 0))
         return out
     return []
 
@@ -106,7 +107,7 @@ def entity_props(ents):
         except ValueError:
             continue
         if len(org) == 3 and len(ang) == 3:
-            out.append((model, org, ang, skin, scale))
+            out.append((model, org, ang, skin, scale, low.get('solid', '6') != '0'))
     return out
 
 
@@ -257,7 +258,8 @@ def add_props(sc, props, models, material, exists, opts):
         used += tris
         kept.append(pr)
     props = kept
-    for name, org, ang, skin, scale in props:
+    for name, org, ang, skin, scale, *rest in props:
+        solid = bool(rest and rest[0])
         key = name.lower()
         if key not in cache:
             try:
@@ -287,6 +289,8 @@ def add_props(sc, props, models, material, exists, opts):
                 cols = [(shade, shade, shade)] * 3
                 sc.add([pts[i] for i in order], [(tri[i][2][0], tri[i][2][1]) for i in order], cols, matname)
                 n_polys += 1
+                if solid and sc.collision is not None:
+                    sc.collision.append([pts[i] for i in order])
     msg = f'props: {n_props} placed, {n_polys} polygons'
     if dropped:
         msg += f', {dropped} small ones left out to keep to {budget} polygons (--prop-budget)'
