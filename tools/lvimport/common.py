@@ -264,6 +264,6 @@ def brush_entity_models(ents, nmodels, opts, shapes, doors, extent=None):
         seen.add(m)
         # (what is see-through, a sheet of water or glass made of a brush, and what the map says is not solid does not stop players)
         see_through = low.get('rendermode', '0') not in ('0', '') and low.get('renderamt', '255') != '255'
-        solid = low.get('solidity', '0') != '1' and e.get('classname', '') != 'func_illusionary' and not see_through
+        solid = low.get('solidity', '0') != '1' and e.get('classname', '') != 'func_illusionary' and not (see_through and low.get('renderamt', '255') in ('0', ''))
         out.append((m, solid, e.get('classname', '')))
     return out

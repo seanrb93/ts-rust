@@ -511,6 +511,24 @@ STEP_HEIGHT = 1.0         # the game walks up what is lower than about this only
 CURB_HEIGHT = 0.45        # a wall lower than this is never in the way (a kerb, a low edge)
 
 
+def _inside(f, x, z):
+    inside = False
+    for i in range(len(f)):
+        a, b = f[i - 1], f[i]
+        if (a[2] > z) != (b[2] > z) and x < (b[0] - a[0]) * (z - a[2]) / (b[2] - a[2]) + a[0]:
+            inside = not inside
+    return inside
+
+
+def _floor_h(f, x, z):
+    """The height of the floor f (3 or more vertices) at (x, z): its plane, from the three vertices that the game uses."""
+    a, b, c = np.asarray(f[0]), np.asarray(f[1]), np.asarray(f[2])
+    n = np.cross(b - a, c - a)
+    if abs(n[1]) < 1e-9:
+        return float(a[1])
+    return float(a[1] - (n[0] * (x - a[0]) + n[2] * (z - a[2])) / n[1])
+
+
 def _floor_under(x, z, y, floors):
     """The height of the highest floor under (x, z) that is not above y (a little more), or None."""
     best = None
@@ -534,6 +552,12 @@ def is_riser(p, n, lo, hi, floors):
     floor on top of the step can be missing where the step's brush is covered by other brushes, and a wall of the game stops players even when it is low).  The
     wall itself can be taller: the side of a brush goes down past the floor in front of it."""
     pts = np.array(p.p)
+    top = pts[pts[:, 1] > hi - 0.01]
+    if len(top) == 0:
+        return False
+    m_top = top.mean(axis=0)
+    if _floor_under(m_top[0] - n[0] * 0.15, m_top[2] - n[2] * 0.15, hi + 0.15, floors) is None or not any(abs(_floor_h(f, m_top[0] - n[0] * 0.15, m_top[2] - n[2] * 0.15) - hi) <= 0.15 for f in floors if _inside(f, m_top[0] - n[0] * 0.15, m_top[2] - n[2] * 0.15)):
+        return False
     mid = pts.mean(axis=0)
     foot = _floor_under(mid[0] + n[0] * 0.15, mid[2] + n[2] * 0.15, hi, floors)
     return foot is not None and hi - foot <= STEP_HEIGHT + 0.005
@@ -959,20 +983,12 @@ def fill_floors(coll, polys, translucent):
 
     def covered(x, z, y):
         for f in grid.get((int(x // cell), int(z // cell)), ()):
-            h = sum(v[1] for v in f) / len(f)
-            if abs(h - y) > 0.15:
-                continue
-            inside = False
-            for i in range(len(f)):
-                a, b = f[i - 1], f[i]
-                if (a[2] > z) != (b[2] > z) and x < (b[0] - a[0]) * (z - a[2]) / (b[2] - a[2]) + a[0]:
-                    inside = not inside
-            if inside:
+            if _inside(f, x, z) and abs(_floor_h(f, x, z) - y) <= 0.15:
                 return True
         return False
     added = []
     for p in polys:
-        if not p.solid or p.normal()[1] < 0.85 or translucent(p.mat):
+        if not p.solid or p.normal()[1] < FLOOR_NY or translucent(p.mat):
             continue
         pts = [np.asarray(v) for v in p.p]
         c = sum(pts) / len(pts)
@@ -1311,8 +1327,8 @@ def main():
         print(f'{len(rooms)} rooms are too many: room size {args.room_size:.1f}')
         rooms, boxes, portals = split_rooms(polys, args, coll)
     if coll is not None:
-        coll = drop_risers(coll)
         coll = fill_floors(coll, polys, lambda m: m in scene.mats and bool(scene.mats[m].translucent))
+        coll = drop_risers(coll)
     rooms_coll = assign_collision(coll, boxes) if coll is not None else None
     rooms, boxes, portals, rooms_coll = leave_special_rooms(rooms, boxes, portals, rooms_coll)
     bg = write_bg(polys, tex_numbers, args, rooms, boxes, portals, rooms_coll)
