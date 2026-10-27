@@ -63,14 +63,14 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   (`prop_dynamic`, `prop_physics`, `prop_door_rotating`, ...) in a BSP or VMF.  A model is its `.mdl`, `.vvd` and `.dx90.vtx` files, in its most detailed level and its first skin; bones,
   animation, physics and the models' lights are not used, and props do not collide.  The map's own models are in its pack or in a `models` folder beside the map (as Crowbar
   unpacks a workshop map); the game's own (`props_c17/...`) are unpacked with GCFScape or Crowbar and given with `--models <dir>`; a prop whose model is not found is left out.
-  Props can be many polygons: `--prop-budget` (default 20000) keeps the ones that are big for their polygons and leaves the rest out; `--no-props` leaves them all out.
+  All the props are put in by default (Station Square: 219 props, 48,000 polygons, and the level plays); `--prop-budget N` keeps the polygons they add to N by leaving out the ones that are small for their polygons, and `--no-props` leaves them all out.
 - **What is left out.**  The 3D skybox, entities that move or act (triggers, water, ladders), sky, trigger, clip and other tool faces.  Parts that are not connected to the main level (a
   skybox room, a room of tools) are dropped.
 - **Size.**  The game's own levels have at most 70,000 vertices, 109 rooms and a 2.7 MB BG file.  The port's tables were made larger (`manual/proptable.rs` and the patches of
   `tools/patches.py`), so a level can have up to 480 rooms (props in the rooms numbered 205 to 212 are drawn in the passes the game keeps for those numbers, which may show as a prop drawn through
   a wall), and a level of a mod (the numbers 31 to 99) makes its large allocations (256 KB and more: the BG file, the biggest textures, ...) in a pool of 32 MB of the port's own (`manual/bigpool.rs`;
   the game's pool of 21 MB cannot be longer, for the stacks and static data are after it, but the port's memory is not the console's).  The full Station Square of Garry's Mod (6.9 MB, 40,000 polygons,
-  232 rooms) was played.  `--max-size` (default 16 MB) leaves the smallest polygons that are not floors out above that size.  A big map can also be made smaller by choosing a part of it:
+  232 rooms) was played.  `--max-size` (default 28 MB; the port's big pool for the levels of mods is 32 MB) leaves the smallest polygons that are not floors out above that size.  Station Square with its props (90,000 polygons, 331 rooms, a 14 MB BG file) loads and plays.  A big map can also be made smaller by choosing a part of it:
   `--radius 70 --center x,z` (game units, a square; the first spawn is the default centre) keeps what is within 70 units (a Source map of 16000 units is 400 units across).
 - **Rooms.**  `--room-size 25` splits the level into rooms of 25 x 25 units joined by portals: what is far away is not drawn.  A map of Source or GoldSrc size wants it.
 

@@ -230,7 +230,7 @@ def add_props(sc, props, models, material, exists, opts):
     miss_names = set()
     shade = max(sc.min_light, 0.75)
     # (the props that are big for their polygons first: when they are more than the budget of polygons the rest are left out)
-    budget = int(opts.get('prop_budget', 20000))
+    budget = int(opts.get('prop_budget', 0))
     sizes = {}
 
     def size_of(key, name):
