@@ -41,10 +41,10 @@ class Material:
 
 
 class RawPoly:
-    __slots__ = ('p', 'uv', 'col', 'mat')
+    __slots__ = ('p', 'uv', 'col', 'mat', 'solid')
 
-    def __init__(self, p, uv, col, mat):
-        self.p, self.uv, self.col, self.mat = list(p), list(uv), list(col), mat
+    def __init__(self, p, uv, col, mat, solid=True):
+        self.p, self.uv, self.col, self.mat, self.solid = list(p), list(uv), list(col), mat, solid
 
 
 class Scene:
@@ -55,20 +55,20 @@ class Scene:
         self.up = up
         self.scale = scale
         self.label = label
-        self.collision = None     # polygons (lists of points) that collide, where the source has its own (brushes); None: the drawn ones
+        self.collision = None     # polygons (lists of points) that collide, where the source has its own (brushes); None: the drawn ones that are solid (`RawPoly.solid`) and not see-through
         self.min_light = 0.0      # a floor of brightness for the faces (maps with lightmaps have dark ones)
 
-    def add(self, pts, uvs, cols, mat):
+    def add(self, pts, uvs, cols, mat, solid=True):
         """A convex polygon (any number of points): up to four stay as they are, more are fanned into triangles."""
         n = len(pts)
         if n < 3:
             return
         pts = [np.asarray(p, dtype=np.float64) for p in pts]
         if n <= 4:
-            self.polys.append(RawPoly(pts, uvs, cols, mat))
+            self.polys.append(RawPoly(pts, uvs, cols, mat, solid))
             return
         for i in range(1, n - 1):
-            self.polys.append(RawPoly([pts[0], pts[i], pts[i + 1]], [uvs[0], uvs[i], uvs[i + 1]], [cols[0], cols[i], cols[i + 1]], mat))
+            self.polys.append(RawPoly([pts[0], pts[i], pts[i + 1]], [uvs[0], uvs[i], uvs[i + 1]], [cols[0], cols[i], cols[i + 1]], mat, solid))
 
 
 def parse_entities(text):

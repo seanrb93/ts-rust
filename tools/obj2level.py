@@ -47,6 +47,8 @@ Options:
     --prop-budget N  Source maps: the most polygons the props may add (default 0: no limit; above N the props that are small for their polygons are left out)
     --no-props       Source maps: leave out the props (the models of the map, found in its own pack or in `models` folders next to it or given with --models)
     --models DIR     Source maps: a `models` folder (the game's own models unpacked); may be given more than once
+    --drop-material S leave out the polygons of the materials with S in their names (more than once for more)
+    --brush-collision Source maps: collision from the brushes (invisible walls included) instead of the drawn faces
     --no-entities    maps: leave out the brush entities that are only a shape (func_brush, func_wall, func_breakable, ...), which are part of the level otherwise
     --doors closed   maps: make the doors part of the level, closed (they are left out by default)
     --max-textures N the most textures (default 200; the game's texture memory has 352 places, small textures share one)
@@ -143,10 +145,10 @@ def fit_texture(img, target=None):
 # ---------------------------------------------------------------- the model
 
 class Poly:
-    __slots__ = ('p', 'uv', 'col', 'mat')       # p: list of 3 or 4 points (np arrays), uv: list of (s, t), col: list of (r, g, b)
+    __slots__ = ('p', 'uv', 'col', 'mat', 'solid')       # p: list of 3 or 4 points (np arrays), uv: list of (s, t), col: list of (r, g, b)
 
-    def __init__(self, p, uv, col, mat):
-        self.p, self.uv, self.col, self.mat = p, uv, col, mat
+    def __init__(self, p, uv, col, mat, solid=True):
+        self.p, self.uv, self.col, self.mat, self.solid = p, uv, col, mat, solid
 
     def centre(self):
         return sum(self.p) / len(self.p)
@@ -170,7 +172,10 @@ def build_polys(scene, args):
             p = np.array([p[0], p[2], -p[1]])
         return p * scale
     polys = []
+    drop = [d.lower() for d in (getattr(args, 'drop_material', None) or [])]
     for rp in scene.polys:
+        if drop and any(d in rp.mat.lower() for d in drop):
+            continue
         pts = [conv(q) for q in rp.p]
         uv, col = list(rp.uv), list(rp.col)
         if args.flip:
@@ -181,10 +186,10 @@ def build_polys(scene, args):
             # (a quad has to be flat to be drawn as one strip: else it is two triangles)
             n = Poly(pts, uv, col, rp.mat).normal()
             if not (abs(np.dot(pts[2] - pts[0], np.cross(pts[1] - pts[0], pts[3] - pts[0]))) < 1e-3 * max(1.0, np.linalg.norm(n))):
-                polys.append(Poly([pts[0], pts[1], pts[2]], uv[:3], col[:3], rp.mat))
-                polys.append(Poly([pts[0], pts[2], pts[3]], [uv[0], uv[2], uv[3]], [col[0], col[2], col[3]], rp.mat))
+                polys.append(Poly([pts[0], pts[1], pts[2]], uv[:3], col[:3], rp.mat, rp.solid))
+                polys.append(Poly([pts[0], pts[2], pts[3]], [uv[0], uv[2], uv[3]], [col[0], col[2], col[3]], rp.mat, rp.solid))
                 continue
-        polys.append(Poly(pts, uv, col, rp.mat))
+        polys.append(Poly(pts, uv, col, rp.mat, rp.solid))
     m = args.min_light if args.min_light is not None else scene.min_light
     if m > 0:
         for p in polys:
@@ -199,6 +204,9 @@ def build_polys(scene, args):
                 q.reverse()
             coll.append(Poly(q, [(0.0, 0.0)] * len(q), [(1.0, 1.0, 1.0)] * len(q), ''))
         coll = [p for p in coll if np.linalg.norm(p.normal()) > 0.5]
+    elif getattr(scene, 'collide_drawn', False):
+        # (what is seen is what stops: the surfaces that are solid, not the see-through ones such as water and glass)
+        coll = [p for p in polys if p.solid and not (p.mat in scene.mats and scene.mats[p.mat].translucent)]
     build_polys.coll = coll
     return [p for p in polys if np.linalg.norm(p.normal()) > 0.5], markers
 
@@ -1076,7 +1084,8 @@ def main():
     ap.add_argument('--models', action='append', default=[], help="Source maps: a `models` folder with the models of the map (the game's own unpacked); may be given more than once")
     ap.add_argument('--no-entities', action='store_true', help='Source maps: leave out the brush entities (func_brush, func_wall, func_breakable, ...) that are only a shape')
     ap.add_argument('--doors', choices=('skip', 'closed'), default='skip', help='Source maps: doors are left out (the default) or made part of the level, closed')
-    ap.add_argument('--no-brushes', action='store_true', help='Source maps: make the collision from the drawn faces instead of the brushes')
+    ap.add_argument('--drop-material', action='append', help='leave out the polygons of the materials whose name has this in it (may be given more than once)')
+    ap.add_argument('--brush-collision', action='store_true', help='Source maps: make the collision from the brushes (with their invisible walls) instead of the drawn faces')
     ap.add_argument('--light-detail', type=int, default=16, help='Source maps: polygons whose light varies are cut every this many lightmap luxels (0: one brightness for a face)')
     ap.add_argument('--max-textures', type=int, default=480, help='the most textures (the game has 512 records for them; in a build without extended-tables only about 200 fit the texture memory)')
     ap.add_argument('--materials', action='append', default=[])
@@ -1090,7 +1099,7 @@ def main():
     args = ap.parse_args()
     if not 31 <= args.number <= 99:
         sys.exit('--number has to be 31 to 99')
-    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'no_brushes': args.no_brushes, 'light_detail': args.light_detail, 'entities': not args.no_entities, 'doors': args.doors, 'no_props': args.no_props, 'prop_budget': args.prop_budget, 'models': args.models})
+    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'brush_collision': args.brush_collision, 'light_detail': args.light_detail, 'entities': not args.no_entities, 'doors': args.doors, 'no_props': args.no_props, 'prop_budget': args.prop_budget, 'models': args.models})
     polys, markers = build_polys(scene, args)
     coll = build_polys.coll
     if not polys:

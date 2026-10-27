@@ -137,7 +137,7 @@ def load(path, opts):
         for _m, _solid, cn in ent_models:
             names[cn] = names.get(cn, 0) + 1
         print('brush entities: ' + ', '.join(f'{n} {c}' for c, n in sorted(names.items())))
-    if not opts.get('no_brushes'):
+    if opts.get('brush_collision'):
         coll, nb = world_brushes(d, L, planes, headnode)
         for m, solid, _cn in ent_models:
             if solid:
@@ -146,6 +146,8 @@ def load(path, opts):
                 nb += nb2
         sc.collision = coll
         print(f'collision: {nb} brushes, {len(coll)} polygons')
+    else:
+        sc.collide_drawn = True
     texinfo = [struct.unpack_from('<16f2i', texinfo_raw, 72 * i) for i in range(len(texinfo_raw) // 72)]
     texdata = [struct.unpack_from('<3f4i', texdata_raw, 32 * i) for i in range(len(texdata_raw) // 32)]
 

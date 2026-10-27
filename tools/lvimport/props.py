@@ -287,10 +287,8 @@ def add_props(sc, props, models, material, exists, opts):
                 if np.dot(face, avg) < 0:
                     order = [0, 2, 1]
                 cols = [(shade, shade, shade)] * 3
-                sc.add([pts[i] for i in order], [(tri[i][2][0], tri[i][2][1]) for i in order], cols, matname)
+                sc.add([pts[i] for i in order], [(tri[i][2][0], tri[i][2][1]) for i in order], cols, matname, solid)
                 n_polys += 1
-                if solid and sc.collision is not None:
-                    sc.collision.append([pts[i] for i in order])
     msg = f'props: {n_props} placed, {n_polys} polygons'
     if dropped:
         msg += f', {dropped} small ones left out to keep to {budget} polygons (--prop-budget)'
