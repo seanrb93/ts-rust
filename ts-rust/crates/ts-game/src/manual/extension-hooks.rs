@@ -892,6 +892,26 @@ pub fn room_slot_read(distance: i32, index: i32) -> i32 {
     }
 }
 
+/// Put the room `room` at the end of the list of rooms of the player whose record is `record` (up to 212 from +912, their number at +908; `bgGetRoomsTick`).  The
+/// game's levels have too few rooms in view for it to be full; a level of the port with 500 rooms can have more, and the list would run over the limits of the stick
+/// at +1784 and the rest of the record.  The rooms come from the farthest level to the nearest, so a full list loses its first, the farthest.
+#[inline]
+pub fn room_list_push(record: i32, room: i32) {
+    #[cfg(feature = "extended-tables")]
+    {
+        let count = lw(record + 908);
+        if count >= 212 {
+            for i in 1..212 {
+                sw(record + ((i - 1) << 2) + 912, lw(record + (i << 2) + 912));
+            }
+            sw(record + (211 << 2) + 912, room);
+            return;
+        }
+    }
+    sw(record + (lw(record + 908) << 2) + 912, room);
+    sw(record + 908, lw(record + 908) + 1);
+}
+
 /// The debug string of the rooms drawn is a stack buffer that is a room longer than the frame when a level has more than the game's rooms: it is
 /// written only for the game's own.
 #[inline]

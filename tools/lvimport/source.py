@@ -472,7 +472,9 @@ def world_brushes(d, L, planes, headnode, clip=False):
             continue
         n /= ln
         # (a point a little out of the side, and one in the middle of the side: both inside another brush means it is covered)
-        if inside_other(k, c + n * 0.5) and inside_other(k, c - n * 0.5 + n * 0.51):
+        # (a side that is only partly covered stays: its middle can be covered by a brush that does not reach the ends)
+        samples = [c] + [0.8 * v + 0.2 * c for v in poly]
+        if all(inside_other(k, q + n * 0.5) and inside_other(k, q + n * 0.01) for q in samples):
             continue
         out.append(poly)
     return out, len(solids)

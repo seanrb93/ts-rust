@@ -511,22 +511,6 @@ STEP_HEIGHT = 1.0         # the game walks up what is lower than about this only
 CURB_HEIGHT = 0.45        # a wall lower than this is never in the way (a kerb, a low edge)
 
 
-def _on_floor(x, z, y, floors):
-    """Whether the point (x, z) is over a floor that is at the height y (within a little)."""
-    for f in floors:
-        ys = [v[1] for v in f]
-        if min(ys) - 0.15 > y or max(ys) + 0.15 < y:
-            continue
-        inside = False
-        for i in range(len(f)):
-            a, b = f[i - 1], f[i]
-            if (a[2] > z) != (b[2] > z) and x < (b[0] - a[0]) * (z - a[2]) / (b[2] - a[2]) + a[0]:
-                inside = not inside
-        if inside:
-            return True
-    return False
-
-
 def _floor_under(x, z, y, floors):
     """The height of the highest floor under (x, z) that is not above y (a little more), or None."""
     best = None
@@ -546,16 +530,10 @@ def _floor_under(x, z, y, floors):
 
 
 def is_riser(p, n, lo, hi, floors):
-    """A wall that has a floor at its top behind it and a floor in front of it that is at most a step lower is the riser of a step (the wall itself can be
-    taller: the side of a brush goes down past the floor in front of it)."""
+    """A wall with a floor in front of it that is at most a step lower than its top is the riser of a step, or a low edge: it does not stop a player (the
+    floor on top of the step can be missing where the step's brush is covered by other brushes, and a wall of the game stops players even when it is low).  The
+    wall itself can be taller: the side of a brush goes down past the floor in front of it."""
     pts = np.array(p.p)
-    top = pts[pts[:, 1] > hi - 0.01]
-    if len(top) == 0:
-        return False
-    m_top = top.mean(axis=0)
-    back = (m_top[0] - n[0] * 0.15, m_top[2] - n[2] * 0.15)
-    if not _on_floor(back[0], back[1], hi, floors):
-        return False
     mid = pts.mean(axis=0)
     foot = _floor_under(mid[0] + n[0] * 0.15, mid[2] + n[2] * 0.15, hi, floors)
     return foot is not None and hi - foot <= STEP_HEIGHT + 0.005
@@ -897,6 +875,72 @@ def cut_big(polys, lo, w):
     return [p for p in polys if np.linalg.norm(p.normal()) > 1e-6]
 
 
+def drop_risers(coll):
+    """The risers of steps, found over the whole level (a floor in front of or behind a step can lie in another room, where the room's own test would not see it)."""
+    floors = []
+    for p in coll:
+        if p.normal()[1] > FLOOR_NY:
+            f = clean_floor(p.p)
+            if f:
+                floors.append(f)
+    cell = 4.0
+    grid = {}
+    for f in floors:
+        xs = [v[0] for v in f]
+        zs = [v[2] for v in f]
+        for gx in range(int(min(xs) // cell), int(max(xs) // cell) + 1):
+            for gz in range(int(min(zs) // cell), int(max(zs) // cell) + 1):
+                grid.setdefault((gx, gz), []).append(f)
+    def near_floors(x, z):
+        found = {}
+        for dx in (-1, 0, 1):
+            for dz in (-1, 0, 1):
+                for f in grid.get((int(x // cell) + dx, int(z // cell) + dz), ()):
+                    found[id(f)] = f
+        return list(found.values())
+
+    out, dropped = [], 0
+    for p in coll:
+        n = p.normal()
+        if abs(n[1]) > FLOOR_NY:
+            out.append(p)
+            continue
+        pts = np.array(p.p)
+        lo, hi = pts[:, 1].min(), pts[:, 1].max()
+        if hi - lo <= CURB_HEIGHT:
+            out.append(p)
+            continue
+        # (a long wall is tested in pieces: a step can have a floor in front of one part of it and not of another)
+        far = max(((a, b) for a in range(len(pts)) for b in range(a + 1, len(pts))), key=lambda ab: (pts[ab[0]][0] - pts[ab[1]][0]) ** 2 + (pts[ab[0]][2] - pts[ab[1]][2]) ** 2)
+        a, b = pts[far[0]], pts[far[1]]
+        length = float(np.hypot(b[0] - a[0], b[2] - a[2]))
+        count = max(1, int(np.ceil(length / 2.0)))
+        pieces = []
+        if count == 1:
+            pieces = [(p, np.array(p.p).mean(axis=0))]
+        else:
+            for k in range(count):
+                t0, t1 = k / count, (k + 1) / count
+                q = [a + (b - a) * t0, a + (b - a) * t1]
+                q = [np.array([v[0], lo, v[2]]) for v in q] + [np.array([v[0], hi, v[2]]) for v in reversed(q)]
+                pc = Poly(q, [(0.0, 0.0)] * 4, [(1.0, 1.0, 1.0)] * 4, '', p.solid)
+                if np.dot(pc.normal(), n) < 0:
+                    pc.p.reverse()
+                pieces.append((pc, np.array(pc.p).mean(axis=0)))
+        keep = []
+        for pc, c in pieces:
+            if is_riser(pc, n, lo, hi, near_floors(c[0], c[2])):
+                dropped += 1
+            else:
+                keep.append(pc)
+        if len(keep) == len(pieces):
+            out.append(p)
+        else:
+            out += keep
+    print(f'{dropped} risers of steps left out of the collision')
+    return out
+
+
 def assign_collision(coll, boxes):
     """The collision polygons of each room: a polygon that reaches over the edge of a room is cut there (a floor wider than a room would be missing in
     the other rooms, and players would fall through it); the pieces go to the rooms whose boxes (seen from above) they lie in."""
@@ -1223,6 +1267,8 @@ def main():
         args.room_size *= 1.25
         print(f'{len(rooms)} rooms are too many: room size {args.room_size:.1f}')
         rooms, boxes, portals = split_rooms(polys, args, coll)
+    if coll is not None:
+        coll = drop_risers(coll)
     rooms_coll = assign_collision(coll, boxes) if coll is not None else None
     rooms, boxes, portals, rooms_coll = leave_special_rooms(rooms, boxes, portals, rooms_coll)
     bg = write_bg(polys, tex_numbers, args, rooms, boxes, portals, rooms_coll)

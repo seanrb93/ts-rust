@@ -153,7 +153,7 @@ pub fn bgGetRoomsTick() {
                         let count_at = (level << 2) + 0x1fc4a10;
                         let count = lw(count_at);
                         sw(count_at, count + 1);
-                        sb(count + level * 200 + 0x1fc4a78, room);
+                        room_slot_write(count, level, room);
                     }
                     room += 1;
                     if room >= rooms + 1 {
@@ -171,7 +171,7 @@ pub fn bgGetRoomsTick() {
                     } else {
                         let below = level - 1;
                         loop {
-                            let room = lbu(level * 200 + k + 0x1fc4a78);
+                            let room = room_slot_read(level, k);
                             let data = room * 20 + lw(offset + g::roomdata);
                             let clip = lw(data + 12);
                             if clip < 0 {
@@ -179,9 +179,7 @@ pub fn bgGetRoomsTick() {
                             } else {
                                 let distance = lw(data + 4);
                                 if distance < 640 && distance < clip {
-                                    let record = player * 1820 + players;
-                                    sw(record + (lw(record + 908) << 2) + 912, room);
-                                    sw(record + 908, lw(record + 908) + 1);
+                                    room_list_push(player * 1820 + players, room);
                                 }
                                 k += 1;
                             }

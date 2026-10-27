@@ -63,7 +63,7 @@ dual wield pairs and levels of mods are not available; the converter's big level
 `--features extended-tables`), and the code that uses it is not kept equal to the original.
 
 To do later, once the code matches: bring the extended tables back as real data structures of the decompiled code instead of moved addresses,
-and take back the other limits the port raised (instance and prop counts of a level, the big memory pool, the room lists by depth) in the same way.
+and take back the other limits the port raised (instance and prop counts of a level, the big memory pool, the room lists by depth, the list of rooms in view of a player) in the same way.
 
 A patch in `tools/patches.py` is dropped when the function it changes is decompiled by hand, because the hand-written function has to match the original.
 To put back later, on top of the matching code: the frame-rate change of the particle streams (`particleStreamTick` used the whole frames of the game
