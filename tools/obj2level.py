@@ -70,11 +70,13 @@ import png2qpm  # noqa: E402
 import lvimport  # noqa: E402
 
 CHUNK_VERTS = 64          # the most vertices one chunk can draw (the VU1 buffer)
+CHUNK_STRIPS = 24         # the most strips (the 24 quad words of their GIF tags before the vertices in the buffer)
+CHUNK_OUT = 212           # the buffer's quad words for the output: 3 for each vertex and 1 for each strip (more writes over the top of the VU1's memory)
 FLOOR_NY = 0.5            # a face whose normal points up more than this is a floor
 MAX_TEX = 256             # the largest side of a texture file (65536 pixels in all)
 MAX_ROOM_CHUNKS = 96      # (the game's largest room has 104 chunks and 5246 vertices)
 MAX_ROOM_VERTS = 4800
-MAX_ROOMS = 480          # the tables hold 512 rooms (the game's own held 200)
+MAX_ROOMS = 468          # the tables hold 512 rooms (the game's own held 200); twelve more are left empty (see leave_special_rooms)
 MODES = {'dm': 1, 'bagtag': 2, 'ctb': 4, 'escort': 8, 'ko': 16, 'ls': 32}
 
 
@@ -340,6 +342,23 @@ def write_bg(polys, tex_numbers, args, rooms_polys, room_boxes, portals, rooms_c
     return bytes(o.b)
 
 
+def leave_special_rooms(rooms, boxes, portals, rooms_coll):
+    """The game keeps the lists of the props that are held, thrown or floating (the guns of the players, water, effects: the numbers 201 to 212) in the
+    numbers of the rooms, since its levels have fewer than 201 rooms.  A level with more rooms gets twelve empty rooms there that nothing enters, and the rooms
+    after them are numbered 12 higher."""
+    first, count = 200, 12
+    if len(rooms) <= first:
+        return rooms, boxes, portals, rooms_coll
+    shift = lambda r: r if r <= first else r + count
+    portals = [(shift(a), shift(b)) + tuple(rest) for (a, b, *rest) in portals]
+    far = (0.0, -10000.0, 0.0, 0.01, -9999.99, 0.01)
+    rooms = list(rooms[:first]) + [[] for _ in range(count)] + list(rooms[first:])
+    boxes = list(boxes[:first]) + [far] * count + list(boxes[first:])
+    if rooms_coll is not None:
+        rooms_coll = list(rooms_coll[:first]) + [[] for _ in range(count)] + list(rooms_coll[first:])
+    return rooms, boxes, portals, rooms_coll
+
+
 def make_strips(polys, longest=40):
     """Triangle strips for the polygons of one material: each triangle is a strip of three vertices and a quad one of four (a, b, d, c); quads that
     share an edge (with the same texture coordinates and colours at its ends: pieces of one cut polygon do) are joined into one long strip, which
@@ -411,7 +430,7 @@ def write_model(o, polys, slot, tex_numbers):
                     rgba.append((1.0, 1.0, 1.0))
                 cur, nv = [], 0
             for strip in make_strips(ps):
-                if nv + len(strip) > CHUNK_VERTS:
+                if nv + len(strip) > CHUNK_VERTS or len(cur) >= CHUNK_STRIPS or 3 * (nv + len(strip)) + len(cur) + 1 > CHUNK_OUT:
                     flush()
                 cur.append(strip)
                 nv += len(strip)
@@ -1072,6 +1091,7 @@ def main():
         print(f'{len(rooms)} rooms are too many: room size {args.room_size:.1f}')
         rooms, boxes, portals = split_rooms(polys, args, coll)
     rooms_coll = assign_collision(coll, boxes) if coll is not None else None
+    rooms, boxes, portals, rooms_coll = leave_special_rooms(rooms, boxes, portals, rooms_coll)
     bg = write_bg(polys, tex_numbers, args, rooms, boxes, portals, rooms_coll)
     open(os.path.join(out, 'BG.PAK', 'bg', f'level{args.number}', f'level{args.number}.raw'), 'wb').write(bg)
     pads, links = make_pads([p for r in (rooms_coll if rooms_coll is not None else rooms) for p in r], boxes, args, markers)

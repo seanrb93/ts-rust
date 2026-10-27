@@ -185,6 +185,12 @@ A chunk is one draw of the console's vector unit, so it holds at most 64 vertice
 to the unit by DMA from the arrays at `array + first * size`; the console's DMA wants these addresses on a 16 byte boundary, so the first vertex
 of a chunk is a multiple of 4 (the arrays have padding after a chunk whose vertex count is not) and each array starts on a 16 byte boundary.
 
+The unit's memory holds the data of a chunk (up to 24 strip records, then the vertices) and, after it, what the chunk's program draws: three quad words for each
+vertex and one for each strip, and seven more.  The second of the two buffers the game draws in ends at the end of the unit's memory, and a chunk whose output
+does not fit there (more than 219 quad words: 64 vertices in 21 strips need 220) is written over the memory's start, which holds the projection matrix, so
+everything drawn after it in the frame collapses to one line, but only when the chunk happens to be drawn in that buffer.  A chunk therefore has at most
+24 strips and `3 * vertices + strips` is at most 212.
+
 The strip table is the GIF data the game draws with: 16 bytes each, `u32 vertex_count | 0x8000 when it is the chunk's last strip | 0x10000 for
 a strip that starts with the other winding` (the game's own strips use the last bit in about one in five; the converter does not), `u32 0x302e4000`,
 `u32 0x412`, `u32 0`.  The last three words are the same in every strip of every level (about 129,000 read): a GIF tag that draws a triangle strip

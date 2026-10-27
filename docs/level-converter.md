@@ -91,6 +91,9 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
 
 ## Limits worth knowing
 
+The game keeps the lists of the props that are held, thrown or floating (the guns of the players, water, effects) under the room numbers 201 to 212, since
+its levels have fewer rooms.  A level with more rooms than 200 gets twelve empty rooms at these numbers and the rooms after them are numbered 12 higher.
+
 The game's bots work out their routes when the match starts.  This takes longer the more pads and links there are, and a level with all its pads in one group
 took minutes; pads are therefore grouped (about 16 each) and `--max-pads` is 450.  Textures that are not powers of two draw washed out, so the converter makes them powers of two.
 Reflections, glass that breaks and moving parts are not made, props do not collide, and doors are only closed with `--doors closed`: a level is static geometry.

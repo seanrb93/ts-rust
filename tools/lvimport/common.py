@@ -239,8 +239,12 @@ def brush_entity_wanted(e, opts, shapes, doors):
     return not (rm == '10' or (rm not in ('0', '') and low.get('renderamt', '255') == '0') or low.get('startdisabled') == '1')
 
 
-def brush_entity_models(ents, nmodels, opts, shapes, doors):
-    """[(model number, stops players, class)] of the brush entities (those whose `model` is `*N`) that `brush_entity_wanted` takes."""
+MAX_ENTITY_SIZE = 4096.0       # (units: a brush entity wider than this is a helper that spans the map, not a shape in it)
+
+
+def brush_entity_models(ents, nmodels, opts, shapes, doors, extent=None):
+    """[(model number, stops players, class)] of the brush entities (those whose `model` is `*N`) that `brush_entity_wanted` takes; `extent(m)` gives the
+    widest side of the model's box, and a model wider than `MAX_ENTITY_SIZE` is left out."""
     out, seen = [], set()
     for e in ents:
         low = {k.lower(): v for k, v in e.items()}
@@ -249,6 +253,8 @@ def brush_entity_models(ents, nmodels, opts, shapes, doors):
             continue
         m = int(model[1:])
         if m == 0 or m >= nmodels or m in seen or not brush_entity_wanted(e, opts, shapes, doors):
+            continue
+        if extent is not None and extent(m) > MAX_ENTITY_SIZE:
             continue
         seen.add(m)
         out.append((m, low.get('solidity', '0') != '1', e.get('classname', '')))

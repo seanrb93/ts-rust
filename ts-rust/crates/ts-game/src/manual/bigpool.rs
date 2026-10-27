@@ -39,3 +39,28 @@ pub fn big_alloc(size: i32) -> i32 {
 pub fn big_reset() {
     BIG_AT.store(0, Ordering::Relaxed);
 }
+
+// ---- the eternal memory ----------------------------------------------------------------------------------------------------------------------
+
+/// The game's eternal memory (`memAlloc(size, 2)`: what lasts from the start: the characters, the weapons, the tables of textures) is a block of
+/// 0x72b000 bytes that the game fills almost to the last byte, so a level of a mod with more than about 150 textures of its own (each takes some of it) made
+/// the game exit when it ran out.  Past the end of it the allocations are made in 8 MB of the port's own, which is never emptied.
+const ETERNAL_BASE: i32 = 0x600_0000;
+const ETERNAL_SIZE: i32 = 0x80_0000;
+static ETERNAL_AT: AtomicI32 = AtomicI32::new(0);
+
+/// An allocation of the eternal memory that does not fit in the game's block: the address, or `None` when this is full too.
+pub fn eternal_overflow(size: i32) -> Option<i32> {
+    let at = (ETERNAL_AT.load(Ordering::Relaxed) + 15) & !15;
+    let end = at.checked_add(size)?;
+    if end > ETERNAL_SIZE {
+        return None;
+    }
+    ETERNAL_AT.store(end, Ordering::Relaxed);
+    let p = ETERNAL_BASE + at;
+    host_slice(p, size.max(0) as usize).fill(0);
+    if std::env::var_os("TS_MEMLOG").is_some() {
+        eprintln!("[eternal] {size} bytes at {p:#x} (used {end} of {ETERNAL_SIZE})");
+    }
+    Some(p)
+}

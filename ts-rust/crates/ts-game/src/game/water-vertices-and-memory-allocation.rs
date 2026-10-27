@@ -59,6 +59,9 @@ pub fn memAlloc(size: i32, area: i32) -> i32 {
             let free = lw(g::mem_eternal_free);
             result = lw(g::mem_eternal_at);
             if free < size {
+                if let Some(p) = eternal_overflow_x(size) {
+                    return p;
+                }
                 exit(1);
             }
             sw(g::mem_eternal_free, free - size);

@@ -130,7 +130,8 @@ def load(path, opts):
                 pass
 
     headnode = struct.unpack_from('<i', models, 36)[0]
-    ent_models = brush_entity_models(ents, len(models) // 48, opts, SHAPE_ENTITIES, DOOR_ENTITIES)
+    ent_models = brush_entity_models(ents, len(models) // 48, opts, SHAPE_ENTITIES, DOOR_ENTITIES,
+                                     lambda m: max(abs(b - a) for a, b in zip(struct.unpack_from('<3f', models, 48 * m), struct.unpack_from('<3f', models, 48 * m + 12))))
     if ent_models:
         names = {}
         for _m, _solid, cn in ent_models:

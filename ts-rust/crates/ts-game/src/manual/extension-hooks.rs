@@ -1182,3 +1182,17 @@ pub fn world_sprite_guard() -> Option<crate::manual::hooks::Guard> {
         None
     }
 }
+
+/// An allocation of the eternal memory that does not fit in the game's block is made in the port's own (a level of a mod with many textures).
+#[inline]
+pub fn eternal_overflow_x(size: i32) -> Option<i32> {
+    #[cfg(feature = "extended-tables")]
+    {
+        eternal_overflow(size)
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = size;
+        None
+    }
+}

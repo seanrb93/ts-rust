@@ -113,7 +113,8 @@ def load(path, opts):
     face_pts, face_ids = [], []
     # (the faces of the world, then those of the brush entities that are part of the level)
     all_faces = list(range(first, first + count))
-    ent_models = brush_entity_models(ents, len(models_raw) // 64, opts, SHAPES, DOORS)
+    ent_models = brush_entity_models(ents, len(models_raw) // 64, opts, SHAPES, DOORS,
+                                     lambda m: max(abs(b - a) for a, b in zip(struct.unpack_from('<3f', models_raw, 64 * m), struct.unpack_from('<3f', models_raw, 64 * m + 12))))
     if ent_models:
         names = {}
         for _m, _solid, cn in ent_models:
