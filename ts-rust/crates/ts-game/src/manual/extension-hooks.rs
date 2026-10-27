@@ -1294,3 +1294,28 @@ pub fn tex_slots_clear(buffer: i32) {
     #[cfg(not(feature = "extended-tables"))]
     memset(buffer + 8, 0, 0x1800);
 }
+
+/// The size entry of the table `tsizes` for a texture of `width` by `height` that has no entry of its own (256 by 16 and some others are missing): the smallest entry that holds it (the
+/// original gives such a texture the address 0, which is the screen), or 0.
+#[inline]
+pub fn tex_size_entry_fallback(width: i32, height: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        let mut best = 0;
+        let mut best_area = i64::MAX;
+        for index in 0..28 {
+            let at = g::tsizes + index * 44;
+            let (w, h) = (lw(at), lw(at + 4));
+            if w >= width && h >= height && (w as i64) * (h as i64) < best_area {
+                best = at;
+                best_area = (w as i64) * (h as i64);
+            }
+        }
+        best
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = (width, height);
+        0
+    }
+}

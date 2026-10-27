@@ -72,6 +72,10 @@ pub fn emGetNextPos(tex: i32, small: i32) -> i32 {
         }
     }
     if entry == 0 {
+        entry = tex_size_entry_fallback(wanted_width, wanted_height);
+        mask = if entry == 0 { 0 } else { lw(entry + 8) };
+    }
+    if entry == 0 {
         sw(tex + 16, 0);
         return 1;
     }
