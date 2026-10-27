@@ -83,7 +83,7 @@ fn last_hit_texture(sp: i32) -> i32 {
         if list != 0 {
             let index = lw(part * 24 + list);
             if index != -1 {
-                texture = lbu(lw(g::thistexbuf) + lw((index << 4) + lw(model + 12)) + 0x1808);
+                texture = lbu(tex_kind_addr(lw(g::thistexbuf), lw((index << 4) + lw(model + 12))));
             }
         }
     }

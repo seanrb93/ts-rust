@@ -190,12 +190,12 @@ pub fn clockPropTick(a0: i32) {
 pub fn emLoadTextureNum(a0: i32, a1: i32, a2: i32) {
     let frame = Frame::new(1072);
     let sp = frame.sp();
-    let slot = (a0 << 1) + 0x1feb3e0;
+    let slot = (a0 << 1) + texnum_table();
     let current = lh(slot);
     if current < 0 {
         let buffer = lw(g::thistexbuf);
         let kind = lbu(a1 + 12);
-        sb(buffer + lw(buffer + 0x1a08) + 0x1808, kind);
+        sb(tex_kind_addr(buffer, lw(buffer + 0x1a08)), kind);
         let buffer = lw(g::thistexbuf);
         let top = lw(buffer + 0x1a08);
         sh(slot, top);

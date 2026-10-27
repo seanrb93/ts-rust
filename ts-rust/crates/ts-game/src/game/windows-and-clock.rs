@@ -265,7 +265,7 @@ pub fn mmDuplicateItems(src: i32, dst: i32) {
 /// The preload record (24 bytes) of kind 3 for texture `tex`, or 0 (@ 0x21c6c8).
 pub fn preloadGetTexNum(tex: i32) -> i32 {
     for i in 0..lw(g::numpreload) {
-        let rec = i * 24 + 0x1fb4c60;
+        let rec = i * 24 + preload_table();
         if lw(rec) == 3 && lw(rec + 12) == tex {
             return rec;
         }

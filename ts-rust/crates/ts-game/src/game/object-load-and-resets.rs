@@ -416,8 +416,8 @@ pub fn fxSelectCharGfx() {
 /// Reset the texture memory: the 5000 texture slots are emptied and the texture buffers are created (one of 512 for a level, five for the level 102) (@ 0x2b6ad0).
 pub fn emReset() {
     let level = lw(g::lvlevelnum);
-    let mut at = 0x1fedaee;
-    let mut left = 0x1387;
+    let mut at = texnum_table() + texnum_count() * 2 - 2;
+    let mut left = texnum_count() - 1;
     loop {
         sh(at, -1);
         left -= 1;

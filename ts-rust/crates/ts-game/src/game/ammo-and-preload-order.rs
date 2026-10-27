@@ -35,7 +35,7 @@ pub fn gunAddAmmo(chr: i32, ammo: i32, amount: i32) {
 /// Add a texture to the second preload pass: a record of 16 bytes from the table at 0x1fb7b40, kept sorted (@ 0x21c8d0).
 pub fn preloadPass2AddTexNum(a: i32, b: i32, c: i32) {
     let n = lw(0x3afedc);
-    let rec = (n << 4) + 0x1fb7b40;
+    let rec = (n << 4) + preload_pass2_table();
     sw(0x3afedc, n + 1);
     sw(rec, a);
     sw(rec + 4, b);

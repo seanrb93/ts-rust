@@ -257,8 +257,8 @@ pub fn mcseqGetNumCards() -> i32 {
 
 /// Clear the preload table (500 entries of 24 bytes) and its counters (@ 0x21c1f8).
 pub fn preloadReset() {
-    for i in 0..(0x2ee0 / 24) {
-        let entry = 0x1fb4c60 + 24 * i;
+    for i in 0..preload_capacity() {
+        let entry = preload_table() + 24 * i;
         sw(entry, 0);
         sw(entry + 12, 0);
         sw(entry + 16, 0);

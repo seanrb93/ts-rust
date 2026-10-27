@@ -15,7 +15,7 @@ pub fn preloadAddTexNum(tex: i32, extra: i32) {
     }
     let n = lw(g::numpreload);
     sw(g::numpreload, n + 1);
-    let rec = n * 24 + 0x1fb4c60;
+    let rec = n * 24 + preload_table();
     sw(rec + 12, tex);
     sw(rec + 16, extra);
     sw(rec, 3);

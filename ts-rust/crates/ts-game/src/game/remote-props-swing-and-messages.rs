@@ -229,7 +229,7 @@ fn preload_find(kind: i32, name: i32) -> i32 {
     let mut i = 0;
     if count > 0 {
         loop {
-            let entry = i * 24 + 0x1fb4c60;
+            let entry = i * 24 + preload_table();
             if lw(entry) == kind && strcmp(lw(entry + 12), name) == 0 {
                 return entry;
             }

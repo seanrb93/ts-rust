@@ -78,7 +78,7 @@ pub fn preloadAddFile(name: i32, info: i32) {
     }
     let count = lw(g::numpreload);
     sw(g::numpreload, count + 1);
-    let entry = count * 24 + 0x1fb4c60;
+    let entry = count * 24 + preload_table();
     sw(entry + 12, name);
     sw(entry + 16, info);
     sw(entry, 0);
@@ -143,7 +143,7 @@ pub fn emResetTexBuffer(n: i32) {
     let buffer = n * 0x1a18 + g::texbuf;
     memset(lw(buffer + 4), 0, lw(buffer + 0x1a14) * 40);
     tex_slots_clear(buffer);
-    memset(buffer + 0x1808, 0, 512);
+    tex_kinds_clear(buffer);
     sw(buffer + 0x1a08, lw(buffer + 0x1a14) - 1);
 }
 

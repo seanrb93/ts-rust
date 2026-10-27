@@ -151,7 +151,7 @@ pub fn preloadAddOb(a0: i32, a1: i32) {
     }
     let number = lw(g::numpreload);
     sw(g::numpreload, number + 1);
-    let record = number * 24 + 0x1fb4c60;
+    let record = number * 24 + preload_table();
     sw(record, 1);
     let sector = fileGetSector(a0);
     sw(record + 12, a0);
@@ -168,7 +168,7 @@ pub fn preloadAddTexName(a0: i32, a1: i32) {
     }
     let number = lw(g::numpreload);
     sw(g::numpreload, number + 1);
-    let record = number * 24 + 0x1fb4c60;
+    let record = number * 24 + preload_table();
     sw(record, 2);
     let sector = fileGetSector(a0);
     sw(record + 12, a0);
@@ -183,13 +183,13 @@ pub fn emCreateTexBuffer(a0: i32, a1: i32, a2: i32, a3: i32) {
     let buffer = a0 * 0x1a18 + g::texbuf;
     sw(buffer + 0x1a0c, a1);
     sw(buffer + 0x1a10, tex_slot_count(a2));
-    sw(buffer + 0x1a14, a3);
-    let data = memAlloc(a3 << 7, 1);
+    sw(buffer + 0x1a14, tex_count(a3));
+    let data = tex_memory(a0, 0, a3 << 7);
     let count = lw(buffer + 0x1a14);
     sw(buffer, data);
-    let records = memAlloc(count * 40 + 15 & -16, 1);
+    let records = tex_memory(a0, 1, count * 40 + 15 & -16);
     sw(buffer + 4, records);
-    tex_slots_create(buffer);
+    tex_slots_create(a0, buffer);
     emResetTexBuffer(a0);
 }
 

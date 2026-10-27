@@ -1271,14 +1271,14 @@ pub fn tex_slots(buffer: i32) -> i32 {
 
 /// Make the records of the slots of a texture buffer that has `lw(buffer + 0x1a10)` slots (nothing in the original: they are inside the buffer).
 #[inline]
-pub fn tex_slots_create(buffer: i32) {
+pub fn tex_slots_create(n: i32, buffer: i32) {
     #[cfg(feature = "extended-tables")]
     {
-        let at = memAlloc(lw(buffer + 0x1a10) * 12 + 15 & -16, 1);
+        let at = tex_memory(n, 2, (lw(buffer + 0x1a10) * 12 + 15 & -16) + lw(buffer + 0x1a14));
         sw(buffer + 8, at);
     }
     #[cfg(not(feature = "extended-tables"))]
-    let _ = buffer;
+    let _ = (n, buffer);
 }
 
 /// Empty the slots of a texture buffer.
@@ -1317,5 +1317,117 @@ pub fn tex_size_entry_fallback(width: i32, height: i32) -> i32 {
     {
         let _ = (width, height);
         0
+    }
+}
+
+/// The number of textures of a texture buffer (`count` is the original's: 512 for a level).  A level of the extension can have all the 5000 textures the game numbers.
+#[inline]
+pub fn tex_count(count: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        if count == 512 { 5000 } else { count }
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    count
+}
+
+/// The address of the kind byte of the texture `index` of a texture buffer: in the buffer at +0x1808 in the original (512 bytes), with the extension after the records of the slots.
+#[inline]
+pub fn tex_kind_addr(buffer: i32, index: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        lw(buffer + 8) + (lw(buffer + 0x1a10) * 12 + 15 & -16) + index
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        buffer + index + 0x1808
+    }
+}
+
+/// Empty the kind bytes of the textures of a texture buffer.
+#[inline]
+pub fn tex_kinds_clear(buffer: i32) {
+    #[cfg(feature = "extended-tables")]
+    {
+        if lw(buffer + 8) != 0 {
+            memset(tex_kind_addr(buffer, 0), 0, lw(buffer + 0x1a14));
+        }
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    memset(buffer + 0x1808, 0, 512);
+}
+
+/// The table of the preload records (24 bytes each): the game's own, which holds 500, or with the extension a table of its own above the memory pools that holds 8192 (a level of a mod
+/// can have thousands of textures, each of which is a record).
+#[inline]
+pub fn preload_table() -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        0xc00_0000
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    0x1fb4c60
+}
+
+/// The table of the records of the second preload pass (16 bytes each; 1000 in the game's own, 8192 with the extension).
+#[inline]
+pub fn preload_pass2_table() -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        0xc10_0000
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    0x1fb7b40
+}
+
+/// How many records the table of preload records holds.
+#[inline]
+pub fn preload_capacity() -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        8192
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        0x2ee0 / 24
+    }
+}
+
+/// The table of the texture slots by texture number (a halfword each, -1 for a texture that is not loaded): the game's own holds the 5000 numbers it uses, with the extension
+/// a table of its own holds 16384 (a level of a mod numbers its textures from 4000 up).
+#[inline]
+pub fn texnum_table() -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        0xc20_0000
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    0x1feb3e0
+}
+
+/// How many texture numbers `texnum_table` holds.
+#[inline]
+pub fn texnum_count() -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        16384
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    5000
+}
+
+/// Memory for part `part` (0 the packets, 1 the records, 2 the slots and kinds) of the texture buffer `n`: `memAlloc(size, 1)` in the original; with the extension a block of its own that no
+/// reset of the level's pools reaches (a pool of the level is emptied while the texture buffer lives on, and the packets of more than 256 KB would be taken to the big pool).
+#[inline]
+pub fn tex_memory(n: i32, part: i32, size: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        let _ = size;
+        0xc40_0000 + n * 0x40_0000 + part * 0x10_0000
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = (n, part);
+        memAlloc(size, 1)
     }
 }
