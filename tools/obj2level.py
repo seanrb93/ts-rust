@@ -44,6 +44,9 @@ Options:
     --max-size MB    about how large the level's BG file may be (default 16; the game's own largest is 2.7): the smallest surfaces that are not floors are left out above it
     --light-detail N Source maps: faces whose light varies much are cut every N luxels of their lightmap (16 luxels is 6.4 game units; default 16; 0: one brightness
                      for each face) and every vertex gets the light at its place
+    --prop-budget N  Source maps: the most polygons the props may add (default 20000; the smallest props are left out above it; 0: no limit)
+    --no-props       Source maps: leave out the props (the models of the map, found in its own pack or in `models` folders next to it or given with --models)
+    --models DIR     Source maps: a `models` folder (the game's own models unpacked); may be given more than once
     --no-entities    maps: leave out the brush entities that are only a shape (func_brush, func_wall, func_breakable, ...), which are part of the level otherwise
     --doors closed   maps: make the doors part of the level, closed (they are left out by default)
     --max-textures N the most textures (default 90)
@@ -958,6 +961,9 @@ def main():
     ap.add_argument('--no-translucent', action='store_true', help='leave out surfaces drawn see-through (a test aid)')
     ap.add_argument('--texture-budget', type=float, default=640.0, help='the most KB of texture files (the video memory of the console has room for about 400 beside what the characters and weapons use)')
     ap.add_argument('--max-size', type=float, default=16.0, help='about how large the BG file may be, in MB')
+    ap.add_argument('--prop-budget', type=int, default=20000, help='Source maps: the most polygons the props may add (the smallest props are left out above it; 0: no limit)')
+    ap.add_argument('--no-props', action='store_true', help='Source maps: leave out the props (the models the map places)')
+    ap.add_argument('--models', action='append', default=[], help="Source maps: a `models` folder with the models of the map (the game's own unpacked); may be given more than once")
     ap.add_argument('--no-entities', action='store_true', help='Source maps: leave out the brush entities (func_brush, func_wall, func_breakable, ...) that are only a shape')
     ap.add_argument('--doors', choices=('skip', 'closed'), default='skip', help='Source maps: doors are left out (the default) or made part of the level, closed')
     ap.add_argument('--no-brushes', action='store_true', help='Source maps: make the collision from the drawn faces instead of the brushes')
@@ -974,7 +980,7 @@ def main():
     args = ap.parse_args()
     if not 31 <= args.number <= 99:
         sys.exit('--number has to be 31 to 99')
-    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'no_brushes': args.no_brushes, 'light_detail': args.light_detail, 'entities': not args.no_entities, 'doors': args.doors})
+    scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'no_brushes': args.no_brushes, 'light_detail': args.light_detail, 'entities': not args.no_entities, 'doors': args.doors, 'no_props': args.no_props, 'prop_budget': args.prop_budget, 'models': args.models})
     polys, markers = build_polys(scene, args)
     coll = build_polys.coll
     if not polys:

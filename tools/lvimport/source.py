@@ -2,7 +2,7 @@
 17 to 21, also as `.bsp.bz2`) and `.vmf` files of Hammer.
 
 From a BSP the world model (model 0) is read: faces with their texture coordinates and brightness (from the lightmap), and displacements (terrain).
-Props and the 3D skybox are left out.  The brush entities that are only a shape (`func_brush`, `func_wall`, `func_illusionary`, `func_breakable`, buttons, and
+Props (the models that the map places) are made part of the level; the 3D skybox is left out (see `props.py`).  The brush entities that are only a shape (`func_brush`, `func_wall`, `func_illusionary`, `func_breakable`, buttons, and
 the starting place of lifts and rotating parts) are part of the level, with their collision; doors only with `--doors closed`.  Player starts become `spawn`
 markers and weapons `weapon1` .. `weapon5`.
 
@@ -22,6 +22,7 @@ import numpy as np
 from PIL import Image
 
 from . import vtf
+from . import props as props_mod
 from .common import Material, Scene, newell, brush_polygons, clip_halfspace, keep_playable, markers_from_entities, parse_entities, brush_entity_models
 
 SKIP_FLAGS = 0x2 | 0x4 | 0x40 | 0x80 | 0x100 | 0x200        # sky2d, sky, trigger, nodraw, hint, skip
@@ -282,6 +283,15 @@ def load(path, opts):
             else:
                 cols = [(flat, flat, flat)] * len(q)
             sc.add([q[i] for i in order], [uv[i] for i in order], [cols[i] for i in order], name)
+    if not opts.get('no_props'):
+        placed = props_mod.static_props(d, lump_data(d, 35)[0], version) + props_mod.entity_props(ents)
+        if placed:
+            models = props_mod.Models(pak, mats.dirs, opts.get('models'))
+
+            def prop_material(path):
+                material(path, 0)
+                return path
+            props_mod.add_props(sc, placed, models, prop_material, lambda p: mats.read(p) is not None, opts)
     return sc
 
 

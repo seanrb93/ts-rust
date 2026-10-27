@@ -59,7 +59,12 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
   `func_conveyor`, `func_pendulum`, `func_plat`, `func_train` in GoldSrc).  Entities that are not drawn (render mode 10, or a render amount of 0) or start disabled are left out.
   Doors (`func_door`, `func_door_rotating`) are left out too, because a closed door would shut rooms off: `--doors closed` makes them part of the level, closed.  `--no-entities`
   leaves all of them out.  Source maps (BSP and VMF) and GoldSrc maps are handled alike; nothing moves, so a part that is meant to move stays where the map starts it.
-- **What is left out.**  Props, the 3D skybox, entities that move or act (triggers, water, ladders), sky, trigger, clip and other tool faces.  Parts that are not connected to the main level (a
+- **Props.**  The models a map places are put in as geometry, where the map starts them: the static props of a BSP (`prop_static`), and entities with a model
+  (`prop_dynamic`, `prop_physics`, `prop_door_rotating`, ...) in a BSP or VMF.  A model is its `.mdl`, `.vvd` and `.dx90.vtx` files, in its most detailed level and its first skin; bones,
+  animation, physics and the models' lights are not used, and props do not collide.  The map's own models are in its pack or in a `models` folder beside the map (as Crowbar
+  unpacks a workshop map); the game's own (`props_c17/...`) are unpacked with GCFScape or Crowbar and given with `--models <dir>`; a prop whose model is not found is left out.
+  Props can be many polygons: `--prop-budget` (default 20000) keeps the ones that are big for their polygons and leaves the rest out; `--no-props` leaves them all out.
+- **What is left out.**  The 3D skybox, entities that move or act (triggers, water, ladders), sky, trigger, clip and other tool faces.  Parts that are not connected to the main level (a
   skybox room, a room of tools) are dropped.
 - **Size.**  The game's own levels have at most 70,000 vertices, 109 rooms and a 2.7 MB BG file.  The port's tables were made larger (`manual/proptable.rs` and the patches of
   `tools/patches.py`), so a level can have up to 480 rooms (props in the rooms numbered 205 to 212 are drawn in the passes the game keeps for those numbers, which may show as a prop drawn through
@@ -88,4 +93,4 @@ Without any, spots are picked on the floors (`--spawns` of them, and `--weapons`
 
 The game's bots work out their routes when the match starts.  This takes longer the more pads and links there are, and a level with all its pads in one group
 took minutes; pads are therefore grouped (about 16 each) and `--max-pads` is 450.  Textures that are not powers of two draw washed out, so the converter makes them powers of two.
-Reflections, glass that breaks, moving parts and props are not made, and doors only closed with `--doors closed`: a level is static geometry.
+Reflections, glass that breaks and moving parts are not made, props do not collide, and doors are only closed with `--doors closed`: a level is static geometry.

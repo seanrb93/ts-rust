@@ -1,5 +1,5 @@
 """Hammer map sources (.vmf): the brushes of the world are turned into polygons (each face of a brush is its plane cut by the planes of the others),
-with the texture coordinates of the face's `uaxis` and `vaxis`.  Displacements are made too.  The brushes of the entities that are only a shape (`func_brush`, `func_wall`, ...) are made too, doors with `--doors closed`; player starts and weapons
+with the texture coordinates of the face's `uaxis` and `vaxis`.  Displacements are made too.  The models of the props (`prop_static`, `prop_dynamic`, ...) are put in (see `props.py`).  The brushes of the entities that are only a shape (`func_brush`, `func_wall`, ...) are made too, doors with `--doors closed`; player starts and weapons
 become markers.  Pictures are found as for a BSP (`--materials`, or a `materials` folder near the file).
 """
 import os
@@ -10,6 +10,7 @@ import numpy as np
 
 from . import vtf
 from .common import Material, Scene, markers_from_entities, brush_entity_wanted
+from . import props as props_mod
 from .source import Materials, _opaque, _water, SHAPE_ENTITIES, DOOR_ENTITIES
 
 TOKEN = re.compile(r'"((?:[^"\\]|\\.)*)"|([{}])|//[^\n]*|([A-Za-z_]\w*)')
@@ -156,6 +157,11 @@ def load(path, opts):
                     if k == 'solid':
                         solid(v, sc, material, size_of)
     markers_from_entities(ents, sc)
+    if not opts.get('no_props'):
+        placed = props_mod.entity_props(ents)
+        if placed:
+            models = props_mod.Models(None, mats.dirs, opts.get('models'))
+            props_mod.add_props(sc, placed, models, material, lambda p: mats.read(p) is not None, opts)
     return sc
 
 
