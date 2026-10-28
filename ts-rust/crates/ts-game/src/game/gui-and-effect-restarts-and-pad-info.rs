@@ -108,6 +108,7 @@ pub fn gameoptionsMake() {
             break;
         }
     }
+    mode_presets_x();
 }
 
 /// Set up the knockout game: from the records of the level's set-up (48 bytes each) that pass the create flags and have kind 1, up to 20 of them, the first one's value at +4 is kept

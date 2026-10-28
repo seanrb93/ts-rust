@@ -895,6 +895,13 @@ pub fn room_slot_read(distance: i32, index: i32) -> i32 {
 /// Put the room `room` at the end of the list of rooms of the player whose record is `record` (up to 212 from +912, their number at +908; `bgGetRoomsTick`).  The
 /// game's levels have too few rooms in view for it to be full; a level of the port with 500 rooms can have more, and the list would run over the limits of the stick
 /// at +1784 and the rest of the record.  The rooms come from the farthest level to the nearest, so a full list loses its first, the farthest.
+/// The presets of the game modes that mods give are written into the records of the options, after the game has made them (`gameoptionsMake`).
+#[inline]
+pub fn mode_presets_x() {
+    #[cfg(feature = "extensions")]
+    mode_presets_apply();
+}
+
 #[inline]
 pub fn room_list_push(record: i32, room: i32) {
     #[cfg(feature = "extended-tables")]

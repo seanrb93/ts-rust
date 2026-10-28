@@ -370,6 +370,8 @@ pub fn load(game_dir: &Path, exe: &Path) {
                     data_files.push((m.name.clone(), "weapon", host.clone()));
                 } else if lower == "characters.txt" {
                     data_files.push((m.name.clone(), "character", host.clone()));
+                } else if lower == "modes.txt" {
+                    data_files.push((m.name.clone(), "mode", host.clone()));
                 }
                 continue;
             }

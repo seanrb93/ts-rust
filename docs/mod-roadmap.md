@@ -131,6 +131,8 @@ lists them: weapon 3, which has a clip of 5, a zoom from 20 to 8 degrees and a s
 Not yet understood: the other words of the entry (+0 to +12 are numbers of props and animations, +56 and +96 to +104 are sound numbers, +396 is compared with a limit in `gunReload`),
 and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bullet).  The kinds of bullet (shapes: shots, rockets, grenades, mines, thrown things) are code, chosen by `bullet_type`.  `max_ammo` is not in the entry: it is in `ammoinfo` by the weapon's kind of ammo.
 
+* `modes.txt` (`ts-game/src/manual/mode-presets.rs`): presets for the six modes: the name and the options a mode starts with, written into the game's records of options right after `gameoptionsMake`.  Tested by unit tests and a load in the game (the records and the name text are right).  This is the first part of the modes plan; the mode list is not extended yet: a preset changes an existing mode, it does not add a seventh.
+
 ## Order of work
 
 1. The mod file format and the loader: one place (`mod.ini` sections or `characters.txt`, `weapons.txt`, `modes.txt`) where all three are described, with validation and clear errors in

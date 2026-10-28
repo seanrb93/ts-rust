@@ -24,6 +24,8 @@ pub mod weapontable;
 pub mod texhook;
 #[path = "extension-hooks.rs"]
 pub mod extension_hooks;
+#[path = "mode-presets.rs"]
+pub mod mode_presets;
 
 pub use arcadeopts::*;
 pub use bigpool::*;
@@ -46,3 +48,4 @@ pub use proptable::*;
 pub use weapontable::*;
 pub use texhook::*;
 pub use extension_hooks::*;
+pub use mode_presets::*;

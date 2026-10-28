@@ -1,0 +1,7 @@
+# The options a game mode starts with, and its name.  The modes: bagtag, capturebag, deathmatch, escort, knockout, laststand.
+# The options are the numbers the game keeps; a player can still change them on the Game Options page.
+mode deathmatch
+  name "Quick Match"     # needs a build with extended-tables
+  kill_limit 10
+  friendly_fire off
+  radar on
