@@ -52,10 +52,20 @@ pub fn enemySetup() {
                             let number = n + players;
                             let kind = lbu(parms + number + 21);
                             let chr = chrNew(kind, kind, 0, number, 10, 1, 0.0_f32, 0.0_f32, 0.0_f32, 0.0_f32);
+                            // (BlueRobot is a character of kind 3 for the game, whose robots wait for the level's own AI; as a bot of a match he plays like the others)
+                            #[cfg(feature = "extensions")]
+                            if kind == 79 && level != 25 {
+                                sw(lw(chr + 352) + 8, 0);
+                            }
                             let slot = (n << 2) + g::chr;
                             sw(slot, chr);
                             chrSelectTeam(lw(chr + 352));
-                            obInstSetAnim(lw(lw(slot) + 32), 3, 1.0_f32);
+                            // (the robot has animations of its own: the number the level with robots uses)
+                            #[cfg(feature = "extensions")]
+                            let animation = if kind == 79 { 1 } else { 3 };
+                            #[cfg(not(feature = "extensions"))]
+                            let animation = 3;
+                            obInstSetAnim(lw(lw(slot) + 32), animation, 1.0_f32);
                             if (lw(parms + 80) & 1) != 0 {
                                 let team = lw(lw(lw(slot) + 352) + 24);
                                 let flag_prop = team_flag_prop(team);
