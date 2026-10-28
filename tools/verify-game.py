@@ -1,8 +1,8 @@
 """Build ts-verify and prove every hand-decompiled function (ts-game/src/game) equal to the machine code.
 
-    python tools/verify-game.py [--n 500] [--elf path/to/SLUS_200.90] [--regen]
+    python tools/verify-game.py [--n 500] [--elf path/to/SLUS_200.90]   (default: Game Files/SLUS_200.90) [--regen]
 
-`--regen` runs tools/gen_rust.py first (it needs `Game Files/SLUS_200.90`, which is copied from --elf for the run and removed after).
+`--regen` runs tools/gen_rust.py first (it needs `Game Files/SLUS_200.90`, which is put there from --elf if it is not).
 """
 import os
 import re
@@ -28,16 +28,16 @@ def arg(name, default):
 
 
 def main():
-    elf = os.path.abspath(arg('--elf', os.path.join(WS, 'target', 'release', 'SLUS_200.90')))
+    elf = os.path.abspath(arg('--elf', os.path.join(ROOT, 'Game Files', 'SLUS_200.90')))
     n = arg('--n', '500')
     if '--regen' in sys.argv:
+        # (gen_rust.py reads `Game Files/SLUS_200.90`: it is put there if it is not, and left there)
         gf = os.path.join(ROOT, 'Game Files')
         os.makedirs(gf, exist_ok=True)
-        shutil.copy(elf, os.path.join(gf, 'SLUS_200.90'))
-        try:
-            subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'gen_rust.py')], check=True)
-        finally:
-            shutil.rmtree(gf, ignore_errors=True)
+        target = os.path.join(gf, 'SLUS_200.90')
+        if os.path.abspath(elf) != os.path.abspath(target):
+            shutil.copy(elf, target)
+        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'gen_rust.py')], check=True)
     if subprocess.run(['cargo', 'build', '--release', '-p', 'ts-verify', '-q'], cwd=WS, stderr=subprocess.DEVNULL).returncode:
         sys.exit(1)
     names = []
