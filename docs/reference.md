@@ -388,8 +388,7 @@ save is not changed: switching the option off locks everything again as the prof
   KnockOut (no bag spawn points: the game divides by their number) and LastStand (`enemySetup` calls `exit()` for a level without a set-up)
   are taken out of its mode list because they crash.  Its bots are all BlueRobots: the game itself preloads character 79 for level 25.  Tech was
   tried and dropped (one small room).  The other unused levels (Prison / tileset, Asylum, NSA1, Test) have no level data or no set-up.
-- **BlueRobot** (character 79) works in Ron as the bots' model, but cannot be added to the character select: it has no front-end model
-  (its second model number is -1, which crashes `obInstNew`; pointing it at its in-game model shows Harry Tipper's model instead).
+- **BlueRobot** (character 79) works in Ron as the bots' model.  His front end model number is -1 (the table has none for him), which made the character select page read the row before the table of props and fault when he was put on it (by a patch of `characterorder`, say).  With the `extensions` feature `chrNew` shows his body model there instead: he is on the select page with his own model (somewhat sunk into the floor: the pose of the front end animations is for the game's people) and a match with him starts.  He is still not in the select list unless a mod or patch puts him there.
 - **Mall / Bank clocks** show the PC's local time (`sceCdReadClock`).
 - The in-game HUD in "centre" mode moves every piece to the centre of the 4:3 area; thin lines at the edges of the title screen's overhanging glow
   sprites are faded out (`trim` in `shader.wgsl`).

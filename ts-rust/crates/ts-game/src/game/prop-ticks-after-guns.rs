@@ -448,6 +448,9 @@ pub fn soundselect_pageTick(a0: i32) {
 pub fn chrNew(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, f13: f32, f14: f32, f15: f32) -> i32 {
     sw(g::chrnew_lastchrnum, a0);
     let model = if a2 == 0 { lw(a0 * 44 + (CHRS_TABLE + 8)) } else { lw(a0 * 44 + (CHRS_TABLE + 12)) };
+    // (BlueRobot has no front end model, -1: the game would look at the row before the table of props and fault; his body model is shown instead)
+    #[cfg(feature = "extensions")]
+    let model = if model == -1 { lw(a0 * 44 + (CHRS_TABLE + 8)) } else { model };
     let prop;
     if a4 >= 0 {
         let pad = a4 * 28 + lw(g::levelpads);
