@@ -144,7 +144,7 @@ pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<ts_game::NewWeapon>, Vec<
                 Some(v) if (0..limit as i64).contains(&v) => {
                     segments.push((v as i32, ops.len()));
                     if which == "weapon" && v as i32 >= GUN_COUNT {
-                        new_weapons.entry(v as i32).or_insert_with(|| ts_game::NewWeapon { number: v as i32, copy_of: -1, name: String::new(), puts: Vec::new(), max_ammo: None });
+                        new_weapons.entry(v as i32).or_insert_with(|| ts_game::NewWeapon { number: v as i32, copy_of: -1, name: String::new(), puts: Vec::new(), max_ammo: None, view_model_file: String::new(), model_file: String::new(), ammo_model_file: String::new() });
                     }
                     Some(v as i32)
                 }
@@ -172,6 +172,21 @@ pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<ts_game::NewWeapon>, Vec<
                 }
                 _ if !is_new => errors.push(format!("line {n}: `copy` is only for added weapons (numbers from {GUN_COUNT})")),
                 _ => errors.push(format!("line {n}: `copy` needs the number of an earlier weapon")),
+            }
+            continue;
+        }
+        if which == "weapon" && matches!(key, "view_model_file" | "model_file" | "ammo_model_file") {
+            match words.get(1) {
+                Some(p) if is_new && !p.contains("..") => {
+                    let w = new_weapons.get_mut(&item).unwrap();
+                    let p = p.trim_matches('"').trim_start_matches('/').to_string();
+                    match key {
+                        "view_model_file" => w.view_model_file = p,
+                        "model_file" => w.model_file = p,
+                        _ => w.ammo_model_file = p,
+                    }
+                }
+                _ => errors.push(format!("line {n}: `{key}` is for added weapons (numbers from {GUN_COUNT}) and needs a path in the pack, such as ob/chrgun90/chrgun90.raw")),
             }
             continue;
         }

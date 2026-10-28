@@ -22,6 +22,7 @@ pub mod weaponsets;
 pub mod proptable;
 pub mod weapontable;
 pub mod chartable;
+pub mod modelprops;
 pub mod texhook;
 #[path = "extension-hooks.rs"]
 pub mod extension_hooks;
@@ -48,6 +49,7 @@ pub use weaponsets::*;
 pub use proptable::*;
 pub use weapontable::*;
 pub use chartable::*;
+pub use modelprops::*;
 pub use texhook::*;
 pub use extension_hooks::*;
 pub use mode_presets::*;

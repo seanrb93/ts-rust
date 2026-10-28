@@ -55,6 +55,11 @@ pub struct NewWeapon {
     pub puts: Vec<(i32, i32, u32)>,
     /// the most that can be carried of its kind of ammo, when the mod says
     pub max_ammo: Option<i32>,
+    /// model files of the mod's own (in the packs, such as `ob/chrgun90/chrgun90.raw`): the gun in the first person (`+0` of the entry), the gun a character holds (`+4` and `+8`) and the ammunition picked up
+    /// (`+12`); empty: those of the weapon it copies
+    pub view_model_file: String,
+    pub model_file: String,
+    pub ammo_model_file: String,
 }
 
 static NEW_WEAPONS: Mutex<Vec<NewWeapon>> = Mutex::new(Vec::new());
@@ -135,6 +140,20 @@ pub fn weapon_table_init() {
                 1 => sb(at + off, bits as i32),
                 2 => sh(at + off, bits as i32),
                 _ => sw(at + off, bits as i32),
+            }
+        }
+        for (off, file, label) in [(0, &w.view_model_file, "VIEW"), (4, &w.model_file, "HELD"), (12, &w.ammo_model_file, "AMMO")] {
+            if file.is_empty() {
+                continue;
+            }
+            let prop = super::modelprops::new_prop(lw(at + off), &format!("GUN{}{}", w.number, label), file);
+            if prop >= 0 {
+                sw(at + off, prop);
+                if off == 4 {
+                    sw(at + 8, prop);
+                }
+            } else {
+                eprintln!("[mods] weapon {}: no room for another model prop", w.number);
             }
         }
         if let Some(m) = w.max_ammo {

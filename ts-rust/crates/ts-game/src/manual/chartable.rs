@@ -15,10 +15,6 @@ pub const CHRS_TABLE: i32 = g::chrs;
 pub const GAME_CHARACTERS: i32 = 80;
 pub const MAX_CHARACTERS: i32 = 128;
 pub const CHR_BYTES: i32 = 44;
-/// the first prop number for the models of added characters (the rooms of a level of a mod take 512 to 1072)
-const FIRST_NEW_PROP: i32 = 1073;
-/// where the strings of the added props are kept
-const STRINGS_AT: i32 = 0x240_0000 + 0x4a000;
 
 /// A character that a mod adds.
 #[derive(Clone, Debug)]
@@ -52,7 +48,6 @@ pub fn character_table_init() {
     }
     let mut added = NEW_CHARACTERS.lock().unwrap().clone();
     added.sort_by_key(|c| c.number);
-    let mut at = STRINGS_AT;
     let mut accepted = 0;
     for c in added {
         let next = GAME_CHARACTERS + accepted;
@@ -81,22 +76,17 @@ pub fn character_table_init() {
             sh(entry, text);
             sh(entry + 2, text);
         }
-        // the model: a prop of its own that copies the prop of the model it was a copy of and names the file
+        // the model: a prop of its own that copies the prop of the model it was a copy of and names the file (a game character's prop has its own number; one that a mod's edit pointed at a new prop
+        // is the character's own number)
         if !c.model_file.is_empty() {
-            let prop = FIRST_NEW_PROP + accepted;
-            // (the prop of the model it copies: a game character's prop has its own number; one that a mod's edit pointed at a new prop is the character's own number)
             let source = lw(entry + 8);
             let source = if (0..713).contains(&source) { source } else { c.copy_of };
-            let from = super::proptable::PROPTABLE + 28 * source;
-            let to = super::proptable::PROPTABLE + 28 * prop;
-            for w in 0..7 {
-                sw(to + 4 * w, lw(from + 4 * w));
+            let prop = super::modelprops::new_prop(source, &format!("CHR{}", next), &c.model_file);
+            if prop >= 0 {
+                sw(entry + 8, prop);
+            } else {
+                eprintln!("[mods] character {}: no room for another model prop", c.number);
             }
-            let label = super::avmenu::put_str(&mut at, &format!("CHR{}", next));
-            let path = super::avmenu::put_str(&mut at, &format!("host0:{}", c.model_file));
-            sw(to + 8, label);
-            sw(to + 12, path);
-            sw(entry + 8, prop);
         }
         eprintln!("[mods] character {} \"{}\" added (a copy of {}{})", next, c.name, c.copy_of, if c.model_file.is_empty() { String::new() } else { format!(", model {}", c.model_file) });
         accepted += 1;
