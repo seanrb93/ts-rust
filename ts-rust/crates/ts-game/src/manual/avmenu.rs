@@ -1016,15 +1016,21 @@ fn ask_to_quit(player: i32) {
     ASKED.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
-/// The answer of the box, when the page that showed it ticks again: yes ends the program.  True when there was an answer to read.
+/// The answer of the box, when the page that showed it ticks again: yes ends the program.  True when there was an answer to read.  The page can tick once more before the box takes over
+/// (the page changes at the end of the tick), with no answer yet: the question stays open until the answer is there.
 fn quit_answer() -> bool {
-    if ASKED.swap(false, std::sync::atomic::Ordering::Relaxed) {
-        if messageGetState_2312c0(0) == 1 {
-            std::process::exit(0);
-        }
-        return true;
+    if !ASKED.load(std::sync::atomic::Ordering::Relaxed) {
+        return false;
     }
-    false
+    let state = messageGetState_2312c0(0);
+    match state {
+        1 => std::process::exit(0),
+        2 => {
+            ASKED.store(false, std::sync::atomic::Ordering::Relaxed);
+            true
+        }
+        _ => false,
+    }
 }
 
 /// The page where the number of players is chosen (1up, 2up, 3up, 4up), at its tick: the triangle button shows the question box.  True when the
