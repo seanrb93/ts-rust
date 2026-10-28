@@ -87,6 +87,7 @@ fn weapon_fields() -> Vec<Field> {
     ];
     for (prefix, base) in [("", 52), ("alt_", 188)] {
         v.push(field(&format!("{prefix}bullet_type"), base, Kind::W, 0.0, 255.0));        // what the shot makes (the table of bullets)
+        v.push(field(&format!("{prefix}fire_sound"), base + 44, Kind::W, 0.0, 300.0));    // the number of the sound played when the shot is fired (the table of sounds; the pistol's is 113)
         v.push(field(&format!("{prefix}damage"), base + 20, Kind::F, 0.0, 1000.0));        // what a bullet takes from what it hits (a character's health is about 1)
         v.push(field(&format!("{prefix}ricochet"), base + 16, Kind::F, 0.0, 1.0));        // the chance that a bullet bounces off a wall
         v.push(field(&format!("{prefix}bullet_speed"), base + 28, Kind::F, 0.0, 1000.0)); // scales the direction of a bullet

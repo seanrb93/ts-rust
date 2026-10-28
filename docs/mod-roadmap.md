@@ -128,7 +128,9 @@ lists them: weapon 3, which has a clip of 5, a zoom from 20 to 8 degrees and a s
 | `bullet_type`, `damage`, `ricochet`, `bullet_speed`, `spread`, `recoil`, `kick`, `pull` | +52, +72, +68, +80, +84, +108, +112, +124 | the shot: what it makes, what it takes from what it hits (the bullet's damage, +76 of its record), the chance to bounce off a wall, the scale of the bullet's direction, how far it can leave the aim, the gun's recoil, the multiplier of the recoil and the pull on the view |
 | the same with `alt_` in front | +188 and on | the second shot (alternate fire), laid out like the first (the same offsets plus 136) |
 
-Not yet understood: the other words of the entry (+0 to +12 are numbers of props and animations, +56 and +96 to +104 are sound numbers, +396 is compared with a limit in `gunReload`),
+Sounds: `fire_sound` (and `alt_fire_sound`) is the first sound number in the shot (+96 and +232 of the entry; the pistol's is 113): `TS_SNDLOG=1` lists the sounds the game starts, and a pistol that fires with `fire_sound 24` plays sound 24.  The number after it (+100, 243 for the pistol) was not heard on firing or on a reload that was not needed, and the third (+104) is -1 in all the game's weapons; they are a list ended by -1 whose use is not found.
+
+Not yet understood: the other words of the entry (+0 to +12 are numbers of props and animations, +56 is a number of 218, 219 or 221, +396 is compared with a limit in `gunReload`),
 and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bullet).  The kinds of bullet (shapes: shots, rockets, grenades, mines, thrown things) are code, chosen by `bullet_type`.  `max_ammo` is not in the entry: it is in `ammoinfo` by the weapon's kind of ammo.
 
 * `modes.txt` (`ts-game/src/manual/mode-presets.rs`): presets for the six modes: the name and the options a mode starts with, written into the game's records of options right after `gameoptionsMake`.  Tested by unit tests and a load in the game (the records and the name text are right).  Variants (`variant "Name"` in `modes.txt`) are ways to play a mode that the player picks on a new Rules row of the arcade Options page (`arcadeopts.rs`).  The mode list itself is not extended: the arcade page that lists the modes loops over a table of six in the game's own code and its menu has no room for more, so a seventh mode is a variant of one of the six (it keeps the base mode's rules).  Compiles and the parser is tested; the Rules row has not been seen on screen yet.
@@ -162,7 +164,7 @@ A rule ending a match: with "First to 8" chosen on the Rules row and `TS_RULEGOA
 
 Not seen working: the damage of an added weapon, an added character's look and movement as a bot in a match (it spawns and plays; the camera aid, `TS_CAMREAL`, rarely has a clear view), a scaled character walking, seams bending in a match.
 
-Not done: sounds of their own for weapons (the sound fields are not mapped) and characters (only `voice`), a different skeleton or animations, the 7th and later game modes with their own objects, pages and rules of play (variants cover numbers and the three rules), end-of-game pages per mode, the added characters in the availability masks and the story.
+Not done: new sound files for weapons (only the choice of a game sound with `fire_sound`) and sounds of their own for characters (only `voice`), a different skeleton or animations, the 7th and later game modes with their own objects, pages and rules of play (variants cover numbers and the three rules), end-of-game pages per mode, the added characters in the availability masks and the story.
 
 ## Order of work
 

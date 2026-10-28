@@ -30,7 +30,7 @@ weapon 30
   view_model_file ob/gun90/gun90.raw
 ```
 
-The new weapon is a single weapon and a pair, and shows in the weapon sets and when weapons are changed.  Its models come from files the mod holds under `OB.PAK/` (`view_model_file` for the gun in the first person, `model_file` for the gun a character holds, `ammo_model_file` for the pickup).  The sound numbers of a weapon (at +56 and +96 to +104 of its entry) are not mapped yet, so an added weapon sounds like the one it copies.
+The new weapon is a single weapon and a pair, and shows in the weapon sets and when weapons are changed.  Its models come from files the mod holds under `OB.PAK/` (`view_model_file` for the gun in the first person, `model_file` for the gun a character holds, `ammo_model_file` for the pickup).  An added weapon fires with the sound of the one it copies unless you give `fire_sound N` (the number of a sound of the game; `TS_SNDLOG=1` prints the numbers of the sounds as they play, so fire the weapon you want the sound of).
 
 ## Add a character
 

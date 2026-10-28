@@ -83,6 +83,9 @@ pub fn soundLoad(a0: i32) {
 pub fn soundStartRange(a0: i32, a1: i32, a2: i32, f12: f32) -> i32 {
     let frame = Frame::new(96);
     let sp = frame.sp();
+    if std::env::var_os("TS_SNDLOG").is_some() {
+        eprintln!("[snd] f{} sound {a0}", ts_sdk::frame_count());
+    }
     let sound = a0 * 36 + g::sounds;
     if lw(g::gv_playsound) == 0 {
         return -1;
