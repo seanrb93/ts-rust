@@ -13,11 +13,14 @@ Everything needed to build is in the repository.
 Then:
 
 ```
-cd ts-rust
-cargo build -p ts-port --release
-target/release/ts-port.exe                      # the front end, in a window
-target/release/ts-port.exe --level Village      # straight into a level
+python tools/build-game.py                      # builds in build/cargo/ and puts ts-port.exe in the play folder, ts-rust/target/release/
+                                                #   (--original: the build that behaves as the original game; --kit: also modkit.exe)
+ts-rust/target/release/ts-port.exe              # the front end, in a window
+ts-rust/target/release/ts-port.exe --level Village   # straight into a level
 ```
+
+The play folder holds only `ts-port.exe`, `modkit.exe` if you want it, the game's `PAK/` and `MUSIC/` (put them there), and what the game makes (`ts-port.ini`, `saves/`, `mods/`).
+Cargo itself builds in `build/cargo/` (`ts-rust/.cargo/config.toml`), so `cargo build` and `cargo clean` never touch the play folder.
 
 Options: `--level NAME`, `--players N`, `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[:frames]`,
 `--set key=value` (a setting of `ts-port.ini` for one run).  Settings are saved in `ts-port.ini` beside the executable (created on the first start,
@@ -39,7 +42,7 @@ features of `ts-port`, which are off by default:
 | `all-extensions` | all of the above |
 
 ```
-cargo build -p ts-port --release --features all-extensions
+cargo build -p ts-port --release --features all-extensions      # (in build/cargo/: copy ts-port.exe from there to the play folder, or use tools/build-game.py)
 ```
 
 Where each extension hooks into the game's code, and how to use them, is in `docs/reference.md`.

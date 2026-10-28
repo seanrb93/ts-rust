@@ -14,7 +14,7 @@ The original executable (`SLUS_200.90`) is **not** needed: all of its code is Ru
 ## Build
 
 Everything needed to build is in this repository: the hand-decompiled game (`ts-game/src/game`), the generated tables and dispatch (`ts-game/src/dec/`), the graphics microcode as Rust
-(`ts-gfx/src/vu1_gen.rs`) and the game's data (`ts-rt/data/game-data.bin`, with `symbols.tsv`), so `cargo build --release -p ts-port` is all there is to it.  Those generated files and the data were
+(`ts-gfx/src/vu1_gen.rs`) and the game's data (`ts-rt/data/game-data.bin`, with `symbols.tsv`), so `cargo build --release -p ts-port` (or `python tools/build-game.py`) is all there is to it.  Those generated files and the data were
 made from the original executable with (Python 3, only needed to make them again, with `SLUS_200.90` in a folder `Game Files/` next to `tools/`):
 
 ```
@@ -30,9 +30,7 @@ Changes to the generated code are kept in `tools/patches.py` and applied by `gen
 ## Run
 
 ```
-cd ts-rust
-cargo build -p ts-port --release
-cd ..
+python tools/build-game.py      # cargo builds in build/cargo/ (ts-rust/.cargo/config.toml); the program is copied to the play folder ts-rust/target/release/
 ts-rust/target/release/ts-port.exe                      # front end, in a window
 ts-rust/target/release/ts-port.exe --level Village      # jump into a level
 ```
@@ -171,7 +169,7 @@ the functions that store to an address, `TS_PLAYERLOG=1` prints the player's sta
 
 ## Verification
 
-- `ts-rust/target/release/ts-verify.exe --n 10`: runs decompiled functions and the original machine code on the same
+- `build/cargo/release/ts-verify.exe --n 10`: runs decompiled functions and the original machine code on the same
   inputs. At last run: 1634 functions identical, 6 intentional differences (the timer replacements `timeGet`, `profileTime*`, `timeTick*`), 289 skipped (infinite loops on random data, or SDK calls with no model). The functions changed by `tools/patches.py` (high frame rate support) differ from the machine code by design; check the verifier with those patches disabled. The interpreter now also runs VU0 macro code, so the hand-written VU0 natives are covered.
 - `tools/vu1ref.py` is an independent VU1 interpreter used to cross-check `vu1_gen.rs` against dumps (`TS_VUDUMP=dir`).
   It found real bugs (FTOI/ITOF destination register, `WAITQ` stalling the whole instruction pair).

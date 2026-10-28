@@ -49,7 +49,7 @@ def main():
         wanted = set(sys.argv[sys.argv.index('--only') + 1:])
         names = [n for n in names if n in wanted]
     names = [n for n in names if n not in UNVERIFIABLE]
-    exe = os.path.join(WS, 'target', 'release', 'ts-verify.exe' if os.name == 'nt' else 'ts-verify')
+    exe = os.path.join(ROOT, 'build', 'cargo', 'release', 'ts-verify.exe' if os.name == 'nt' else 'ts-verify')
     r = subprocess.run([exe, '-v', '--elf', elf, '--n', n] + sorted(names), capture_output=True, text=True)
     lines = (r.stdout + r.stderr).strip().splitlines()
     bad = [l for l in lines if l.startswith('FAIL') and l.split()[1] not in BY_DESIGN]

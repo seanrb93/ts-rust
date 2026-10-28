@@ -1,0 +1,4 @@
+# Cargo's build output goes to `build/cargo/` in the repository's root (not ignored by accident: `build/` is in .gitignore), so `ts-rust/target/release/` can be the folder the game is played from:
+# only the program, the game's PAK and MUSIC, and what the game makes there.  `python tools/build-game.py` builds and puts the program there.
+[build]
+target-dir = "../build/cargo"
