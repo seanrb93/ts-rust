@@ -8,6 +8,8 @@ use super::random_as_float;
 /// taken off and its state numbers (+0x11a4 to +0x11ac) reset; the level's triggers (records of 52 bytes at +64 of the set-up) have theirs cleared; and the AI's
 /// working values are put to their starts (@ 0x2b9d70).
 pub fn enemyRestart() {
+    #[cfg(feature = "extensions")]
+    crate::manual::harness::harness_bots();
     let level = lw(g::lvlevelnum);
     sw(g::totactivespawnedchars, 0);
     if level != 6 && level != 101 && level != 102 && level != 103 && level != 104 {

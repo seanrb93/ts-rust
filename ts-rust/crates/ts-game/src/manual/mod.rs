@@ -26,6 +26,7 @@ pub mod modelprops;
 pub mod texhook;
 #[path = "extension-hooks.rs"]
 pub mod extension_hooks;
+pub mod harness;
 #[path = "mode-presets.rs"]
 pub mod mode_presets;
 

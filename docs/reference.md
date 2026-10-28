@@ -37,7 +37,7 @@ read from `SLUS_200.90` at every start (only its data, no code of it is used).  
 
 Options: `--game-dir DIR`, `--level NAME`, `--players N`, `--save-dir DIR` (virtual memory card, default `saves/` in the executable's folder; `--game-dir` and `--save-dir` are for testing),
 `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[+button][:frames]`,
-`--wav file.wav` (headless audio dump), `--dump-frames a,b`, `--profile A B`.
+`--wav file.wav` (headless audio dump), `--dump-frames a,b`, `--profile A B`.  The test harness (`extensions` build): `--character N`, `--bots a,b,..`, `--spawn x,y,z` and `--cam back,up` start a level with that player character, those bots, that place and the third person camera (`docs/modding-guide.md`).
 Level names: Prison, Village, NSA1, Outskirts, Chemical Plant, Asylum, Mansion, Planet-X, Compound, Streets,
 Warzone, Site, Cyberden, Bank, Graveyard, Spaceship, Mall, Chinese, Castle, Tomb, Docks, ...
 

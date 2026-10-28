@@ -88,6 +88,7 @@ fn fake_goodies() {
 fn watch_tick() {
     fake_goodies();
     camera_aid();
+    super::harness::harness_tick();
     #[cfg(feature = "calltrace")]
     {
         // TS_FPROF=<from>,<to>: profile the float stores between two level ticks (see ts_rt::calltrace::fprof)

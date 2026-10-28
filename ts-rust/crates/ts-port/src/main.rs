@@ -676,6 +676,11 @@ fn main() {
                 }
             }
             "--level" => level = it.next(),
+            // the test harness (`ts-game/src/manual/harness.rs`): the character of the player, the bots, where the player starts and the third person camera
+            "--character" => set_harness("TS_PLAYERCHR", it.next()),
+            "--bots" => set_harness("TS_BOTCHRS", it.next()),
+            "--spawn" => set_harness("TS_SPAWN", it.next()),
+            "--cam" => set_harness("TS_CAM", it.next()),
             "--players" => players = it.next(),
             "--dump-frames" => {
                 let v: Vec<u64> = it.next().unwrap_or_default().split(',').filter_map(|x| x.parse().ok()).collect();
@@ -904,4 +909,12 @@ fn windowed_exit_watch(h: std::thread::JoinHandle<()>) -> bool {
         return true;
     }
     false
+}
+
+/// `--character`, `--bots`, `--spawn` and `--cam` give the test harness its answers through the environment.
+fn set_harness(name: &str, value: Option<String>) {
+    match value {
+        Some(v) => std::env::set_var(name, v),
+        None => eprintln!("[port] {name}: a value is missing"),
+    }
 }

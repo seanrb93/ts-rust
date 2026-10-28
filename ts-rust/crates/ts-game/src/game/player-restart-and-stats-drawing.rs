@@ -6,6 +6,8 @@ use crate::*;
 /// Put the players back at the start of a level (@ 0x27f808): each player gets a window, the sign-on record to play with, a new character (and, when the level has a sky, a
 /// sky prop and, with teams, a flag prop) and has all of its state cleared.
 pub fn playerRestart() {
+    #[cfg(feature = "extensions")]
+    crate::manual::harness::harness_player();
     let mut player = 0;
     if lw(g::lvnumplayers) > 0 {
         loop {
