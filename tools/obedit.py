@@ -125,22 +125,23 @@ def read_obj(path):
 
 
 def mesh_part(f, tris, part=0):
-    """Replace the geometry of a part by the triangles `tris`: each triangle is a strip of three vertices, the chunks hold as many as the vector unit's memory allows (at most 64 vertices,
-    24 strips and `3 * vertices + strips` of 212), the texture is that of the part's largest chunk.  The new geometry has to fit in the arrays the part has: the vertex arrays of the
-    original and its strip table.  Normals are the triangle's own when the OBJ gives none."""
-    f = bytearray(f)
+    """Replace the geometry of a part by the faces `tris` (lists of three or four corners): a triangle is a strip of three vertices, a quad a, b, c, d the strip a, b, d, c, and the
+    faces are packed into chunks within what the vector unit's memory holds (at most 64 vertices, 24 strips and `3 * vertices + strips` of 212: the game's chunks, not a limit of the
+    mesh).  There is no limit on the size of the mesh: the new arrays and chunk list are written after the file's other data, the bones and the object record move behind them, and
+    the pointers (of the part, and the offset of the object in the file's header) are changed.  The texture is that of the part's largest chunk; normals are the face's own when the OBJ
+    gives none."""
+    f = bytes(f)
     tex, tab = struct.unpack_from('<2I', f, 0)
     n = struct.unpack_from('<I', f, tab)[0]
-    b = tab - n * 80 + 80 * part
-    list_at = struct.unpack_from('<I', f, b + 8)[0]
-    strips_at, pos_at, st_at, col_at, _bind, nrm_at = struct.unpack_from('<6I', f, b + 20)
+    bones_at = tab - n * 80
+    b = 80 * part
+    bones = bytearray(f[bones_at:tab])
+    tail = f[tab:]
+    list_at = struct.unpack_from('<I', bones, b + 8)[0]
     chunks = obdump.read_chunks(f, list_at)
     kind = chunks[0][5]
     slot = max(chunks, key=lambda c: c[4])[0]
-    vertex_room = max(c[3] + c[4] for c in chunks)
-    strip_room = max(c[1] + c[2] for c in chunks)
-    chunk_room = len(chunks)
-    # pack the faces into chunks (a triangle is a strip of three vertices, a quad a, b, c, d is the strip a, b, d, c)
+    # pack the faces into chunks
     groups, cur, cv = [], [], 0
     for t in tris:
         nv = cv + len(t)
@@ -151,39 +152,54 @@ def mesh_part(f, tris, part=0):
         cv = nv
     if cur:
         groups.append(cur)
-    # (a chunk's first vertex is a multiple of 4)
-    first, need = [], 0
+    # the arrays, with a chunk's first vertex a multiple of 4
+    strips, positions, coords, colours, normals, chunk_list = bytearray(), bytearray(), bytearray(), bytearray(), bytearray(), bytearray()
+    strip_no = vertex_no = 0
     for g in groups:
-        first.append(need)
-        need += (sum(len(t) for t in g) + 3) & ~3
-    if need > vertex_room or len(tris) > strip_room or len(groups) > chunk_room:
-        raise SystemExit(f'the mesh does not fit the part: it needs {need} vertices, {len(tris)} strips and {len(groups)} chunks; the part has room for {vertex_room}, {strip_room} and {chunk_room}')
-    strip = 0
-    for gi, g in enumerate(groups):
-        v0 = first[gi]
-        vi = v0
+        while vertex_no % 4:
+            positions += bytes(12)
+            coords += bytes(16)
+            colours += bytes(4)
+            normals += bytes(12)
+            vertex_no += 1
+        v0 = vertex_no
         for ti, t in enumerate(g):
             last = ti == len(g) - 1
-            struct.pack_into('<4I', f, strips_at + 16 * (strip + ti), len(t) | (0x8000 if last else 0), 0x302e4000, 0x412, 0)
+            strips += struct.pack('<4I', len(t) | (0x8000 if last else 0), 0x302e4000, 0x412, 0)
             a, bb, c = (t[0][0], t[1][0], t[2][0])
             fn = [(bb[1] - a[1]) * (c[2] - a[2]) - (bb[2] - a[2]) * (c[1] - a[1]), (bb[2] - a[2]) * (c[0] - a[0]) - (bb[0] - a[0]) * (c[2] - a[2]), (bb[0] - a[0]) * (c[1] - a[1]) - (bb[1] - a[1]) * (c[0] - a[0])]
             ln = sum(x * x for x in fn) ** 0.5 or 1.0
             fn = [x / ln for x in fn]
-            corners = t if len(t) == 3 else [t[0], t[1], t[3], t[2]]
-            for pos, st, nrm in corners:
-                struct.pack_into('<3f', f, pos_at + 12 * vi, *pos)
-                struct.pack_into('<4f', f, st_at + 16 * vi, st[0], st[1], 1.0, 1.0)
-                struct.pack_into('<4B', f, col_at + 4 * vi, 0x7f, 0x7f, 0x7f, 0x7f)
-                if nrm_at:
-                    struct.pack_into('<3f', f, nrm_at + 12 * vi, *(nrm or fn))
-                vi += 1
-        struct.pack_into('<6i', f, list_at + 24 * gi, slot, strip, len(g), v0, vi - v0, kind)
-        strip += len(g)
-    # the list ends with a record of a negative kind (the room for it is the original's)
-    end = list_at + 24 * len(groups)
-    struct.pack_into('<6i', f, end, 0, 0, 0, 0, 0, -1)
-    struct.pack_into('<H', f, b + 70, min(sum(len(t) - 2 for t in tris), 65535))
-    return bytes(f), len(groups)
+            for pos, st, nrm in (t if len(t) == 3 else [t[0], t[1], t[3], t[2]]):
+                positions += struct.pack('<3f', *pos)
+                coords += struct.pack('<4f', st[0], st[1], 1.0, 1.0)
+                colours += bytes((0x7f, 0x7f, 0x7f, 0x7f))
+                normals += struct.pack('<3f', *(nrm or fn))
+                vertex_no += 1
+        chunk_list += struct.pack('<6i', slot, strip_no, len(g), v0, vertex_no - v0, kind)
+        strip_no += len(g)
+    chunk_list += struct.pack('<6i', 0, 0, 0, 0, 0, -1)
+    # the file: what was before the bones, the new arrays (each on a 16 byte boundary), the bones and the object record
+    out = bytearray(f[:bones_at])
+    place = {}
+    for name, data in (('strips', strips), ('positions', positions), ('coords', coords), ('colours', colours), ('normals', normals), ('chunks', chunk_list)):
+        while len(out) % 16:
+            out.append(0)
+        place[name] = len(out)
+        out += data
+    while len(out) % 16:
+        out.append(0)
+    new_tab = len(out) + n * 80
+    struct.pack_into('<I', bones, b + 8, place['chunks'])
+    for k, name in enumerate(('strips', 'positions', 'coords', 'colours')):
+        struct.pack_into('<I', bones, b + 20 + 4 * k, place[name])
+    struct.pack_into('<I', bones, b + 36, 0)
+    if kind in (3, 4):
+        struct.pack_into('<I', bones, b + 40, place['normals'])
+    struct.pack_into('<H', bones, b + 70, min(sum(len(t) - 2 for t in tris), 65535))
+    out += bones + tail
+    struct.pack_into('<I', out, 4, new_tab)
+    return bytes(out), len(groups)
 
 
 def main():
