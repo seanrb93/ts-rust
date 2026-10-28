@@ -6,7 +6,7 @@ The mesh is an OBJ of a whole figure standing in the pose of the game's skeleton
 <OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes a game character in the pose, to model on).  It is scaled to the height of a game character (`--height`, 1.95 by default) and put on the ground.  Keep it so: the skeleton does not change with the mesh, so a mesh of another height no longer fits its joints (a figure 1.4 times taller shows torn triangles at the hips).  For a larger or smaller character use `--scale 1.4`: the game scales the offsets of the animations' joints by the character's `scale` field (`characters.txt`), so the tool scales the mesh by the same number, which it writes as `scale`; that fits the joints (checked on the select page at 1.4).  Only the mesh, not the field, would tear the model.  Each triangle
 is given to the bone of the game's skeleton nearest to it (the bone is the stretch from a joint to the next one, or to a point past the end of a limb), so every part of the mesh follows the
 joint that is nearest to it.  The triangles near a joint between two bones go to the model's own seam part there (kinds 1 and 2 of `docs/model-format.md`, the ones the game's characters have at an elbow
-or a knee), each corner following the joint of the nearer bone, and for a seam of kind 2 the corners right at the joint follow its own joint, so a bent joint stretches instead of opening.  `--arm-bias 0.12` keeps a torso that lies close to the arms from following them (the sides of a slim torso are nearer to an arm's bone than to the spine); it is for figures that are not modelled on the game's own.  The materials of the OBJ with a `map_Kd` picture (any size) become textures of the game (`--tex-base`, 9000 by default).
+or a knee), each corner following the joint of the nearer bone, and for a seam of kind 2 the corners right at the joint follow its own joint, so a bent joint stretches instead of opening.  `--arm-bias 0.12` keeps a torso that lies close to the arms from following them (the sides of a slim torso are nearer to an arm's bone than to the spine); it is for figures that are not modelled on the game's own.  A figure made of separate solid pieces (a robot, a scarecrow) can say which bone each piece follows: put its faces in an object named `bone<N>` (`o bone8`), N being the number of the part: 0 pelvis, 2 and 4 the spine, 6 8 10 12 the right collarbone, upper arm, forearm and hand, 14 16 18 20 the same on the left, 22 the head, 24 26 28 the right thigh, shin and foot, 30 32 34 the left.  Such a piece moves as it is and does not bend; put a ball over each joint and the figure does not tear (the figure's own joint positions are in the skeleton, such as the elbow at x 0.23, y 1.19).  Faces outside such objects are given to the nearest bone as before.  The materials of the OBJ with a `map_Kd` picture (any size) become textures of the game (`--tex-base`, 9000 by default).
 
 The model is made from a character of the game (`--base`, 0 by default): its file is the pattern, so the bones, the places of the hands and the head and the animations are those of the skeleton.  The result:
 
@@ -106,7 +106,8 @@ def make_character(game, mesh, out, name='Custom', base=0, number=80, scale=1.0,
     kind0, world, parent, parts = skeleton_joints(game, model, skeleton_file)
     world = {k: v * size for k, v in world.items()}
     segs = bone_segments(kind0, world, parent, size)
-    faces, pictures = obedit.read_obj(mesh)
+    groups = {}
+    faces, pictures = obedit.read_obj(mesh, groups)
     if not faces:
         sys.exit('the mesh has no faces')
     # the mesh scaled to the height of a character, on the ground, centred
@@ -118,8 +119,14 @@ def make_character(game, mesh, out, name='Custom', base=0, number=80, scale=1.0,
     # (the game's own characters have their median 0.045 in front of the skeleton's origin: measured on chr01)
     shift = np.array([-mid[0], -lo[1], -mid[2] + 0.045 * size])
     place = lambda p: tuple(float(x) for x in (np.array(p) + shift) * scale)
+    # (the faces of an object of the OBJ called `bone<N>` are rigid: they all follow the part N of the model, the kind 0 parts of the skeleton: see the list in the docstring)
+    names = {id(c): n for n, fs in groups.items() for c, _ in fs}
+    rigid = {}
     moved = []
     for corners, mat in faces:
+        obj_name = names.get(id(corners)) or ''
+        if obj_name.startswith('bone') and obj_name[4:].isdigit():
+            rigid[len(moved)] = int(obj_name[4:])
         if mat and mat.startswith('slot'):
             # (a mesh written by obdump.py: the parts here are all rigid, whose chunks are of kind 3)
             mat = 'slot%s_k3' % mat[4:].partition('_k')[0]
@@ -141,13 +148,17 @@ def make_character(game, mesh, out, name='Custom', base=0, number=80, scale=1.0,
     # each vertex (by position) follows one bone, the nearest at first.  A triangle whose corners follow bones that no seam of the model joins cannot be drawn without a crack, so its
     # corners are all given the bone nearest its middle, and that changes the other triangles at those vertices; this goes on until nothing changes
     vertex_bone = {}
-    for corners, mat in moved:
+    for fi, (corners, mat) in enumerate(moved):
+        if fi in rigid:
+            continue
         for c in corners:
             vertex_bone.setdefault(key(c), nearest(np.array(c[0]), kind0))
     pairs = {frozenset((x, y)): sp for sp, (x, y, radius) in seams.items()}
     for _ in range(20):
         changed = False
-        for corners, mat in moved:
+        for fi, (corners, mat) in enumerate(moved):
+            if fi in rigid:
+                continue
             bones = {vertex_bone[key(c)] for c in corners}
             if len(bones) < 2 or len(corners) != 3 or any(bones <= pair for pair in pairs):
                 continue
@@ -159,7 +170,12 @@ def make_character(game, mesh, out, name='Custom', base=0, number=80, scale=1.0,
                     changed = True
         if not changed:
             break
-    for corners, mat in moved:
+    for fi, (corners, mat) in enumerate(moved):
+        if fi in rigid:
+            if rigid[fi] not in by_part:
+                sys.exit(f'bone{rigid[fi]}: the model has no such part (the parts of kind 0 are {sorted(by_part)})')
+            by_part[rigid[fi]].append((corners, mat))
+            continue
         bones = {vertex_bone[key(c)] for c in corners}
         if len(corners) == 3 and len(bones) == 2:
             sp = pairs.get(frozenset(bones))

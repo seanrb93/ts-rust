@@ -1,6 +1,9 @@
 """Makes a new character from scratch: Pumpkin Jack, a scarecrow with a pumpkin head, as an OBJ (a pose of arms down, facing +z) with its pictures.
 
-    python examples/pumpkin_mod_src/make-pumpkin.py <out folder> [detail]
+    python examples/pumpkin_mod_src/make-pumpkin.py <out folder> [head detail]
+
+The figure is made of solid pieces, each in an object `bone<N>` (see tools/obchar.py) that says which bone of the game's skeleton moves it, with a ball over each joint, so that it
+bends at the joints without tearing.
 """
 import math
 import os
@@ -10,38 +13,46 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 out = sys.argv[1]
-# how fine the surfaces are cut (1 is about 4500 triangles; the game's own characters have 1600)
-DETAIL = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
-HEAD_DETAIL = float(sys.argv[3]) if len(sys.argv) > 3 else DETAIL
 os.makedirs(out, exist_ok=True)
-verts, uvs, norms, faces = [], [], [], []   # faces: (material, [(v, vt)...])
+HEAD = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
+verts, uvs, norms, groups = [], [], [], {}
+
+# the joints of the game's skeleton (the right side; the left is the mirror)
+SHOULDER, ELBOW, WRIST, HAND_END = (0.23, 1.47, 0.0), (0.23, 1.19, -0.05), (0.23, 0.91, 0.0), (0.23, 0.72, 0.03)
+HIP, KNEE, ANKLE, TOE = (0.1, 0.99, 0.02), (0.1, 0.59, 0.17), (0.1, 0.14, 0.02), (0.1, -0.02, -0.04)
+# part numbers of the bones (right, left)
+UPPER_ARM, FOREARM, HAND = (8, 16), (10, 18), (12, 20)
+THIGH, SHIN, FOOT = (24, 30), (26, 32), (28, 34)
 
 
-def flat(name, rgb, size=8):
-    Image.new('RGB', (size, size), rgb).save(os.path.join(out, name + '.png'))
+def mirror(p, s):
+    return (p[0] * s, p[1], p[2])
 
 
-def add(material, pts, tris, uv, centre, normals=None):
-    """A piece of the figure: its triangles are turned so that they face away from `centre` (the game lights a triangle by the side the winding says is outside)."""
-    base = len(verts)
-    for p, t in zip(pts, uv):
-        verts.append(p)
-        uvs.append(t)
-    if normals:
-        base_n = len(norms)
-        norms.extend(normals)
+def flat(name, rgb):
+    Image.new('RGB', (8, 8), rgb).save(os.path.join(out, name + '.png'))
+
+
+def add(bone, material, pts, tris, centre, uv=None, nrm=None):
+    base, base_n = len(verts), len(norms)
+    for i, p in enumerate(pts):
+        verts.append(tuple(float(x) for x in p))
+        uvs.append(uv[i] if uv else (0.5, 0.5))
+    if nrm:
+        norms.extend(nrm)
     for a, b, c in tris:
-        pa, pb, pc = (np.array(pts[i]) for i in (a, b, c))
+        pa, pb, pc = (np.array(pts[i], dtype=float) for i in (a, b, c))
         n = np.cross(pb - pa, pc - pa)
-        if np.linalg.norm(n) < 1e-9:
+        if np.linalg.norm(n) < 1e-12:
             continue
         if np.dot(n, (pa + pb + pc) / 3 - np.array(centre)) < 0:
             b, c = c, b
-        ids = (a, b, c)
-        faces.append((material, [(base + i + 1, base + i + 1, (base_n + i + 1) if normals else None) for i in ids]))
+        groups.setdefault('bone%d' % bone, []).append((material, [(base + i + 1, (base_n + i + 1) if nrm else None) for i in (a, b, c)]))
 
 
-def ellipsoid(material, c, r, n=20, m=14, planar=True):
+def ball(bone, material, c, r, n=16, m=10, face=False):
+    """An ellipsoid (radius r, a number or three), smooth; with `face` the front is the middle of the picture (the head)."""
+    r = (r, r, r) if isinstance(r, (int, float)) else r
     pts, uv, tris, nrm = [], [], [], []
     for j in range(m + 1):
         th = math.pi * j / m
@@ -49,54 +60,51 @@ def ellipsoid(material, c, r, n=20, m=14, planar=True):
             ph = 2 * math.pi * i / n
             p = (c[0] + r[0] * math.sin(th) * math.sin(ph), c[1] + r[1] * math.cos(th), c[2] + r[2] * math.sin(th) * math.cos(ph))
             pts.append(p)
-            nrm.append(((p[0] - c[0]) / r[0] ** 2, (p[1] - c[1]) / r[1] ** 2, (p[2] - c[2]) / r[2] ** 2))
-            # the front (+z) is the middle of the picture; seen from the front it is mapped flat
-            uv.append((0.5 + 0.5 * math.sin(th) * math.sin(ph), 0.5 - 0.5 * math.cos(th)) if planar else (i / n, 1 - j / m))
+            v = ((p[0] - c[0]) / r[0] ** 2, (p[1] - c[1]) / r[1] ** 2, (p[2] - c[2]) / r[2] ** 2)
+            nrm.append(tuple(np.array(v) / np.linalg.norm(v)))
+            uv.append((0.5 + 0.5 * math.sin(th) * math.sin(ph), 0.5 - 0.5 * math.cos(th)) if face else (i / n, 1 - j / m))
     for j in range(m):
         for i in range(n):
             a = j * (n + 1) + i
             b = a + n + 1
             tris += [(a, a + 1, b), (a + 1, b + 1, b)]
-    nrm = [tuple(np.array(v) / np.linalg.norm(v)) for v in nrm]
-    add(material, pts, tris, uv, c, nrm)
+    add(bone, material, pts, tris, c, uv, nrm)
 
 
-def box(material, lo, hi, cell=0.05):
-    """A box whose faces are cut into small squares: a triangle then follows one bone of the skeleton and the joints bend the figure instead of tearing it."""
-    cell /= DETAIL
-    lo, hi = np.array(lo), np.array(hi)
-    centre = (lo + hi) / 2
-    for axis in range(3):
-        u, v = [a for a in range(3) if a != axis]
-        nu = max(1, int(math.ceil((hi[u] - lo[u]) / cell)))
-        nv = max(1, int(math.ceil((hi[v] - lo[v]) / cell)))
-        for side in (lo, hi):
-            pts, uv, tris = [], [], []
-            for j in range(nv + 1):
-                for i in range(nu + 1):
-                    p = np.array(side, dtype=float)
-                    p[u] = lo[u] + (hi[u] - lo[u]) * i / nu
-                    p[v] = lo[v] + (hi[v] - lo[v]) * j / nv
-                    pts.append(tuple(p))
-                    uv.append((i / nu, j / nv))
-            for j in range(nv):
-                for i in range(nu):
-                    a = j * (nu + 1) + i
-                    b = a + nu + 1
-                    tris += [(a, a + 1, b), (a + 1, b + 1, b)]
-            add(material, pts, tris, uv, centre)
+def prism(bone, material, a, b, ra, rb=None, depth=1.0):
+    """A square-sectioned piece from the point a to the point b (half-width ra at a and rb at b, `depth` times as thick front to back)."""
+    rb = ra if rb is None else rb
+    a, b = np.array(a, dtype=float), np.array(b, dtype=float)
+    d = (b - a) / np.linalg.norm(b - a)
+    side = np.cross(d, (0.0, 0.0, 1.0))
+    if np.linalg.norm(side) < 1e-6:
+        side = np.array((1.0, 0.0, 0.0))
+    side /= np.linalg.norm(side)
+    front = np.cross(side, d)
+    corners = []
+    for p, r in ((a, ra), (b, rb)):
+        for sx, sz in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+            corners.append(p + side * sx * r + front * sz * r * depth)
+    for q in [(0, 1, 2, 3), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]:
+        add(bone, material, [corners[i] for i in q], [(0, 1, 2), (0, 2, 3)], (a + b) / 2, [(0, 0), (1, 0), (1, 1), (0, 1)])
 
 
-def cylinder(material, c, r, h, n=12):
-    pts, uv, tris = [], [], []
-    for k, y in enumerate((c[1], c[1] + h)):
-        for i in range(n + 1):
+def box(bone, material, lo, hi):
+    lo, hi = np.array(lo, dtype=float), np.array(hi, dtype=float)
+    prism(bone, material, ((lo[0] + hi[0]) / 2, lo[1], (lo[2] + hi[2]) / 2), ((lo[0] + hi[0]) / 2, hi[1], (lo[2] + hi[2]) / 2), (hi[0] - lo[0]) / 2, depth=(hi[2] - lo[2]) / (hi[0] - lo[0]))
+
+
+def tube(bone, material, c, r, h, n=10):
+    pts, tris, nrm = [], [], []
+    for y in (c[1], c[1] + h):
+        for i in range(n):
             a = 2 * math.pi * i / n
             pts.append((c[0] + r * math.sin(a), y, c[2] + r * math.cos(a)))
-            uv.append((i / n, k))
+            nrm.append((math.sin(a), 0.0, math.cos(a)))
     for i in range(n):
-        tris += [(i, i + 1, n + 1 + i), (i + 1, n + 2 + i, n + 1 + i)]
-    add(material, pts, tris, uv, (c[0], c[1] + h / 2, c[2]))
+        j = (i + 1) % n
+        tris += [(i, j, n + i), (j, n + j, n + i)]
+    add(bone, material, pts, tris, (c[0], c[1] + h / 2, c[2]), None, nrm)
 
 
 flat('straw', (200, 170, 70))
@@ -118,27 +126,33 @@ d.polygon([(58, 66), (70, 66), (64, 78)], fill=(255, 225, 90))
 d.polygon([(24, 86), (36, 96), (48, 88), (64, 100), (80, 88), (92, 96), (104, 86), (98, 108), (80, 104), (64, 114), (48, 104), (30, 108)], fill=(255, 225, 90))
 img.save(os.path.join(out, 'head.png'))
 
-# the joints of the game's skeleton, which the parts here are set on (shoulders at x 0.23, y 1.47; elbows 1.19; wrists 0.91; hips at x 0.1, y 0.99; neck 1.57)
-# legs and boots (x = side, y = up, z = front)
-for s in (-1, 1):
-    box('boots', (s * 0.1 - 0.075, 0.0, -0.07), (s * 0.1 + 0.075, 0.14, 0.19))
-    box('trousers', (s * 0.1 - 0.085, 0.14, -0.06), (s * 0.1 + 0.085, 1.12, 0.08))
-# the coat and the straw sticking out of it
-box('coat', (-0.18, 1.0, -0.09), (0.18, 1.5, 0.11))
-box('patch', (0.02, 1.2, 0.11), (0.12, 1.3, 0.12))
-box('straw', (-0.1, 1.49, -0.05), (0.1, 1.55, 0.07))
-# the arms hang at the sides, in coat sleeves with straw hands
-for s in (-1, 1):
-    pass
-    box('coat', (s * 0.23 - 0.05, 0.93, -0.05), (s * 0.23 + 0.05, 1.45, 0.05), 0.04)
-    box('straw', (s * 0.23 - 0.045, 0.8, -0.045), (s * 0.23 + 0.045, 0.93, 0.045), 0.04)
-    for f in (-1, 0, 1):
-        box('straw', (s * 0.23 + f * 0.03 - 0.012, 0.7, -0.012), (s * 0.23 + f * 0.03 + 0.012, 0.8, 0.012))
-# the head
-ellipsoid('head', (0, 1.68, 0.0), (0.27, 0.23, 0.25), int(28 * HEAD_DETAIL), int(20 * HEAD_DETAIL))
-cylinder('stem', (0.0, 1.88, 0.0), 0.04, 0.07)
+# the head and the stem on it (the head bone is 22)
+ball(22, 'head', (0, 1.68, 0.0), (0.27, 0.23, 0.25), int(24 * HEAD), int(16 * HEAD), face=True)
+tube(22, 'stem', (0.0, 1.88, 0.0), 0.04, 0.07)
+# the body: the chest follows the upper spine (4), the waist the lower (2), the straw collar the chest
+box(4, 'coat', (-0.17, 1.2, -0.09), (0.17, 1.5, 0.11))
+box(4, 'patch', (0.02, 1.25, 0.11), (0.12, 1.35, 0.12))
+box(4, 'straw', (-0.1, 1.49, -0.05), (0.1, 1.55, 0.07))
+box(2, 'coat', (-0.165, 1.0, -0.085), (0.165, 1.22, 0.1))
+box(0, 'trousers', (-0.17, 0.92, -0.08), (0.17, 1.04, 0.1))
+for k, s in enumerate((1, -1)):
+    # arms: sleeves from the shoulder to the elbow to the wrist, straw hands; a ball of the sleeve over each joint
+    sh, el, wr, he = (mirror(p, s) for p in (SHOULDER, ELBOW, WRIST, HAND_END))
+    ball(UPPER_ARM[k], 'coat', sh, 0.08)
+    prism(UPPER_ARM[k], 'coat', sh, el, 0.055, 0.05, 1.0)
+    ball(FOREARM[k], 'coat', el, 0.062)
+    prism(FOREARM[k], 'coat', el, wr, 0.05, 0.045, 1.0)
+    ball(HAND[k], 'straw', wr, 0.05)
+    prism(HAND[k], 'straw', wr, he, 0.045, 0.035, 0.7)
+    # legs: trousers from the hip to the knee to the ankle, a boot on the foot
+    hp, kn, an, to = (mirror(p, s) for p in (HIP, KNEE, ANKLE, TOE))
+    ball(THIGH[k], 'trousers', hp, 0.085)
+    prism(THIGH[k], 'trousers', hp, kn, 0.082, 0.07, 1.0)
+    ball(SHIN[k], 'trousers', kn, 0.075)
+    prism(SHIN[k], 'trousers', kn, an, 0.07, 0.06, 1.0)
+    ball(FOOT[k], 'boots', an, 0.07)
+    box(FOOT[k], 'boots', (an[0] - 0.075, 0.0, -0.07), (an[0] + 0.075, 0.14, 0.2))
 
-# the object file, with a material file
 with open(os.path.join(out, 'pumpkin-jack.obj'), 'w') as f:
     f.write('mtllib pumpkin-jack.mtl\n')
     for v in verts:
@@ -147,13 +161,15 @@ with open(os.path.join(out, 'pumpkin-jack.obj'), 'w') as f:
         f.write('vt %.5f %.5f\n' % t)
     for n in norms:
         f.write('vn %.5f %.5f %.5f\n' % tuple(n))
-    cur = None
-    for m, tri in faces:
-        if m != cur:
-            f.write('usemtl %s\n' % m)
-            cur = m
-        f.write('f ' + ' '.join(('%d/%d/%d' % c) if c[2] else ('%d/%d' % c[:2]) for c in tri) + '\n')
+    for bone, fs in groups.items():
+        f.write('o %s\n' % bone)
+        cur = None
+        for m, tri in fs:
+            if m != cur:
+                f.write('usemtl %s\n' % m)
+                cur = m
+            f.write('f ' + ' '.join(('%d/%d/%d' % (i, i, n)) if n else ('%d/%d' % (i, i)) for i, n in tri) + '\n')
 with open(os.path.join(out, 'pumpkin-jack.mtl'), 'w') as f:
     for m in ('straw', 'coat', 'trousers', 'boots', 'stem', 'patch', 'head'):
         f.write('newmtl %s\nKd 1 1 1\nmap_Kd %s.png\n\n' % (m, m))
-print(len(verts), 'vertices', len(faces), 'triangles')
+print(len(verts), 'vertices,', sum(len(v) for v in groups.values()), 'triangles')
