@@ -1,6 +1,11 @@
 """Make a level for the port from a 3D model or a map of another game.
 
+    python tools/obj2level.py <file>                         the easy way: the name, the folder (mods/<name>) and the number are made for you
+    python tools/obj2level.py <file> --install <game folder>  ... and the mod is copied into the game's mods folder
     python tools/obj2level.py <file> --out mods/MyLevel --number 33 --name "My Level" --like 25 [options]
+
+For a map of Source or GoldSrc the defaults suit a build with `--features all-extensions` (rooms of 25 units, thousands of textures, no limit on their
+size); `--original-limits` keeps to the original game's limits instead.
 
 Formats (by the file's extension):
     .obj                 Wavefront OBJ with its MTL (Blender, Maya, 3ds Max, ...)
@@ -60,6 +65,8 @@ Options:
     --tex-base N     the number of the first texture of this level's own (default 4000 + 100 * (number - 31))
 """
 import argparse
+import glob
+import shutil
 import math
 import os
 import re
@@ -1241,17 +1248,49 @@ def make_music(src, dst):
     subprocess.run([exe, '-y', '-loglevel', 'error', '-i', src, '-vn', '-ac', '2', '-ar', '48000', '-c:a', 'libopus', '-b:a', '112k', '-vbr', 'on', dst], check=True)
 
 
+def friendly_defaults(args):
+    """Fill in what the user left out, and stop early with a clear message when the input cannot work."""
+    if not os.path.exists(args.input):
+        sys.exit(f'the file {args.input} does not exist')
+    stem = os.path.basename(args.input)
+    for ext in ('.bz2', '.bsp', '.vmf', '.obj', '.glb', '.gltf', '.blend'):
+        if stem.lower().endswith(ext):
+            stem = stem[:-len(ext)]
+    if not args.name:
+        args.name = re.sub(r'\s+', ' ', re.sub(r'[_\-]+', ' ', re.sub(r'^(ttt|dm|cs|de|mp|gm|ctf)[_ ]', '', stem, flags=re.I))).strip().title() or 'My Level'
+    if not args.out:
+        args.out = os.path.join('mods', re.sub(r'[^A-Za-z0-9]+', '-', args.name).strip('-'))
+    if args.number is None:
+        used = set()
+        for f in glob.glob(os.path.join(os.path.dirname(args.out) or '.', '*', 'levels.txt')):
+            used.update(int(m) for m in re.findall(r'^level\s+(\d+)', open(f, errors='replace').read(), re.M))
+        args.number = next((n for n in range(34, 100) if n not in used), 34)
+    if not 31 <= args.number <= 99:
+        sys.exit('--number has to be 31 to 99')
+    big = not args.original_limits
+    from_map = args.input.lower().endswith(('.bsp', '.bsp.bz2', '.vmf'))
+    if args.room_size is None:
+        args.room_size = 25.0 if from_map else 0.0
+    if args.texture_budget is None:
+        args.texture_budget = 1800.0 if args.original_limits else (1000000.0 if from_map and big else 24000.0)
+    if args.max_textures is None:
+        args.max_textures = 200 if args.original_limits else (5000 if from_map else 480)
+    print(f'level {args.number} "{args.name}" -> {args.out}' + (' (limits of the original game)' if args.original_limits else ''))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('input')
-    ap.add_argument('--out', required=True)
-    ap.add_argument('--number', type=int, required=True)
-    ap.add_argument('--name', required=True)
+    ap.add_argument('--out', default=None, help='the mod folder to make (default: mods/<name>)')
+    ap.add_argument('--number', type=int, default=None, help='the level number, 31 to 99 (default: the first one that no mod in mods/ uses, from 34)')
+    ap.add_argument('--name', default=None, help="the level's name in the game (default: made from the file's name)")
+    ap.add_argument('--install', default=None, metavar='GAME_DIR', help='copy the finished mod to GAME_DIR/mods (the folder with the game and ts-port.exe)')
+    ap.add_argument('--original-limits', action='store_true', help='keep to the limits of a build without extended-tables (200 textures, 1800 KB of them); the defaults for a map of Source are for the big build')
     ap.add_argument('--like', type=int, default=25)
     ap.add_argument('--scale', type=float, default=None)
     ap.add_argument('--up', choices=('y', 'z'), default=None)
     ap.add_argument('--flip', action='store_true')
-    ap.add_argument('--room-size', type=float, default=0.0)
+    ap.add_argument('--room-size', type=float, default=None)
     ap.add_argument('--pad-spacing', type=float, default=5.0)
     ap.add_argument('--max-pads', type=int, default=700)
     ap.add_argument('--step', type=float, default=1.0, help='the highest step a link may climb')
@@ -1262,7 +1301,7 @@ def main():
     ap.add_argument('--max-polygon', type=float, default=0.0, help='polygons are cut into pieces no wider than this (0: not)')
     ap.add_argument('--spawn-at', default=None, help='x,z or x,z,y (game units): players start only here (a test aid; without y the lowest pad there)')
     ap.add_argument('--no-translucent', action='store_true', help='leave out surfaces drawn see-through (a test aid)')
-    ap.add_argument('--texture-budget', type=float, default=24000.0, help='the most KB of texture files (the texture memory of a build with extended-tables holds about 31000 beside what the characters and weapons use; the original game 2800, then use 1800)')
+    ap.add_argument('--texture-budget', type=float, default=None, help='the most KB of texture files (the texture memory of a build with extended-tables holds about 31000 beside what the characters and weapons use; the original game 2800, then use 1800)')
     ap.add_argument('--max-size', type=float, default=80.0, help='about how large the BG file may be, in MB')
     ap.add_argument('--prop-budget', type=int, default=0, help='Source maps: the most polygons the props may add (0, the default: no limit)')
     ap.add_argument('--no-props', action='store_true', help='Source maps: leave out the props (the models the map places)')
@@ -1274,7 +1313,7 @@ def main():
     ap.add_argument('--drawn-collision', action='store_true', help='Source maps: make the collision from the drawn solid faces instead of the brushes')
     ap.add_argument('--clip-brushes', action='store_true', help='Source maps: the player clip brushes (invisible walls) stop players too')
     ap.add_argument('--light-detail', type=int, default=16, help='Source maps: polygons whose light varies are cut every this many lightmap luxels (0: one brightness for a face)')
-    ap.add_argument('--max-textures', type=int, default=480, help='the most textures (the game has 512 records for them; in a build without extended-tables only about 200 fit the texture memory)')
+    ap.add_argument('--max-textures', type=int, default=None, help='the most textures (the game has 512 records for them; in a build without extended-tables only about 200 fit the texture memory)')
     ap.add_argument('--materials', action='append', default=[])
     ap.add_argument('--wad', action='append', default=[])
     ap.add_argument('--blender', default=None)
@@ -1284,8 +1323,7 @@ def main():
     ap.add_argument('--spawns', type=int, default=16)
     ap.add_argument('--weapons', type=int, default=3, help='how many of each weapon slot are laid out without markers')
     args = ap.parse_args()
-    if not 31 <= args.number <= 99:
-        sys.exit('--number has to be 31 to 99')
+    friendly_defaults(args)
     scene = lvimport.load(args.input, {'materials': args.materials, 'wad': args.wad, 'blender': args.blender, 'drawn_collision': args.drawn_collision, 'skybox': args.skybox, 'clip_brushes': args.clip_brushes, 'light_detail': args.light_detail, 'entities': not args.no_entities, 'doors': args.doors, 'no_props': args.no_props, 'prop_budget': args.prop_budget, 'models': args.models})
     polys, markers = build_polys(scene, args)
     coll = build_polys.coll
@@ -1427,6 +1465,21 @@ def main():
     open(os.path.join(out, 'levels.txt'), 'w').write(line)
     open(os.path.join(out, 'mod.ini'), 'w').write('enabled = true\n')
     print(f'{len(polys)} polygons, {len(rooms)} room(s), {len(portals)} portal(s), {len(pads)} pads, {len(links)} links, {len(names)} textures from {base}')
+    target = out
+    if args.install:
+        mods = os.path.join(args.install, 'mods')
+        target = os.path.join(mods, os.path.basename(os.path.normpath(out)))
+        os.makedirs(mods, exist_ok=True)
+        if os.path.exists(target):
+            shutil.rmtree(target)
+        shutil.copytree(out, target)
+        print(f'installed in {target}')
+    print()
+    print(f'Done: "{args.name}" is level {args.number}.')
+    if not args.install:
+        print(f'Copy the folder {out} into the mods folder next to ts-port.exe (or run again with --install <game folder>).')
+    print(f'Start it with:  ts-port --level "{args.name}"   (or pick it in the level list)')
+    print('A build with --features all-extensions is needed for mods' + (' and for a level this big.' if args.room_size else '.'))
 
 
 if __name__ == '__main__':
