@@ -391,12 +391,12 @@ pub fn gt_y(y: i32) -> i32 {
     }
 }
 
-/// An item of the game type page from 7 up that has no text of its own (the port's rows 9 to 12 have).
+/// An item of the game type page from 7 up that has no text of its own (the port's rows 9 to 13 have: Exit Game, Controls, Video Options, Game Options, Mods).
 #[inline]
 pub fn gt_item_far(item: i32) -> bool {
     #[cfg(feature = "extensions")]
     {
-        item >= 7 && !(9..=12).contains(&item)
+        item >= 7 && !(9..=13).contains(&item)
     }
     #[cfg(not(feature = "extensions"))]
     {
