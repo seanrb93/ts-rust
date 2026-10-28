@@ -22,13 +22,8 @@ def cstr(ram, at):
 
 
 def main():
-    if len(sys.argv) < 2:
-        sys.exit(__doc__)
-    path = sys.argv[1]
-    if os.path.isdir(path):
-        path = os.path.join(path, 'SLUS_200.90')
     src = open(sys.argv[sys.argv.index('--game-src') + 1] if '--game-src' in sys.argv else SRC, encoding='utf-8').read()
-    ram = ps2elf.Elf(path).image()
+    ram = ps2elf.data_image()
     rows = []
     for m in re.finditer(r'const ANIMATION_FILES_\d+: \[\(i32, i32\); \d+\] = \[(.*?)\];', src, re.S):
         for a, i in re.findall(r'\((0x[0-9a-f]+|\d+), (\d+)\)', m.group(1)):

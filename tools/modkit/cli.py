@@ -15,11 +15,8 @@ class Context:
     def game(self):
         if self._game:
             return self._game
-        if not self.setup.elf:
-            ui.fail('The game\'s program file SLUS_200.90 is not in the game folder, so I cannot read the weapons and characters.')
-            return None
         from .gamedata import GameData
-        self._game = GameData(self.setup.elf)
+        self._game = GameData()
         return self._game
 
     def exe(self):

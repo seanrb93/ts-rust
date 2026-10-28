@@ -1,9 +1,9 @@
 """List the game's table of weapons with the names of the fields that weapons.txt knows (see ts-port/src/moddata.rs).
 
-    python tools/dump-guns.py <game folder or SLUS_200.90>      prints one line for each weapon
-    python tools/dump-guns.py <game folder> --raw               prints every word of every entry
+    python tools/dump-guns.py            prints one line for each weapon
+    python tools/dump-guns.py --raw      prints every word of every entry
 
-The values are the game's starting values, read from the program file (the table is 30 entries of 400 bytes at 0x366218).
+The values are the game's starting values, from the game's data kept in the repository (the table is 30 entries of 400 bytes at 0x366218).
 """
 import os
 import struct
@@ -18,14 +18,8 @@ FLOAT = {'view_x': 32, 'view_y': 36, 'view_z': 40, 'fov_a': 44, 'fov_b': 48, 'bu
 
 
 def main():
-    if len(sys.argv) < 2:
-        sys.exit(__doc__)
-    path = sys.argv[1]
-    if os.path.isdir(path):
-        path = os.path.join(path, 'SLUS_200.90')
-    if not os.path.exists(path):
-        sys.exit(f'{path} does not exist')
-    ram = ps2elf.Elf(path).image()
+    # (the data kept in the repository; a game folder or executable given as the first word is not needed any more)
+    ram = ps2elf.data_image()
     raw = '--raw' in sys.argv
     for n in range(COUNT):
         at = GUNS + n * SIZE

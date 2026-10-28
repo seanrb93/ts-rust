@@ -16,7 +16,7 @@ def main():
     cmd = [sys.executable, '-m', 'PyInstaller', '--onefile', '--console', '--noconfirm', '--clean', '--name', 'modkit',
            '--distpath', os.path.join(ROOT, 'dist'), '--workpath', os.path.join(ROOT, 'build', 'modkit'), '--specpath', os.path.join(ROOT, 'build'),
            '--paths', TOOLS, '--collect-submodules', 'lvimport', '--collect-submodules', 'modkit', '--collect-all', 'imageio_ffmpeg',
-           '--hidden-import', 'tkinter', os.path.join(TOOLS, 'modkit-entry.py')]
+           '--hidden-import', 'tkinter', '--add-data', os.path.join(ROOT, 'ts-rust', 'crates', 'ts-rt', 'data', 'game-data.bin') + os.pathsep + '.', os.path.join(TOOLS, 'modkit-entry.py')]
     print(' '.join(cmd))
     sys.exit(subprocess.run(cmd, cwd=ROOT).returncode)
 

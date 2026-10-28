@@ -50,3 +50,24 @@ if __name__ == '__main__':
     e = Elf()
     print(hex(e.entry), e.segments)
     print(len(e.functions()))
+
+
+DATA_START = 0x2eeff0
+
+
+def data_blob_path():
+    """The game's initialised data kept in the repository (`tools/extract-game-data.py` makes it), also when the tools run as a program made by PyInstaller."""
+    import sys
+    base = getattr(sys, '_MEIPASS', None)
+    for p in ((os.path.join(base, 'game-data.bin') if base else ''), os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ts-rust', 'crates', 'ts-rt', 'data', 'game-data.bin')):
+        if p and os.path.exists(p):
+            return p
+    raise FileNotFoundError('game-data.bin')
+
+
+def data_image(ramsize=0x2000000):
+    """Guest RAM (like `Elf.image()`) with only the game's data in it: no copy of the executable is needed."""
+    ram = bytearray(ramsize)
+    blob = open(data_blob_path(), 'rb').read()
+    ram[DATA_START:DATA_START + len(blob)] = blob
+    return ram

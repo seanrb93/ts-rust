@@ -11,9 +11,10 @@ AMMO_NAMES = ['none', 'pistol', 'rifle', 'shotgun', 'plasma', 'energy', 'explosi
 
 
 class GameData:
-    def __init__(self, elf_path):
+    def __init__(self, elf_path=None):
         import ps2elf
-        self.ram = ps2elf.Elf(elf_path).image()
+        # (the data kept in the repository: no copy of the game's executable is needed)
+        self.ram = ps2elf.data_image()
 
     def u32(self, at):
         return struct.unpack_from('<I', self.ram, at)[0]

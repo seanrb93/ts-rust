@@ -1,4 +1,4 @@
-"""Where the game is, where the mods go, and which mod is being worked on: found by itself, asked once, remembered."""
+"""Where the game is (its PAK and MUSIC folders and the program), where the mods go, and which mod is being worked on: found by itself, asked once, remembered."""
 import json
 import os
 import sys
@@ -104,14 +104,6 @@ class Setup:
         d = os.path.join(self.port_dir, 'mods')
         os.makedirs(d, exist_ok=True)
         return d
-
-    @property
-    def elf(self):
-        for d in (self.game_dir, os.path.join(self.game_dir, 'Game Files'), self.port_dir):
-            p = os.path.join(d, 'SLUS_200.90')
-            if os.path.isfile(p):
-                return p
-        return ''
 
     @property
     def current_mod(self):

@@ -2,23 +2,28 @@
 
 The long version of the old README, kept here; the README has the short one.
 
-A native PC port of the PS2 game *TimeSplitters* (`SLUS_200.90`). The game's MIPS (R5900) code is **statically
+A native PC port of the PS2 game *TimeSplitters*. The game's MIPS (R5900) code is **statically
 decompiled to Rust**; it is not run in an emulator and the PS2 hardware (EE, GS, VUs, DMA, SPU2, IOP) is not emulated.
 Hardware services are replaced by native ones.
 
-You need your own copy of the game. Its files (`SLUS_200.90`, `PAK/`, `MUSIC/`) have to be in the same folder as the executable
+You need your own copy of the game's assets: its `PAK/` and `MUSIC/` folders have to be in the same folder as the executable
 (`ts-port.exe`); without them the program says so and stops.  The saves are in a `saves/` folder there too.
-**Never commit game files.** The game's files and `saves/` must stay out of any repository.
+The original executable (`SLUS_200.90`) is **not** needed: all of its code is Rust here, and its data (the tables, strings and defaults, and the graphics microcode) is part of the repository.
+**Never commit the game's `PAK/` and `MUSIC/` or `saves/`.**
 
 ## Build
 
-The game's code is not in this repository.  It is generated on your machine from your own copy of the game: put the game's `SLUS_200.90`
-in a folder `Game Files/` next to `tools/`, then (Python 3):
+Everything needed to build is in this repository: the hand-decompiled game (`ts-game/src/game`), the generated tables and dispatch (`ts-game/src/dec/`), the graphics microcode as Rust
+(`ts-gfx/src/vu1_gen.rs`) and the game's data (`ts-rt/data/game-data.bin`, with `symbols.tsv`), so `cargo build --release -p ts-port` is all there is to it.  Those generated files and the data were
+made from the original executable with (Python 3, only needed to make them again, with `SLUS_200.90` in a folder `Game Files/` next to `tools/`):
 
 ```
-python tools/gen_rust.py        # writes ts-rust/crates/ts-game/src/dec/ (the game's code as Rust)
-python tools/vu1dec.py          # writes ts-rust/crates/ts-gfx/src/vu1_gen.rs (the graphics microcode)
+python tools/gen_rust.py                       # writes ts-rust/crates/ts-game/src/dec/
+python tools/vu1dec.py                         # writes ts-rust/crates/ts-gfx/src/vu1_gen.rs (the graphics microcode)
+python tools/extract-game-data.py "Game Files/SLUS_200.90"   # writes ts-rust/crates/ts-rt/data/
 ```
+
+The original executable is needed for these, and for checking the decompiled functions against the machine code (`tools/verify-game.py`, `--features shadow`); not to build or play.
 
 Changes to the generated code are kept in `tools/patches.py` and applied by `gen_rust.py`.
 
@@ -32,8 +37,7 @@ ts-rust/target/release/ts-port.exe                      # front end, in a window
 ts-rust/target/release/ts-port.exe --level Village      # jump into a level
 ```
 
-The executable's folder holds `PAK/`, `MUSIC/` and `SLUS_200.90` from the disc.  The game's initialised data (strings, tables, defaults) is
-read from `SLUS_200.90` at every start (only its data, no code of it is used).  A crash or GPU error is written to `ts-port-crash.log` next to the port.
+The executable's folder holds `PAK/` and `MUSIC/` from the disc.  The game's initialised data (strings, tables, defaults) is part of the program (`ts-rt/data/game-data.bin`, copied to its addresses at start; `TS_GAME_EXE=<SLUS_200.90>` reads it from the original executable instead, to compare).  A crash or GPU error is written to `ts-port-crash.log` next to the port.
 
 Options: `--game-dir DIR`, `--level NAME`, `--players N`, `--save-dir DIR` (virtual memory card, default `saves/` in the executable's folder; `--game-dir` and `--save-dir` are for testing),
 `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[+button][:frames]`,

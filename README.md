@@ -3,17 +3,12 @@
 A native PC port of the PS2 game *TimeSplitters*. The game's MIPS code (R5900) is hand-decompiled to Rust and runs natively; there is no
 emulator, and the console's hardware (EE, GS, VUs, DMA, SPU2, IOP) is replaced by native code.
 
-You need to provide the game's files yourself, from Version 2.0 (SLUS 20090) of TimeSplitters.  Put them next to the executable; the
-program tells you if something is missing.
+You need the game's assets, from Version 2.0 (SLUS 20090) of TimeSplitters: its `PAK` and `MUSIC` folders go next to the executable (the program tells you if something is missing).
+The original executable (`SLUS_200.90`) is not needed: all of its code is Rust here, and its data (tables, strings, the graphics microcode) is part of this repository.
 
 ## Build and run
 
-Some tables and the graphics microcode are generated from your copy of the game once (Python 3, run from the repository's root, see the top of each tool):
-
-```
-python tools/gen_rust.py
-python tools/vu1dec.py
-```
+Everything needed to build is in the repository.
 
 Then:
 
