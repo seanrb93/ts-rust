@@ -213,6 +213,8 @@ def make_character(game, mesh, out, name='Custom', base=0, number=80, scale=1.0,
         open(os.path.join(out, 'characters.txt'), 'w').write(entry)
     used = sum(1 for p in kind0 if by_part[p])
     print(f'{len(moved)} faces on {used} of the {len(kind0)} bones; model {target}')
+    if len(data) > 450000:
+        print(f'WARNING: the model is {len(data) // 1000} KB; the front end runs out of memory (and the game exits) above about 600 KB, and the largest model of the game itself is 147 KB.  Use fewer triangles.')
     print(f'characters.txt: character {number} "{name}", a copy of character {base}')
     return entry
 
