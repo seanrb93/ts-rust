@@ -127,7 +127,7 @@ pub fn GetChallengeTimeLeft() -> i32 {
 
 /// Reload a gun from the ammo carried: move what is needed (and there is) from the player's store (at +620) to the gun's clip (at +4 of `gun`); returns the amount (@ 0x28db18).
 pub fn gunReloadCore(player: i32, gun: i32) -> i32 {
-    let entry = lw(gun) * 400 + g::guns;
+    let entry = lw(gun) * 400 + GUNS_TABLE;
     let ammo = lw(entry + 16) << 2;
     let store = player + 620 + ammo;
     let carried = lw(store);

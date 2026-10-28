@@ -39,7 +39,7 @@ pub fn hudPreload() {
         }
         let offset = id << 3;
         if id > 0 {
-            let gun = lw(lh(offset + (GUNCOMBOS + 4)) * 400 + (g::guns + 16));
+            let gun = lw(lh(offset + (GUNCOMBOS + 4)) * 400 + (GUNS_TABLE + 16));
             let texture = lw((gun << 3) + (g::ammoinfo + 4));
             if texture != 0 {
                 sw((gun << 2) + 0x1feaf80, texture);

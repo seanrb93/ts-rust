@@ -339,7 +339,7 @@ fn remote_fire(a0: i32, s4_1: i32) -> Option<i32> {
 
 /// Switch to the gun the player wants (state 3 to 4) or begin to put the held one away: the end of a gun that stays.
 fn hold_gun(a0: i32, a1: i32, s3_1: i32, s4_1: i32, s7_1: i32) -> Option<i32> {
-    let s6_3 = lw(s3_1) * 400 + g::guns;
+    let s6_3 = lw(s3_1) * 400 + GUNS_TABLE;
     gunUpdateParts(a0, s3_1);
     if lw(s3_1) == s7_1 {
         let player = lw(g::currentplayer);
@@ -351,7 +351,7 @@ fn hold_gun(a0: i32, a1: i32, s3_1: i32, s4_1: i32, s7_1: i32) -> Option<i32> {
             return Some(lw(a0 + 12));
         }
         let mut s7_3 = 0;
-        let ammo_kind = lw(wanted + (g::guns + 16));
+        let ammo_kind = lw(wanted + (GUNS_TABLE + 16));
         if lh((lw(s4_1 + 264) << 3) + (GUNCOMBOS + 2)) != -1 {
             s7_3 = ((lw(s4_1 + 484) as u32) < (1 as u32)) as i32;
         }
@@ -464,7 +464,7 @@ pub fn gunUpdate(a0: i32, a1: i32) {
             let scale = lwc1(0x3ad3b0);
             let step = lwc1(0x3ad3b4);
             let mut gun = lw(s3_1);
-            let info = gun * 400 + g::guns;
+            let info = gun * 400 + GUNS_TABLE;
             let wave = lwc1(((ps2float::add(ps2float::mul(ps2float::mul(now as f32, scale).pdiv(1.8e+02_f32), step), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable);
             let before = lwc1(((ps2float::add(ps2float::mul(ps2float::mul((now - frames) as f32, scale).pdiv(1.8e+02_f32), step), 0.5_f32) as i32 & 2047) << 2) + g::g_SinTable);
             let side = if a1 != 0 { -1.0_f32 } else { 1.0_f32 };
@@ -687,7 +687,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
             swc1(a0 + 4, time);
             if time <= 0.0_f32 {
                 let mut left_able = 0;
-                let slot = lw(lw(s3_1) * 400 + (g::guns + 16)) << 2;
+                let slot = lw(lw(s3_1) * 400 + (GUNS_TABLE + 16)) << 2;
                 let ammo = lw(s4_1 + slot + 620) + lw(s3_1 + slot + 4);
                 if lh((lw(s4_1 + 260) << 3) + (GUNCOMBOS + 2)) != -1 {
                     left_able = (gunLeftHandAble(s4_1) != 0) as i32;
@@ -725,7 +725,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         6 => {
             let length = lwc1(0x3ad3e4);
             let fraction = (ps2float::sub(length, lwc1(a0 + 4))).pdiv(length);
-            let info = lw(s3_1) * 400 + g::guns;
+            let info = lw(s3_1) * 400 + GUNS_TABLE;
             let slide = ps2float::add(lwc1(prop + 72), ps2float::mul(fraction, 6e+01_f32));
             swc1(prop + 52, ps2float::sub(lwc1(prop + 52), ps2float::mul(fraction, lwc1(0x3ad3e8))));
             swc1(prop + 72, slide);
@@ -772,12 +772,12 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
             }
             if lw(s3_1) == 23 {
                 let mut n = 0;
-                let cartridge = if lw(a0 + 52) == 0 { g::guns + 9252 } else { g::guns + 9388 };
+                let cartridge = if lw(a0 + 52) == 0 { GUNS_TABLE + 9252 } else { GUNS_TABLE + 9388 };
                 if lw(a0 + 184) > 0 {
                     let mut at = lw(a0 + 180);
                     loop {
                         n += 1;
-                        addCartridge(at, 0, lw(cartridge + 4), s3_1, a0, g::guns + 9200, s4_1);
+                        addCartridge(at, 0, lw(cartridge + 4), s3_1, a0, GUNS_TABLE + 9200, s4_1);
                         if n >= lw(a0 + 184) {
                             break;
                         }
@@ -790,7 +790,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
         }
         8 | 19 => {
             let gun = lw(s3_1);
-            let info = gun * 400 + g::guns;
+            let info = gun * 400 + GUNS_TABLE;
             let (length, kick, up) = if state == 8 {
                 (if gun == 8 { lwc1(0x3ad3f0) } else { lwc1(0x3ad3ec) }, lwc1(0x3ad3f4), 6e+01_f32)
             } else {
@@ -1031,7 +1031,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
             swc1(a0 + 4, time);
             let mut prop_now = prop;
             if time <= 0.0_f32 {
-                if lw(s4_1 + (lw(lw(s3_1) * 400 + (g::guns + 16)) << 2) + 620) > 0 {
+                if lw(s4_1 + (lw(lw(s3_1) * 400 + (GUNS_TABLE + 16)) << 2) + 620) > 0 {
                     swc1(a0 + 4, 0.0_f32);
                     sw(a0, 19);
                 } else {

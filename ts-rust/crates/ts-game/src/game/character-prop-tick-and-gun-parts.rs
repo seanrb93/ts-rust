@@ -18,7 +18,7 @@ fn set_anim_state(chr: i32, state: i32) -> i32 {
 /// held in one hand or both, may keep its state, take a new one or take one at random. `riding` is the flag at +484 of the mind. Returns the state.
 fn npc_anim_state(chr: i32, mind: i32, riding: i32) -> i32 {
     let keep = || lw(chr + 344);
-    let gun_flags = || lw(lw(mind + 376) * 400 + (g::guns + 28));
+    let gun_flags = || lw(lw(mind + 376) * 400 + (GUNS_TABLE + 28));
     if riding == 0 {
         let moving = lw(mind + 332);
         let aiming = lw(mind + 440);
@@ -321,7 +321,7 @@ pub fn chrPropTick(a0: i32) {
                 }
             } else if aiming != 0 {
                 'zero: {
-                    let gun = lw(lw(mind + 376) * 400 + (g::guns + 28));
+                    let gun = lw(lw(mind + 376) * 400 + (GUNS_TABLE + 28));
                     if (gun & 2) != 0 {
                         if (gun & 4) == 0 {
                             if (lw(mind + 2708) & 16) == 0 {
@@ -340,7 +340,7 @@ pub fn chrPropTick(a0: i32) {
                 break 'set;
             }
             let flags = lw(mind + 2708);
-            if (lw(lw(mind + 376) * 400 + (g::guns + 28)) & 2) == 0 {
+            if (lw(lw(mind + 376) * 400 + (GUNS_TABLE + 28)) & 2) == 0 {
                 if (flags & 16) == 0 {
                     sw(a0 + 344, 1);
                 } else {
@@ -354,7 +354,7 @@ pub fn chrPropTick(a0: i32) {
         } else {
             'seven: {
                 if lw(mind + 440) != 0 {
-                    let gun = lw(lw(mind + 376) * 400 + (g::guns + 28));
+                    let gun = lw(lw(mind + 376) * 400 + (GUNS_TABLE + 28));
                     if (gun & 2) != 0 {
                         if (gun & 4) == 0 {
                             if (lw(mind + 2708) & 16) == 0 {
@@ -385,7 +385,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
     let sp = frame.sp();
     let mut n = 0;
     let mut owner = lw(a0 + 12);
-    let gun = lw(a1) * 400 + g::guns;
+    let gun = lw(a1) * 400 + GUNS_TABLE;
     let shot = if lw(a0 + 52) == 0 { gun + 52 } else { gun + 188 };
     if lw(lw(lw(owner + 32)) + 4) > 0 {
         loop {

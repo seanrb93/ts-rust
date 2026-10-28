@@ -778,7 +778,7 @@ pub fn playerFireShots(a0: i32) {
     if owner_data == 0 {
         return;
     }
-    let gun_data = lw(gun) * 400 + g::guns;
+    let gun_data = lw(gun) * 400 + GUNS_TABLE;
     let flags = lhu(owner_data + 292) | 1;
     let skeleton = header - lw(header) * 80;
     let second = lw(a0 + 52);

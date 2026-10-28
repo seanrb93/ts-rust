@@ -175,12 +175,12 @@ pub fn enemyAmbushLeft(enemy: i32) {
     if enemyTriggered(enemy) != 0 && curAnim(enemy, 609) == 0 && curAnim(enemy, 608) == 0 && curAnim(enemy, 612) == 0 && curAnim(enemy, 611) == 0 {
         let gun = lw(record + 376);
         if lw(lw(lw(enemy + 32) + 88) + 12) != 0 {
-            if (lw(gun * 400 + (g::guns + 28)) & 2) == 0 {
+            if (lw(gun * 400 + (GUNS_TABLE + 28)) & 2) == 0 {
                 setAnim(enemy, 611, 0.0_f32, 1.0_f32);
             } else {
                 setAnim(enemy, 612, 0.0_f32, 1.0_f32);
             }
-        } else if (lw(gun * 400 + (g::guns + 28)) & 2) == 0 {
+        } else if (lw(gun * 400 + (GUNS_TABLE + 28)) & 2) == 0 {
             setAnim(enemy, 608, 0.0_f32, 1.0_f32);
         } else {
             setAnim(enemy, 609, 0.0_f32, 1.0_f32);

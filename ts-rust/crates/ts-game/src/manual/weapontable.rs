@@ -28,10 +28,44 @@ pub const GUNSINV: i32 = 0x240_0000 + 0x40400;
 pub const GUNCOMBOS: i32 = g::guncombos;
 #[cfg(not(feature = "extended-tables"))]
 pub const GUNSINV: i32 = g::gunsinventory;
+/// the table of the weapons (400 bytes each): the game's 30, then the weapons of mods
+#[cfg(feature = "extended-tables")]
+pub const GUNS_TABLE: i32 = 0x240_0000 + 0x41000;
+#[cfg(not(feature = "extended-tables"))]
+pub const GUNS_TABLE: i32 = g::guns;
+/// the game's own weapons, and the most there can be with the added ones
+pub const GAME_GUNS: i32 = 30;
+pub const GUN_BYTES: i32 = 400;
+pub const MAX_GUNS: i32 = 64;
 /// room for this many combinations
 pub const MAX_COMBOS: i32 = 64;
 /// the game's own combinations
 pub const GAME_COMBOS: i32 = 33;
+
+/// A weapon that a mod adds: a copy of one of the weapons of the table with some of its fields changed (`weapons.txt` of a mod).
+#[derive(Clone, Debug)]
+pub struct NewWeapon {
+    /// the number of the weapon: GAME_GUNS for the first added one, the next for the next
+    pub number: i32,
+    /// the weapon it is a copy of
+    pub copy_of: i32,
+    /// the name shown (empty: the name of the weapon it copies)
+    pub name: String,
+    /// changes of the entry: the place in it, the width in bytes (1, 2 or 4) and the value
+    pub puts: Vec<(i32, i32, u32)>,
+    /// the most that can be carried of its kind of ammo, when the mod says
+    pub max_ammo: Option<i32>,
+}
+
+static NEW_WEAPONS: Mutex<Vec<NewWeapon>> = Mutex::new(Vec::new());
+
+/// A mod adds a weapon (before `weapon_table_init`); a build without `extended-tables` cannot have it.
+pub fn register_weapon(w: NewWeapon) {
+    #[cfg(feature = "extended-tables")]
+    NEW_WEAPONS.lock().unwrap().push(w);
+    #[cfg(not(feature = "extended-tables"))]
+    eprintln!("[mods] weapon {} ({}) needs a build with extended-tables", w.number, w.name);
+}
 
 static COUNT: AtomicI32 = AtomicI32::new(GAME_COMBOS);
 /// the single weapons that got a pair: the pair of `SINGLES[k]` is the combination `GAME_COMBOS + k`
@@ -63,6 +97,9 @@ pub fn dual_count() -> i32 {
 /// Make the tables in the port's memory: the game's own, then the pairs (once, before anything runs).
 #[cfg(feature = "extended-tables")]
 pub fn weapon_table_init() {
+    for i in 0..GAME_GUNS * 100 {
+        sw(GUNS_TABLE + 4 * i, lw(g::guns + 4 * i));
+    }
     for i in 0..GAME_COMBOS * 2 {
         sw(GUNCOMBOS + 4 * i, lw(g::guncombos + 4 * i));
     }
@@ -70,7 +107,43 @@ pub fn weapon_table_init() {
     // (the weapons that have a pair already, and the fists, which have no gun)
     let paired: Vec<i32> = (1..GAME_COMBOS).map(entry).filter(|c| c.1 != -1 && c.1 == c.2).map(|c| c.2).collect();
     let singles: Vec<i32> = (1..GAME_COMBOS).filter(|&k| entry(k).1 == -1 && entry(k).2 != -1 && !paired.contains(&entry(k).2)).collect();
-    let count = (GAME_COMBOS + singles.len() as i32).min(MAX_COMBOS);
+    // the weapons of mods: each gets a single combination and a pair, after the pairs of the game's weapons
+    let mut added = NEW_WEAPONS.lock().unwrap().clone();
+    added.sort_by_key(|w| w.number);
+    let mut accepted: Vec<NewWeapon> = Vec::new();
+    for w in added {
+        let next = GAME_GUNS + accepted.len() as i32;
+        if w.number != next {
+            eprintln!("[mods] weapon {} is not the next added weapon ({} is); left out", w.number, next);
+        } else if !(0..next).contains(&w.copy_of) {
+            eprintln!("[mods] weapon {}: `copy {}` is not a weapon that exists at that point", w.number, w.copy_of);
+        } else if next >= MAX_GUNS || GAME_COMBOS + singles.len() as i32 + 2 * (accepted.len() as i32 + 1) > MAX_COMBOS {
+            eprintln!("[mods] weapon {}: the tables are full", w.number);
+        } else {
+            accepted.push(w);
+        }
+    }
+    let n_new = accepted.len() as i32;
+    let count = GAME_COMBOS + singles.len() as i32 + 2 * n_new;
+    for w in &accepted {
+        let at = GUNS_TABLE + GUN_BYTES * w.number;
+        for i in 0..GUN_BYTES / 4 {
+            sw(at + 4 * i, lw(GUNS_TABLE + GUN_BYTES * w.copy_of + 4 * i));
+        }
+        for &(off, width, bits) in &w.puts {
+            match width {
+                1 => sb(at + off, bits as i32),
+                2 => sh(at + off, bits as i32),
+                _ => sw(at + off, bits as i32),
+            }
+        }
+        if let Some(m) = w.max_ammo {
+            let kind = lw(at + 16);
+            if (0..15).contains(&kind) {
+                sw(g::ammoinfo + 8 * kind, m);
+            }
+        }
+    }
     for (k, &s) in singles.iter().enumerate() {
         let at = GUNCOMBOS + 8 * (GAME_COMBOS + k as i32);
         let (rank, _, gun, name) = entry(s);
@@ -78,6 +151,28 @@ pub fn weapon_table_init() {
         sh(at + 2, gun);
         sh(at + 4, gun);
         sh(at + 6, name as i32);
+    }
+    let first_new_single = GAME_COMBOS + singles.len() as i32 + n_new;
+    let mut new_singles = Vec::new();
+    for (j, w) in accepted.iter().enumerate() {
+        // (the combination of the weapon it copies gives the rank and the name)
+        let model = (1..GAME_COMBOS).map(entry).find(|c| c.1 == -1 && c.2 == w.copy_of).or_else(|| (1..GAME_COMBOS).map(entry).find(|c| c.2 == w.copy_of));
+        let (rank, name) = model.map_or((50, 0), |c| (c.0 as i32, c.3 as i32));
+        let text = if w.name.is_empty() { name } else { super::customlevels::register_text(&w.name) };
+        let text = if text < 0 { name } else { text };
+        let dual = GAME_COMBOS + singles.len() as i32 + j as i32;
+        let single = first_new_single + j as i32;
+        let d_at = GUNCOMBOS + 8 * dual;
+        sh(d_at, (rank - 5).max(1));
+        sh(d_at + 2, w.number);
+        sh(d_at + 4, w.number);
+        sh(d_at + 6, text);
+        let s_at = GUNCOMBOS + 8 * single;
+        sh(s_at, rank);
+        sh(s_at + 2, -1);
+        sh(s_at + 4, w.number);
+        sh(s_at + 6, text);
+        new_singles.push(single);
     }
     // the order of the cycling: each pair follows its single weapon
     let mut order = Vec::new();
@@ -88,11 +183,17 @@ pub fn weapon_table_init() {
             order.push(GAME_COMBOS + k as i32);
         }
     }
+    for j in 0..n_new {
+        order.push(first_new_single + j);
+        order.push(GAME_COMBOS + singles.len() as i32 + j);
+    }
     for (i, v) in order.iter().enumerate() {
         sw(GUNSINV + 4 * i as i32, *v);
     }
     COUNT.store(count, Ordering::Relaxed);
-    *SINGLES.lock().unwrap() = singles;
+    let mut single_of_dual = singles;
+    single_of_dual.extend(new_singles);
+    *SINGLES.lock().unwrap() = single_of_dual;
     if std::env::var_os("TS_COMBOLOG").is_some() {
         eprintln!("[combo] table: {} combinations, order {:?}", count, order);
     }

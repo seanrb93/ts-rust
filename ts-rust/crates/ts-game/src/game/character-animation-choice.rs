@@ -39,7 +39,7 @@ fn idle_animation(a0: i32, mind: i32, blend: f32, flinch_chance: f32, aim_blend:
                 if lw(mind + 484) == 0 {
                     if lw(mind + 440) != 0 {
                         let gun = lw(mind + 376);
-                        anim = if (lw(gun * 400 + (g::guns + 28)) & 2) == 0 { 462 } else { 464 };
+                        anim = if (lw(gun * 400 + (GUNS_TABLE + 28)) & 2) == 0 { 462 } else { 464 };
                     } else {
                         anim = 460;
                     }

@@ -120,7 +120,7 @@ pub fn gunPlayerFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) {
     let player = lw(g::currentplayer);
     let combo = lw(a0);
     let owner = lw(lw(player + 384) + 352);
-    let gun = combo * 400 + g::guns;
+    let gun = combo * 400 + GUNS_TABLE;
     let slot = lw(gun + 16);
     let stats = if a2 == 0 { gun + 52 } else { gun + 188 };
     if frames_gate() <= 0.0_f32 {

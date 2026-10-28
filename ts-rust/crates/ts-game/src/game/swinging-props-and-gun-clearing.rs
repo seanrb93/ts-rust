@@ -540,7 +540,7 @@ pub fn gunChrUpdate(a0: i32, a1: i32) {
         if gun == -1 {
             prop = lw(slot + 64);
         } else {
-            let new_prop = propNew(lw(gun * 400 + (g::guns + 4)), lwc1(a0 + 48), lwc1(a0 + 52), lwc1(a0 + 56), 0.0_f32);
+            let new_prop = propNew(lw(gun * 400 + (GUNS_TABLE + 4)), lwc1(a0 + 48), lwc1(a0 + 52), lwc1(a0 + 56), 0.0_f32);
             sw(slot + 64, new_prop);
             let bone = if a1 == 0 { lw(lw(lw(a0 + 32) + 92) + 28) } else { lw(lw(lw(a0 + 32) + 92) + 24) };
             propSetAttached(lw(slot + 64), lw(a0 + 32), bone, if a1 == 0 { 1 } else { 2 });

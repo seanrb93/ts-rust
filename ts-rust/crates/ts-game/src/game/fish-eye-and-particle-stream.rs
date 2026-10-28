@@ -428,7 +428,7 @@ pub fn lvGetPropNum(id: i32) -> i32 {
                 if gun == -1 {
                     return -0x80000000;
                 }
-                return lw(gun * 400 + (g::guns + 8));
+                return lw(gun * 400 + (GUNS_TABLE + 8));
             }
             _ => {}
         }

@@ -612,7 +612,7 @@ pub fn gunFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32, a7
     let mind = lw(a0 + 352);
     sw(sp + 4, a6);
     sw(sp + 8, a7);
-    let gun = gun_number * 400 + g::guns;
+    let gun = gun_number * 400 + GUNS_TABLE;
     let shot = if a3 == 0 { gun + 52 } else { gun + 188 };
     let kind = lw(shot);
     let bullet = bulletNew(kind);

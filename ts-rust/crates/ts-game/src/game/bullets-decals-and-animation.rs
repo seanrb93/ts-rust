@@ -29,7 +29,7 @@ pub fn getAnimation(n: i32) -> i32 {
 
 /// The type of bullet a gun fires; a gun has its table entry (400 bytes) behind two pointers at +172 (@ 0x2906a0).
 pub fn gunGetBulletType(gun: i32) -> i32 {
-    lw(lw(lw(gun + 172)) * 400 + (g::guns + 52))
+    lw(lw(lw(gun + 172)) * 400 + (GUNS_TABLE + 52))
 }
 
 /// Set the transparency scale of decal `n` (@ 0x2a4bc0).

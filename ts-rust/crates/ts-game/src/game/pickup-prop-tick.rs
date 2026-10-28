@@ -350,7 +350,7 @@ pub fn pickupPropTick(a0: i32) {
                             gunAddAmmo(chr, lw(data + 44), lw(data + 48));
                             let player_kind = lw(chr + 8);
                             let proceed = if player_kind == 1 {
-                                (if lw(data + 12) < 33 { lw(lw(data + 12) * 400 + (g::guns + 28)) } else { 0 } & 2) != 0
+                                (if lw(data + 12) < 33 { lw(lw(data + 12) * 400 + (GUNS_TABLE + 28)) } else { 0 } & 2) != 0
                             } else {
                                 player_kind == 0
                             };

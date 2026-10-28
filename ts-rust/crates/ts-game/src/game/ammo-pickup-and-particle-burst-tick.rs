@@ -19,7 +19,7 @@ pub fn gunPickedUpAmmo(player: i32, gun: i32, flag: i32) {
         return;
     }
     let combos = GUNCOMBOS;
-    let guns = g::guns;
+    let guns = GUNS_TABLE;
     let slot = gun << 2;
     let mut combo = 1;
     let mut entry = combos + 8;

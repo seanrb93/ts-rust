@@ -1326,7 +1326,7 @@ pub fn propDrop(a0: i32, a1: i32, a2: i32) {
                                     break 'weapon;
                                 }
                             }
-                            let slot = lw(kind * 400 + (g::guns + 16));
+                            let slot = lw(kind * 400 + (GUNS_TABLE + 16));
                             let ammo = lw(a1 + (slot << 2) + 620);
                             if ammo > 0 {
                                 let height = lwc1(0x3accbc);

@@ -108,7 +108,7 @@ Plan:
 
 ## Done so far
 
-* `weapons.txt` and `characters.txt` (`ts-port/src/moddata.rs`): the shared format with names, ranges and line numbers in the log, for the weapon fields known so far (ammo kind, clip, flags, bullet type, most carried) and character fields (name texts, models, flags, scale), and `raw` for the rest.  Tested by unit tests and a load in the game.  Also `tools/dump-guns.py` and the table of mapped weapon fields below.  Not done: the table of bullets (damage), the remaining fields of a weapon, adding weapons and characters past the game's tables, `modes.txt`, any model format.
+* `weapons.txt` and `characters.txt` (`ts-port/src/moddata.rs`): the shared format with names, ranges and line numbers in the log, for the weapon fields known so far (ammo kind, clip, flags, bullet type, most carried) and character fields (name texts, models, flags, scale), and `raw` for the rest.  Tested by unit tests and a load in the game.  Also `tools/dump-guns.py` and the table of mapped weapon fields below.  * New weapons (`weapon 30` and on, `copy` and `name`): the table of weapons (`guns`) is moved into the port's memory with room for 64 (`GUNS_TABLE`, as the combinations are), the added weapon is a copy of one that exists with fields changed, and it gets a single combination, a pair and a name text (`customlevels::register_text`).  Tested by unit tests and by loading two added weapons in a level (the combination table and the texts are right); not yet played.  Not done: new models and sounds for an added weapon, the remaining fields of a weapon, adding weapons and characters past the game's tables, `modes.txt`, any model format.
 
 ### Weapon fields mapped so far
 

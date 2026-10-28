@@ -77,7 +77,7 @@ pub fn enemyAmbushRight(enemy: i32) {
     sw(record + 2780, 0);
     swc1(record + 2804, z);
     if enemyTriggered(enemy) != 0 && curAnim(enemy, 447) == 0 && curAnim(enemy, 448) == 0 {
-        if (lw(lw(record + 376) * 400 + (g::guns + 28)) & 2) == 0 {
+        if (lw(lw(record + 376) * 400 + (GUNS_TABLE + 28)) & 2) == 0 {
             setAnim(enemy, 447, 0.0_f32, 1.0_f32);
         } else {
             setAnim(enemy, 448, 0.0_f32, 1.0_f32);

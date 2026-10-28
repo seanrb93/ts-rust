@@ -530,7 +530,7 @@ pub fn enemyDie(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32) {
     }
     if held != 0 {
         let roll = newrnd();
-        let gun = lw(record + 376) * 400 + g::guns;
+        let gun = lw(record + 376) * 400 + GUNS_TABLE;
         let amount = ps2float::mul(lw(gun + 24) as f32, lwc1(0x3ad990)) as i32;
         if amount == 0 {
             trap("break");

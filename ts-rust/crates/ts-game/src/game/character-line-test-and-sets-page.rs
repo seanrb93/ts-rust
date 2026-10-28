@@ -449,7 +449,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
                             }
                             let gun_number = lw(a1);
                             swc1(sp + 32, target_x);
-                            let gun = gun_number * 400 + g::guns;
+                            let gun = gun_number * 400 + GUNS_TABLE;
                             swc1(sp + 36, ps2float::add(lwc1(target + 52), lwc1(0x3ad2d8)));
                             let shot = if a2 == 0 { gun + 52 } else { gun + 188 };
                             let bullet_kind = lw(shot);
@@ -698,7 +698,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
     let gun_number = lw(a1);
     swc1(sp, first);
     swc1(sp + 4, lwc1(mind + 2980));
-    let gun = gun_number * 400 + g::guns;
+    let gun = gun_number * 400 + GUNS_TABLE;
     let shot = gun + 52;
     let bullets = if (lw(shot) ^ 4) == 0 { 3 } else { 1 };
     swc1(sp + 8, lwc1(mind + 2984));

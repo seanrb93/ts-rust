@@ -463,7 +463,7 @@ pub fn lvLevelSetupPreload() {
                             if kind >= -20 || kind < -25 {
                                 skip = true;
                             } else {
-                                preload = lw(lh((lw(combos - ((kind + 20) << 2) - 4) << 3) + (GUNCOMBOS + 4)) * 400 + (g::guns + 12));
+                                preload = lw(lh((lw(combos - ((kind + 20) << 2) - 4) << 3) + (GUNCOMBOS + 4)) * 400 + (GUNS_TABLE + 12));
                             }
                         }
                         if !skip {
@@ -708,7 +708,7 @@ pub fn mmDoCopy(a0: i32) {
 
 /// Preload one gun: its two props and the sounds of its shot (the ones at +100 and +236 when the cheat that swaps the shot sounds is on, else +96 and +232).
 fn preload_gun(index: i32) {
-    let gun = index * 400 + g::guns;
+    let gun = index * 400 + GUNS_TABLE;
     propAddPreLoad(lw(gun));
     propAddPreLoad(lw(gun + 4));
     let (first, second) = if (lw(g::allowedcheats) & 32 & (lw(g::unlockedcheats) & lw(g::selectedcheats))) != 0 { (100, 236) } else { (96, 232) };

@@ -121,11 +121,14 @@ fn parse_int(s: &str) -> Option<i64> {
 }
 
 /// Read the text of a `weapons.txt` (`which` = "weapon") or `characters.txt` (`which` = "character"); the writes it asks for, and the complaints (with line numbers).
-pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<String>) {
+pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<ts_game::NewWeapon>, Vec<String>) {
     let (fields, base, size, count): (Vec<Field>, i32, i32, i32) = if which == "weapon" { (weapon_fields(), GUNS, GUN_SIZE, GUN_COUNT) } else { (character_fields(), CHRS, CHR_SIZE, CHR_COUNT) };
     let mut ops = Vec::new();
     let mut errors = Vec::new();
     let mut current: Option<i32> = None;
+    // (which weapon the writes after each `weapon` line belong to: the added weapons take theirs out of `ops` at the end)
+    let mut segments: Vec<(i32, usize)> = Vec::new();
+    let mut new_weapons: std::collections::BTreeMap<i32, ts_game::NewWeapon> = Default::default();
     let names = |f: &[Field]| f.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
     for (n, line) in text.lines().enumerate() {
         let n = n + 1;
@@ -136,10 +139,17 @@ pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<String>) {
         let words: Vec<&str> = line.split_whitespace().collect();
         let key = words[0];
         if key == which {
+            let limit = if which == "weapon" { ts_game::MAX_GUNS } else { count };
             current = match words.get(1).and_then(|w| parse_int(w)) {
-                Some(v) if (0..count as i64).contains(&v) => Some(v as i32),
+                Some(v) if (0..limit as i64).contains(&v) => {
+                    segments.push((v as i32, ops.len()));
+                    if which == "weapon" && v as i32 >= GUN_COUNT {
+                        new_weapons.entry(v as i32).or_insert_with(|| ts_game::NewWeapon { number: v as i32, copy_of: -1, name: String::new(), puts: Vec::new(), max_ammo: None });
+                    }
+                    Some(v as i32)
+                }
                 Some(v) => {
-                    errors.push(format!("line {n}: {which} {v} does not exist (0 to {})", count - 1));
+                    errors.push(format!("line {n}: {which} {v} does not exist (0 to {})", limit - 1));
                     None
                 }
                 None => {
@@ -153,7 +163,29 @@ pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<String>) {
             errors.push(format!("line {n}: `{line}` comes before any `{which} <number>` line (or after one that was wrong)"));
             continue;
         };
-        let entry = base + item * size;
+        let is_new = which == "weapon" && item >= GUN_COUNT;
+        let entry = if is_new { 0 } else { base + item * size };
+        if which == "weapon" && key == "copy" {
+            match words.get(1).and_then(|w| parse_int(w)) {
+                Some(v) if is_new && (0..item as i64).contains(&v) => {
+                    new_weapons.get_mut(&item).unwrap().copy_of = v as i32;
+                }
+                _ if !is_new => errors.push(format!("line {n}: `copy` is only for added weapons (numbers from {GUN_COUNT})")),
+                _ => errors.push(format!("line {n}: `copy` needs the number of an earlier weapon")),
+            }
+            continue;
+        }
+        if which == "weapon" && key == "name" {
+            let name = line.splitn(2, char::is_whitespace).nth(1).unwrap_or("").trim().trim_matches('"').to_string();
+            if !is_new {
+                errors.push(format!("line {n}: `name` is only for added weapons (numbers from {GUN_COUNT})"));
+            } else if name.is_empty() {
+                errors.push(format!("line {n}: `name` needs a name"));
+            } else {
+                new_weapons.get_mut(&item).unwrap().name = name;
+            }
+            continue;
+        }
         if key == "raw" {
             // raw +<offset> <b|h|w|f> <value>
             let (Some(off), Some(kind), Some(val)) = (words.get(1).and_then(|w| parse_int(w.trim_start_matches('+'))), words.get(2), words.get(3)) else {
@@ -211,7 +243,37 @@ pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<String>) {
             None => errors.push(format!("line {n}: `{key}` needs a number")),
         }
     }
-    (ops, errors)
+    // the writes of the added weapons become changes of the copy, by their place in the entry
+    let mut kept = Vec::new();
+    let mut owner: Vec<Option<i32>> = vec![None; ops.len()];
+    for (k, &(item, start)) in segments.iter().enumerate() {
+        let end = segments.get(k + 1).map_or(ops.len(), |s| s.1);
+        for o in owner.iter_mut().take(end).skip(start) {
+            *o = Some(item);
+        }
+    }
+    for (op, who) in ops.into_iter().zip(owner) {
+        match (who, op) {
+            (Some(item), Op::Put { addr, kind, value }) if item >= GUN_COUNT && which == "weapon" => {
+                let (width, bits) = match (kind, value) {
+                    (Kind::B, Value::Int(v)) => (1, v as u32),
+                    (Kind::H, Value::Int(v)) => (2, v as u32),
+                    (Kind::F, Value::Float(v)) => (4, v.to_bits()),
+                    (_, Value::Int(v)) => (4, v as u32),
+                    (_, Value::Float(v)) => (4, v.to_bits()),
+                };
+                new_weapons.get_mut(&item).unwrap().puts.push((addr, width, bits));
+            }
+            (Some(item), Op::MaxAmmo { value, .. }) if item >= GUN_COUNT => new_weapons.get_mut(&item).unwrap().max_ammo = Some(value as i32),
+            (_, op) => kept.push(op),
+        }
+    }
+    for w in new_weapons.values() {
+        if w.copy_of < 0 {
+            errors.push(format!("weapon {} has no `copy <weapon>` line", w.number));
+        }
+    }
+    (kept, new_weapons.into_values().filter(|w| w.copy_of >= 0).collect(), errors)
 }
 
 /// Make the writes in the game's memory.
@@ -239,13 +301,17 @@ pub fn apply(ops: &[Op]) {
 /// Read and apply the file `path` of the mod `mod_name`; the complaints go to the log.
 pub fn load_file(mod_name: &str, which: &str, path: &Path) {
     let Ok(text) = std::fs::read_to_string(path) else { return };
-    let (ops, errors) = parse(which, &text);
+    let (ops, added, errors) = parse(which, &text);
     let file = if which == "weapon" { "weapons.txt" } else { "characters.txt" };
     for e in &errors {
         eprintln!("[mods] {mod_name}/{file} {e}");
     }
     apply(&ops);
-    eprintln!("[mods] {mod_name}/{file}: {} change(s){}", ops.len(), if errors.is_empty() { String::new() } else { format!(", {} line(s) left out", errors.len()) });
+    let n_added = added.len();
+    for w in added {
+        ts_game::register_weapon(w);
+    }
+    eprintln!("[mods] {mod_name}/{file}: {} change(s), {n_added} added weapon(s){}", ops.len(), if errors.is_empty() { String::new() } else { format!(", {} line(s) left out", errors.len()) });
 }
 
 #[cfg(test)]
@@ -254,7 +320,7 @@ mod tests {
 
     #[test]
     fn reads_weapons() {
-        let (ops, errors) = parse("weapon", "weapon 0\n clip 15\n max_ammo 250 # most\n raw +60 w 7\n");
+        let (ops, _added, errors) = parse("weapon", "weapon 0\n clip 15\n max_ammo 250 # most\n raw +60 w 7\n");
         assert!(errors.is_empty(), "{errors:?}");
         assert_eq!(ops[0], Op::Put { addr: GUNS + 20, kind: Kind::W, value: Value::Int(15) });
         assert_eq!(ops[1], Op::MaxAmmo { weapon: 0, value: 250 });
@@ -263,7 +329,7 @@ mod tests {
 
     #[test]
     fn complains() {
-        let (ops, errors) = parse("weapon", "clip 5\nweapon 99\nweapon 1\n clip 100000\n colour 3\n raw +399 w 1\n");
+        let (ops, _added, errors) = parse("weapon", "clip 5\nweapon 99\nweapon 1\n clip 100000\n colour 3\n raw +399 w 1\n");
         assert!(ops.is_empty());
         assert_eq!(errors.len(), 5, "{errors:?}");
         assert!(errors[0].starts_with("line 1"));
@@ -271,7 +337,7 @@ mod tests {
 
     #[test]
     fn reads_shot_fields() {
-        let (ops, errors) = parse("weapon", "weapon 2
+        let (ops, _added, errors) = parse("weapon", "weapon 2
  spread 0.02
  alt_bullet_type 5
  view_x 0.3
@@ -283,8 +349,31 @@ mod tests {
     }
 
     #[test]
+    fn adds_weapons() {
+        let (ops, added, errors) = parse("weapon", "weapon 30
+ copy 0
+ name \"Super Pistol\"
+ damage 0.9
+ max_ammo 100
+weapon 0
+ clip 12
+");
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(ops.len(), 1, "{ops:?}");
+        assert_eq!(added.len(), 1);
+        assert_eq!(added[0].copy_of, 0);
+        assert_eq!(added[0].name, "Super Pistol");
+        assert_eq!(added[0].puts, vec![(72, 4, 0.9f32.to_bits())]);
+        assert_eq!(added[0].max_ammo, Some(100));
+        let (_, _, errors) = parse("weapon", "weapon 31
+ damage 1
+");
+        assert_eq!(errors.len(), 1, "{errors:?}");
+    }
+
+    #[test]
     fn reads_characters() {
-        let (ops, errors) = parse("character", "character 3\n model 120\n scale 1.5\n");
+        let (ops, _added, errors) = parse("character", "character 3\n model 120\n scale 1.5\n");
         assert!(errors.is_empty(), "{errors:?}");
         assert_eq!(ops[0], Op::Put { addr: CHRS + 3 * 44 + 8, kind: Kind::W, value: Value::Int(120) });
         assert_eq!(ops[1], Op::Put { addr: CHRS + 3 * 44 + 40, kind: Kind::F, value: Value::Float(1.5) });

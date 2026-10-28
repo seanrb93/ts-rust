@@ -217,7 +217,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
             stay(mind)
         }
         6 => {
-            if (lw(lw(mind + 376) * 400 + (g::guns + 28)) & 8) != 0 {
+            if (lw(lw(mind + 376) * 400 + (GUNS_TABLE + 28)) & 8) != 0 {
                 return aim_animation(a0, mind, 449, lwc1(0x3ad8ec));
             }
             go_to(mind, 3)
@@ -254,7 +254,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
             }
             if dpcmp(fptodp(roll), ld(0x3a9dd0)) >= 0 {
                 if dpcmp(fptodp(roll), ld(0x3a9dd8)) >= 0 {
-                    if (lw(lw(mind + 376) * 400 + (g::guns + 28)) & 1) == 0 {
+                    if (lw(lw(mind + 376) * 400 + (GUNS_TABLE + 28)) & 1) == 0 {
                         return go_to(mind, 3);
                     }
                     if lw(mind + 332) != 0 {
@@ -509,7 +509,7 @@ fn attack_state(a0: i32, mind: i32, sp: i32, kind: i32, state: i32, dist: f32) -
                 let heading = lwc1(a0 + 80);
                 sw(mind + 2708, lw(mind + 2708) | 256);
                 swc1(a0 + 76, heading);
-                if (lw(gun + (g::guns + 28)) & 2) == 0 {
+                if (lw(gun + (GUNS_TABLE + 28)) & 2) == 0 {
                     setAnim(a0, 448, 0.0_f32, 1.0_f32);
                 } else {
                     setAnim(a0, 447, 0.0_f32, 1.0_f32);

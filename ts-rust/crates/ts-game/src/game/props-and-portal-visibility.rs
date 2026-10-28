@@ -101,7 +101,7 @@ pub fn resetPlayerGunReload(player: i32, gun: i32) {
     }
     let kind = lw(gun);
     if kind == 11 || kind == 13 {
-        let clips = lw(gun + (lw(kind * 400 + (g::guns + 16)) << 2) + 4);
+        let clips = lw(gun + (lw(kind * 400 + (GUNS_TABLE + 16)) << 2) + 4);
         if clips > 0 {
             sh(lw(lw(player + 12) + 32) + 292, 2);
         }

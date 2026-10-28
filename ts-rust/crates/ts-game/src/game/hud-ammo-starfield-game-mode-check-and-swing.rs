@@ -10,7 +10,7 @@ pub fn hudAmmoGfx(ammo: i32, _unused: i32, x: i32) {
     let frame = Frame::new(48);
     let sp = frame.sp();
     let record = lw(lw(lw(g::currentplayer) + 384) + 352);
-    let gun = lw(ammo) * 400 + g::guns;
+    let gun = lw(ammo) * 400 + GUNS_TABLE;
     let dither = dlSetDitherMatrix(2);
     sw(sp + 28, dither);
     let window = g::window;

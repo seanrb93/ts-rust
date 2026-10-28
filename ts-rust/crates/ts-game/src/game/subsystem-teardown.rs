@@ -192,7 +192,7 @@ pub fn dlPushDmaTag(tag: i32) {
 
 /// Set the zoom limits of a player from gun `gun`'s table entry (@ 0x2922b0).
 pub fn gunSetPlayerZoom(player: i32, gun: i32) {
-    let entry = gun * 400 + g::guns;
+    let entry = gun * 400 + GUNS_TABLE;
     swc1(player + 268, lwc1(entry + 44));
     swc1(player + 272, lwc1(entry + 48));
 }

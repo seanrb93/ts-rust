@@ -267,12 +267,12 @@ pub fn gunGetGunAmmo(chr: i32, ammo: i32) -> i32 {
     let (mut left_type, mut left_ammo) = (0, 0);
     let right_gun = lh(combo + (GUNCOMBOS + 4));
     if right_gun != -1 && (lw(g::currentplayer) + 600) != 0 && (chr + 376) != 0 {
-        right_type = lw(right_gun * 400 + (g::guns + 16));
+        right_type = lw(right_gun * 400 + (GUNS_TABLE + 16));
         right_ammo = lw(chr + (right_type << 2) + 380);
     }
     let left_gun = lh(combo + (GUNCOMBOS + 2));
     if left_gun != -1 && (lw(g::currentplayer) + 408) != 0 && (chr + 268) != 0 {
-        left_type = lw(left_gun * 400 + (g::guns + 16));
+        left_type = lw(left_gun * 400 + (GUNS_TABLE + 16));
         left_ammo = lw(chr + (left_type << 2) + 272);
     }
     let right = if right_type != ammo { 0 } else { right_ammo };

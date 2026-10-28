@@ -223,7 +223,7 @@ pub fn playerRespawn() {
 pub fn gunCreatePlayerGun(a0: i32, a1: i32, a2: i32) {
     let old = lw(a1 + 64);
     let record = lw(lw(lw(g::currentplayer) + 384) + 352);
-    let gun = lw(a1) * 400 + g::guns;
+    let gun = lw(a1) * 400 + GUNS_TABLE;
     if old != 0 {
         propDelete(old);
         sw(a1 + 64, 0);

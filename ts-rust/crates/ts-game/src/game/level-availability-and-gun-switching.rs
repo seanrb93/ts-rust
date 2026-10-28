@@ -85,13 +85,13 @@ pub fn gunShouldSwitchTo(player: i32, combo: i32) -> i32 {
     let mut right_gun = 0;
     let right = lh((current << 3) + (GUNCOMBOS + 4));
     if right != -1 && (lw(g::currentplayer) + 600) != 0 && (player + 376) != 0 {
-        let gun = lw(right * 400 + (g::guns + 16));
+        let gun = lw(right * 400 + (GUNS_TABLE + 16));
         right_gun = gun;
         right_clip = lw(player + (gun << 2) + 380);
     }
     let left = lh((current << 3) + (GUNCOMBOS + 2));
     if left != -1 && (lw(g::currentplayer) + 408) != 0 && (player + 268) != 0 {
-        let gun = lw(left * 400 + (g::guns + 16));
+        let gun = lw(left * 400 + (GUNS_TABLE + 16));
         left_gun = gun;
         left_clip = lw(player + (gun << 2) + 272);
     }
@@ -99,14 +99,14 @@ pub fn gunShouldSwitchTo(player: i32, combo: i32) -> i32 {
     let offset = combo << 3;
     let wanted_right = lh(base + offset + 4);
     if wanted_right != -1 {
-        let gun = lw(wanted_right * 400 + (g::guns + 16));
+        let gun = lw(wanted_right * 400 + (GUNS_TABLE + 16));
         let ammo = lw(player + (gun << 2) + 620);
         let with_right = if (gun ^ right_gun) == 0 { ammo + right_clip } else { ammo };
         right_ok = if (gun ^ left_gun) == 0 { with_right + left_clip } else { with_right };
     }
     let wanted_left = lh(base + offset + 2);
     if wanted_left != -1 {
-        let gun = lw(wanted_left * 400 + (g::guns + 16));
+        let gun = lw(wanted_left * 400 + (GUNS_TABLE + 16));
         let ammo = lw(player + (gun << 2) + 620);
         let with_right = if (gun ^ right_gun) == 0 { ammo + right_clip } else { ammo };
         left_ok = if (gun ^ left_gun) == 0 { with_right + left_clip } else { with_right };

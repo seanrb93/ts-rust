@@ -213,7 +213,7 @@ pub fn emLoadTextureNum(a0: i32, a1: i32, a2: i32) {
 /// The sounds of a gun being fired: the gun `a0` (the second kind of the pair when `a1`) plays its sound (the cheat version when the cheat 32 is on) at the position `a2`, and
 /// its delayed sound 40 ticks later, while the game is running (@ 0x28de68).
 pub fn gunFireSfx(a0: i32, a1: i32, a2: i32) {
-    let base = if a1 != 0 { g::guns + 188 } else { g::guns + 52 };
+    let base = if a1 != 0 { GUNS_TABLE + 188 } else { GUNS_TABLE + 52 };
     let gun = lw(a0) * 400 + base;
     let sound = if (lw(g::allowedcheats) & 32 & (lw(g::unlockedcheats) & lw(g::selectedcheats))) == 0 { lw(gun + 44) } else { lw(gun + 48) };
     let delayed = lw(gun + 52);

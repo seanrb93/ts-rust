@@ -230,7 +230,7 @@ pub fn gunTick() {
     swc1(now + 400, ps2float::mul(amplitude, second));
     sw(now_again + 404, 0);
     if right_gun != -1 {
-        sw(g::righthandprevammo, lw(record + (lw(right_gun * 400 + (g::guns + 16)) << 2) + 380));
+        sw(g::righthandprevammo, lw(record + (lw(right_gun * 400 + (GUNS_TABLE + 16)) << 2) + 380));
     }
     gunUpdate(now_again + 600, 0);
     gunUpdate(lw(g::currentplayer) + 408, 1);

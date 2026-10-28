@@ -652,7 +652,7 @@ pub fn lvLevelSetup() {
                             let f13 = lwc1(pickup + 28);
                             let f14 = lwc1(pickup + 32);
                             let f15 = lwc1(pickup + 36);
-                            let gun = lh((lw(combos - ((kind + 20) << 2) - 4) << 3) + (GUNCOMBOS + 4)) * 400 + g::guns;
+                            let gun = lh((lw(combos - ((kind + 20) << 2) - 4) << 3) + (GUNCOMBOS + 4)) * 400 + GUNS_TABLE;
                             let a3 = lw(gun + 16);
                             sw(pickup + 20, a3);
                             let a0 = lw(gun + 12);
@@ -672,7 +672,7 @@ pub fn lvLevelSetup() {
                         let parms = g::curgameparms;
                         if amount == 2 {
                             let entry = (combo << 3) + GUNCOMBOS;
-                            let guns = g::guns;
+                            let guns = GUNS_TABLE;
                             let table = guns + 16;
                             let reserve = lw(guns + lh(entry + 4) * 400 + 24);
                             ammo = lw(lh(entry + 4) * 400 + table);

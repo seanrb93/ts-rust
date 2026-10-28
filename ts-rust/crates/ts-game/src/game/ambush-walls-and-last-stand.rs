@@ -420,7 +420,7 @@ pub fn enemyAmbushCrouch(a0: i32) {
                                 if curAnim(a0, 477) == 0 {
                                     if curAnim(a0, 478) == 0 {
                                         enemySetMoveMode(a0, 512);
-                                        if (lw(lw(mind + 376) * 400 + (g::guns + 28)) & 2) == 0 {
+                                        if (lw(lw(mind + 376) * 400 + (GUNS_TABLE + 28)) & 2) == 0 {
                                             blend = lwc1(0x3ada20);
                                             extra = 1.0_f32;
                                             anim = 477;

@@ -38,6 +38,19 @@ const FIRST_NAME: i32 = TEXTS + 2;
 pub const MAX_LEVELS: usize = 28;
 
 static CUSTOM: Mutex<Vec<ts_sdk::CustomLevel>> = Mutex::new(Vec::new());
+/// other texts that mods add (the names of weapons): the texts after those of the levels
+static EXTRA: Mutex<Vec<String>> = Mutex::new(Vec::new());
+const MAX_EXTRA: usize = 30;
+
+/// Add a text to the game's tables (it has to be before `custom_levels_init`); the number of the text, or -1 when there is no room.
+pub fn register_text(text: &str) -> i32 {
+    let mut extra = EXTRA.lock().unwrap();
+    if extra.len() >= MAX_EXTRA {
+        return -1;
+    }
+    extra.push(text.chars().take(40).collect());
+    FIRST_NAME + MAX_LEVELS as i32 + extra.len() as i32 - 1
+}
 
 /// Make the tables (before the game starts).
 #[cfg(feature = "extended-tables")]
@@ -52,7 +65,8 @@ pub fn custom_levels_init() {
         sw(LVINFO + 4 * i, lw(g::lvinfo + 4 * i));
     }
     let levels: Vec<ts_sdk::CustomLevel> = ts_sdk::custom_levels().into_iter().filter(|l| (31..=99).contains(&l.number)).take(MAX_LEVELS).collect();
-    if levels.is_empty() {
+    let extra: Vec<String> = EXTRA.lock().unwrap().clone();
+    if levels.is_empty() && extra.is_empty() {
         return;
     }
     // the tables of texts, with the names
@@ -60,6 +74,10 @@ pub fn custom_levels_init() {
     let mut name_ptrs = Vec::new();
     for l in &levels {
         name_ptrs.push(put_str(&mut at, &l.name));
+    }
+    let mut extra_ptrs = Vec::new();
+    for t in &extra {
+        extra_ptrs.push(put_str(&mut at, t));
     }
     for lang in 0..5 {
         let old = lw(g::languages + 4 * lang);
@@ -74,7 +92,19 @@ pub fn custom_levels_init() {
         for (k, p) in name_ptrs.iter().enumerate() {
             sw(new + 4 * (FIRST_NAME + k as i32), *p);
         }
+        for (k, p) in extra_ptrs.iter().enumerate() {
+            sw(new + 4 * (FIRST_NAME + MAX_LEVELS as i32 + k as i32), *p);
+        }
         sw(g::languages + 4 * lang, new);
+    }
+    if std::env::var_os("TS_COMBOLOG").is_some() {
+        for k in 0..extra.len() as i32 {
+            let id = FIRST_NAME + MAX_LEVELS as i32 + k;
+            eprintln!("[text] {id} = {:?}", read_str(lw((id << 2) + lw(g::languages))));
+        }
+    }
+    if levels.is_empty() {
+        return;
     }
     // the records: the terminating record moves down, the mods' go before it
     let end: Vec<i32> = (0..6).map(|i| lw(LVINFO + 24 * n + 4 * i)).collect();

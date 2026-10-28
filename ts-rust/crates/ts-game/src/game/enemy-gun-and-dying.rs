@@ -88,7 +88,7 @@ pub fn enemyGunUpdate(a0: i32) {
                 model = lw(a0 + 32);
             } else {
                 if (lw(target + 16) & 0xf000000) == 0 {
-                    if lw(state + 444) < lw(lw(state + 376) * 400 + (g::guns + 60)) {
+                    if lw(state + 444) < lw(lw(state + 376) * 400 + (GUNS_TABLE + 60)) {
                         return;
                     }
                     let random = random_as_float();
@@ -145,7 +145,7 @@ pub fn enemyGunUpdate(a0: i32) {
                         if ready == 0 {
                             break 'fired;
                         }
-                        if lw(state + 444) >= lw(lw(state + 376) * 400 + (g::guns + 60)) {
+                        if lw(state + 444) >= lw(lw(state + 376) * 400 + (GUNS_TABLE + 60)) {
                             let random = random_as_float();
                             if !(lwc1(0x3ad894) < ps2float::mul(random, 2.3283064e-10_f32)) {
                                 gunChrFire(a0, state + 376, 1);
@@ -161,7 +161,7 @@ pub fn enemyGunUpdate(a0: i32) {
                         }
                     }
                     if ready != 0 {
-                        if lw(state + 444) < lw(lw(state + 376) * 400 + (g::guns + 60)) {
+                        if lw(state + 444) < lw(lw(state + 376) * 400 + (GUNS_TABLE + 60)) {
                             second = lw(state + 332);
                             break 'second;
                         }
@@ -194,7 +194,7 @@ pub fn enemyGunUpdate(a0: i32) {
             if (lw(lw((lw(lw(a0 + 32) + 96) << 2) + g::pAnimations) + 12) & 128) == 0 {
                 return;
             }
-            if lw(state + 336) < lw(lw(state + 268) * 400 + (g::guns + 60)) {
+            if lw(state + 336) < lw(lw(state + 268) * 400 + (GUNS_TABLE + 60)) {
                 return;
             }
             let random = random_as_float();
