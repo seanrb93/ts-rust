@@ -125,11 +125,11 @@ lists them: weapon 3, which has a clip of 5, a zoom from 20 to 8 degrees and a s
 | `fov_a`, `fov_b` | +44, +48 | the fields of view of the zoom (player +268 and +272) |
 | `ai_burst` | +60 | compared with an enemy's shot counter: the length of its burst (guess) |
 | `flash_bone`, `spark_bone`, `muzzle_bone` | +340, +360, +364 | bones of the model that the flash, sparks and shot come from |
-| `bullet_type`, `bullet_speed`, `spread`, `recoil`, `kick`, `pull` | +52, +80, +84, +108, +112, +124 | the shot: what it makes, the scale of the bullet's direction, how far it can leave the aim, the gun's recoil, the multiplier of the recoil and the pull on the view |
+| `bullet_type`, `damage`, `ricochet`, `bullet_speed`, `spread`, `recoil`, `kick`, `pull` | +52, +72, +68, +80, +84, +108, +112, +124 | the shot: what it makes, what it takes from what it hits (the bullet's damage, +76 of its record), the chance to bounce off a wall, the scale of the bullet's direction, how far it can leave the aim, the gun's recoil, the multiplier of the recoil and the pull on the view |
 | the same with `alt_` in front | +188 and on | the second shot (alternate fire), laid out like the first (the same offsets plus 136) |
 
 Not yet understood: the other words of the entry (+0 to +12 are numbers of props and animations, +56 and +96 to +104 are sound numbers, +396 is compared with a limit in `gunReload`),
-and the damage, which is probably in the table of bullets (`bullet_type`) and not in the weapon.  `max_ammo` is not in the entry: it is in `ammoinfo` by the weapon's kind of ammo.
+and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bullet).  The kinds of bullet (shapes: shots, rockets, grenades, mines, thrown things) are code, chosen by `bullet_type`.  `max_ammo` is not in the entry: it is in `ammoinfo` by the weapon's kind of ammo.
 
 ## Order of work
 

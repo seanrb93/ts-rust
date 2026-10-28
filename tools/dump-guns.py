@@ -14,7 +14,7 @@ import ps2elf  # noqa: E402
 
 GUNS, SIZE, COUNT = 0x366218, 400, 30
 INT = {'ammo_kind': 16, 'clip': 20, 'ammo_reserve': 24, 'flags': 28, 'bullet_type': 52, 'alt_bullet_type': 188}
-FLOAT = {'view_x': 32, 'view_y': 36, 'view_z': 40, 'fov_a': 44, 'fov_b': 48, 'bullet_speed': 80, 'spread': 84, 'recoil': 108, 'kick': 112, 'pull': 124}
+FLOAT = {'view_x': 32, 'view_y': 36, 'view_z': 40, 'fov_a': 44, 'fov_b': 48, 'bullet_speed': 80, 'damage': 72, 'ricochet': 68, 'spread': 84, 'recoil': 108, 'kick': 112, 'pull': 124}
 
 
 def main():
