@@ -141,9 +141,16 @@ def main():
     for corners, mat in moved:
         mid = np.mean([c[0] for c in corners], axis=0)
         best = min(kind0, key=lambda p: distance_to_segment(mid, *segs[p]))
+        corner_bones = {nearest(np.array(c[0]), kind0) for c in corners}
+        if len(corner_bones) == 1:
+            best = next(iter(corner_bones))
         for sp, (x, y, radius) in seams.items():
             joint = world[y]
-            if len(corners) == 3 and np.linalg.norm(mid - joint) < radius and {nearest(np.array(c[0]), kind0) for c in corners} <= {x, y}:
+            bones = {nearest(np.array(c[0]), kind0) for c in corners}
+            # (a triangle whose corners follow two different bones, or one with a corner at the joint of a seam that has a joint of its own: the corners of a triangle that is rigid
+            # on one bone must be bound to that bone in every other triangle they are in)
+            at_joint = parts[sp][0] == 2 and any(np.linalg.norm(np.array(c[0]) - joint) < radius / 2 for c in corners)
+            if len(corners) == 3 and bones <= {x, y} and (len(bones) == 2 or at_joint):
                 binds = []
                 for c in corners:
                     v = np.array(c[0])
