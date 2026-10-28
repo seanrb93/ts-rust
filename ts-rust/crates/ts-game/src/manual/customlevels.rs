@@ -231,6 +231,11 @@ pub fn custom_setup(level: i32) -> Option<i32> {
 
 /// How many texts the mods' levels have added after the game's and the characters'.
 pub fn custom_text_count() -> i32 {
+    // (the texts of mods that are not level names come after the room for the names of MAX_LEVELS levels)
+    let extra = EXTRA.lock().unwrap().len() as i32;
+    if extra > 0 {
+        return MAX_LEVELS as i32 + extra;
+    }
     CUSTOM.lock().unwrap().len() as i32
 }
 

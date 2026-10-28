@@ -9,7 +9,7 @@ pub fn animTick(a0: i32) {
     let front = lw(g::front);
     let chr = lw((lw(front) << 2) + 0x1fc1238);
     let f1_1 = lwc1(chr + 48);
-    let idx = lh(lw(chr + 352) + 4);
+    let idx = crate::manual::chartable::front_end_chr(lh(lw(chr + 352) + 4));
     sw(chr + 344, 0);
     let v0_1 = lw(front) << 2;
     let a1_1 = v0_1 + 0x1fc1258;

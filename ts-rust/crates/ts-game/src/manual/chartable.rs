@@ -57,6 +57,41 @@ pub fn added_characters() -> i32 {
 #[cfg(feature = "extended-tables")]
 static ADDED: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
 
+/// Whether `chr` is a character that a mod added (never in a build without `extended-tables`).
+pub fn is_added(chr: i32) -> bool {
+    #[cfg(feature = "extended-tables")]
+    {
+        chr >= GAME_CHARACTERS
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = chr;
+        false
+    }
+}
+
+/// The game's character that the tables of the front end (the animation list, the display's state) are read for: an added character shows and moves as the character it copies, as those
+/// tables have the game's 80 entries only.
+pub fn front_end_chr(chr: i32) -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        let mut chr = chr;
+        let copies = COPIES.lock().unwrap();
+        while chr >= GAME_CHARACTERS {
+            match copies.get((chr - GAME_CHARACTERS) as usize) {
+                Some(&of) => chr = of,
+                None => return 0,
+            }
+        }
+        chr
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    chr
+}
+
+#[cfg(feature = "extended-tables")]
+static COPIES: Mutex<Vec<i32>> = Mutex::new(Vec::new());
+
 /// Make the table in the port's memory: the game's characters, then the added ones.
 #[cfg(feature = "extended-tables")]
 pub fn character_table_init() {
@@ -111,6 +146,7 @@ pub fn character_table_init() {
         eprintln!("[mods] character {} \"{}\" added (a copy of {}{})", next, c.name, c.copy_of, if c.model_file.is_empty() { String::new() } else { format!(", model {}", c.model_file) });
         accepted += 1;
         ADDED.store(accepted, std::sync::atomic::Ordering::Relaxed);
+        COPIES.lock().unwrap().push(c.copy_of);
     }
 }
 

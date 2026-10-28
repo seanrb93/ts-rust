@@ -518,12 +518,12 @@ pub fn selectChar(a0: i32, a1: i32) {
     sw(chr + 16, (flags | 0x1000000) & -0xe000001);
     if (difference as u32) >= 3 {
         if a1 != 29 {
-            obInstSetAnim(lw(chr + 32), lw(a1 * 20 + g::fe_animation_list), 1.0_f32);
+            obInstSetAnim(lw(chr + 32), lw(crate::manual::chartable::front_end_chr(a1) * 20 + g::fe_animation_list), 1.0_f32);
         } else {
             obInstSetAnim(lw(chr + 32), lw(g::fe_animation_list + 580), lwc1(0x3ac9bc));
         }
     } else {
-        obInstSetAnim(lw(chr + 32), lw(a1 * 20 + g::fe_animation_list), 0.0_f32);
+        obInstSetAnim(lw(chr + 32), lw(crate::manual::chartable::front_end_chr(a1) * 20 + g::fe_animation_list), 0.0_f32);
     }
     let player = lw(g::currentplayer);
     let distance = lwc1(0x3ac9c0);

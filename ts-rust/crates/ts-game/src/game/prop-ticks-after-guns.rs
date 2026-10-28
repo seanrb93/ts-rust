@@ -482,7 +482,8 @@ pub fn chrNew(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, f1
             }
         }
     }
-    if !(a1 < 79) {
+    // (the numbers from 79 are the game's special characters, not the ones that mods add)
+    if !(a1 < 79) && !crate::manual::chartable::is_added(a1) {
         sw(record + 8, 3);
     }
     let mut applies = true;
