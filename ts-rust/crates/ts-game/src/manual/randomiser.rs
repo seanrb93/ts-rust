@@ -46,7 +46,9 @@ pub fn char_randomise(page: i32) {
     }
     let prof = lw(g::signonarray) + id * 2936 + 32;
     let current = lw(prof + 84);
-    let choices: Vec<i32> = (0..64).map(|i| lbu(g::characterorder + i)).filter(|&c| c != current && chrPlayable(c) != 0).collect();
+    let mut choices: Vec<i32> = (0..64).map(|i| lbu(g::characterorder + i)).filter(|&c| c != current && chrPlayable(c) != 0).collect();
+    // (the characters that mods added come after, all playable)
+    choices.extend((0..added_characters().min(20)).map(|k| GAME_CHARACTERS + k).filter(|&c| c != current));
     if choices.is_empty() {
         return;
     }
@@ -109,7 +111,7 @@ pub fn bots_randomise(page: i32) {
         return;
     }
     // (the page makes the list of the bots that can be chosen every tick: count at 0x3aff50, the characters at 0x1fc2b48)
-    let n = lw(0x3aff50).clamp(0, 64);
+    let n = lw(0x3aff50).clamp(0, 84);
     if n == 0 {
         return;
     }
