@@ -324,8 +324,11 @@ const MODE_FIELDS: &[(&str, i32, i32)] = &[
 ];
 
 /// Read a `modes.txt`: `mode <name or number>` and then the options of that mode, and `name "text"` for its name in the menus.
-pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<String>) {
+pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVariant>, Vec<String>) {
     let mut presets: Vec<ts_game::ModePreset> = Vec::new();
+    let mut variants: Vec<ts_game::ModeVariant> = Vec::new();
+    // (the options that follow go to the last variant while one is open)
+    let mut in_variant = false;
     let mut errors = Vec::new();
     let mut current: Option<usize> = None;
     for (n, line) in text.lines().enumerate() {
@@ -338,6 +341,7 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<String>) {
         if words[0] == "mode" {
             current = match words.get(1).and_then(|w| mode_number(w)) {
                 Some(kind) => {
+                    in_variant = false;
                     presets.push(ts_game::ModePreset { kind, name: String::new(), fields: Vec::new() });
                     Some(presets.len() - 1)
                 }
@@ -352,10 +356,22 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<String>) {
             errors.push(format!("line {n}: `{line}` comes before any `mode <name>` line"));
             continue;
         };
+        if words[0] == "variant" {
+            let name = line.splitn(2, char::is_whitespace).nth(1).unwrap_or("").trim().trim_matches('"').to_string();
+            if name.is_empty() {
+                errors.push(format!("line {n}: `variant` needs a name"));
+            } else {
+                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new() });
+                in_variant = true;
+            }
+            continue;
+        }
         if words[0] == "name" {
             let name = line.splitn(2, char::is_whitespace).nth(1).unwrap_or("").trim().trim_matches('"').to_string();
             if name.is_empty() {
                 errors.push(format!("line {n}: `name` needs a name"));
+            } else if in_variant {
+                errors.push(format!("line {n}: a variant has its name on the `variant` line"));
             } else {
                 presets[k].name = name;
             }
@@ -373,27 +389,33 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<String>) {
             None => None,
         };
         match value {
-            Some(v) if (0..=max as i64).contains(&v) => presets[k].fields.push((at, v as i32)),
+            Some(v) if (0..=max as i64).contains(&v) => match variants.last_mut().filter(|_| in_variant) {
+                Some(var) => var.fields.push((at, v as i32)),
+                None => presets[k].fields.push((at, v as i32)),
+            },
             Some(v) => errors.push(format!("line {n}: {} {v} is out of range (0 to {max})", words[0])),
             None => errors.push(format!("line {n}: `{}` needs a number{}", words[0], if max == 1 { " or on / off" } else { "" })),
         }
     }
-    (presets, errors)
+    (presets, variants, errors)
 }
 
 /// Read and apply the file `path` of the mod `mod_name`; the complaints go to the log.
 pub fn load_file(mod_name: &str, which: &str, path: &Path) {
     let Ok(text) = std::fs::read_to_string(path) else { return };
     if which == "mode" {
-        let (presets, errors) = parse_modes(&text);
+        let (presets, variants, errors) = parse_modes(&text);
         for e in &errors {
             eprintln!("[mods] {mod_name}/modes.txt {e}");
         }
-        let n = presets.len();
+        let (n, nv) = (presets.len(), variants.len());
         for p in presets {
             ts_game::register_mode_preset(p);
         }
-        eprintln!("[mods] {mod_name}/modes.txt: {n} mode(s){}", if errors.is_empty() { String::new() } else { format!(", {} line(s) left out", errors.len()) });
+        for v in variants {
+            ts_game::register_mode_variant(v);
+        }
+        eprintln!("[mods] {mod_name}/modes.txt: {n} mode(s), {nv} variant(s){}", if errors.is_empty() { String::new() } else { format!(", {} line(s) left out", errors.len()) });
         return;
     }
     let (ops, added, errors) = parse(which, &text);
@@ -468,7 +490,7 @@ weapon 0
 
     #[test]
     fn reads_modes() {
-        let (p, errors) = parse_modes("mode deathmatch
+        let (p, vs, errors) = parse_modes("mode deathmatch
  name \"Quick Match\"
  kill_limit 10
  friendly_fire off
@@ -481,7 +503,22 @@ mode ko
         assert_eq!(p[0].name, "Quick Match");
         assert_eq!(p[0].fields, vec![(16, 10), (4, 0)]);
         assert_eq!(p[1].kind, 5);
-        let (_, errors) = parse_modes("kill_limit 3
+        assert!(vs.is_empty());
+        let (p, vs, errors) = parse_modes("mode dm
+ kill_limit 20
+ variant \"Short\"
+ kill_limit 5
+ radar off
+ variant \"Long\"
+ kill_limit 50
+");
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(p[0].fields, vec![(16, 20)]);
+        assert_eq!(vs.len(), 2);
+        assert_eq!(vs[0].name, "Short");
+        assert_eq!(vs[0].fields, vec![(16, 5), (8, 0)]);
+        assert_eq!(vs[1].fields, vec![(16, 50)]);
+        let (_, _, errors) = parse_modes("kill_limit 3
 mode chess
 mode ls
  time_limit 5000

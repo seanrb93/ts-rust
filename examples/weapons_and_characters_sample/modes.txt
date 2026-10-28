@@ -5,3 +5,11 @@ mode deathmatch
   kill_limit 10
   friendly_fire off
   radar on
+
+# Variants: ways to play the mode that the player chooses on the Rules row of the arcade Options page (Standard is the mode as it starts).
+# The options of a variant are set when it is chosen; the others stay as the mode has them.
+  variant "Short"
+  kill_limit 5
+  variant "One Shot"
+  one_shot_kill on
+  kill_limit 15
