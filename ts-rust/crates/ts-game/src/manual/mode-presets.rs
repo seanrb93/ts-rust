@@ -49,8 +49,12 @@ static VARIANTS: Mutex<Vec<ModeVariant>> = Mutex::new(Vec::new());
 static BASE: Mutex<[[i32; 8]; 7]> = Mutex::new([[0; 8]; 7]);
 
 pub fn register_mode_variant(v: ModeVariant) {
-    if (1..=6).contains(&v.kind) {
-        VARIANTS.lock().unwrap().push(v);
+    // (the list of the Rules row has room for 70 names with the strings: 30 for a mode is plenty)
+    let mut all = VARIANTS.lock().unwrap();
+    if (1..=6).contains(&v.kind) && all.iter().filter(|o| o.kind == v.kind).count() < 30 {
+        all.push(v);
+    } else {
+        eprintln!("[mods] variant {:?}: left out (at most 30 variants for a mode)", v.name);
     }
 }
 
