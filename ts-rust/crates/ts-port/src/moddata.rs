@@ -56,27 +56,56 @@ pub enum Op {
 
 /// A field with a name: its place in the entry, how it is stored, the lowest and highest value.
 struct Field {
-    name: &'static str,
+    name: String,
     at: i32,
     kind: Kind,
-    min: i64,
-    max: i64,
+    min: f64,
+    max: f64,
 }
 
-const WEAPON_FIELDS: &[Field] = &[
-    Field { name: "ammo_kind", at: 16, kind: Kind::W, min: 0, max: AMMO_KINDS as i64 - 1 },
-    Field { name: "clip", at: 20, kind: Kind::W, min: 0, max: 9999 },
-    Field { name: "flags", at: 28, kind: Kind::W, min: 0, max: 0xffff },
-    Field { name: "bullet_type", at: 52, kind: Kind::W, min: 0, max: 255 },
-];
+fn field(name: &str, at: i32, kind: Kind, min: f64, max: f64) -> Field {
+    Field { name: name.to_string(), at, kind, min, max }
+}
 
-const CHARACTER_FIELDS: &[Field] = &[
-    Field { name: "name_text", at: 0, kind: Kind::H, min: 0, max: 0xffff },
-    Field { name: "name_text_2", at: 2, kind: Kind::H, min: 0, max: 0xffff },
-    Field { name: "model", at: 8, kind: Kind::W, min: 0, max: 1100 },
-    Field { name: "front_model", at: 12, kind: Kind::W, min: 0, max: 1100 },
-    Field { name: "flags", at: 16, kind: Kind::W, min: -0x8000_0000, max: 0x7fff_ffff },
-];
+/// The weapon's fields that are named.  Seen in the code: how the game reads them (the entry is `guns + 400 * weapon`).  A weapon has a second shot (the alternate
+/// fire) at +188 that is laid out as the first at +52, so the fields of the shot are listed once and named again with `alt_` in front.
+fn weapon_fields() -> Vec<Field> {
+    let mut v = vec![
+        field("ammo_kind", 16, Kind::W, 0.0, AMMO_KINDS as f64 - 1.0),   // the kind of ammo (an index of `ammoinfo`)
+        field("clip", 20, Kind::W, -1.0, 9999.0),                         // rounds in a clip (-1: no clip)
+        field("ammo_reserve", 24, Kind::W, 0.0, 9999.0),                  // what a player starts with or is given of the ammo (read by the level setup and by what a dead enemy drops)
+        field("flags", 28, Kind::W, 0.0, 0xffff as f64),                  // 1, 2, 8 change the animations a character uses and what an enemy does with the weapon
+        field("view_x", 32, Kind::F, -10.0, 10.0),                        // where the gun is held on the screen: across (mirrored for the left hand), up, forward
+        field("view_y", 36, Kind::F, -10.0, 10.0),
+        field("view_z", 40, Kind::F, -10.0, 10.0),
+        field("fov_a", 44, Kind::F, 1.0, 179.0),                          // the fields of view the zoom uses (player + 268, + 272)
+        field("fov_b", 48, Kind::F, 1.0, 179.0),
+        field("ai_burst", 60, Kind::W, 0.0, 9999.0),                          // compared with an enemy's shot counter: how long its burst lasts
+        field("muzzle_bone", 364, Kind::W, -1.0, 255.0),                  // the bones of the model that the shot, the muzzle flash and the sparks come from
+        field("flash_bone", 340, Kind::W, -1.0, 255.0),
+        field("spark_bone", 360, Kind::W, -1.0, 255.0),
+    ];
+    for (prefix, base) in [("", 52), ("alt_", 188)] {
+        v.push(field(&format!("{prefix}bullet_type"), base, Kind::W, 0.0, 255.0));        // what the shot makes (the table of bullets)
+        v.push(field(&format!("{prefix}bullet_speed"), base + 28, Kind::F, 0.0, 1000.0)); // scales the direction of a bullet
+        v.push(field(&format!("{prefix}spread"), base + 32, Kind::F, 0.0, 10.0));         // how far a bullet can leave the aim
+        v.push(field(&format!("{prefix}recoil"), base + 56, Kind::F, -100.0, 100.0));     // the gun's kick back
+        v.push(field(&format!("{prefix}kick"), base + 60, Kind::F, -100.0, 100.0));       // multiplies the recoil
+        v.push(field(&format!("{prefix}pull"), base + 72, Kind::F, -100.0, 100.0));       // how far the view is pulled by a shot
+    }
+    v
+}
+
+fn character_fields() -> Vec<Field> {
+    vec![
+        field("name_text", 0, Kind::H, 0.0, 65535.0),
+        field("name_text_2", 2, Kind::H, 0.0, 65535.0),
+        field("model", 8, Kind::W, 0.0, 1100.0),
+        field("front_model", 12, Kind::W, 0.0, 1100.0),
+        field("flags", 16, Kind::W, -2147483648.0, 2147483647.0),
+        field("scale", 40, Kind::F, 0.01, 100.0),
+    ]
+}
 
 fn parse_int(s: &str) -> Option<i64> {
     let s = s.trim();
@@ -91,11 +120,11 @@ fn parse_int(s: &str) -> Option<i64> {
 
 /// Read the text of a `weapons.txt` (`which` = "weapon") or `characters.txt` (`which` = "character"); the writes it asks for, and the complaints (with line numbers).
 pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<String>) {
-    let (fields, base, size, count): (&[Field], i32, i32, i32) = if which == "weapon" { (WEAPON_FIELDS, GUNS, GUN_SIZE, GUN_COUNT) } else { (CHARACTER_FIELDS, CHRS, CHR_SIZE, CHR_COUNT) };
+    let (fields, base, size, count): (Vec<Field>, i32, i32, i32) = if which == "weapon" { (weapon_fields(), GUNS, GUN_SIZE, GUN_COUNT) } else { (character_fields(), CHRS, CHR_SIZE, CHR_COUNT) };
     let mut ops = Vec::new();
     let mut errors = Vec::new();
     let mut current: Option<i32> = None;
-    let names = |f: &[Field]| f.iter().map(|f| f.name).collect::<Vec<_>>().join(", ");
+    let names = |f: &[Field]| f.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
     for (n, line) in text.lines().enumerate() {
         let n = n + 1;
         let line = line.split('#').next().unwrap_or("").trim();
@@ -161,20 +190,21 @@ pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<String>) {
             }
             continue;
         }
-        if which == "character" && key == "scale" {
+        let Some(field) = fields.iter().find(|f| f.name == key) else {
+            let extra = if which == "weapon" { ", max_ammo" } else { "" };
+            errors.push(format!("line {n}: unknown field `{key}` (the fields are {}{extra}, raw)", names(&fields)));
+            continue;
+        };
+        if field.kind == Kind::F {
             match words.get(1).and_then(|w| w.parse::<f32>().ok()) {
-                Some(v) if v > 0.0 && v < 100.0 => ops.push(Op::Put { addr: entry + 40, kind: Kind::F, value: Value::Float(v) }),
-                _ => errors.push(format!("line {n}: `scale` needs a number above 0")),
+                Some(v) if (field.min..=field.max).contains(&(v as f64)) => ops.push(Op::Put { addr: entry + field.at, kind: field.kind, value: Value::Float(v) }),
+                Some(v) => errors.push(format!("line {n}: {key} {v} is out of range ({} to {})", field.min, field.max)),
+                None => errors.push(format!("line {n}: `{key}` needs a number")),
             }
             continue;
         }
-        let Some(field) = fields.iter().find(|f| f.name == key) else {
-            let extra = if which == "weapon" { ", max_ammo" } else { ", scale" };
-            errors.push(format!("line {n}: unknown field `{key}` (the fields are {}{extra}, raw)", names(fields)));
-            continue;
-        };
         match words.get(1).and_then(|w| parse_int(w)) {
-            Some(v) if (field.min..=field.max).contains(&v) => ops.push(Op::Put { addr: entry + field.at, kind: field.kind, value: Value::Int(v) }),
+            Some(v) if (field.min..=field.max).contains(&(v as f64)) => ops.push(Op::Put { addr: entry + field.at, kind: field.kind, value: Value::Int(v) }),
             Some(v) => errors.push(format!("line {n}: {key} {v} is out of range ({} to {})", field.min, field.max)),
             None => errors.push(format!("line {n}: `{key}` needs a number")),
         }
@@ -235,6 +265,19 @@ mod tests {
         assert!(ops.is_empty());
         assert_eq!(errors.len(), 5, "{errors:?}");
         assert!(errors[0].starts_with("line 1"));
+    }
+
+    #[test]
+    fn reads_shot_fields() {
+        let (ops, errors) = parse("weapon", "weapon 2
+ spread 0.02
+ alt_bullet_type 5
+ view_x 0.3
+");
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(ops[0], Op::Put { addr: GUNS + 2 * 400 + 84, kind: Kind::F, value: Value::Float(0.02) });
+        assert_eq!(ops[1], Op::Put { addr: GUNS + 2 * 400 + 188, kind: Kind::W, value: Value::Int(5) });
+        assert_eq!(ops[2], Op::Put { addr: GUNS + 2 * 400 + 32, kind: Kind::F, value: Value::Float(0.3) });
     }
 
     #[test]
