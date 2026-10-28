@@ -56,6 +56,13 @@ fn camera_aid() {
         if lw(g::framenum) == frame {
             camSetMode(mode);
         }
+        // (TS_CAMDIST=<back>,<up>: how far behind and how high the third person camera is from the frame on, to see the whole character; 1.5,1.5 is the game's)
+        if lw(g::framenum) > frame {
+            if let Some((back, up)) = std::env::var("TS_CAMDIST").ok().and_then(|v| v.split_once(',').and_then(|(a, b)| Some((a.parse::<f32>().ok()?, b.parse::<f32>().ok()?)))) {
+                swc1(0x3b0128, back);
+                swc1(0x3b0130, up);
+            }
+        }
     }
 }
 
