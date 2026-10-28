@@ -250,7 +250,7 @@ def load(path, opts):
         if water and inner is not None:
             m._loader = lambda inner=inner: _water(inner())
         elif glass and inner is not None:
-            m._loader = lambda inner=inner: _faded(inner(), 0.65)
+            m._loader = lambda inner=inner: _faded(inner(), 0.92)
         elif inner is not None and '$envmap' in params:
             # (a surface that shows the sky or the room round it: glass is nearly clear by its alpha and a metal is plain grey, and both are the colour
             # that the material gives; the reflection itself is not made)
@@ -562,7 +562,7 @@ def _reflective(im, translucent, tint, env=None):
     elif tint is not None and flat:
         a[:, :, :3] = np.clip(a[:, :, :3].astype(np.float64) * np.array(tint) * 2.0, 0, 255).astype(np.uint8)
     if translucent:
-        a[:, :, 3] = np.maximum(a[:, :, 3], 150)
+        a[:, :, 3] = np.maximum(a[:, :, 3], 225)
     return Image.fromarray(a, 'RGBA')
 
 
