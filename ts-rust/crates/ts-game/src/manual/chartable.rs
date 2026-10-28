@@ -142,6 +142,13 @@ pub fn character_table_init() {
             } else {
                 eprintln!("[mods] character {}: no room for another model prop", c.number);
             }
+            // (the same file for the front end, which shows the character on the select page: a prop of its own copying the front end prop)
+            let front_source = lw(entry + 12);
+            let front_source = if (0..713).contains(&front_source) { front_source } else { 80 + c.copy_of };
+            let front = super::modelprops::new_prop(front_source, &format!("FE{}", next), &c.model_file);
+            if front >= 0 {
+                sw(entry + 12, front);
+            }
         }
         eprintln!("[mods] character {} \"{}\" added (a copy of {}{})", next, c.name, c.copy_of, if c.model_file.is_empty() { String::new() } else { format!(", model {}", c.model_file) });
         accepted += 1;

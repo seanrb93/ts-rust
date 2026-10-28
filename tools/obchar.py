@@ -3,7 +3,7 @@
     python tools/obchar.py <game folder> <mesh.obj> --out mods/Robo --name "Robo" [--base 0] [--number 80] [--skeleton male|female] [--voice 2] [--height 1.95]
 
 The mesh is an OBJ of a whole figure standing in the pose of the game's skeleton (arms down at the sides, feet on the ground, facing the way the game's characters face; `python tools/obdump.py
-<OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes a game character in the pose, to model on).  It is scaled to the height of a game character (`--height`, 1.95 by default) and put on the ground.  Each triangle
+<OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes a game character in the pose, to model on).  It is scaled to the height of a game character (`--height`, 1.95 by default) and put on the ground.  Keep it so: the skeleton does not change with the mesh, so a mesh of another height no longer fits its joints (a figure 1.4 times taller shows torn triangles at the hips).  (The character's `scale` field is not a way round this: with 1.4 on the select page the arms came out as spikes.)  Each triangle
 is given to the bone of the game's skeleton nearest to it (the bone is the stretch from a joint to the next one, or to a point past the end of a limb), so every part of the mesh follows the
 joint that is nearest to it.  The triangles near a joint between two bones go to the model's own seam part there (kinds 1 and 2 of `docs/model-format.md`, the ones the game's characters have at an elbow
 or a knee), each corner following the joint of the nearer bone, and for a seam of kind 2 the corners right at the joint follow its own joint, so a bent joint stretches instead of opening.  The materials of the OBJ with a `map_Kd` picture (any size) become textures of the game (`--tex-base`, 9000 by default).
@@ -138,31 +138,59 @@ def main():
             seams[p] = (x, y, max(0.04, 0.35 * min(lengths)))
     corner_binds = {}
     nearest = lambda v, among: min(among, key=lambda q: distance_to_segment(v, *segs[q]))
+    key = lambda c: tuple(round(float(x), 5) for x in c[0])
+    # each vertex (by position) follows one bone, the nearest at first.  A triangle whose corners follow bones that no seam of the model joins cannot be drawn without a crack, so its
+    # corners are all given the bone nearest its middle, and that changes the other triangles at those vertices; this goes on until nothing changes
+    vertex_bone = {}
     for corners, mat in moved:
-        mid = np.mean([c[0] for c in corners], axis=0)
-        best = min(kind0, key=lambda p: distance_to_segment(mid, *segs[p]))
-        corner_bones = {nearest(np.array(c[0]), kind0) for c in corners}
-        if len(corner_bones) == 1:
-            best = next(iter(corner_bones))
-        for sp, (x, y, radius) in seams.items():
-            joint = world[y]
-            bones = {nearest(np.array(c[0]), kind0) for c in corners}
-            # (a triangle whose corners follow two different bones, or one with a corner at the joint of a seam that has a joint of its own: the corners of a triangle that is rigid
-            # on one bone must be bound to that bone in every other triangle they are in)
-            at_joint = parts[sp][0] == 2 and any(np.linalg.norm(np.array(c[0]) - joint) < radius / 2 for c in corners)
-            if len(corners) == 3 and bones <= {x, y} and (len(bones) == 2 or at_joint):
-                binds = []
-                for c in corners:
-                    v = np.array(c[0])
-                    if parts[sp][0] == 2 and np.linalg.norm(v - joint) < radius / 2:
-                        binds.append(parts[sp][2])
-                    else:
-                        binds.append(parts[nearest(v, (x, y))][2])
-                corner_binds[id(corners)] = binds
-                # (the chunks of a part that blends joints are of kind 4)
-                by_part.setdefault(sp, []).append((corners, mat[:-1] + '4' if mat and mat.endswith('_k3') else mat))
-                break
+        for c in corners:
+            vertex_bone.setdefault(key(c), nearest(np.array(c[0]), kind0))
+    pairs = {frozenset((x, y)): sp for sp, (x, y, radius) in seams.items()}
+    for _ in range(20):
+        changed = False
+        for corners, mat in moved:
+            bones = {vertex_bone[key(c)] for c in corners}
+            if len(bones) < 2 or len(corners) != 3 or any(bones <= pair for pair in pairs):
+                continue
+            mid = np.mean([c[0] for c in corners], axis=0)
+            best = min(bones, key=lambda q: distance_to_segment(mid, *segs[q]))
+            for c in corners:
+                if vertex_bone[key(c)] != best:
+                    vertex_bone[key(c)] = best
+                    changed = True
+        if not changed:
+            break
+    for corners, mat in moved:
+        bones = {vertex_bone[key(c)] for c in corners}
+        if len(corners) == 3 and len(bones) == 2:
+            sp = pairs.get(frozenset(bones))
+            if sp is None:
+                sp = next((q for p2, q in pairs.items() if bones <= p2), None)
         else:
+            sp = None
+        at = None
+        if sp is None and len(corners) == 3:
+            # (a triangle on one bone with a corner at the joint of a seam that has a joint of its own: it is drawn by the seam, as the corner there follows the joint of its own)
+            for q, (x, y, radius) in seams.items():
+                if parts[q][0] == 2 and bones <= {x, y} and any(np.linalg.norm(np.array(c[0]) - world[y]) < radius / 2 for c in corners):
+                    sp = q
+                    break
+        if sp is not None:
+            x, y, radius = seams[sp]
+            joint = world[y]
+            binds = []
+            for c in corners:
+                v = np.array(c[0])
+                if parts[sp][0] == 2 and np.linalg.norm(v - joint) < radius / 2:
+                    binds.append(parts[sp][2])
+                else:
+                    binds.append(parts[vertex_bone[key(c)]][2])
+            corner_binds[id(corners)] = binds
+            # (the chunks of a part that blends joints are of kind 4)
+            by_part.setdefault(sp, []).append((corners, mat[:-1] + '4' if mat and mat.endswith('_k3') else mat))
+        else:
+            mid = np.mean([c[0] for c in corners], axis=0)
+            best = min(bones, key=lambda q: distance_to_segment(mid, *segs[q]))
             by_part[best].append((corners, mat))
     numbers = obedit.add_pictures(out, pictures, tex_base) if pictures else None
     data = model
