@@ -106,6 +106,10 @@ Plan:
 5. Only if that is not enough: a scripting layer.  It needs a decision on the language, a sandbox, and a rule that a mod cannot touch the verified game code's memory except through the
    port's calls.  This is a large design of its own and is not planned yet.
 
+## Done so far
+
+* `weapons.txt` and `characters.txt` (`ts-port/src/moddata.rs`): the shared format with names, ranges and line numbers in the log, for the weapon fields known so far (ammo kind, clip, flags, bullet type, most carried) and character fields (name texts, models, flags, scale), and `raw` for the rest.  Tested by unit tests and a load in the game.  Not done: mapping the other fields of a weapon (damage, rate and so on), adding weapons and characters past the game's tables, `modes.txt`, any model format.
+
 ## Order of work
 
 1. The mod file format and the loader: one place (`mod.ini` sections or `characters.txt`, `weapons.txt`, `modes.txt`) where all three are described, with validation and clear errors in

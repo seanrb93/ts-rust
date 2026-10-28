@@ -338,6 +338,7 @@ pub fn load(game_dir: &Path, exe: &Path) {
     let mut pack_changes: BTreeMap<&str, BTreeMap<String, PathBuf>> = BTreeMap::new();
     let mut overlay: Vec<(String, PathBuf)> = Vec::new();
     let mut patches: Vec<(String, String)> = Vec::new();
+    let mut data_files: Vec<(String, &str, PathBuf)> = Vec::new();
     let mut level_lists: Vec<(String, PathBuf)> = Vec::new();
     // the packs' contents, to find where a file without a pack name belongs
     let contents: Vec<(&str, Vec<Vec<u8>>)> = PACKS
@@ -365,6 +366,10 @@ pub fn load(game_dir: &Path, exe: &Path) {
             if lower == "mod.ini" || lower == "patches.txt" || lower.ends_with(".md") || lower == "readme.txt" || (lower.ends_with(".txt") && !lower.contains('/')) {
                 if lower == "patches.txt" {
                     patches.push((m.name.clone(), host.to_string_lossy().into_owned()));
+                } else if lower == "weapons.txt" {
+                    data_files.push((m.name.clone(), "weapon", host.clone()));
+                } else if lower == "characters.txt" {
+                    data_files.push((m.name.clone(), "character", host.clone()));
                 }
                 continue;
             }
@@ -431,6 +436,9 @@ pub fn load(game_dir: &Path, exe: &Path) {
     }
     ts_sdk::set_disc_overlay(overlay);
     apply_patches(exe, &patches);
+    for (name, which, path) in &data_files {
+        crate::moddata::load_file(name, which, path);
+    }
 }
 
 /// The levels of the mods (`levels.txt`, one per line: `level <number 31..99> "<name>" like <level> [tune <track>] [modes dm,bagtag,ctb,escort,ko,ls]`):

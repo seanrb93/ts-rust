@@ -1,0 +1,4 @@
+# Characters by the names of their fields.  The number is the place in the game's table of characters.
+# This sample only makes character 3 a little bigger.
+character 3
+  scale 1.1

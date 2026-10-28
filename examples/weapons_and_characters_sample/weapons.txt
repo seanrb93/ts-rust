@@ -1,0 +1,4 @@
+# Weapons by the names of their fields (see ts-port/src/moddata.rs).  The weapon number is the place in the game's table: 0 is the pistol.
+weapon 0
+  clip 15          # rounds in a clip (was 10)
+  max_ammo 250     # the most that can be carried of this kind of ammo (was 500)

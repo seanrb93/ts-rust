@@ -10,6 +10,7 @@ mod config;
 mod gamepads;
 mod menu;
 mod mods;
+mod moddata;
 mod dldump;
 mod keys;
 mod texmod;
