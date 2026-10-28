@@ -1,6 +1,6 @@
 """Makes a new character from scratch: Pumpkin Jack, a scarecrow with a pumpkin head, as an OBJ (a pose of arms down, facing +z) with its pictures.
 
-    python examples/pumpkin_mod_src/make-pumpkin.py <out folder>
+    python examples/pumpkin_mod_src/make-pumpkin.py <out folder> [detail]
 """
 import math
 import os
@@ -10,6 +10,9 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 out = sys.argv[1]
+# how fine the surfaces are cut (1 is about 4500 triangles; the game's own characters have 1600)
+DETAIL = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
+HEAD_DETAIL = float(sys.argv[3]) if len(sys.argv) > 3 else DETAIL
 os.makedirs(out, exist_ok=True)
 verts, uvs, norms, faces = [], [], [], []   # faces: (material, [(v, vt)...])
 
@@ -60,6 +63,7 @@ def ellipsoid(material, c, r, n=20, m=14, planar=True):
 
 def box(material, lo, hi, cell=0.05):
     """A box whose faces are cut into small squares: a triangle then follows one bone of the skeleton and the joints bend the figure instead of tearing it."""
+    cell /= DETAIL
     lo, hi = np.array(lo), np.array(hi)
     centre = (lo + hi) / 2
     for axis in range(3):
@@ -131,7 +135,7 @@ for s in (-1, 1):
     for f in (-1, 0, 1):
         box('straw', (s * 0.23 + f * 0.03 - 0.012, 0.7, -0.012), (s * 0.23 + f * 0.03 + 0.012, 0.8, 0.012))
 # the head
-ellipsoid('head', (0, 1.68, 0.0), (0.27, 0.23, 0.25), 28, 20)
+ellipsoid('head', (0, 1.68, 0.0), (0.27, 0.23, 0.25), int(28 * HEAD_DETAIL), int(20 * HEAD_DETAIL))
 cylinder('stem', (0.0, 1.88, 0.0), 0.04, 0.07)
 
 # the object file, with a material file
