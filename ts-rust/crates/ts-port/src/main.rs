@@ -1,6 +1,6 @@
 //! TimeSplitters native PC port launcher.
 //!
-//! usage: ts-port [--game-dir <dir containing PAK/, MUSIC/ and SLUS_200.90; default: the program's folder>] [--level NAME] [--players N]
+//! usage: ts-port [--game-dir <dir containing PAK/ and MUSIC/; default: the program's folder>] [--level NAME] [--players N]
 //!                 [--headless] [--frames N] [--screenshot FRAME file.png]
 //!
 //! Opens a window by default; `--headless` (implied by `--screenshot`) renders offscreen only.
@@ -52,7 +52,7 @@ fn apply_uploads(n: u64) {
 static PREV_FRAME: Mutex<Option<ts_gfx::scene::Frame>> = Mutex::new(None);
 static SHOT_RENDERER: Mutex<Option<ts_render::Renderer>> = Mutex::new(None);
 
-/// The folder of the program: the game's files (`PAK`, `MUSIC`, `SLUS_200.90`) and the saves are kept there.
+/// The folder of the program: the game's files (`PAK`, `MUSIC`) and the saves are kept there.
 fn exe_dir() -> PathBuf {
     std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())).unwrap_or_else(|| PathBuf::from("."))
 }
@@ -693,31 +693,32 @@ fn main() {
     WINDOWED.store(windowed, std::sync::atomic::Ordering::Relaxed);
     // the game's files have to be in the program's own folder (`--game-dir` is for testing)
     let game_dir = game_dir.unwrap_or_else(exe_dir);
-    if !game_dir.join("PAK").is_dir() || !game_dir.join("SLUS_200.90").is_file() {
+    if !game_dir.join("PAK").is_dir() {
         fatal(&format!("The game's files are missing.
 
-Put the PAK and MUSIC folders and SLUS_200.90 of the game in the same folder as the program:
+Put the PAK and MUSIC folders of the game in the same folder as the program:
 {}", game_dir.display()));
     }
     eprintln!("[port] game directory: {}", game_dir.display());
 
     ts_rt::init_memory();
-    // The game's initialised data (strings, tables, defaults) is read from the original executable of the game.
-    let exe = game_dir.join("SLUS_200.90");
-    if let Err(e) = ts_rt::loader::load_elf_data(&exe) {
-        fatal(&format!("The game's executable cannot be read.
-
-SLUS_200.90 has to be in the same folder as the program:
-{}
-
-({e})", exe.display()));
+    // The game's initialised data (strings, tables, defaults) is part of the program: no copy of the original executable is needed.
+    match std::env::var_os("TS_GAME_EXE") {
+        // (a test aid: the data is read from the original executable instead, to compare it with the program's own)
+        Some(exe) => {
+            if let Err(e) = ts_rt::loader::load_elf_data(std::path::Path::new(&exe)) {
+                fatal(&format!("TS_GAME_EXE cannot be read: {e}"));
+            }
+        }
+        None => ts_rt::loader::load_game_data(),
     }
+    // (a build that checks the game against the original while it runs needs the executable: `--features shadow`)
     #[cfg(feature = "shadow")]
     ts_verify::shadow::install(&game_dir.join("SLUS_200.90"));
     config::load(&overrides);
     ts_sdk::set_disc_root(&game_dir);
     ts_gfx::hd::set_loader(texmod::load_hd);
-    mods::load(&exe_dir(), &exe);
+    mods::load(&exe_dir());
     mods::publish_pack_names();
     ts_game::prop_table_init();
     ts_game::character_table_init();

@@ -1,11 +1,37 @@
-//! Loading the original game executable's initialised data into the address space.
+//! The game's initialised data in the address space.
 //!
-//! The decompiled code still addresses its global variables at their original addresses, so the executable's
-//! initialised `.data`/`.rodata`/`.sdata` contents (default values, string literals, tables) are copied there once at
-//! start-up.  No code from the executable is ever executed.
+//! The decompiled code addresses its global variables at their original addresses, so the executable's initialised `.rodata`/`.data`/`.sdata` contents (default values, string literals,
+//! tables, the graphics microcode) are copied there once at start-up.  They are part of this repository (`data/game-data.bin`, written by `tools/extract-game-data.py`), so the program needs no
+//! copy of the original executable, and none of its code is ever executed (every function of the game is Rust).  `load_elf_data` and `read_symbols` read the original executable and are for the
+//! verifier and the tools.
 
 use crate::mem::host_slice;
 use std::path::Path;
+
+/// The first address of the data (the end of the code of the executable) and the data itself.
+pub const DATA_START: i32 = 0x2eeff0;
+static GAME_DATA: &[u8] = include_bytes!("../data/game-data.bin");
+static SYMBOLS: &str = include_str!("../data/symbols.tsv");
+
+/// Put the game's initialised data at its addresses.
+pub fn load_game_data() {
+    host_slice(DATA_START, GAME_DATA.len()).copy_from_slice(GAME_DATA);
+}
+
+/// The names and addresses of the original executable's symbols (what a mod's `patches.txt` may name).
+pub fn embedded_symbols() -> Vec<Symbol> {
+    SYMBOLS
+        .lines()
+        .filter_map(|l| {
+            let mut f = l.split('\t');
+            let name = f.next()?.to_string();
+            let addr = u32::from_str_radix(f.next()?.trim_start_matches("0x"), 16).ok()?;
+            let size = f.next()?.parse().ok()?;
+            let is_func = f.next()? == "f";
+            Some(Symbol { name, addr, size, is_func })
+        })
+        .collect()
+}
 
 /// Parse the ELF32 program headers and copy every PT_LOAD segment's file contents to its virtual address.
 pub fn load_elf_data(path: &Path) -> std::io::Result<u32> {

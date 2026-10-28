@@ -353,7 +353,7 @@ fn stamp(files: &BTreeMap<String, PathBuf>) -> String {
 }
 
 /// Load the mods: set up the file overlay of the virtual disc and apply the memory patches.
-pub fn load(game_dir: &Path, exe: &Path) {
+pub fn load(game_dir: &Path) {
     let root = game_dir.join("mods");
     *MODS_DIR.lock().unwrap() = Some(root.clone());
     let mods = mods_in(&root);
@@ -465,7 +465,7 @@ pub fn load(game_dir: &Path, exe: &Path) {
         overlay.push((format!("pak/{}", pack.to_ascii_lowercase()), out));
     }
     ts_sdk::set_disc_overlay(overlay);
-    apply_patches(exe, &patches);
+    apply_patches(&patches);
     for (name, which, path) in &data_files {
         crate::moddata::load_file(name, which, path);
     }
@@ -618,11 +618,11 @@ fn read_setup(path: &Path) -> Result<ts_sdk::CustomSetup, String> {
     Ok(s)
 }
 
-fn apply_patches(exe: &Path, patches: &[(String, String)]) {
+fn apply_patches(patches: &[(String, String)]) {
     if patches.is_empty() {
         return;
     }
-    let symbols = ts_rt::loader::read_symbols(exe).unwrap_or_default();
+    let symbols = ts_rt::loader::embedded_symbols();
     for (name, file) in patches {
         let text = std::fs::read_to_string(file).unwrap_or_default();
         for (n, line) in text.lines().enumerate() {
