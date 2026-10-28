@@ -22,6 +22,11 @@ pub fn chrPlayable(chr: i32) -> i32 {
     if crate::manual::chartable::is_added(chr) {
         return 1;
     }
+    // (BlueRobot has no front end model: he cannot be chosen as a player; when he was playable every texture of the front end broke)
+    #[cfg(feature = "extensions")]
+    if chr == 79 {
+        return 0;
+    }
     let item = chr << 4;
     if lw(item + g::unlock_playable_chrs) != 0 && lb(g::pcarray + 1) != 0 {
         return 1;
