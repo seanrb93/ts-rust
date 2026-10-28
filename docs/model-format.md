@@ -19,17 +19,23 @@ A part's record is that of a level's (`docs/level-formats.md`) with these differ
 
 | Field | A character |
 |---|---|
-| `+0` kind | 0 a mesh that is rigid on a joint, 1 and 2 parts that join two joints (guess: a skin that is drawn between a joint and the next, with the extra array at +40) |
+| `+0` kind | 0 a mesh that is rigid on a joint; 1 to 3 a skin drawn with up to three joint matrices at once (the vertices have weights in the sixth array: guess); 2 is also a "fillet": `calDoubleFillets` makes the matrix of a kind 2 part from its own joint and its parent's with `calInbetweenMatrix` (an elbow or knee that bends smoothly); 3 stops the walk down the tree |
 | `+1` joint | the joint (bone) the part is drawn with; 255 for a part of kind 1 that has no joint of its own (guess) |
-| `+2` to `+5` links | four signed bytes that make the parts a tree: in `chr01` the first is the part before (the parent), the second the next part (the first child), the third the start of a second branch (an arm), the fourth the part that the branch is the sibling of (all guess, from the numbers of `chr01`) |
+| `+2` to `+5` links | four signed bytes.  For a rigid part (kind 0) they make the tree: `+2` the parent, `+3` the first child, `+4` the next sibling, `+5` the previous sibling (`calDoubleFillets` follows `+3` and `+4`, and the numbers of `chr01` fit: part 5 has parent 4, child 6, next sibling 13, no previous; part 13 has parent 4, child 14, next 21, previous 5).  For a part that blends joints (kinds 1 to 3) `+2` and `+3` are the numbers of the two parts whose joints are blended (`partGfx` loads the matrices of those two parts' joints and then the part's own, `+1`, when it is not negative: three matrices for the vector unit) |
 | `+20` to `+40` | the strip table, positions, texture coordinates, colours, normals and (kind 1 and 2 only) a sixth array at +40 that a level does not have (guess: what the skin needs) |
 | chunk kind | 3 for a rigid part (positions and normals), 4 for a part that joins joints |
 
 The vectors at `+72` are what the code of a gun reads for the places on a model (the bones the muzzle flash and sparks come from, `gun + 340`, `+360` and `+364` of the table of weapons).
 
+## Animations
+
+The animation record the game holds for each number (`pAnimations`) has the number of key frames at +4, flags at +12 (bit 1: it loops), the end time in seconds at +16 and a table of the key frames' times in 60ths of a second at +20 (`getKeyFrames` finds the two frames round a time).  `calMatrices` moves the time of a character's two animations (the second blends in while it
+changes from the first), blends the position and rotation of every bone between the two key frames of each, turns the heading with the root, adds the hit reaction, makes the global matrices (and the fillets), tilts the head and body of characters that look about, applies the size of the cheats and keeps the
+movement of the root.  The files of `ANIM.PAK` (`anim/data/*.raw`) start with small numbers, the second of them the key frame count (20 in `rf_m0`); the layout of the key frames is not read yet.
+
 ## What is not known yet
 
-* The meaning of the sixth array and of the kind 1 and 2 parts: how a vertex is weighted between two joints, and in what order the joints' matrices are made.
+* The sixth array: how the weights of a vertex are stored for the three matrices.
 * The skeleton's rest pose: where the joints are.  The animations (`ANIM.PAK`, `anim/data/*.raw`) hold the joints' motion by number, and what they are matched to is not read.
 * How a gun is attached to a character (its model is a prop with parts that carry the muzzle points).
 
