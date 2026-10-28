@@ -156,9 +156,9 @@ and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bulle
 
 ## Where it stands
 
-Working and seen on screen: changing the stats of weapons; added weapons (held, fired, own view model); added characters (select page with own model and name, bot sets page, as a bot in a match without a crash, `voice`, `--scale`); `obchar.py` (mesh to character with seams, checked walking in the Prison level and on the select page); mode variants with rules (`win_score`, `win_score_seconds`, `win_lead`; parser tests and the Rules row's code, the row itself not seen with a mod's variants on the Options page).
+Working and seen on screen: changing the stats of weapons; added weapons (held, fired, own view model); added characters (select page with own model and name, bot sets page, as a bot in a match without a crash, `voice`, `--scale`); `obchar.py` (mesh to character with seams, checked walking in the Prison level and on the select page); mode variants with rules (`win_score`, `win_score_seconds`, `win_lead`; parser tests, and the Options page seen with the sample `modes.txt`: the mode shows as "Quick Match" with a score limit of 10, the Rules row after Level Music steps through Standard, Short (limit 5) and One Shot (one shot kill on, limit 15)).
 
-Not seen working: the damage of an added weapon, an added character's look and movement as a bot in a match (it spawns and plays; the camera aid, `TS_CAMREAL`, rarely has a clear view), a scaled character walking, seams bending in a match, the Rules row.
+Not seen working: the damage of an added weapon, an added character's look and movement as a bot in a match (it spawns and plays; the camera aid, `TS_CAMREAL`, rarely has a clear view), a scaled character walking, seams bending in a match, a rule ending a match.
 
 Not done: sounds of their own for weapons (the sound fields are not mapped) and characters (only `voice`), a different skeleton or animations, the 7th and later game modes with their own objects, pages and rules of play (variants cover numbers and the three rules), end-of-game pages per mode, the added characters in the availability masks and the story.
 
