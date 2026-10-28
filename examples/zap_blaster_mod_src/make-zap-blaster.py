@@ -102,6 +102,46 @@ with open(os.path.join(out, 'zap-blaster.obj'), 'w') as f:
                 f.write('usemtl %s\n' % m)
                 cur = m
             f.write('f ' + ' '.join(('%d/%d/%d' % (i, i, n)) if n else ('%d/%d' % (i, i)) for i, n in tri) + '\n')
+# the ammunition that is picked up (the pistol's ammunition box, `ob/ammo/ammosmall.raw`, is 0.6 wide, 0.2 high and 0.35 deep): a tray with three glowing energy cells
+box('cell', 'dark', (-0.29, 0.0, -0.16), (0.29, 0.09, 0.16))
+box('cell', 'orange', (-0.29, 0.09, -0.16), (0.29, 0.115, -0.13))
+for x in (-0.18, 0.0, 0.18):
+    tube('cell', 'glow', (x, 0.15), 0.065, -0.14, 0.14)
+    tube('cell', 'steel', (x, 0.15), 0.07, -0.15, -0.12)
+    tube('cell', 'steel', (x, 0.15), 0.07, 0.12, 0.15)
+
+# the gun a character holds has its frame and the capacitor in one part (`part0`; its second part is the muzzle flash)
+held = {'part0': groups['part3'] + groups['part2']}
+with open(os.path.join(out, 'zap-blaster-held.obj'), 'w') as f:
+    f.write('mtllib zap-blaster.mtl' + chr(10))
+    for v in verts:
+        f.write('v %.5f %.5f %.5f' % v + chr(10))
+    for t in uvs:
+        f.write('vt %.5f %.5f' % t + chr(10))
+    for n in norms:
+        f.write('vn %.5f %.5f %.5f' % n + chr(10))
+    f.write('o part0' + chr(10))
+    cur = None
+    for m, tri in held['part0']:
+        if m != cur:
+            f.write('usemtl %s' % m + chr(10))
+            cur = m
+        f.write('f ' + ' '.join(('%d/%d/%d' % (i, i, n)) if n else ('%d/%d' % (i, i)) for i, n in tri) + chr(10))
+with open(os.path.join(out, 'zap-cell.obj'), 'w') as f:
+    f.write('mtllib zap-blaster.mtl' + chr(10))
+    for v in verts:
+        f.write('v %.5f %.5f %.5f' % v + chr(10))
+    for t in uvs:
+        f.write('vt %.5f %.5f' % t + chr(10))
+    for n in norms:
+        f.write('vn %.5f %.5f %.5f' % n + chr(10))
+    f.write('o part1' + chr(10))
+    cur = None
+    for m, tri in groups['cell']:
+        if m != cur:
+            f.write('usemtl %s' % m + chr(10))
+            cur = m
+        f.write('f ' + ' '.join(('%d/%d/%d' % (i, i, n)) if n else ('%d/%d' % (i, i)) for i, n in tri) + chr(10))
 with open(os.path.join(out, 'zap-blaster.mtl'), 'w') as f:
     for m in ('steel', 'dark', 'glow', 'orange'):
         f.write('newmtl %s\nKd 1 1 1\nmap_Kd %s.png\n\n' % (m, m))

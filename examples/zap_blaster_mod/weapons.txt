@@ -2,6 +2,8 @@ weapon 30
   copy 0
   name "Zap Blaster"
   view_model_file ob/gun90/gun90.raw
+  model_file ob/chrgun90/chrgun90.raw
+  ammo_model_file ob/ammo90/ammo90.raw
   clip 12
   damage 0.4
   fire_sound 24
