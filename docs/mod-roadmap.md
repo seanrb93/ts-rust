@@ -166,7 +166,9 @@ The damage of an added weapon (seen with the harness: `--level Prison --bots 3,4
 
 A scaled character in the level (the harness, `--level Prison --character 80 --cam 5,1.5` with a walk): `obchar.py --scale 1.4` gives a character about 1.4 times taller than the stock one with its joints in place; the same `scale 1.4` with the ordinary mesh does not make it taller.  The harness found two bugs on the way: `chrPlayable` was false for an added character, so the sign on went back to the first character (now always true for them), and the check I had added for a missing model file looked for it on the disc, where files inside the packs are not, so every model file was dropped; it now reads the directories of the packs the game will use (`publish_pack_names`).
 
-Not seen working: an added character's look and movement as a bot in a match (it spawns and plays; the camera aid, `TS_CAMREAL`, rarely has a clear view), seams bending in a match.
+Seams in motion (the harness, `--character 0` and `--character 80` with `--cam 2.8,1.1` and a run, three frames each): the character made by `obchar.py` from `chr01` runs with the knees, hips, elbows and shoulders bent in the same poses as the original, with no cracks or stretched triangles that can be told from the original.
+
+Not seen working: an added character's look and movement as a bot in a match close up (it spawns and plays and is seen near the spawn point; the second sound number of a weapon; the sounds of a character of its own).
 
 Not done: new sound files for weapons (only the choice of a game sound with `fire_sound`) and sounds of their own for characters (only `voice`), a different skeleton or animations, the 7th and later game modes with their own objects, pages and rules of play (variants cover numbers and the three rules), end-of-game pages per mode, the added characters in the availability masks and the story.
 
