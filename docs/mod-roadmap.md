@@ -135,7 +135,7 @@ and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bulle
 
 * Step 1 of the modes plan: `docs/game-modes.md` writes down how the six ticks work and what state they use (the parameters record, the options records, a character's score field, the teams' scores).  The ticks turned out to be small: a win condition is a few lines over those fields.
 
-* Rules of a variant (`rule win_score N`, `rule win_score_seconds N`): applied after the mode's own tick by `custom_rules_tick` (`mode-presets.rs`), which completes the level when a team's score reaches the goal.  Tested in a headless run with the test aids `TS_VARIANT` and `TS_RULEGOAL`: the level completes once with the variant on and not with Standard.  The first two parts of the plan's list (score methods, win conditions); team rules, objects, respawn and HUD text are not done.
+* Rules of a variant (`rule win_score N`, `rule win_score_seconds N`, `rule win_lead N`: the best team ahead of the second by N): applied after the mode's own tick by `custom_rules_tick` (`mode-presets.rs`), which completes the level when a team's score reaches the goal.  Tested in a headless run with the test aids `TS_VARIANT` and `TS_RULEGOAL`: the level completes once with the variant on and not with Standard.  The first two parts of the plan's list (score methods, win conditions); team rules, objects, respawn and HUD text are not done.
 
 * Characters, step 1 begun: `tools/obdump.py` and `docs/model-format.md` describe the structure of a character model (parts as a tree of 26 joints, three kinds of part, the arrays of a part), with what is not known marked.  The skin arrays, the rest pose and the animation files are the next things to read.
 

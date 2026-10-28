@@ -474,11 +474,12 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
             let rule = match words.get(1).copied() {
                 Some("win_score") => Some(ts_game::Rule::WinScore),
                 Some("win_score_seconds") => Some(ts_game::Rule::WinScoreSeconds),
+                Some("win_lead") => Some(ts_game::Rule::WinLead),
                 _ => None,
             };
             match (variants.last_mut().filter(|_| in_variant), rule, words.get(2).and_then(|w| parse_int(w))) {
                 (None, _, _) => errors.push(format!("line {n}: a `rule` belongs to a `variant`")),
-                (_, None, _) => errors.push(format!("line {n}: unknown rule (the rules are win_score, win_score_seconds)")),
+                (_, None, _) => errors.push(format!("line {n}: unknown rule (the rules are win_score, win_score_seconds, win_lead)")),
                 (Some(v), Some(r), Some(val)) if (1..=100000).contains(&val) => v.rules.push((r, val as i32)),
                 _ => errors.push(format!("line {n}: a rule needs a number from 1 to 100000")),
             }
@@ -675,9 +676,10 @@ mode ko
  variant \"First to 30\"
  rule win_score_seconds 30
  rule win_score 9
+ rule win_lead 3
 ");
         assert!(errors.is_empty(), "{errors:?}");
-        assert_eq!(vs[0].rules, vec![(ts_game::Rule::WinScoreSeconds, 30), (ts_game::Rule::WinScore, 9)]);
+        assert_eq!(vs[0].rules, vec![(ts_game::Rule::WinScoreSeconds, 30), (ts_game::Rule::WinScore, 9), (ts_game::Rule::WinLead, 3)]);
         let (_, _, errors) = parse_modes("mode bagtag
  rule win_score 5
  variant \"A\"

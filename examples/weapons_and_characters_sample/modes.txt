@@ -17,3 +17,5 @@ mode deathmatch
 # A rule ends the match by itself: win_score N (the first team whose score reaches N; in Deathmatch the score is the kills), and win_score_seconds N (BagTag: seconds of holding the bag).
   variant "First to 8"
   rule win_score 8
+  variant "Lead by 5"
+  rule win_lead 5

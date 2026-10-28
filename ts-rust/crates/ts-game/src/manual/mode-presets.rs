@@ -40,6 +40,8 @@ pub enum Rule {
     WinScore,
     /// the same for BagTag, with the value in seconds of holding the bag
     WinScoreSeconds,
+    /// the level is completed when the best team's score is ahead of the second best by the value (and is above 0)
+    WinLead,
 }
 
 static VARIANTS: Mutex<Vec<ModeVariant>> = Mutex::new(Vec::new());
@@ -142,9 +144,22 @@ pub fn custom_rules_tick() {
         eprintln!("[rules] frame {} mode {mode}", ts_sdk::frame_count());
     }
     for (rule, value) in active_rules(mode) {
+        if rule == Rule::WinLead {
+            let mut scores: Vec<i32> = (1..=5).map(teamGetScore).collect();
+            scores.sort_unstable_by(|a, b| b.cmp(a));
+            if scores[0] > 0 && scores[0].saturating_sub(scores[1]) >= value {
+                if std::env::var_os("TS_COMBOLOG").is_some() {
+                    eprintln!("[rules] {rule:?} {value} reached in mode {mode}");
+                }
+                gameLevelCompleted();
+                return;
+            }
+            continue;
+        }
         let goal = match rule {
             Rule::WinScore => value,
             Rule::WinScoreSeconds => value.saturating_mul(60),
+            Rule::WinLead => continue,
         };
         // (a test aid: TS_RULEGOAL=-1 makes the goal reached at once)
         let goal = std::env::var("TS_RULEGOAL").ok().and_then(|v| v.parse().ok()).unwrap_or(goal);
