@@ -49,6 +49,10 @@ pub fn memAlloc(size: i32, area: i32) -> i32 {
         let free = lw(g::mem_level_free);
         at = lw(g::mem_level_at);
         if free < size {
+            // (the port has more memory than the console: what the pool has no room for goes to the big pool)
+            if let Some(p) = level_overflow_x(size) {
+                return p;
+            }
             exit(1);
         }
         sw(g::mem_level_free, free - size);

@@ -23,6 +23,15 @@ pub fn big_wants(size: i32) -> bool {
     at.checked_add(size).map_or(false, |end| end <= BIG_SIZE)
 }
 
+/// An allocation the level pool has no room for: made in the big pool when there is room in it, in any level.
+pub fn big_overflow(size: i32) -> Option<i32> {
+    let at = (BIG_AT.load(Ordering::Relaxed) + 63) & !63;
+    if at.checked_add(size)? > BIG_SIZE {
+        return None;
+    }
+    Some(big_alloc(size))
+}
+
 /// Allocate `size` bytes (cleared) in the big pool.
 pub fn big_alloc(size: i32) -> i32 {
     let at = (BIG_AT.load(Ordering::Relaxed) + 63) & !63;

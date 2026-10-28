@@ -58,7 +58,7 @@ def ellipsoid(material, c, r, n=20, m=14, planar=True):
     add(material, pts, tris, uv, c, nrm)
 
 
-def box(material, lo, hi, cell=0.1):
+def box(material, lo, hi, cell=0.05):
     """A box whose faces are cut into small squares: a triangle then follows one bone of the skeleton and the joints bend the figure instead of tearing it."""
     lo, hi = np.array(lo), np.array(hi)
     centre = (lo + hi) / 2
@@ -126,12 +126,12 @@ box('straw', (-0.1, 1.49, -0.05), (0.1, 1.55, 0.07))
 # the arms hang at the sides, in coat sleeves with straw hands
 for s in (-1, 1):
     pass
-    box('coat', (s * 0.23 - 0.05, 0.93, -0.05), (s * 0.23 + 0.05, 1.45, 0.05), 0.08)
-    box('straw', (s * 0.23 - 0.045, 0.8, -0.045), (s * 0.23 + 0.045, 0.93, 0.045), 0.08)
+    box('coat', (s * 0.23 - 0.05, 0.93, -0.05), (s * 0.23 + 0.05, 1.45, 0.05), 0.04)
+    box('straw', (s * 0.23 - 0.045, 0.8, -0.045), (s * 0.23 + 0.045, 0.93, 0.045), 0.04)
     for f in (-1, 0, 1):
         box('straw', (s * 0.23 + f * 0.03 - 0.012, 0.7, -0.012), (s * 0.23 + f * 0.03 + 0.012, 0.8, 0.012))
 # the head
-ellipsoid('head', (0, 1.68, 0.0), (0.27, 0.23, 0.25), 16, 10)
+ellipsoid('head', (0, 1.68, 0.0), (0.27, 0.23, 0.25), 28, 20)
 cylinder('stem', (0.0, 1.88, 0.0), 0.04, 0.07)
 
 # the object file, with a material file

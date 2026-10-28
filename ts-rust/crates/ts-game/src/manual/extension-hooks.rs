@@ -835,6 +835,20 @@ pub fn big_alloc_x(size: i32) -> i32 {
     }
 }
 
+/// An allocation that the level pool has no room for is made in the big pool, whatever the level (a character of a mod with a big model, in the front end).
+#[inline]
+pub fn level_overflow_x(size: i32) -> Option<i32> {
+    #[cfg(feature = "extended-tables")]
+    {
+        big_overflow(size)
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        let _ = size;
+        None
+    }
+}
+
 /// The level pool is reset: the big pool is too.
 #[inline]
 pub fn big_reset_hook() {
