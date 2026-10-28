@@ -352,7 +352,7 @@ drawn (about 70 ms for 4096x4096).  The game's own palette tricks do not reach a
 
 The packs are never changed: when the mods change, the changed packs are built again in `mods/.cache/` and the game reads those (a new
 file is added to the pack's directory, a replaced one points to the new data).  Mods are applied in alphabetical order, a later one wins.  The
-log (`--headless` or a console) says what was loaded.  Not done: new code (a mod cannot add new game logic, only change data and files; what is planned for characters, weapons and game modes is in `docs/mod-roadmap.md`) and
+log (`--headless` or a console) says what was loaded.  Not done: new code (a mod cannot add new game logic, only change data and files; what is planned for characters, weapons and game modes is in `docs/mod-roadmap.md`, and how the game modes work in `docs/game-modes.md`) and
 tools that make the game's formats (that needs the formats to be understood first).
 
 ## Extracting the textures

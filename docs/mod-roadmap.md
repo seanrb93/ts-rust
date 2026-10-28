@@ -133,6 +133,8 @@ and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bulle
 
 * `modes.txt` (`ts-game/src/manual/mode-presets.rs`): presets for the six modes: the name and the options a mode starts with, written into the game's records of options right after `gameoptionsMake`.  Tested by unit tests and a load in the game (the records and the name text are right).  Variants (`variant "Name"` in `modes.txt`) are ways to play a mode that the player picks on a new Rules row of the arcade Options page (`arcadeopts.rs`).  The mode list itself is not extended: the arcade page that lists the modes loops over a table of six in the game's own code and its menu has no room for more, so a seventh mode is a variant of one of the six (it keeps the base mode's rules).  Compiles and the parser is tested; the Rules row has not been seen on screen yet.
 
+* Step 1 of the modes plan: `docs/game-modes.md` writes down how the six ticks work and what state they use (the parameters record, the options records, a character's score field, the teams' scores).  The ticks turned out to be small: a win condition is a few lines over those fields.
+
 ## Order of work
 
 1. The mod file format and the loader: one place (`mod.ini` sections or `characters.txt`, `weapons.txt`, `modes.txt`) where all three are described, with validation and clear errors in
