@@ -93,6 +93,13 @@ classes of 11 (animations 3 to 442 are 20 classes of 11 for each of two kinds, a
 the centre of the head mesh (1.815).  These agree with the figure the vertices make, so the rest pose is known: the mesh of a character is in the model's space with this pose, and the joints are where the skeleton file puts them.  How a pose matrix is made from them for the vector unit (the world transform of the pose times the inverse of the
 rest one) has not been read.
 
+## A character from a mesh
+
+`python tools/obchar.py <game folder> <mesh.obj> --out mods/Robo --name "Robo"` makes a mod with a new character from an OBJ of a whole figure standing in the game's pose: the mesh is scaled to the height of a game character, each face is given to the bone of the skeleton nearest to it (a stretch from a joint to the mean of its children's joints, or past the end of a limb), the
+surfaces of the parts that join joints are left out, and the model file, a `characters.txt` (`character 80`, `copy 0`, the name, the model file) and the pictures of the materials (any size) are written.  Started with the game character `chr01` written by `obdump.py --obj` as the mesh, the game draws the result for the player's character (the log shows the mod's `chr90.raw` loaded), with the head in pieces: with
+nothing to join the joints and the face assigned bone by bone, a nearest-bone assignment is rough.  It is a start: a better one would weight by the limbs' shape, make the seams (kinds 1 and 2) and let the author name the bone of each part of the mesh (`part<N>` objects, which `obedit.py meshes` already takes).
+A bug found on the way: a new character that copies a character whose own model was changed by the same `characters.txt` copied the prop of the changed model, which is not made yet, and the game faulted; the copy now takes the prop of the character it copies.
+
 ## The roles of the bones, and the guns a character holds
 
 `obBindSkeleton` binds a skeleton to a model instance: the skeleton is the one the model's prop says (word 4, `+16`, of the prop's entry in the table of props: 0 the male skeleton, 1 the female, -1 none), and `getBoneMatrixNum` then notes the matrix number of some bones **by their place among the parts of kind 0**:

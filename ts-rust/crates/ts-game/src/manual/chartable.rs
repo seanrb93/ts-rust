@@ -84,7 +84,10 @@ pub fn character_table_init() {
         // the model: a prop of its own that copies the prop of the model it was a copy of and names the file
         if !c.model_file.is_empty() {
             let prop = FIRST_NEW_PROP + accepted;
-            let from = super::proptable::PROPTABLE + 28 * lw(entry + 8);
+            // (the prop of the model it copies: a game character's prop has its own number; one that a mod's edit pointed at a new prop is the character's own number)
+            let source = lw(entry + 8);
+            let source = if (0..713).contains(&source) { source } else { c.copy_of };
+            let from = super::proptable::PROPTABLE + 28 * source;
             let to = super::proptable::PROPTABLE + 28 * prop;
             for w in 0..7 {
                 sw(to + 4 * w, lw(from + 4 * w));
