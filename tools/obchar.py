@@ -116,7 +116,10 @@ def main():
     pts = np.array([c[0] for corners, _ in faces for c in corners])
     lo, hi = pts.min(axis=0), pts.max(axis=0)
     scale = height / max(hi[1] - lo[1], 1e-6)
-    shift = np.array([-(lo[0] + hi[0]) / 2, -lo[1], -(lo[2] + hi[2]) / 2])
+    # (centred on the median of the vertices, which is near the body's axis; the middle of the box is not when an arm or a gun reaches out on one side)
+    mid = np.median(pts, axis=0)
+    # (the game's own characters have their median 0.045 in front of the skeleton's origin: measured on chr01)
+    shift = np.array([-mid[0], -lo[1], -mid[2] + 0.045])
     place = lambda p: tuple(float(x) for x in (np.array(p) + shift) * scale)
     moved = []
     for corners, mat in faces:
