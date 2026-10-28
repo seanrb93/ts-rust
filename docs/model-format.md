@@ -93,10 +93,16 @@ classes of 11 (animations 3 to 442 are 20 classes of 11 for each of two kinds, a
 the centre of the head mesh (1.815).  These agree with the figure the vertices make, so the rest pose is known: the mesh of a character is in the model's space with this pose, and the joints are where the skeleton file puts them.  How a pose matrix is made from them for the vector unit (the world transform of the pose times the inverse of the
 rest one) has not been read.
 
+## The roles of the bones, and the guns a character holds
+
+`obBindSkeleton` binds a skeleton to a model instance: the skeleton is the one the model's prop says (word 4, `+16`, of the prop's entry in the table of props: 0 the male skeleton, 1 the female, -1 none), and `getBoneMatrixNum` then notes the matrix number of some bones **by their place among the parts of kind 0**:
+the 1st (index 0) is the root, the 2nd and 3rd are two more spine joints, the **7th (index 6) is the left hand**, the **11th (index 10) the right hand** and the **12th (index 11) the head** (stored at +24, +28 and +20 of the object's bone record; +8, +12 and +16 are the first three).  With the joints put together (above), those are the wrists at (±0.23, 0.913) and the head joint at 1.566.
+A gun in a character's hand is a prop attached to the hand's bone (`gunChrUpdate`: `propSetAttached(gun prop, the character's instance, the bone at +28 for the right hand or +24 for the left)`; the gun's model is the number at +4 of the weapon's entry in `guns`).  So a model made for the game's skeleton holds guns correctly as long as it has the same 18 parts of kind 0 in the same order; the order of the parts of kind 0 is the contract between a character and the skeleton, the animations (channel `k` drives the `k`-th part of kind 0) and the places of the guns.
+
 ## What is not known yet
 
 * What the third matrix of a seam is for.
-* How the pose matrix of a joint is made from the pose and the rest pose, and what the numbers of the animations mean (their file names such as `rf_m0` are not decoded).
+* How the pose matrix of a joint is made from the pose and the rest pose, and what the numbers of the animations mean (their file names such as `rf_m0` are not decoded).  (The attachment of guns is known now: above.)
 * How a gun is attached to a character (its model is a prop with parts that carry the muzzle points).
 
 The plan for characters (`docs/mod-roadmap.md`) starts here: read those three, make `obdump.py` print a model's triangles and joints and check it by drawing the result, and only then write a
