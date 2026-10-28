@@ -1115,8 +1115,9 @@ pub fn chrsets_pageTick(a0: i32) {
     sw(0x3aff50, 0);
     sw(0x3aff6c, rows);
     loop {
-        let id = lbu(index + g::characterorder);
-        if chrAvail(id) == 0 {
+        // (after the game's 64 characters come the ones mods added, always available; the list has room for 84)
+        let id = if index < 64 { lbu(index + g::characterorder) } else { crate::manual::chartable::GAME_CHARACTERS + index - 64 };
+        if index < 64 && chrAvail(id) == 0 {
             index += 1;
         } else {
             let count = lw(0x3aff50);
@@ -1141,7 +1142,7 @@ pub fn chrsets_pageTick(a0: i32) {
                 sw((found << 2) + 0x1fc2b48, id);
             }
         }
-        if (index as u32) >= (64 as u32) {
+        if index >= 64 + crate::manual::chartable::added_characters().min(20) {
             break;
         }
     }
