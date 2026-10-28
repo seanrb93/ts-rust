@@ -1,12 +1,12 @@
 """Make a character for the game from a mesh: a mod folder with the model and the line of `characters.txt`.
 
-    python tools/obchar.py <game folder> <mesh.obj> --out mods/Robo --name "Robo" [--base 0] [--number 80] [--skeleton male|female] [--voice 2] [--scale 1.4] [--height 1.95]
+    python tools/obchar.py <game folder> <mesh.obj> --out mods/Robo --name "Robo" [--base 0] [--number 80] [--skeleton male|female] [--voice 2] [--scale 1.4] [--height 1.95] [--arm-bias 0.12]
 
 The mesh is an OBJ of a whole figure standing in the pose of the game's skeleton (arms down at the sides, feet on the ground, facing the way the game's characters face; `python tools/obdump.py
 <OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes a game character in the pose, to model on).  It is scaled to the height of a game character (`--height`, 1.95 by default) and put on the ground.  Keep it so: the skeleton does not change with the mesh, so a mesh of another height no longer fits its joints (a figure 1.4 times taller shows torn triangles at the hips).  For a larger or smaller character use `--scale 1.4`: the game scales the offsets of the animations' joints by the character's `scale` field (`characters.txt`), so the tool scales the mesh by the same number, which it writes as `scale`; that fits the joints (checked on the select page at 1.4).  Only the mesh, not the field, would tear the model.  Each triangle
 is given to the bone of the game's skeleton nearest to it (the bone is the stretch from a joint to the next one, or to a point past the end of a limb), so every part of the mesh follows the
 joint that is nearest to it.  The triangles near a joint between two bones go to the model's own seam part there (kinds 1 and 2 of `docs/model-format.md`, the ones the game's characters have at an elbow
-or a knee), each corner following the joint of the nearer bone, and for a seam of kind 2 the corners right at the joint follow its own joint, so a bent joint stretches instead of opening.  The materials of the OBJ with a `map_Kd` picture (any size) become textures of the game (`--tex-base`, 9000 by default).
+or a knee), each corner following the joint of the nearer bone, and for a seam of kind 2 the corners right at the joint follow its own joint, so a bent joint stretches instead of opening.  `--arm-bias 0.12` keeps a torso that lies close to the arms from following them (the sides of a slim torso are nearer to an arm's bone than to the spine); it is for figures that are not modelled on the game's own.  The materials of the OBJ with a `map_Kd` picture (any size) become textures of the game (`--tex-base`, 9000 by default).
 
 The model is made from a character of the game (`--base`, 0 by default): its file is the pattern, so the bones, the places of the hands and the head and the animations are those of the skeleton.  The result:
 
@@ -89,7 +89,7 @@ def distance_to_segment(p, a, b):
     return float(np.linalg.norm(p - (a + t * ab)))
 
 
-def make_character(game, mesh, out, name='Custom', base=0, number=80, scale=1.0, height=1.95, skeleton='male', tex_base=9000, model_file=None, voice=None, write_entry=True):
+def make_character(game, mesh, out, name='Custom', base=0, number=80, scale=1.0, height=1.95, skeleton='male', tex_base=9000, model_file=None, voice=None, write_entry=True, arm_bias=0.0):
     """Make the character: its model and pictures go into the mod folder `out`; the lines for `characters.txt` are returned (and, with `write_entry`, written with a `mod.ini`, replacing
     the file).  `scale` makes it larger or smaller (the mesh and the character's `scale` field together)."""
     size = float(scale)
@@ -134,7 +134,9 @@ def make_character(game, mesh, out, name='Custom', base=0, number=80, scale=1.0,
             lengths = [float(np.linalg.norm(segs[q][1] - segs[q][0])) for q in (x, y)]
             seams[p] = (x, y, max(0.04, 0.35 * min(lengths)))
     corner_binds = {}
-    nearest = lambda v, among: min(among, key=lambda q: distance_to_segment(v, *segs[q]))
+    # (`arm_bias`: a distance added to the bones of the arms when a vertex picks the bone it follows, so that the sides of a torso that lies close to the arms stay with the spine)
+    arm_bones = {q for q in kind0 if abs(world[q][0]) >= 0.2 * size}
+    nearest = lambda v, among: min(among, key=lambda q: distance_to_segment(v, *segs[q]) + (arm_bias * size if q in arm_bones else 0.0))
     key = lambda c: tuple(round(float(x), 5) for x in c[0])
     # each vertex (by position) follows one bone, the nearest at first.  A triangle whose corners follow bones that no seam of the model joins cannot be drawn without a crack, so its
     # corners are all given the bone nearest its middle, and that changes the other triangles at those vertices; this goes on until nothing changes
@@ -222,7 +224,7 @@ def main():
     arg = lambda k, d=None: sys.argv[sys.argv.index(k) + 1] if k in sys.argv else d
     number = int(arg('--number', 80))
     make_character(game, mesh, arg('--out'), arg('--name', 'Custom'), int(arg('--base', 0)), number, float(arg('--scale', 1.0)), float(arg('--height', 1.95)), arg('--skeleton', 'male'),
-                   int(arg('--tex-base', 9000)), arg('--model-file'), arg('--voice'))
+                   int(arg('--tex-base', 9000)), arg('--model-file'), arg('--voice'), arm_bias=float(arg('--arm-bias', 0.0)))
 
 
 if __name__ == '__main__':
