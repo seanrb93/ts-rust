@@ -38,24 +38,35 @@ def menu(ctx):
         {'sound': sound, 'music': music, 'texture': texture}[what](ctx, mod)
 
 
-def to_audio(src, dst, mono, rate=None):
-    """Make `dst` (.wav or .opus) from any audio file with ffmpeg; a .wav or .opus that is already right is copied."""
-    ext = os.path.splitext(dst)[1].lower()
-    if os.path.splitext(src)[1].lower() == ext:
-        shutil.copyfile(src, dst)
-        return True
-    exe = ffmpeg()
-    if not exe:
-        ui.fail('This file needs ffmpeg to convert it. Use a .wav file (sounds) or an .opus file (music), or install ffmpeg.')
-        return False
-    cmd = [exe, '-y', '-loglevel', 'error', '-i', src, '-vn']
-    if mono:
-        cmd += ['-ac', '1']
-    else:
-        cmd += ['-ac', '2', '-ar', '48000', '-c:a', 'libopus', '-b:a', '128k', '-vbr', 'on']
-    if rate:
-        cmd += ['-ar', str(rate)]
-    cmd += [dst]
+# the formats the game reads as they are (no conversion): Opus, Ogg (Vorbis or Opus), MP3, FLAC, M4A/AAC, WAV
+GAME_AUDIO = ('.opus', '.ogg', '.oga', '.mp3', '.flac', '.m4a', '.aac', '.wav')
+AUDIO_TYPES = [('Audio', '*.wav *.mp3 *.ogg *.flac *.opus *.m4a *.aac *.oga'), ('All files', '*.*')]
+
+
+def put_audio(src, dst_stem, big_ok=True):
+    """Put the audio file `src` where the game will read it, as `dst_stem` + the file's own extension (the game reads those formats itself).  A very large file (a WAV or FLAC of music)
+    can be made much smaller as Opus with ffmpeg: asked.  Returns the file written, or '' when none."""
+    ext = os.path.splitext(src)[1].lower()
+    os.makedirs(os.path.dirname(dst_stem), exist_ok=True)
+    if ext not in GAME_AUDIO:
+        exe = ffmpeg()
+        if not exe:
+            ui.fail(f'The game cannot read {ext} files, and converting needs ffmpeg.  Use one of: mp3, ogg, flac, m4a, wav, opus.')
+            return ''
+        dst = dst_stem + '.opus'
+        return dst if _opus(exe, src, dst) else ''
+    size = os.path.getsize(src)
+    if ext in ('.wav', '.flac') and size > 12_000_000 and ffmpeg() and ui.yes(f'This file is {size / 1e6:.0f} MB.  Make it a much smaller Opus file (almost the same sound)?', True):
+        dst = dst_stem + '.opus'
+        if _opus(ffmpeg(), src, dst):
+            return dst
+    dst = dst_stem + ext
+    shutil.copyfile(src, dst)
+    return dst
+
+
+def _opus(exe, src, dst):
+    cmd = [exe, '-y', '-loglevel', 'error', '-i', src, '-vn', '-ac', '2', '-ar', '48000', '-c:a', 'libopus', '-b:a', '128k', '-vbr', 'on', dst]
     try:
         subprocess.run(cmd, check=True)
     except Exception as e:
@@ -87,27 +98,24 @@ def sound(ctx, mod):
         if pick == '__again':
             continue
         break
-    src = ui.pick_file('Choose your sound (wav, mp3, ogg, flac, opus; short, mono works best)', [('Audio', '*.wav *.mp3 *.ogg *.flac *.opus *.m4a'), ('All files', '*.*')])
+    src = ui.pick_file('Choose your sound (wav, mp3, ogg, flac, m4a, opus; a short one: at most about 10 seconds are used)', AUDIO_TYPES)
     if not src:
         return
     base = os.path.splitext(pick)[0]
-    ext = '.opus' if src.lower().endswith('.opus') else '.wav'
-    dst = mod.path('SFX.PAK', base + ext)
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
-    if to_audio(src, dst, mono=True, rate=22050 if ext == '.wav' else None):
-        ui.say(f'\nSaved: your sound now replaces {pick} (at most about 10 seconds are used).')
+    done = put_audio(src, mod.path('SFX.PAK', base))
+    if done:
+        ui.say(f'\nSaved: your sound now replaces {pick} (the game turns it into its own sound format when it starts).')
 
 
 def music(ctx, mod):
     ui.heading('Replace a music track')
     ui.say('The game has 27 tracks, 1001 to 1027; each level plays one of them.  On the Options page of an arcade match, the Level Music row lets you listen to each.')
     track = ui.ask_number('Track number', default=1001, kind=int, low=1001, high=1027)
-    src = ui.pick_file('Choose your music (mp3, ogg, wav, flac, opus)', [('Audio', '*.mp3 *.ogg *.wav *.flac *.opus *.m4a'), ('All files', '*.*')])
+    src = ui.pick_file('Choose your music (mp3, ogg, flac, m4a, wav, opus)', AUDIO_TYPES)
     if not src:
         return
-    dst = mod.path('MUSIC', f'{track}.opus')
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
-    if to_audio(src, dst, mono=False):
+    done = put_audio(src, mod.path('MUSIC', str(track)))
+    if done:
         ui.say(f'\nSaved: your music replaces track {track}; it plays again from its start when it ends, so make it the part that repeats.')
 
 

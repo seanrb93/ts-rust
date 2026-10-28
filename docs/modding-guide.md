@@ -90,7 +90,7 @@ The arcade Options page then has a **Rules** row with Standard and the variants.
 
 ## Replace sounds, music and textures
 
-Put a file in the mod under the pack's name: `SFX.PAK/sfx/<name>.opus` (or `.wav`) replaces a sound, `MUSIC/<name>.opus` a track, `MISC.PAK/textures/<number>.png` a texture.  See `examples/sample_mod/`.
+Put a file in the mod under the pack's name: `SFX.PAK/sfx/<name>.mp3` (or `.ogg`, `.flac`, `.m4a`, `.wav`, `.opus`) replaces a sound, `MUSIC/<name>.mp3` (or the same formats) a track, `MISC.PAK/textures/<number>.png` a texture.  See `examples/sample_mod/`.
 
 ## Seeing a result
 

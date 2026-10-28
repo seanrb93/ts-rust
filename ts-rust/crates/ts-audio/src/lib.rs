@@ -8,6 +8,7 @@
 //! The game-facing entry points (`sd_*`, `stream_*`) are called by the SDK layer (`ts-sdk`) when the decompiled
 //! sound code issues its `sceSdRemote` / stream RPC requests.
 
+pub mod anyfmt;
 pub mod codec;
 mod adpcm;
 mod music;

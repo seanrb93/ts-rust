@@ -403,10 +403,17 @@ pub fn load(game_dir: &Path) {
                 }
                 continue;
             }
-            let audio = lower.ends_with(".opus") || lower.ends_with(".wav");
+            let audio_ext = lower.rsplit_once('.').map(|(_, e)| ts_audio::anyfmt::EXTENSIONS.contains(&e)).unwrap_or(false);
+            let audio = audio_ext;
             if first == "music" && lower.contains('/') {
-                // (an Opus file takes the place of the .MSC stream of that name)
-                let key = if lower.ends_with(".opus") { format!("{}.msc", &lower[..lower.len() - 5]) } else { lower };
+                // (an audio file of any common format takes the place of the .MSC stream of that name)
+                let key = match lower.rsplit_once('.') {
+                    Some((stem, e)) if audio_ext => {
+                        let _ = e;
+                        format!("{stem}.msc")
+                    }
+                    _ => lower,
+                };
                 overlay.push((key, host));
                 count += 1;
             } else if lower.ends_with(".png") && std::env::var_os("TS_PNG_QPM").is_none() {

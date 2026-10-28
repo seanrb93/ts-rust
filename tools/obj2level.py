@@ -1230,22 +1230,29 @@ def split_rooms(polys, args, coll=None):
 
 # ---------------------------------------------------------------- main
 
+GAME_AUDIO = ('.opus', '.ogg', '.oga', '.mp3', '.flac', '.m4a', '.aac', '.wav')
+
+
 def make_music(src, dst):
-    """The audio file `src` as an Ogg Opus file `dst` (the port decodes and loops it)."""
+    """The audio file `src` for the game: a file in a format that the port reads (Opus, Ogg, MP3, FLAC, M4A/AAC, WAV) is copied with its own extension in place of `dst`'s (the port decodes and loops it);
+    anything else is made an Ogg Opus file `dst` with ffmpeg.  Returns the file written."""
     import shutil
     import subprocess
     os.makedirs(os.path.dirname(dst), exist_ok=True)
-    if src.lower().endswith('.opus'):
-        shutil.copyfile(src, dst)
-        return
+    ext = os.path.splitext(src)[1].lower()
+    if ext in GAME_AUDIO:
+        target = os.path.splitext(dst)[0] + ext
+        shutil.copyfile(src, target)
+        return target
     exe = shutil.which('ffmpeg')
     if not exe:
         try:
             import imageio_ffmpeg
             exe = imageio_ffmpeg.get_ffmpeg_exe()
         except Exception:
-            sys.exit('--music needs ffmpeg (put it on the PATH, or pip install imageio-ffmpeg), or an .opus file')
+            sys.exit('--music needs ffmpeg for this kind of file (put it on the PATH, or pip install imageio-ffmpeg); mp3, ogg, flac, m4a, wav and opus files are used as they are')
     subprocess.run([exe, '-y', '-loglevel', 'error', '-i', src, '-vn', '-ac', '2', '-ar', '48000', '-c:a', 'libopus', '-b:a', '128k', '-vbr', 'on', dst], check=True)
+    return dst
 
 
 def friendly_defaults(args):

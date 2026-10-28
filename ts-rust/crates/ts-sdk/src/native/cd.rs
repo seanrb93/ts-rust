@@ -49,9 +49,12 @@ fn resolve(root: &Path, name: &str) -> Option<PathBuf> {
     }
     // a music stream converted to Opus (tools/convert_music.py) is used in place of the .MSC file next to it
     if key.ends_with(".msc") {
-        let opus = format!("{}opus", &name[..name.len() - 3]);
-        if let Some(p) = resolve_plain(root, &opus) {
-            return Some(p);
+        // (or in another format: the first of these that is there)
+        for ext in ["opus", "ogg", "flac", "mp3", "m4a", "aac", "wav"] {
+            let other = format!("{}{}", &name[..name.len() - 3], ext);
+            if let Some(p) = resolve_plain(root, &other) {
+                return Some(p);
+            }
         }
     }
     resolve_plain(root, name)

@@ -7,3 +7,5 @@ description = "Native SPU2-style voice mixer and music streamer for the TimeSpli
 [dependencies]
 opus-decoder = "0.1"
 ogg = "0.9"
+# MP3, Ogg Vorbis, FLAC, AAC/M4A, ALAC and WAV (and the like): mods' sounds and music may be in any of them
+symphonia = { version = "0.5", default-features = false, features = ["mp3", "ogg", "vorbis", "flac", "aac", "isomp4", "alac", "wav", "pcm", "adpcm"] }

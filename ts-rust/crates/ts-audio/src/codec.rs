@@ -1,4 +1,4 @@
-//! Audio files of mods: Ogg Opus (and plain WAV) are read, and sounds are turned into the SPU's ADPCM ("VAG") for the game.
+//! Audio files of mods: Ogg Opus, WAV and the other common formats (`anyfmt`) are read, and sounds are turned into the SPU's ADPCM ("VAG") for the game.
 
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -90,21 +90,36 @@ impl OpusReader {
     }
 }
 
-/// A whole sound file as interleaved stereo f32 and its sample rate (`.opus` or `.wav`).
+/// A whole sound file as interleaved stereo f32 and its sample rate: Ogg Opus, WAV, and any other common format (MP3, Ogg Vorbis, FLAC, AAC and ALAC in M4A, ...).
 pub fn read_audio(path: &Path) -> Result<(Vec<f32>, u32), String> {
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
     match ext.as_str() {
-        "opus" | "ogg" => {
-            let mut r = OpusReader::open(path)?;
-            let mut all = Vec::new();
-            while let Some(b) = r.next_block() {
-                all.extend_from_slice(&b);
+        "opus" | "ogg" | "oga" => {
+            // (an .ogg is Opus or Vorbis: Opus is read here, anything else below)
+            if let Ok(mut r) = OpusReader::open(path) {
+                let mut all = Vec::new();
+                while let Some(b) = r.next_block() {
+                    all.extend_from_slice(&b);
+                }
+                return Ok((all, OPUS_RATE));
             }
-            Ok((all, OPUS_RATE))
         }
-        "wav" => read_wav(path),
-        _ => Err(format!("{}: not a supported sound file (.opus or .wav)", path.display())),
+        "wav" => {
+            if let Ok(w) = read_wav(path) {
+                return Ok(w);
+            }
+        }
+        _ => {}
     }
+    let mut r = crate::anyfmt::AnyReader::open(path)?;
+    let mut all = Vec::new();
+    while let Some(b) = r.next_block() {
+        all.extend_from_slice(&b);
+    }
+    if all.is_empty() {
+        return Err(format!("{}: no sound in the file", path.display()));
+    }
+    Ok((all, r.rate))
 }
 
 fn read_wav(path: &Path) -> Result<(Vec<f32>, u32), String> {

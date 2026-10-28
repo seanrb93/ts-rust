@@ -72,6 +72,32 @@ fn opus_decoder(path: PathBuf, looping: Arc<AtomicBool>, tx: std::sync::mpsc::Sy
     }
 }
 
+/// The thread of a file in another format (read by `AnyReader`): its blocks, and the file again from the start when the music loops.
+fn any_decoder(path: PathBuf, first: crate::anyfmt::AnyReader, looping: Arc<AtomicBool>, tx: std::sync::mpsc::SyncSender<Vec<f32>>) {
+    let mut reader = first;
+    loop {
+        let mut any = false;
+        while let Some(block) = reader.next_block() {
+            any = true;
+            for piece in block.chunks(9600) {
+                if tx.send(piece.to_vec()).is_err() {
+                    return;
+                }
+            }
+        }
+        if !looping.load(Ordering::Relaxed) || !any {
+            return;
+        }
+        reader = match crate::anyfmt::AnyReader::open(&path) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("[audio] {e}");
+                return;
+            }
+        };
+    }
+}
+
 fn decoder(path: PathBuf, looping: Arc<AtomicBool>, tx: std::sync::mpsc::SyncSender<Vec<f32>>) {
     let Ok(mut f) = std::fs::File::open(&path) else { return };
     let mut sl = State::default();
@@ -158,9 +184,19 @@ impl Music {
                 self.close();
                 let (tx, rx) = sync_channel(3);
                 let looping = self.looping.clone();
-                if path.extension().and_then(|e| e.to_str()).map_or(false, |e| e.eq_ignore_ascii_case("opus")) {
+                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
+                if ext == "opus" || (ext == "ogg" && crate::codec::OpusReader::open(&path).is_ok()) {
                     self.src_rate = OPUS_RATE;
                     std::thread::spawn(move || opus_decoder(path, looping, tx));
+                } else if ext != "msc" {
+                    // (MP3, Ogg Vorbis, FLAC, AAC, WAV ...: the file is opened here for its rate, and read on by the thread)
+                    match crate::anyfmt::AnyReader::open(&path) {
+                        Ok(reader) => {
+                            self.src_rate = reader.rate as f32;
+                            std::thread::spawn(move || any_decoder(path, reader, looping, tx));
+                        }
+                        Err(e) => eprintln!("[audio] {e}"),
+                    }
                 } else {
                     self.src_rate = SRC_RATE;
                     std::thread::spawn(move || decoder(path, looping, tx));

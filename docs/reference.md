@@ -316,12 +316,12 @@ A mod can hold:
   `OB.PAK`, `SFX.PAK`) or is added to it.  Everything the game loads (models, textures, animations, sounds, levels) is read by name from
   a pack, so characters, weapons, sounds, textures and levels are all files like this.  A path that does not start with a pack's name replaces the
   file of that name in whichever pack has it (`sfx/pistol.vag`).  Names are lower case and at most 47 characters; the files have to be in the
-  game's own formats, except pictures (PNG for a texture) and sounds and music (Opus or WAV), which the port converts (below).
-* `MUSIC/<name>.MSC`: replaces a music stream; or `MUSIC/<name>.opus` (Ogg Opus, mono or stereo): the same stream as an Opus file, which is far smaller
+  game's own formats, except pictures (PNG for a texture) and sounds and music, which may be in any common audio format (MP3, Ogg Vorbis, Ogg Opus, FLAC, AAC/ALAC in M4A, WAV): the port reads them itself, with no other program.
+* `MUSIC/<name>.MSC`: replaces a music stream; or `MUSIC/<name>.opus`, `.ogg`, `.mp3`, `.flac`, `.m4a`, `.aac` or `.wav` (mono or stereo, any sample rate): the same stream as an audio file (Opus is far smaller than WAV)
   (decoded as it plays).  The name is the stream's (`1015` for the Tomb's).  The game asks for the music to loop, and the whole file loops: when the stream ends it starts again from the beginning (an Opus file is read again from
   its first sample, with the encoder's padding cut off by the length the file states).  There are no loop points: a track with an intro that plays only once is
   not possible, so make the file the part that repeats.
-* A sound as `.opus` or `.wav` where the game has a `.vag`: `SFX.PAK/sfx/<name>.opus` replaces `sfx/<name>.vag`.  The loader makes the game's sound
+* A sound as `.opus`, `.ogg`, `.mp3`, `.flac`, `.m4a`, `.aac` or `.wav` where the game has a `.vag`: `SFX.PAK/sfx/<name>.mp3` replaces `sfx/<name>.vag`.  The loader makes the game's sound
   format from it when the mod changes (`mods/.cache/converted/`): mono, at the sample rate and with the looping of the sound it replaces (the game's table
   says how fast to play a sound, not the file), at most about 130 KB (10 s at 22 kHz).  A sound that loops in the game (an engine, an alarm) is made to loop from its
   first sample to its last; one that plays once plays once; a sound that is not in the game's packs plays once.
