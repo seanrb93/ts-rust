@@ -44,6 +44,21 @@ fn fix_signon_cursor() {
 
 /// Debugging aid (`TS_WATCH=<address>`, `TS_WATCHFROM=<tick>`; needs the `calltrace` build): report the functions that
 /// store to a game address once the level clock passes `TS_WATCHFROM` (or, with `TS_WATCHFRAME=f`, during the frames from `f`, `TS_WATCHLEN` of them, 12 by default).
+fn camera_aid() {
+    // Debugging aid (`TS_CAMMODE=<mode>:<frame>`): put the camera in a mode of the debug menu (1 or 2 is the third person view) at a frame, to see a character in a screenshot.
+    static AT: std::sync::OnceLock<Option<(i32, i32)>> = std::sync::OnceLock::new();
+    let at = *AT.get_or_init(|| {
+        let v = std::env::var("TS_CAMMODE").ok()?;
+        let (m, f) = v.split_once(':')?;
+        Some((m.parse().ok()?, f.parse().ok()?))
+    });
+    if let Some((mode, frame)) = at {
+        if lw(g::framenum) == frame {
+            camSetMode(mode);
+        }
+    }
+}
+
 fn fake_goodies() {
     // Debugging aid (`TS_FAKEGOODIES=<frame>`): open the "new playable character" page, to check its layout.
     static AT: std::sync::OnceLock<Option<i32>> = std::sync::OnceLock::new();
@@ -62,6 +77,7 @@ fn fake_goodies() {
 
 fn watch_tick() {
     fake_goodies();
+    camera_aid();
     #[cfg(feature = "calltrace")]
     {
         // TS_FPROF=<from>,<to>: profile the float stores between two level ticks (see ts_rt::calltrace::fprof)

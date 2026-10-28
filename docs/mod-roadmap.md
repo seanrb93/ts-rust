@@ -141,7 +141,7 @@ and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bulle
 
 * Animations: the file layout is decoded and checked (`tools/anidump.py`, `docs/model-format.md`).  Models: the bind array (the joint each vertex of a seam follows) is read, and `obdump.py --obj` writes a character's triangles, which plot as a standing figure: the first drawing check passes.
 
-* Writing a model: `tools/obedit.py` makes a mod with a changed character model; the game loads it and runs.  Not looked at on the screen.
+* Writing a model: `tools/obedit.py` makes a mod with a changed character model; the game loads it, runs, and a scaled head is seen on the screen (`TS_CAMMODE=2:300` puts the camera in the third person view for a screenshot).
 
 ## Order of work
 
