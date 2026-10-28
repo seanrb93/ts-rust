@@ -1278,7 +1278,62 @@ def friendly_defaults(args):
     print(f'level {args.number} "{args.name}" -> {args.out}' + (' (limits of the original game)' if args.original_limits else ''))
 
 
+def ask_file(title, types, folder=False):
+    """A file (or folder) from a dialog when there is one, else typed in; empty when the user gives none."""
+    try:
+        import tkinter
+        from tkinter import filedialog
+        root = tkinter.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        got = filedialog.askdirectory(title=title) if folder else filedialog.askopenfilename(title=title, filetypes=types)
+        root.destroy()
+        return got or ''
+    except Exception:
+        return input(f'{title} (Enter for none): ').strip().strip('"')
+
+
+def wizard():
+    """Questions in place of options, for when the script is started without any (double-click, or `python tools/obj2level.py`)."""
+    print('Level converter: makes a level of the game from a 3D model or a map (Source, GoldSrc, OBJ, glTF, Blender).\n')
+    print('Choose the map or model file...')
+    path = ask_file('The map or model to convert', [('Maps and models', '*.bsp *.vmf *.obj *.glb *.gltf *.blend *.bz2'), ('All files', '*.*')])
+    if not path:
+        sys.exit('No file chosen.')
+    print(f'  {path}')
+    argv = [path]
+    name = input('Name of the level in the game (Enter: made from the file name): ').strip()
+    if name:
+        argv += ['--name', name]
+    if input('Add your own music? (y/N): ').strip().lower().startswith('y'):
+        music = ask_file('The music (mp3, ogg, wav, flac, opus)', [('Audio', '*.mp3 *.ogg *.wav *.flac *.opus *.m4a'), ('All files', '*.*')])
+        if music:
+            print(f'  {music}')
+            argv += ['--music', music]
+    print("Choose the game folder (the one with ts-port.exe) so the level is installed; cancel to only make the mod folder...")
+    game = ask_file('The game folder (with ts-port.exe)', [], folder=True)
+    if game:
+        print(f'  {game}')
+        argv += ['--install', game]
+    print()
+    return argv
+
+
 def main():
+    interactive = len(sys.argv) == 1
+    if interactive:
+        sys.argv += wizard()
+        try:
+            main_run()
+        except SystemExit as e:
+            if e.code not in (None, 0):
+                print(f'\n{e.code}')
+        input('\nPress Enter to close.')
+        return
+    main_run()
+
+
+def main_run():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('input')
     ap.add_argument('--out', default=None, help='the mod folder to make (default: mods/<name>)')

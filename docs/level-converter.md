@@ -9,7 +9,7 @@ python tools/obj2level.py <file> --install <game folder>   # ... and the mod is 
 python tools/obj2level.py <file> --out mods/MyLevel --number 33 --name "My Level" --like 25 [options]
 ```
 
-Python 3 with `numpy` and `Pillow` is needed (`pip install numpy pillow`).  For a Source or GoldSrc map the defaults suit a build with `--features all-extensions` (rooms of 25 units, thousands of textures, no limit on their size); `--original-limits` keeps to the original game's limits.  The name is made from the file's name and the number is the first from 34 that no mod beside the output folder uses.  The mod appears in the Mods page and its level in the arcade list.
+Started without any options (double-click `tools/convert-level.bat`, or run the script alone) it asks for the file, a name, music and the game folder in dialogs.  Python 3 with `numpy` and `Pillow` is needed (`pip install numpy pillow`).  For a Source or GoldSrc map the defaults suit a build with `--features all-extensions` (rooms of 25 units, thousands of textures, no limit on their size); `--original-limits` keeps to the original game's limits.  The name is made from the file's name and the number is the first from 34 that no mod beside the output folder uses.  The mod appears in the Mods page and its level in the arcade list.
 
 | format | file | notes |
 | --- | --- | --- |
