@@ -145,6 +145,7 @@ and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bulle
 
 * Models: no limit on the size of a replacement mesh and on its textures (any number of materials, pictures of any size, `obedit.py mesh --tex-base`).  The size of one draw (64 vertices, 24 strips, 212 words of the vector unit's memory) is not a limit on a mesh: a mesh is cut into as many chunks as it needs.  Lifting that would mean changing the vector unit's own program.
 
+* Models: the whole model can be exported to an OBJ and put back (`obdump.py --obj`, `obedit.py meshes`), and the head, done that way, draws as before; the limits of a chunk depend on its kind (found when the first round trip drew in pieces).
 * Models: the rest pose is found (a skeleton file is a one frame animation, `tools/animtable.py` lists the animation numbers), and put together it is a person that agrees with the mesh.
 
 ## Order of work

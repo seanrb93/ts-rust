@@ -69,7 +69,7 @@ def read_chunks(f, p):
 
 
 def triangles(f):
-    """All the triangles of an object in the space of its file: (part, joint, [three positions])."""
+    """All the triangles of an object in the space of its file: (part, joint, slot, [three (position, (s, t))])."""
     tex, tab = struct.unpack_from('<2I', f, 0)
     n = u32(f, tab)
     bones = tab - n * 80
@@ -79,30 +79,75 @@ def triangles(f):
         for list_at, arrays in ((u32(f, b + 8), b + 20), (u32(f, b + 12), b + 44)):
             if not ok(f, list_at):
                 continue
-            strips_at, pos_at = u32(f, arrays), u32(f, arrays + 4)
+            strips_at, pos_at, st_at, col_at, nrm_at = u32(f, arrays), u32(f, arrays + 4), u32(f, arrays + 8), u32(f, arrays + 12), u32(f, arrays + 20)
             for tex_slot, first_strip, strips, first_vertex, vertices, kind in read_chunks(f, list_at):
                 v = first_vertex
                 for s in range(strips):
-                    count = u32(f, strips_at + 16 * (first_strip + s)) & 0x7fff
-                    pts = [struct.unpack_from('<3f', f, pos_at + 12 * (v + k)) for k in range(count)]
+                    word = u32(f, strips_at + 16 * (first_strip + s))
+                    count, flip = word & 0x7fff, bool(word & 0x10000)
+                    pts = [(struct.unpack_from('<3f', f, pos_at + 12 * (v + k)), struct.unpack_from('<2f', f, st_at + 16 * (v + k)), tuple(f[col_at + 4 * (v + k):col_at + 4 * (v + k) + 3]) if ok(f, col_at) else None, struct.unpack_from('<3f', f, nrm_at + 12 * (v + k)) if kind in (3, 4) and ok(f, nrm_at) else None) for k in range(count)]
                     for k in range(count - 2):
                         tri = [pts[k], pts[k + 1], pts[k + 2]]
-                        if k % 2:
+                        if (k % 2) ^ flip:
                             tri = [tri[0], tri[2], tri[1]]
-                        out.append((i, f[b + 1], tri))
+                        out.append((i, f[b + 1], tex_slot, tri, kind))
+                    v += count
+    return out
+
+
+def strips_of(f):
+    """The strips of an object as they are in the file: (part, slot, kind, flip, [(position, (s, t), colour, normal)])."""
+    tex, tab = struct.unpack_from('<2I', f, 0)
+    n = u32(f, tab)
+    bones = tab - n * 80
+    out = []
+    for i in range(n):
+        b = bones + 80 * i
+        for list_at, arrays in ((u32(f, b + 8), b + 20), (u32(f, b + 12), b + 44)):
+            if not ok(f, list_at):
+                continue
+            strips_at, pos_at, st_at, col_at, nrm_at = u32(f, arrays), u32(f, arrays + 4), u32(f, arrays + 8), u32(f, arrays + 12), u32(f, arrays + 20)
+            for chunk_no, (tex_slot, first_strip, strips, first_vertex, vertices, kind) in enumerate(read_chunks(f, list_at)):
+                v = first_vertex
+                for s in range(strips):
+                    word = u32(f, strips_at + 16 * (first_strip + s))
+                    count = word & 0x7fff
+                    pts = [(struct.unpack_from('<3f', f, pos_at + 12 * (v + k)), struct.unpack_from('<2f', f, st_at + 16 * (v + k)), tuple(f[col_at + 4 * (v + k):col_at + 4 * (v + k) + 3]) if ok(f, col_at) else None, struct.unpack_from('<3f', f, nrm_at + 12 * (v + k)) if kind in (3, 4) and ok(f, nrm_at) else None) for k in range(count)]
+                    out.append((i, tex_slot, kind, bool(word & 0x10000), pts, (list_at, chunk_no)))
                     v += count
     return out
 
 
 def write_obj(f, path):
+    """The model as an OBJ: an object `part<N>` for each part, a material `slot<K>` for each texture of the file's table (the names `obedit.py mesh` reads back), with the coordinates, the
+    vertex colours (as the three numbers after a position) and the normals where the chunks have them."""
     tris = triangles(f)
+    NL = chr(10)
     with open(path, 'w') as o:
         k = 1
-        for part, joint, tri in tris:
-            for p in tri:
-                o.write('v %f %f %f\n' % p)
-            o.write('f %d %d %d\n' % (k, k + 1, k + 2))
-            k += 3
+        kn = 1
+        last = (None, None, None)
+        for part, joint, slot, tri, kind in sorted(tris, key=lambda t: (t[0], t[2], t[4])):
+            if (part, slot, kind) != last:
+                if part != last[0]:
+                    o.write('o part%d' % part + NL)
+                o.write('usemtl slot%d_k%d' % (slot, kind) + NL)
+                last = (part, slot, kind)
+            refs = []
+            for pos, st, col, nrm in tri:
+                if col:
+                    o.write(('v %f %f %f %f %f %f' % (pos + tuple(min(1.0, c / 127.0) for c in col))) + NL)
+                else:
+                    o.write(('v %f %f %f' % pos) + NL)
+                o.write(('vt %f %f' % st) + NL)
+                if nrm:
+                    o.write(('vn %f %f %f' % nrm) + NL)
+                    refs.append('%d/%d/%d' % (k, k, kn))
+                    kn += 1
+                else:
+                    refs.append('%d/%d' % (k, k))
+                k += 1
+            o.write('f ' + ' '.join(refs) + NL)
     print(len(tris), 'triangles written to', path)
 
 
