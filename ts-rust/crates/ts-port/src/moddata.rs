@@ -330,7 +330,7 @@ pub fn split_new_characters(text: &str) -> (String, Vec<ts_game::NewCharacter>, 
             if let Some(v) = words.get(1).and_then(|w| parse_int(w)) {
                 if (CHR_COUNT as i64..ts_game::MAX_CHARACTERS as i64).contains(&v) {
                     current_new = true;
-                    chars.push(ts_game::NewCharacter { number: v as i32, copy_of: -1, name: String::new(), model_file: String::new(), puts: Vec::new() });
+                    chars.push(ts_game::NewCharacter { number: v as i32, copy_of: -1, name: String::new(), model_file: String::new(), voice_of: -1, puts: Vec::new() });
                     continue;
                 }
             }
@@ -356,6 +356,10 @@ pub fn split_new_characters(text: &str) -> (String, Vec<ts_game::NewCharacter>, 
                     c.name = name;
                 }
             }
+            "voice" => match arg().and_then(parse_int) {
+                Some(v) if (0..c.number as i64).contains(&v) => c.voice_of = v as i32,
+                _ => errors.push(format!("line {n}: `voice` needs the number of an earlier character")),
+            },
             "model_file" => match arg() {
                 Some(p) if !p.contains("..") => c.model_file = p.trim_matches('"').trim_start_matches('/').to_string(),
                 _ => errors.push(format!("line {n}: `model_file` needs a path in the pack, such as ob/chrs/chr90.raw")),
@@ -389,7 +393,7 @@ pub fn split_new_characters(text: &str) -> (String, Vec<ts_game::NewCharacter>, 
                         None => errors.push(format!("line {n}: `{key}` needs a number in its range")),
                     }
                 }
-                None => errors.push(format!("line {n}: unknown field `{key}` of an added character (copy, name, model_file, raw and the fields of a character)")),
+                None => errors.push(format!("line {n}: unknown field `{key}` of an added character (copy, name, voice, model_file, raw and the fields of a character)")),
             },
         }
     }
@@ -627,6 +631,7 @@ character 80
  copy 1
  name \"Robo\"
  model_file ob/chrs/chr90.raw
+ voice 2
  scale 1.2
 character 81
  scale 2
@@ -635,6 +640,7 @@ character 81
         assert_eq!(chars[0].number, 80);
         assert_eq!(chars[0].copy_of, 1);
         assert_eq!(chars[0].model_file, "ob/chrs/chr90.raw");
+        assert_eq!(chars[0].voice_of, 2);
         assert_eq!(chars[0].puts, vec![(40, 4, 1.2f32.to_bits())]);
         assert_eq!(errors.len(), 1, "{errors:?}");
         assert!(rest.contains("character 3") && rest.contains("scale 1.1") && !rest.contains("Robo"));

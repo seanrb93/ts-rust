@@ -26,6 +26,8 @@ pub struct NewCharacter {
     pub name: String,
     /// the model file in the packs (`ob/chrs/chr90.raw`); empty: the model of the character it copies
     pub model_file: String,
+    /// the character whose voice (the list of sounds at +4) it has; -1: the voice of the character it copies
+    pub voice_of: i32,
     /// changes of the entry: the place in it, the width in bytes and the value
     pub puts: Vec<(i32, i32, u32)>,
 }
@@ -84,6 +86,9 @@ pub fn character_table_init() {
                 2 => sh(entry + off, bits as i32),
                 _ => sw(entry + off, bits as i32),
             }
+        }
+        if (0..next).contains(&c.voice_of) {
+            sw(entry + 4, lw(CHRS_TABLE + CHR_BYTES * c.voice_of + 4));
         }
         // the name
         let text = super::customlevels::register_text(&c.name);

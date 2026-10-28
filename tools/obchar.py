@@ -1,6 +1,6 @@
 """Make a character for the game from a mesh: a mod folder with the model and the line of `characters.txt`.
 
-    python tools/obchar.py <game folder> <mesh.obj> --out mods/Robo --name "Robo" [--base 0] [--number 80] [--skeleton male|female] [--height 1.95]
+    python tools/obchar.py <game folder> <mesh.obj> --out mods/Robo --name "Robo" [--base 0] [--number 80] [--skeleton male|female] [--voice 2] [--height 1.95]
 
 The mesh is an OBJ of a whole figure standing in the pose of the game's skeleton (arms down at the sides, feet on the ground, facing the way the game's characters face; `python tools/obdump.py
 <OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes a game character in the pose, to model on).  It is scaled to the height of a game character (`--height`, 1.95 by default) and put on the ground.  Each triangle
@@ -150,7 +150,7 @@ def main():
     open(target, 'wb').write(data)
     open(os.path.join(out, 'mod.ini'), 'w').write('enabled = true' + chr(10))
     nl = chr(10)
-    open(os.path.join(out, 'characters.txt'), 'w').write(f'character {number}{nl}  copy {base}{nl}  name "{name}"{nl}  model_file {model_file}{nl}')
+    open(os.path.join(out, 'characters.txt'), 'w').write(f'character {number}{nl}  copy {base}{nl}  name "{name}"{nl}  model_file {model_file}{nl}' + (f'  voice {arg("--voice")}{nl}' if arg('--voice') else ''))
     used = sum(1 for p in kind0 if by_part[p])
     print(f'{len(moved)} faces on {used} of the {len(kind0)} bones; model {target}')
     print(f'characters.txt: character {number} "{name}", a copy of character {base}')

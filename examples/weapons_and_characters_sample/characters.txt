@@ -9,3 +9,4 @@ character 3
 #  copy 2
 #  name "Robo"
 #  model_file ob/chrs/chr90.raw
+#  voice 5            # the voice (list of sounds) of character 5; without it, the one of the character it copies
