@@ -93,6 +93,12 @@ pub fn obLoadTextures(a0: i32) {
                 break;
             }
         }
+        // (all four texture buffers taken: the original selected buffer -1 and wrote its textures over the memory before the buffers, which scrambled every texture; the model stays unloaded)
+        #[cfg(feature = "extensions")]
+        if lw(a0 + 40) == -1 {
+            sw(a0 + 40, 0);
+            return;
+        }
         emSelectTexBuffer(lw(a0 + 40));
         sw(((lw(a0 + 40) - 1) << 2) + g::tbuffers, 1);
         if lw(copy) != -1 {

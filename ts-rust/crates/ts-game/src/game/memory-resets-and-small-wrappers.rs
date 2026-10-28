@@ -25,6 +25,12 @@ pub fn profileTimeGet() -> f32 {
 
 /// Free the texture buffer of the object model `model`: its texture number (+36) is cleared and the buffer given at +40 is reset and taken from the buffer table (@ 0x25edb8).
 pub fn obFreeTextures(model: i32) {
+    // (a model that was given no buffer has nothing to free)
+    #[cfg(feature = "extensions")]
+    if lw(model + 40) <= 0 {
+        sw(model + 36, 0);
+        return;
+    }
     sw(model + 36, 0);
     emResetTexBuffer(lw(model + 40));
     sw(((lw(model + 40) - 1) << 2) + g::tbuffers, 0);
