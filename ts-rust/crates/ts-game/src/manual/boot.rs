@@ -53,11 +53,14 @@ fn camera_aid() {
         Some((m.parse().ok()?, f.parse().ok()?))
     });
     if let Some((mode, frame)) = at {
-        if lw(g::framenum) == frame {
+        // (TS_CAMREAL: the frame is the port's, not the level's, and the mode is set at every frame from it on: a match started from the front end keeps its own camera otherwise)
+        let real = std::env::var_os("TS_CAMREAL").is_some();
+        let now = if real { ts_sdk::frame_count() as i32 } else { lw(g::framenum) };
+        if now == frame || (real && now > frame && lw(g::gamestate) == 3) {
             camSetMode(mode);
         }
         // (TS_CAMDIST=<back>,<up>: how far behind and how high the third person camera is from the frame on, to see the whole character; 1.5,1.5 is the game's)
-        if lw(g::framenum) > frame {
+        if now > frame {
             if let Some((back, up)) = std::env::var("TS_CAMDIST").ok().and_then(|v| v.split_once(',').and_then(|(a, b)| Some((a.parse::<f32>().ok()?, b.parse::<f32>().ok()?)))) {
                 swc1(0x3b0128, back);
                 swc1(0x3b0130, up);

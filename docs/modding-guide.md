@@ -70,5 +70,6 @@ Put a file in the mod under the pack's name: `SFX.PAK/sfx/<name>.opus` (or `.wav
 
 * `--screenshot FRAME file.png` and `--press FRAME:button` drive the game from a script (`docs/reference.md`, `docs/decompilation.md`).
 * `TS_CAMMODE=2:200 TS_CAMDIST=3,0.5 --level Prison` shows a character from behind in the Prison level.
+* `TS_CAMREAL=1 TS_CAMMODE=2:1100 TS_CAMDIST=3,1.2` does the same in a match started from the front end (the frame is the port's, and the camera mode is kept from it on): the player is seen from behind, with the bots about; where the spawn point is against a wall the view is the wall.
 * `TS_GIVE=60:<combo> TS_EQUIP=1` puts a weapon in the player's hands.
 * `TS_COMBOLOG=1` logs the weapons, props and texts that a mod adds.
