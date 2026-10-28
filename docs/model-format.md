@@ -78,10 +78,21 @@ A pose is seven floats: a position (x, y, z) then a rotation as a quaternion (x,
 
 The root's channel is kind 8 (it moves, `rf_m0` has it at a height of about 1.05); the other bones are kind 2: a fixed offset from their parent along the bone and a rotation for each key frame.  The game blends the two key frames round the time (`quaternionSlerp` for the rotations, a straight blend for the positions).
 
+## The skeleton and the animation numbers
+
+`animMake` loads two skeleton files into the skeleton table, `anim/data/male_skeleton.raw` (the skeleton of most characters) and `anim/data/newanims/fskel.raw` (the female one), and 606 animation files by number.  `python tools/animtable.py <game folder>` lists the numbers and files from the tables of
+`animation-loading.rs` and the names in the program file (for instance 3 is `spb_m0`, 4 `rf_m0`, 5 `rb_m0`, 6 `rr_m0`, 7 `rl_m0`; the female animations are in `fem/`; the last, 611 to 613, are `jumpleft` ones).  The game asks for the animation `n` and shifts it by the character's variant for the
+classes of 11 (animations 3 to 442 are 20 classes of 11 for each of two kinds, as `animMake` sets their properties).
+
+**A skeleton file is an animation of one frame**: the rest pose, with the layout above (`anidump.py` reads it: 18 channels of kind 0, each a position and a quaternion).  The channel `k` drives the `k`-th part of kind 0 of a character's model (`chr01`: parts 0, 2, 4, ... 34 in order), and the position of a channel is the offset from its parent bone
+(the nearest kind 0 part up the links).  Put together from the root (a height of 1.085) down, the joints of the male skeleton come out as a person: hips (±0.102, 0.993), knees (0.593), ankles (0.138), shoulders (±0.23, 1.475), elbows (1.19), wrists (0.913), and the joint of the head part at 1.566, below
+the centre of the head mesh (1.815).  These agree with the figure the vertices make, so the rest pose is known: the mesh of a character is in the model's space with this pose, and the joints are where the skeleton file puts them.  How a pose matrix is made from them for the vector unit (the world transform of the pose times the inverse of the
+rest one) has not been read.
+
 ## What is not known yet
 
 * What the third matrix of a seam is for.
-* The skeleton's rest pose (the character's own file has no joint positions that were found: they come from the animations, whose kind 2 channels give each bone's offset from its parent).  Which animation file is which (a character plays an animation by its number in a table, and what the numbers are matched to is not read).
+* How the pose matrix of a joint is made from the pose and the rest pose, and what the numbers of the animations mean (their file names such as `rf_m0` are not decoded).
 * How a gun is attached to a character (its model is a prop with parts that carry the muzzle points).
 
 The plan for characters (`docs/mod-roadmap.md`) starts here: read those three, make `obdump.py` print a model's triangles and joints and check it by drawing the result, and only then write a
