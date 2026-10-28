@@ -1,7 +1,7 @@
 # Sample mod
 
-A small mod that shows what the mod loader does.  Copy this folder into `mods/` next to `ts-port.exe`, switch it On on the Mods page of the main menu (or set `enabled = true` in its `mod.ini`) and start the game again (the log, from
-`ts-port.exe` in a console or with `--headless`, says what was loaded).
+A small mod that shows what the mod loader does.  Copy this folder into `mods/` next to `ts-rust.exe`, switch it On on the Mods page of the main menu (or set `enabled = true` in its `mod.ini`) and start the game again (the log, from
+`ts-rust.exe` in a console or with `--headless`, says what was loaded).
 
 | File | What it does |
 |---|---|

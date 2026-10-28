@@ -1317,8 +1317,8 @@ def wizard():
         if music:
             print(f'  {music}')
             argv += ['--music', music]
-    print("Choose the game folder (the one with ts-port.exe) so the level is installed; cancel to only make the mod folder...")
-    game = ask_file('The game folder (with ts-port.exe)', [], folder=True)
+    print("Choose the game folder (the one with ts-rust.exe) so the level is installed; cancel to only make the mod folder...")
+    game = ask_file('The game folder (with ts-rust.exe)', [], folder=True)
     if game:
         print(f'  {game}')
         argv += ['--install', game]
@@ -1346,7 +1346,7 @@ def main_run():
     ap.add_argument('--out', default=None, help='the mod folder to make (default: mods/<name>)')
     ap.add_argument('--number', type=int, default=None, help='the level number, 31 to 99 (default: the first one that no mod in mods/ uses, from 34)')
     ap.add_argument('--name', default=None, help="the level's name in the game (default: made from the file's name)")
-    ap.add_argument('--install', default=None, metavar='GAME_DIR', help='copy the finished mod to GAME_DIR/mods (the folder with the game and ts-port.exe)')
+    ap.add_argument('--install', default=None, metavar='GAME_DIR', help='copy the finished mod to GAME_DIR/mods (the folder with the game and ts-rust.exe)')
     ap.add_argument('--original-limits', action='store_true', help='keep to the limits of a build without extended-tables (200 textures, 1800 KB of them); the defaults for a map of Source are for the big build')
     ap.add_argument('--like', type=int, default=25)
     ap.add_argument('--scale', type=float, default=None)
@@ -1539,8 +1539,8 @@ def main_run():
     print()
     print(f'Done: "{args.name}" is level {args.number}.')
     if not args.install:
-        print(f'Copy the folder {out} into the mods folder next to ts-port.exe (or run again with --install <game folder>).')
-    print(f'Start it with:  ts-port --level "{args.name}"   (or pick it in the level list)')
+        print(f'Copy the folder {out} into the mods folder next to ts-rust.exe (or run again with --install <game folder>).')
+    print(f'Start it with:  ts-rust --level "{args.name}"   (or pick it in the level list)')
     print('A build with --features all-extensions is needed for mods' + (' and for a level this big.' if args.room_size else '.'))
 
 

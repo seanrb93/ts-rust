@@ -2,7 +2,7 @@
 
     python tools/render-icon.py <tssave.ico.obj> <out folder> [--view front|back|top] [--size 1024]
 
-writes <out>/icon-<size>.png and <out>/ts-port.ico (16 to 256 pixels).  A plain software renderer: orthographic, the vertex colours times the texture, a depth buffer, drawn large and
+writes <out>/icon-<size>.png and <out>/ts-rust.ico (16 to 256 pixels).  A plain software renderer: orthographic, the vertex colours times the texture, a depth buffer, drawn large and
 scaled down for smooth edges.
 """
 import os
@@ -111,7 +111,7 @@ def main():
     big = render(v, col, vt, faces, tex, view, size)
     big.save(os.path.join(out, f'icon-{view}-{size}.png'))
     sizes = [16, 24, 32, 48, 64, 128, 256]
-    big.save(os.path.join(out, 'ts-port.ico'), sizes=[(s, s) for s in sizes])
+    big.save(os.path.join(out, 'ts-rust.ico'), sizes=[(s, s) for s in sizes])
     print(f'{len(faces)} triangles; written to {out}')
 
 

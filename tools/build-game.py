@@ -4,8 +4,8 @@
     python tools/build-game.py --original  the build that behaves as the original game
     python tools/build-game.py --kit       also build modkit.exe (needs pyinstaller) and put it there too
 
-Cargo builds in `build/cargo/` (set in `ts-rust/.cargo/config.toml`), so its many files stay out of the play folder, `ts-rust/target/release/`, which then holds only the program (`ts-port.exe`),
-`modkit.exe` if you want it, the game's `PAK/` and `MUSIC/` (yours to put there), and what the game makes there (`ts-port.ini`, `saves/`, `mods/`).
+Cargo builds in `build/cargo/` (set in `ts-rust/.cargo/config.toml`), so its many files stay out of the play folder, `ts-rust/target/release/`, which then holds only the program (`ts-rust.exe`),
+`modkit.exe` if you want it, the game's `PAK/` and `MUSIC/` (yours to put there), and what the game makes there (`ts-rust.ini`, `saves/`, `mods/`).
 """
 import os
 import shutil
@@ -15,7 +15,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WS = os.path.join(ROOT, 'ts-rust')
 PLAY = os.path.join(WS, 'target', 'release')
-EXE = 'ts-port.exe' if os.name == 'nt' else 'ts-port'
+EXE = 'ts-rust.exe' if os.name == 'nt' else 'ts-rust'
 
 
 def main():
@@ -28,6 +28,10 @@ def main():
     built = os.path.join(ROOT, 'build', 'cargo', 'release', EXE)
     shutil.copyfile(built, os.path.join(PLAY, EXE))
     print(f'the game: {os.path.join(PLAY, EXE)}')
+    # (the program was called ts-port before: an old copy would only confuse)
+    for old in ('ts-port.exe', 'ts-port'):
+        if os.path.exists(os.path.join(PLAY, old)):
+            os.remove(os.path.join(PLAY, old))
     if '--kit' in sys.argv:
         if subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'build-modkit.py')]).returncode:
             sys.exit(1)

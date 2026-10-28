@@ -3,10 +3,10 @@
     python tools/capture-build.py [--out DIR] [--shadow]
 
 Copies the Rust workspace to DIR (the temporary folder by default), puts a call to `ts_rt::capture::hook` at the start of every decompiled function of
-`ts-game/src/game`, and builds `ts-port` there.  The source folders are not changed.  Copy `SLUS_200.90`, `PAK` and `MUSIC` next to the program, then, for
+`ts-game/src/game`, and builds the program there.  The source folders are not changed.  Copy `SLUS_200.90`, `PAK` and `MUSIC` next to the program, then, for
 instance:
 
-    TS_CAPTURE=obMergeChunkPolys:0+3 ts-port --headless --level Village --frames 10
+    TS_CAPTURE=obMergeChunkPolys:0+3 ts-rust --headless --level Village --frames 10
     TS_VERIFY_CAPTURE=obMergeChunkPolys-0.cap ts-verify --elf SLUS_200.90 -v
 
 With `--shadow` the port is also built with live checking: run it with `TS_SHADOW=*` (or a list of names) and every function is run as its original machine code first, on the same
@@ -117,7 +117,7 @@ def main():
     env = dict(os.environ, CARGO_TARGET_DIR=os.path.join(out, 'target'))
     features = ['--features', 'shadow'] if '--shadow' in sys.argv else []
     r = subprocess.run(['cargo', 'build', '--release', '-p', 'ts-port'] + features, cwd=out, env=env)
-    print('built: ' + os.path.join(out, 'target', 'release', 'ts-port.exe' if os.name == 'nt' else 'ts-port'))
+    print('built: ' + os.path.join(out, 'target', 'release', 'ts-rust.exe' if os.name == 'nt' else 'ts-rust'))
     if r.returncode == 0 and '--shadow' in sys.argv:
         # the verifier too, so that a run of whole frames on a snapshot can check the functions one by one (`TS_SHADOW=name,...`) and show which one differs
         r = subprocess.run(['cargo', 'build', '--release', '-p', 'ts-verify', '--features', 'shadow-hook'], cwd=out, env=env)

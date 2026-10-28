@@ -2,7 +2,7 @@
 
     python tools/build-modkit.py            makes dist/modkit.exe
 
-Needs `pip install pyinstaller numpy pillow imageio-ffmpeg` once.  Put modkit.exe in the game's folder (next to ts-port.exe), or anywhere: it asks where the game is the first time.
+Needs `pip install pyinstaller numpy pillow imageio-ffmpeg` once.  Put modkit.exe in the game's folder (next to ts-rust.exe), or anywhere: it asks where the game is the first time.
 """
 import os
 import subprocess

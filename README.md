@@ -13,20 +13,20 @@ Everything needed to build is in the repository.
 Then:
 
 ```
-python tools/build-game.py                      # builds in build/cargo/ and puts ts-port.exe in the play folder, ts-rust/target/release/
+python tools/build-game.py                      # builds in build/cargo/ and puts ts-rust.exe in the play folder, ts-rust/target/release/
                                                 #   (--original: the build that behaves as the original game; --kit: also modkit.exe)
-ts-rust/target/release/ts-port.exe              # the front end, in a window
-ts-rust/target/release/ts-port.exe --level Village   # straight into a level
+ts-rust/target/release/ts-rust.exe              # the front end, in a window
+ts-rust/target/release/ts-rust.exe --level Village   # straight into a level
 ```
 
-The play folder holds only `ts-port.exe`, `modkit.exe` if you want it, the game's `PAK/` and `MUSIC/` (put them there), and what the game makes (`ts-port.ini`, `saves/`, `mods/`).
+The play folder holds only `ts-rust.exe`, `modkit.exe` if you want it, the game's `PAK/` and `MUSIC/` (put them there), and what the game makes (`ts-rust.ini`, `saves/`, `mods/`).
 Cargo itself builds in `build/cargo/` (`ts-rust/.cargo/config.toml`), so `cargo build` and `cargo clean` never touch the play folder.
 
 Options: `--level NAME`, `--players N`, `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[:frames]`,
-`--set key=value` (a setting of `ts-port.ini` for one run).  Settings are saved in `ts-port.ini` beside the executable (created on the first start,
-commented) and can be changed in the game's Audio / Video Options page.  A crash is written to `ts-port-crash.log`.
+`--set key=value` (a setting of `ts-rust.ini` for one run).  Settings are saved in `ts-rust.ini` beside the executable (created on the first start,
+commented) and can be changed in the game's Audio / Video Options page.  A crash is written to `ts-rust-crash.log`.
 
-Controls: keyboard and mouse (WASD, the mouse looks and fires, the wheel changes weapon; the keys are the `key_*` lines of `ts-port.ini`) or any
+Controls: keyboard and mouse (WASD, the mouse looks and fires, the wheel changes weapon; the keys are the `key_*` lines of `ts-rust.ini`) or any
 gamepad.  F11 switches between window and borderless, F10 quits.
 
 ## The default build is the original
@@ -42,7 +42,7 @@ features of `ts-port`, which are off by default:
 | `all-extensions` | all of the above |
 
 ```
-cargo build -p ts-port --release --features all-extensions      # (in build/cargo/: copy ts-port.exe from there to the play folder, or use tools/build-game.py)
+cargo build -p ts-port --release --features all-extensions      # (in build/cargo/: copy ts-rust.exe from there to the play folder, or use tools/build-game.py)
 ```
 
 Where each extension hooks into the game's code, and how to use them, is in `docs/reference.md`.

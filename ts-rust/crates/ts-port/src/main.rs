@@ -1,6 +1,6 @@
 //! TimeSplitters native PC port launcher.
 //!
-//! usage: ts-port [--game-dir <dir containing PAK/ and MUSIC/; default: the program's folder>] [--level NAME] [--players N]
+//! usage: ts-rust [--game-dir <dir containing PAK/ and MUSIC/; default: the program's folder>] [--level NAME] [--players N]
 //!                 [--headless] [--frames N] [--screenshot FRAME file.png]
 //!
 //! Opens a window by default; `--headless` (implied by `--screenshot`) renders offscreen only.
@@ -586,7 +586,7 @@ fn main() {
         if let Ok(exe) = std::env::current_exe() {
             use std::io::Write;
             let bt = std::backtrace::Backtrace::force_capture();
-            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(exe.with_file_name("ts-port-crash.log")) {
+            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(exe.with_file_name("ts-rust-crash.log")) {
                 let _ = writeln!(f, "[PANIC] {info}
 {bt}
 ");
@@ -821,7 +821,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
     });
 
     // Watchdog: if no frame is presented for a while, or the game stays on its loading state (6), write what the game was waiting
-    // for to `ts-port-hang.txt` next to the program (and ask the game thread for its call stack, needs `calltrace`).
+    // for to `ts-rust-hang.txt` next to the program (and ask the game thread for its call stack, needs `calltrace`).
     std::thread::spawn(|| {
         use ts_game::g;
         let mut last = u64::MAX;
@@ -842,7 +842,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
                     ts_audio::music_playing(), ts_rt::lw(g::lvnumplayers), ts_rt::lw(0x3aff2c), ts_rt::lw(g::frontstate),
                 );
                 eprint!("[port] {report}");
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(exe_dir().join("ts-port-hang.txt")) {
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(exe_dir().join("ts-rust-hang.txt")) {
                     use std::io::Write;
                     let _ = f.write_all(report.as_bytes());
                 }

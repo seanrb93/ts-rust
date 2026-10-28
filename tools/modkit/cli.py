@@ -22,7 +22,7 @@ class Context:
     def exe(self):
         exe = config.port_exe(self.setup.port_dir)
         if not exe:
-            ui.fail(f'ts-port.exe is not in {self.setup.port_dir}.')
+            ui.fail(f'ts-rust.exe is not in {self.setup.port_dir}.')
         return exe
 
     # -- the mod being made

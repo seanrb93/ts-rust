@@ -2,7 +2,7 @@
 
 ## The easy way: the mod kit
 
-`modkit.exe` is one program with all the mod making tools.  Put it next to `ts-port.exe` (or anywhere: it asks where the game is the first time) and double-click it.  A menu asks what you
+`modkit.exe` is one program with all the mod making tools.  Put it next to `ts-rust.exe` (or anywhere: it asks where the game is the first time) and double-click it.  A menu asks what you
 want to make; every question has a default you can accept with Enter, and your files go into the mod you are working on (the first thing you make creates one).
 
 ```

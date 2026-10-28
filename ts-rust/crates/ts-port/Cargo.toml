@@ -3,6 +3,10 @@ name = "ts-port"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "ts-rust"
+path = "src/main.rs"
+
 [build-dependencies]
 # the icon of the program (Windows)
 embed-resource = "2"

@@ -2,7 +2,7 @@
 
     python tools/convert_music.py <game folder> [--bitrate 128] [--delete-originals]
 
-The game folder is the one with ts-port.exe and MUSIC/.  Each MUSIC/NNNN.MSC is decoded by `ts-port.exe --msc-to-wav` and encoded with ffmpeg
+The game folder is the one with ts-rust.exe and MUSIC/.  Each MUSIC/NNNN.MSC is decoded by `ts-rust.exe --msc-to-wav` and encoded with ffmpeg
 (libopus; ffmpeg has to be on the PATH, or imageio_ffmpeg installed) as MUSIC/NNNN.opus, stereo, 44.1 kHz, at the bitrate (kbit/s, default 128) in variable
 bit rate.  The port plays an .opus when there is one next to the .MSC; with `--delete-originals` the .MSC is removed once its Opus file is
 made (keep a copy of the game's files if you want to go back).
@@ -35,10 +35,10 @@ def main():
         print(__doc__)
         sys.exit(1)
     game = args[0]
-    exe = os.path.join(game, 'ts-port.exe')
+    exe = os.path.join(game, 'ts-rust.exe')
     music = os.path.join(game, 'MUSIC')
     if not (os.path.isfile(exe) and os.path.isdir(music)):
-        sys.exit('the folder needs ts-port.exe and MUSIC/')
+        sys.exit('the folder needs ts-rust.exe and MUSIC/')
     ff = ffmpeg()
     before = after = 0
     for name in sorted(os.listdir(music)):

@@ -7,7 +7,7 @@ decompiled to Rust**; it is not run in an emulator and the PS2 hardware (EE, GS,
 Hardware services are replaced by native ones.
 
 You need your own copy of the game's assets: its `PAK/` and `MUSIC/` folders have to be in the same folder as the executable
-(`ts-port.exe`); without them the program says so and stops.  The saves are in a `saves/` folder there too.
+(`ts-rust.exe`); without them the program says so and stops.  The saves are in a `saves/` folder there too.
 The original executable (`SLUS_200.90`) is **not** needed: all of its code is Rust here, and its data (the tables, strings and defaults, and the graphics microcode) is part of the repository.
 **Never commit the game's `PAK/` and `MUSIC/` or `saves/`.**
 
@@ -31,11 +31,11 @@ Changes to the generated code are kept in `tools/patches.py` and applied by `gen
 
 ```
 python tools/build-game.py      # cargo builds in build/cargo/ (ts-rust/.cargo/config.toml); the program is copied to the play folder ts-rust/target/release/
-ts-rust/target/release/ts-port.exe                      # front end, in a window
-ts-rust/target/release/ts-port.exe --level Village      # jump into a level
+ts-rust/target/release/ts-rust.exe                      # front end, in a window
+ts-rust/target/release/ts-rust.exe --level Village      # jump into a level
 ```
 
-The executable's folder holds `PAK/` and `MUSIC/` from the disc.  The game's initialised data (strings, tables, defaults) is part of the program (`ts-rt/data/game-data.bin`, copied to its addresses at start; `TS_GAME_EXE=<SLUS_200.90>` reads it from the original executable instead, to compare).  A crash or GPU error is written to `ts-port-crash.log` next to the port.
+The executable's folder holds `PAK/` and `MUSIC/` from the disc.  The game's initialised data (strings, tables, defaults) is part of the program (`ts-rt/data/game-data.bin`, copied to its addresses at start; `TS_GAME_EXE=<SLUS_200.90>` reads it from the original executable instead, to compare).  A crash or GPU error is written to `ts-rust-crash.log` next to the port.
 
 Options: `--game-dir DIR`, `--level NAME`, `--players N`, `--save-dir DIR` (virtual memory card, default `saves/` in the executable's folder; `--game-dir` and `--save-dir` are for testing),
 `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[+button][:frames]`,
@@ -47,7 +47,7 @@ Keyboard and mouse (port 0): W, A, S, D walk (Shift walks slowly), the mouse loo
 middle button aims (L2), the wheel changes the weapon (or zooms while aiming).  Keys: Enter / Space / F cross (accept, use), Backspace / R triangle (back,
 reload), C circle, X square, Ctrl L1 (crouch), Z L2, V R1, G R2, Q / Left Arrow and E / Right Arrow d-pad left and right (the previous and next weapon, and
 left and right in the menus), Up and Down Arrow d-pad up and down (zoom), Esc / P start, Tab select; F11 window / borderless, F2 the game's developer (debug) menu in
-a level once it is switched on in Game Options (see "Developer menu"), F10 quit.  The keys of every button are the `key_*` lines of `ts-port.ini` (`key_cross =
+a level once it is switched on in Game Options (see "Developer menu"), F10 quit.  The keys of every button are the `key_*` lines of `ts-rust.ini` (`key_cross =
 Enter, Space, F`: names separated by commas); the game's texts name them ("(F) Select"; where a button's picture has little room the first key of the list
 that has one or two characters).  Gamepads (any, via SDL3) map to the virtual DualShock 2; the first two feed ports 0 and 1.
 
@@ -55,7 +55,7 @@ that has one or two characters).  Gamepads (any, via SDL3) map to the virtual Du
 
 The settings are rows of the game's own **Audio / Video Options** page (main menu, "Audio / Video Options"), below the music and
 sound settings; the old "Screen Adjust" row is gone.
-Changes apply at once and are saved to `ts-port.ini` next to the executable (created on first start, commented; `--set key=value` on the command line overrides it for one run).
+Changes apply at once and are saved to `ts-rust.ini` next to the executable (created on first start, commented; `--set key=value` on the command line overrides it for one run).
 
 | Option | What it does |
 |---|---|
@@ -207,7 +207,7 @@ Run Python tools as files (`python tools/gen_rust.py`), not with `python -I`.
 
 ## Developer menu (F2)
 
-The retail game still contains its developer menu but nothing opens it; the **Debug Menu (F2)** row of the Game Options page (`debug_menu` in `ts-port.ini`, off by default) lets F2 open it while a level is played (and close it).
+The retail game still contains its developer menu but nothing opens it; the **Debug Menu (F2)** row of the Game Options page (`debug_menu` in `ts-rust.ini`, off by default) lets F2 open it while a level is played (and close it).
 Triangle or start goes back one menu.  Most of its entries were compiled out of the retail code (the portal / wall / volume / floor
 overlays, position, speed and performance displays, memory statistics, editors, turtle switches), so only the working ones are
 shown (`ts-game/src/manual/debugmenu.rs` trims the menu tables before the first use): Move View, Game View, 3rd Person View, Prop
@@ -228,25 +228,25 @@ View Statistics, and View Credits once the game has been completed).  All of the
 Choosing X on the Custom configuration of the Controls page (after editing it) opens the page where each button is chosen.  `avmenu.rs` builds the tables.
 
 The Controls page also has **Look / Mouse Sensitivity** (the right stick and the mouse) and **Control Method** (Controller or Keyboard & Mouse; `input_method`
-in `ts-port.ini`; both devices always work, and the method follows the one used last; choosing the other one by hand holds until that device is used).  The sensitivities scale the look speed in `playerTick`.  Button names in legends and in the Custom controls page follow the device
+in `ts-rust.ini`; both devices always work, and the method follows the one used last; choosing the other one by hand holds until that device is used).  The sensitivities scale the look speed in `playerTick`.  Button names in legends and in the Custom controls page follow the device
 in use: Xbox letters and LB / RB / LT / RT, the Switch's letters and L / R / ZL / ZR, or the keys of the keyboard; a PlayStation controller keeps the
 original pictures (`nativetext.rs`, `Pads::styles`).  The same file replaces the texts that mention the PS2 memory card, so the saves read as the
 program's own saved data.
 
 The **Audio Options** page has a second page (Left / Right) with three more volume sliders, like the game's own: **Weapon** (gunfire, explosions, reloads, punches and what
 they hit: bullet impacts, ricochets, bodies falling, glass), **Voice** (characters and announcers) and **Environment** (everything else: ambience, machines, pickups, menus),
-from 0 to 100 (`volume_weapons`, `volume_voices`, `volume_environment` in `ts-port.ini`).  The game's own Sound volume still applies to all of them.  The mixer (`ts-audio`)
+from 0 to 100 (`volume_weapons`, `volume_voices`, `volume_environment` in `ts-rust.ini`).  The game's own Sound volume still applies to all of them.  The mixer (`ts-audio`)
 asks, when a voice starts, which group the sample at its address is in; `manual/soundmix.rs` finds the sound in the game's table of sounds and sorts it by the words in its file
 name.  The **FPS Counter** row of Game Options shows the frame rate in a corner.
 
 The **Options** page of an arcade match (the page with the match's settings, before GO!) has **Level Music** after Bot Set: *Level's Own* (what each level plays, the default), *Random*
 (a different track each time a level starts, never the same one twice in a row) or one of the 27 tracks (`MUSIC\1001.MSC` to `1027.MSC`, each named after the first level that uses it).
-It is `level_music` in `ts-port.ini` (`own`, `random` or a track number) and applies to every level, MapMaker maps included; the pages of the front end keep their own music.  The level
+It is `level_music` in `ts-rust.ini` (`own`, `random` or a track number) and applies to every level, MapMaker maps included; the pages of the front end keep their own music.  The level
 table (`lvinfo`) says which tune a level plays; `musicRestart` is patched to call `av_level_music` on the tune it asks the table for (`manual/arcadeopts.rs`, which also adds the row: the
 page's table is a copy in the port's memory, as it has no room for another item).
 
 The MapMaker's Options page works like the others (X edits the Grid Intensity slider, arrows show) and has **No Limit** (Yes / No): Yes removes the
-limit on what a map can hold and hides the FREE bar (`mmoptions.rs`, `mapmaker_unlimited` in `ts-port.ini`).
+limit on what a map can hold and hides the FREE bar (`mmoptions.rs`, `mapmaker_unlimited` in `ts-rust.ini`).
 
 ## Dual versions of every weapon, and story with more players
 
@@ -276,7 +276,7 @@ between (x -> 640 - x).  The hit test of the game is unchanged (the left swipe h
 
 ## Dual wield toggle
 
-The **Dual Wield Everything** row of Game Options (`dual_wield_all` in `ts-port.ini`, on by default) switches the added "(x2)" weapons and the left
+The **Dual Wield Everything** row of Game Options (`dual_wield_all` in `ts-rust.ini`, on by default) switches the added "(x2)" weapons and the left
 fist on and off together.  Off, the weapon page lists only the game's own weapons, dual entries already in a set act as the single weapon, and
 unarmed punches are all right-handed.  The left fist's hit test (`punch_mirror_points`) mirrors the two points of the swipe across the plane through
 the player along his view direction.
@@ -289,7 +289,7 @@ the bot set page fills a custom set with ten random bots (the level only has roo
 
 A bot that starts without a weapon (Always start with gun: No) looks for one (`findweapon`).  In a level with no weapon to pick up (an empty
 custom weapon set) it used to stand still playing its idle animation; it now goes after its target and hits it bare handed when it is close
-(`bot_punch` in `manual/dualwield.rs`, called from `enemyTick`: one punch every 0.75 s within two and a half units on the same floor, never while the bot is dying or spawning or at a dead target, damage as the player's fist).  This is the **Bots Punch** row of Game Options (`bots_punch` in `ts-port.ini`, on by default; off, bots stand idle as in the original).  In modes with teams the bot set randomiser also puts the bots in random teams.
+(`bot_punch` in `manual/dualwield.rs`, called from `enemyTick`: one punch every 0.75 s within two and a half units on the same floor, never while the bot is dying or spawning or at a dead target, damage as the player's fist).  This is the **Bots Punch** row of Game Options (`bots_punch` in `ts-rust.ini`, on by default; off, bots stand idle as in the original).  In modes with teams the bot set randomiser also puts the bots in random teams.
 
 ## Randomisers
 
@@ -340,7 +340,7 @@ are not changed.  A level's own files (the formats are in `docs/level-formats.md
 
 Textures: put a PNG where the game has a texture: `MISC.PAK/textures/<name>.png` replaces `textures/<name>.qpm` (`<name>` as in `index.csv` of "Extracting the textures": `0807`,
 `misc/ammo_big`, ...).  The game still loads its own texture; the renderer shows the PNG in its place, over the same surface.  The PNG can be of any size (4096x4096 and 2048x1024
-were tried; a side longer than `hd_texture_max` of `ts-port.ini`, 4096 by default, is made smaller when the picture is read, and a 4096x4096 picture takes about 85 MB of video
+were tried; a side longer than `hd_texture_max` of `ts-rust.ini`, 4096 by default, is made smaller when the picture is read, and a 4096x4096 picture takes about 85 MB of video
 memory with its mip maps) and has full colour and alpha, no palette.  The picture is stretched to the original's shape, so keep its proportions; a picture the game draws as a sprite (the HUD's
 ammo icon, the menus) stays the size on the screen the game gives it, but sharper.  The renderer finds the texture by the name of the file the game's loader was given (`manual/texhook.rs`
 notes it, `ts_rt::texnames`; `ts_gfx::hd` keeps the pictures), so a texture the game never loads is never replaced, and a picture that is not read yet is read the first time its texture is
@@ -375,7 +375,7 @@ texture.
 
 ## Unlock Everything
 
-The **Unlock Everything** row of the **Game Options** page (an item of the game type page; `unlock_all` in `ts-port.ini`, or `--set unlock_all=true` for one
+The **Unlock Everything** row of the **Game Options** page (an item of the game type page; `unlock_all` in `ts-rust.ini`, or `--set unlock_all=true` for one
 run) opens everything the game keeps locked: the levels of the story and arcade modes, the characters, bot sets, the challenge mode and the
 unlockable cheats (the Cheats Menu button on the level select page).  Every unlock in the game is a test on the profile's statistics
 (`unlockedEx`); the game has a switch that makes all of those tests pass (what one of its cheat codes sets), and the option keeps it on.  The
@@ -414,7 +414,7 @@ save is not changed: switching the option off locks everything again as the prof
   | Left click / right click | fire / alternate fire (R2 / R1) |
   | Middle click | aim (crosshair); each click turns it on or off, whether the game's Aim Mode is Hold or Toggle |
   | Mouse wheel | previous / next weapon; while aiming with a weapon that zooms (the sniper rifles): zoom in / out |
-  | Mouse | look: the view is turned by the mouse's own movement (`mouselook.rs`; `mouse_sensitivity` in `ts-port.ini`, a zoomed view turns less) |
+  | Mouse | look: the view is turned by the mouse's own movement (`mouselook.rs`; `mouse_sensitivity` in `ts-rust.ini`, a zoomed view turns less) |
   | Escape | pause |
   | Backspace | cancel / back (triangle; R is the manual reload, also triangle) |
   | Arrow keys | the directional buttons |
@@ -428,8 +428,8 @@ save is not changed: switching the option off locks everything again as the prof
 
 ## Diagnostics
 
-A crash writes `ts-port-crash.log` next to the program.  If a frame is not presented for a few seconds, or the game stays on its loading
-state, `ts-port-hang.txt` gets a line with what the game was waiting for (game state, level, music wait counter, music state).  The two
+A crash writes `ts-rust-crash.log` next to the program.  If a frame is not presented for a few seconds, or the game stays on its loading
+state, `ts-rust-hang.txt` gets a line with what the game was waiting for (game state, level, music wait counter, music state).  The two
 graphics threads drop a frame that panics instead of leaving the game waiting for them; after a long wait on the loading state the music is
 closed and the level is ended by hand.  `TS_FORCEPLAYERS=<n>` (test aid) starts the next match with n players.
 

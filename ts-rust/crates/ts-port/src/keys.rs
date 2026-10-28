@@ -1,4 +1,4 @@
-//! The keyboard's keys for the buttons of the virtual pad: the names for `ts-port.ini` (`key_cross = Enter, Space, F`), the keys that stand
+//! The keyboard's keys for the buttons of the virtual pad: the names for `ts-rust.ini` (`key_cross = Enter, Space, F`), the keys that stand
 //! for each button by default, and the names the game's texts use for them (the legend "(Enter) Ok" shows the first key of the button).
 
 use ts_sdk::pad::btn;

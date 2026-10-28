@@ -494,7 +494,7 @@ impl Renderer {
             eprintln!("[render] GPU error: {e}");
             if let Ok(exe) = std::env::current_exe() {
                 use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(exe.with_file_name("ts-port-crash.log")) {
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(exe.with_file_name("ts-rust-crash.log")) {
                     let _ = writeln!(f, "[GPU error] {e}
 ");
                 }

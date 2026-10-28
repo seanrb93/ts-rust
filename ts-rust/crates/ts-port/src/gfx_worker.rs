@@ -17,7 +17,7 @@ fn start() -> Mutex<Sender<Req>> {
         .spawn(move || {
             for (n, list, world) in rx {
                 let t0 = std::time::Instant::now();
-                // (a panic while building one frame (it is written to ts-port-crash.log) must not leave the game waiting for the worker
+                // (a panic while building one frame (it is written to ts-rust-crash.log) must not leave the game waiting for the worker
                 // for ever: that frame is dropped and the next one is built as usual)
                 let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::process_frame(n, list, world)));
                 ts_sdk::perf::add_worker(t0.elapsed());

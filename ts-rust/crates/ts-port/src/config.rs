@@ -1,4 +1,4 @@
-//! User settings: `ts-port.ini` next to the executable (created with defaults on first run), overridable with
+//! User settings: `ts-rust.ini` next to the executable (created with defaults on first run), overridable with
 //! `--set key=value` on the command line.  Everything is read once at start-up; the F-keys in `window.rs` change a few
 //! options live.
 
@@ -387,7 +387,7 @@ impl Config {
 }
 
 fn ini_path() -> PathBuf {
-    std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("ts-port.ini"))).unwrap_or_else(|| PathBuf::from("ts-port.ini"))
+    std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("ts-rust.ini"))).unwrap_or_else(|| PathBuf::from("ts-rust.ini"))
 }
 
 pub static CONFIG: Mutex<Option<Config>> = Mutex::new(None);
@@ -396,6 +396,13 @@ pub static CONFIG: Mutex<Option<Config>> = Mutex::new(None);
 pub fn load(overrides: &[(String, String)]) {
     let mut c = Config::default();
     let path = ini_path();
+    // (the settings file was called ts-port.ini before the program was called ts-rust: the old one is moved to the new name)
+    if !path.exists() {
+        let old = path.with_file_name("ts-port.ini");
+        if old.exists() {
+            let _ = std::fs::rename(&old, &path);
+        }
+    }
     match std::fs::read_to_string(&path) {
         Ok(t) => c.parse(&t),
         Err(_) => {

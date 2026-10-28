@@ -43,7 +43,7 @@ def has_game_files(folder):
 
 
 def port_exe(folder):
-    for name in ('ts-port.exe', 'ts-port'):
+    for name in ('ts-rust.exe', 'ts-rust', 'ts-port.exe', 'ts-port'):
         p = os.path.join(folder, name)
         if folder and os.path.isfile(p):
             return p
@@ -79,7 +79,7 @@ class Setup:
             self._remember()
             return True
         ui.heading('Where is the game?')
-        ui.say('I need the folder that has the game program (ts-port.exe) and the game\'s PAK and MUSIC folders.')
+        ui.say('I need the folder that has the game program (ts-rust.exe) and the game\'s PAK and MUSIC folders.')
         folder = ui.pick_file('Choose the game folder', folder=True)
         if not folder:
             return False
