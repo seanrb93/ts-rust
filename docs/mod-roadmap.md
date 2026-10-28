@@ -154,6 +154,14 @@ and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bulle
 * Models: the whole model can be exported to an OBJ and put back (`obdump.py --obj`, `obedit.py meshes`), and the head, done that way, draws as before; the limits of a chunk depend on its kind (found when the first round trip drew in pieces).
 * Models: the rest pose is found (a skeleton file is a one frame animation, `tools/animtable.py` lists the animation numbers), and put together it is a person that agrees with the mesh.
 
+## Where it stands
+
+Working and seen on screen: changing the stats of weapons; added weapons (held, fired, own view model); added characters (select page with own model and name, bot sets page, as a bot in a match without a crash, `voice`, `--scale`); `obchar.py` (mesh to character with seams, checked walking in the Prison level and on the select page); mode variants with rules (`win_score`, `win_score_seconds`, `win_lead`; parser tests and the Rules row's code, the row itself not seen with a mod's variants on the Options page).
+
+Not seen working: the damage of an added weapon, an added character's look and movement as a bot in a match (it spawns and plays; the camera aid, `TS_CAMREAL`, rarely has a clear view), a scaled character walking, seams bending in a match, the Rules row.
+
+Not done: sounds of their own for weapons (the sound fields are not mapped) and characters (only `voice`), a different skeleton or animations, the 7th and later game modes with their own objects, pages and rules of play (variants cover numbers and the three rules), end-of-game pages per mode, the added characters in the availability masks and the story.
+
 ## Order of work
 
 1. The mod file format and the loader: one place (`mod.ini` sections or `characters.txt`, `weapons.txt`, `modes.txt`) where all three are described, with validation and clear errors in
