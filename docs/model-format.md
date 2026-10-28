@@ -19,13 +19,23 @@ A part's record is that of a level's (`docs/level-formats.md`) with these differ
 
 | Field | A character |
 |---|---|
-| `+0` kind | 0 a mesh that is rigid on a joint; 1 to 3 a skin drawn with up to three joint matrices at once (the vertices have weights in the sixth array: guess); 2 is also a "fillet": `calDoubleFillets` makes the matrix of a kind 2 part from its own joint and its parent's with `calInbetweenMatrix` (an elbow or knee that bends smoothly); 3 stops the walk down the tree |
+| `+0` kind | 0 a mesh that is rigid on a joint; 1 to 3 a seam between joints, drawn with up to three joint matrices at once (each vertex names the joint it follows in the bind array: below); 2 is also a "fillet": `calDoubleFillets` makes the matrix of a kind 2 part from its own joint and its parent's with `calInbetweenMatrix` (an elbow or knee that bends smoothly); 3 stops the walk down the tree |
 | `+1` joint | the joint (bone) the part is drawn with; 255 for a part of kind 1 that has no joint of its own (guess) |
 | `+2` to `+5` links | four signed bytes.  For a rigid part (kind 0) they make the tree: `+2` the parent, `+3` the first child, `+4` the next sibling, `+5` the previous sibling (`calDoubleFillets` follows `+3` and `+4`, and the numbers of `chr01` fit: part 5 has parent 4, child 6, next sibling 13, no previous; part 13 has parent 4, child 14, next 21, previous 5).  For a part that blends joints (kinds 1 to 3) `+2` and `+3` are the numbers of the two parts whose joints are blended (`partGfx` loads the matrices of those two parts' joints and then the part's own, `+1`, when it is not negative: three matrices for the vector unit) |
-| `+20` to `+40` | the strip table, positions, texture coordinates, colours, normals and (kind 1 and 2 only) a sixth array at +40 that a level does not have (guess: what the skin needs) |
+| `+20` to `+40` | the strip table (+20), positions (+24, 12 bytes a vertex), texture coordinates (+28, 16 bytes), colours (+32, 4 bytes), the *bind* array (+36, 4 bytes a vertex, only for the parts that blend joints) and the normals (+40, 12 bytes a vertex, for chunk kinds 3 and 4) (read from `partPrecalcDmaData`, which sends them to the vector unit in that order) |
 | chunk kind | 3 for a rigid part (positions and normals), 4 for a part that joins joints |
 
 The vectors at `+72` are what the code of a gun reads for the places on a model (the bones the muzzle flash and sparks come from, `gun + 340`, `+360` and `+364` of the table of weapons).
+
+### The bind array
+
+For a part that blends joints the bind array has four bytes for each vertex, of which the first is the joint the vertex follows and the others are 0.  In `chr01` part 1 (blending the joints of parts 0 and 2, which are joints 0 and 1) binds its vertices to 0 or 1, and part 3 (parts 2 and 4: joints 1 and 2) to 1 or 2.  So a vertex of a seam
+is rigid on one of the two joints, and a seam changes shape because its two halves move with their joints (a vertex does not carry a weight between them: nothing in the data is a fraction).  What the third matrix is for (the part's own joint, when `+1` is not negative) is not known.
+
+### Drawn
+
+`python tools/obdump.py <OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes the triangles of a model (the strips, as the vector unit draws them) as an OBJ.  The vertices of a character are in the model's own space in a rest pose: `chr01` comes out as a figure 1.95 high and 0.65 wide with the head at the top, the arms hanging
+at the sides and the feet on the ground (1598 triangles, 4794 vertices), as a plot of the positions shows.  So a converter can write the rest pose of a mesh directly; what remains is the joints (their rest positions and which vertices go with which joint) and the animations.
 
 ## Animations
 
@@ -61,7 +71,7 @@ The root's channel is kind 8 (it moves, `rf_m0` has it at a height of about 1.05
 
 ## What is not known yet
 
-* The sixth array: how the weights of a vertex are stored for the three matrices.
+* What the third matrix of a seam is for.
 * The skeleton's rest pose (the character's own file has no joint positions that were found: they come from the animations, whose kind 2 channels give each bone's offset from its parent).  Which animation file is which (a character plays an animation by its number in a table, and what the numbers are matched to is not read).
 * How a gun is attached to a character (its model is a prop with parts that carry the muzzle points).
 

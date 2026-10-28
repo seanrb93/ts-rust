@@ -2,6 +2,7 @@
 
     python tools/obdump.py <OB.PAK> <name in the pack, or part of it>      e.g. ob/chrs/chr0.raw
     python tools/obdump.py <OB.PAK> --list [filter]                         lists the objects
+    python tools/obdump.py <OB.PAK> <name> --obj out.obj                    writes the triangles (in the file's own space) as a Wavefront OBJ
 
 The layout is the one of `docs/level-formats.md` ("A room's model") with what a character adds (a skeleton: the parts are bones).  Pointers in the file are offsets from its start.
 """
@@ -67,6 +68,44 @@ def read_chunks(f, p):
     return out
 
 
+def triangles(f):
+    """All the triangles of an object in the space of its file: (part, joint, [three positions])."""
+    tex, tab = struct.unpack_from('<2I', f, 0)
+    n = u32(f, tab)
+    bones = tab - n * 80
+    out = []
+    for i in range(n):
+        b = bones + 80 * i
+        for list_at, arrays in ((u32(f, b + 8), b + 20), (u32(f, b + 12), b + 44)):
+            if not ok(f, list_at):
+                continue
+            strips_at, pos_at = u32(f, arrays), u32(f, arrays + 4)
+            for tex_slot, first_strip, strips, first_vertex, vertices, kind in read_chunks(f, list_at):
+                v = first_vertex
+                for s in range(strips):
+                    count = u32(f, strips_at + 16 * (first_strip + s)) & 0x7fff
+                    pts = [struct.unpack_from('<3f', f, pos_at + 12 * (v + k)) for k in range(count)]
+                    for k in range(count - 2):
+                        tri = [pts[k], pts[k + 1], pts[k + 2]]
+                        if k % 2:
+                            tri = [tri[0], tri[2], tri[1]]
+                        out.append((i, f[b + 1], tri))
+                    v += count
+    return out
+
+
+def write_obj(f, path):
+    tris = triangles(f)
+    with open(path, 'w') as o:
+        k = 1
+        for part, joint, tri in tris:
+            for p in tri:
+                o.write('v %f %f %f\n' % p)
+            o.write('f %d %d %d\n' % (k, k + 1, k + 2))
+            k += 3
+    print(len(tris), 'triangles written to', path)
+
+
 def main():
     if len(sys.argv) < 3:
         sys.exit(__doc__)
@@ -82,6 +121,9 @@ def main():
         sys.exit('no such object')
     n, o, s = hits[0]
     print(n)
+    if '--obj' in sys.argv:
+        write_obj(d[o:o + s], sys.argv[sys.argv.index('--obj') + 1])
+        return
     dump(d[o:o + s])
 
 

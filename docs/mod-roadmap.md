@@ -139,7 +139,7 @@ and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bulle
 
 * Characters, step 1 begun: `tools/obdump.py` and `docs/model-format.md` describe the structure of a character model (parts as a tree of 26 joints, three kinds of part, the arrays of a part), with what is not known marked.  The skin arrays, the rest pose and the animation files are the next things to read.
 
-* Animations: the file layout is decoded and checked (`tools/anidump.py`, `docs/model-format.md`).
+* Animations: the file layout is decoded and checked (`tools/anidump.py`, `docs/model-format.md`).  Models: the bind array (the joint each vertex of a seam follows) is read, and `obdump.py --obj` writes a character's triangles, which plot as a standing figure: the first drawing check passes.
 
 ## Order of work
 
