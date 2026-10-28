@@ -3,6 +3,10 @@ name = "ts-port"
 version = "0.1.0"
 edition = "2021"
 
+[build-dependencies]
+# the icon of the program (Windows)
+embed-resource = "2"
+
 [dependencies]
 ts-rt = { path = "../ts-rt" }
 ts-sdk = { path = "../ts-sdk" }
