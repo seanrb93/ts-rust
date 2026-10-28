@@ -126,6 +126,11 @@ pub fn chrSelectDeathAnim(chr: i32, from: i32, at: i32, dir: i32, kind: i32, fla
     let frame = Frame::new(96);
     let sp = frame.sp();
     let record = lw(chr + 352);
+    // (BlueRobot has no death animation: those of the people would turn him upside down; he is left standing until he is removed)
+    #[cfg(feature = "extensions")]
+    if lhu(record + 4) == 79 {
+        return;
+    }
     if lw(record + 8) == 1 {
         if curAnim(chr, 577) == 0 {
             if curAnim(chr, 579) == 0 {
