@@ -34,7 +34,7 @@ The new weapon is a single weapon and a pair, and shows in the weapon sets and w
 
 ## Add a character
 
-1. Get a mesh of the figure: `python tools/obdump.py <OB.PAK> ob/chrs/chr01.raw --obj figure.obj` writes a game character in the pose of the skeleton, to model on.  Keep the height (about 1.95) and the pose: the skeleton does not change with the mesh.
+1. Get a mesh of the figure: `python tools/obdump.py <OB.PAK> ob/chrs/chr01.raw --obj figure.obj` writes a game character in the pose of the skeleton, to model on.  Keep the pose and the height (about 1.95); for a bigger or smaller character add `--scale 1.4` to the command below, which scales the mesh and the character's `scale` field together (the skeleton does not change with the mesh alone).
 2. `python tools/obchar.py <game folder> figure.obj --out mods/Robo --name "Robo" [--base 0] [--voice 5]` makes the mod: the model, the textures from the OBJ's materials (any size) and a `characters.txt`.  Each triangle is given to the bone nearest to it, and the triangles near a joint go to the seam parts that the game's own characters have there.
 3. Start the game.  The character is on the character select page after the game's own (left from the first character, or right through the list), on the bot sets page, and can be a bot.
 

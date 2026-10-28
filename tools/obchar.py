@@ -1,9 +1,9 @@
 """Make a character for the game from a mesh: a mod folder with the model and the line of `characters.txt`.
 
-    python tools/obchar.py <game folder> <mesh.obj> --out mods/Robo --name "Robo" [--base 0] [--number 80] [--skeleton male|female] [--voice 2] [--height 1.95]
+    python tools/obchar.py <game folder> <mesh.obj> --out mods/Robo --name "Robo" [--base 0] [--number 80] [--skeleton male|female] [--voice 2] [--scale 1.4] [--height 1.95]
 
 The mesh is an OBJ of a whole figure standing in the pose of the game's skeleton (arms down at the sides, feet on the ground, facing the way the game's characters face; `python tools/obdump.py
-<OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes a game character in the pose, to model on).  It is scaled to the height of a game character (`--height`, 1.95 by default) and put on the ground.  Keep it so: the skeleton does not change with the mesh, so a mesh of another height no longer fits its joints (a figure 1.4 times taller shows torn triangles at the hips).  (The character's `scale` field is not a way round this: with 1.4 on the select page the arms came out as spikes.)  Each triangle
+<OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes a game character in the pose, to model on).  It is scaled to the height of a game character (`--height`, 1.95 by default) and put on the ground.  Keep it so: the skeleton does not change with the mesh, so a mesh of another height no longer fits its joints (a figure 1.4 times taller shows torn triangles at the hips).  For a larger or smaller character use `--scale 1.4`: the game scales the offsets of the animations' joints by the character's `scale` field (`characters.txt`), so the tool scales the mesh by the same number, which it writes as `scale`; that fits the joints (checked on the select page at 1.4).  Only the mesh, not the field, would tear the model.  Each triangle
 is given to the bone of the game's skeleton nearest to it (the bone is the stretch from a joint to the next one, or to a point past the end of a limb), so every part of the mesh follows the
 joint that is nearest to it.  The triangles near a joint between two bones go to the model's own seam part there (kinds 1 and 2 of `docs/model-format.md`, the ones the game's characters have at an elbow
 or a knee), each corner following the joint of the nearer bone, and for a seam of kind 2 the corners right at the joint follow its own joint, so a bent joint stretches instead of opening.  The materials of the OBJ with a `map_Kd` picture (any size) become textures of the game (`--tex-base`, 9000 by default).
@@ -67,7 +67,7 @@ def skeleton_joints(game, model, skeleton_file):
     return kind0, {k: v[0] for k, v in world.items()}, parent, parts
 
 
-def bone_segments(kind0, world, parent):
+def bone_segments(kind0, world, parent, size=1.0):
     """For each kind 0 part the stretch of the body it moves: from its joint to the mean of its children's joints, or, for the end of a limb, a point past it."""
     children = {p: [c for c in kind0 if parent[c] == p] for p in kind0}
     segs = {}
@@ -78,7 +78,7 @@ def bone_segments(kind0, world, parent):
         else:
             # (the end of a limb: the head goes up, a hand or a foot goes on the way the limb pointed)
             up = world[p] - world[parent[p]] if parent[p] >= 0 else np.array([0, 0.1, 0])
-            b = a + up / max(np.linalg.norm(up), 1e-6) * (0.35 if a[1] > 1.4 else 0.2)
+            b = a + up / max(np.linalg.norm(up), 1e-6) * (0.35 if a[1] > 1.4 * size else 0.2) * size
         segs[p] = (a, b)
     return segs
 
@@ -96,7 +96,8 @@ def main():
     arg = lambda k, d=None: sys.argv[sys.argv.index(k) + 1] if k in sys.argv else d
     out, name = arg('--out'), arg('--name', 'Custom')
     base, number = int(arg('--base', 0)), int(arg('--number', 80))
-    height = float(arg('--height', 1.95))
+    size = float(arg('--scale', 1.0))
+    height = float(arg('--height', 1.95)) * size
     skeleton_file = 'anim/data/newanims/fskel.raw' if arg('--skeleton', 'male') == 'female' else 'anim/data/male_skeleton.raw'
     tex_base = int(arg('--tex-base', 9000))
     model_file = arg('--model-file', f'ob/chrs/chr{90 + number - 80:02d}.raw')
@@ -108,7 +109,8 @@ def main():
         sys.exit('no such character model: ' + base_name)
     model = d[hit[0][0]:hit[0][0] + hit[0][1]]
     kind0, world, parent, parts = skeleton_joints(game, model, skeleton_file)
-    segs = bone_segments(kind0, world, parent)
+    world = {k: v * size for k, v in world.items()}
+    segs = bone_segments(kind0, world, parent, size)
     faces, pictures = obedit.read_obj(mesh)
     if not faces:
         sys.exit('the mesh has no faces')
@@ -119,7 +121,7 @@ def main():
     # (centred on the median of the vertices, which is near the body's axis; the middle of the box is not when an arm or a gun reaches out on one side)
     mid = np.median(pts, axis=0)
     # (the game's own characters have their median 0.045 in front of the skeleton's origin: measured on chr01)
-    shift = np.array([-mid[0], -lo[1], -mid[2] + 0.045])
+    shift = np.array([-mid[0], -lo[1], -mid[2] + 0.045 * size])
     place = lambda p: tuple(float(x) for x in (np.array(p) + shift) * scale)
     moved = []
     for corners, mat in faces:
@@ -209,7 +211,7 @@ def main():
     open(target, 'wb').write(data)
     open(os.path.join(out, 'mod.ini'), 'w').write('enabled = true' + chr(10))
     nl = chr(10)
-    open(os.path.join(out, 'characters.txt'), 'w').write(f'character {number}{nl}  copy {base}{nl}  name "{name}"{nl}  model_file {model_file}{nl}' + (f'  voice {arg("--voice")}{nl}' if arg('--voice') else ''))
+    open(os.path.join(out, 'characters.txt'), 'w').write(f'character {number}{nl}  copy {base}{nl}  name "{name}"{nl}  model_file {model_file}{nl}' + (f'  voice {arg("--voice")}{nl}' if arg('--voice') else '') + (f'  scale {size}{nl}' if size != 1.0 else ''))
     used = sum(1 for p in kind0 if by_part[p])
     print(f'{len(moved)} faces on {used} of the {len(kind0)} bones; model {target}')
     print(f'characters.txt: character {number} "{name}", a copy of character {base}')
