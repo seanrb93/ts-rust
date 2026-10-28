@@ -56,6 +56,10 @@ byte written; it also runs on memory snapshots of the running game.  The port ca
 (`--features shadow`).  Every function passes except a short list of known artefacts, and scripted runs of every challenge, 12 story levels and 20 arcade
 levels show no differences.  The method, the tools and the known artefacts are in `docs/decompilation.md`.
 
+## Making mods
+
+`docs/modding-guide.md` walks through changing and adding weapons, characters, game mode variants and levels.
+
 ## Layout
 
 | Crate | Role |
