@@ -140,7 +140,7 @@ pub fn character_table_init() {
             if prop >= 0 {
                 sw(entry + 8, prop);
             } else {
-                eprintln!("[mods] character {}: no room for another model prop", c.number);
+                eprintln!("[mods] character {}: no model prop made (the file is missing, or the props are used up), the copy's model stays", c.number);
             }
             // (the same file for the front end, which shows the character on the select page: a prop of its own copying the front end prop)
             let front_source = lw(entry + 12);

@@ -160,7 +160,7 @@ pub fn weapon_table_init() {
                     sw(at + 8, prop);
                 }
             } else {
-                eprintln!("[mods] weapon {}: no room for another model prop", w.number);
+                eprintln!("[mods] weapon {}: its model file is not used (see above), or there is no room for another model prop", w.number);
             }
         }
         if let Some(m) = w.max_ammo {

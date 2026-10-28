@@ -4,6 +4,8 @@ This is the short route to each kind of mod.  `docs/reference.md` ("Mods") lists
 
 A mod is a folder in `mods/` next to the program, with a `mod.ini` that says `enabled = true`.  The **Mods** page of the main menu switches mods on and off; the program reads them when it starts.  Adding weapons, characters and mode names needs a build with the `extended-tables` feature (`cargo build --release -p ts-port --features extended-tables`, or `all-extensions`).  A build without it uses the game's own tables and tells the log that a mod asked for more.
 
+A model file that a mod names but does not hold (and the packs do not have) is left out with a line in the log; the weapon or character then uses the model of the one it copies.
+
 Test a mod on the stock levels, with no other mod in `mods/`.
 
 ## Change a weapon

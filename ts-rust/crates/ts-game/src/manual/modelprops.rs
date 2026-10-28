@@ -18,6 +18,10 @@ static STRINGS_USED: AtomicI32 = AtomicI32::new(0);
 pub fn new_prop(copy_of: i32, label: &str, path: &str) -> i32 {
     #[cfg(feature = "extended-tables")]
     {
+        if ts_sdk::disc_has(&format!("host0:{path}")) == Some(false) {
+            eprintln!("[mods] the model file {path} is not in the packs or the mod: left out (the copy's own model is used)");
+            return -1;
+        }
         let prop = NEXT_PROP.load(Ordering::Relaxed);
         if prop > LAST_NEW_PROP || !(0..713).contains(&copy_of) {
             return -1;
