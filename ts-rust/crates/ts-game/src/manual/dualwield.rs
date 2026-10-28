@@ -87,7 +87,8 @@ pub fn dual_combo(_place: i32, combo: i32) -> i32 {
     match single_of(combo) {
         Some(single) if !ts_sdk::dual_all() => single,
         Some(_) => combo,
-        None if combo >= FIRST => 0,
+        // (the single weapon of a mod is a combination past the pairs: it stays)
+        None if combo >= FIRST && !added_singles().contains(&combo) => 0,
         None => combo,
     }
 }
