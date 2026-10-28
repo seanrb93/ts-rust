@@ -2,3 +2,11 @@
 weapon 0
   clip 15          # rounds in a clip (was 10)
   max_ammo 250     # the most that can be carried of this kind of ammo (was 500)
+
+# A weapon that is added (a build with extended-tables): number 30 and on, in turn.
+# (left out here so that the sample changes only the pistol; take the # off to try it)
+#weapon 30
+#  copy 0                # starts as a copy of the pistol
+#  name "Super Pistol"
+#  clip 99
+#  fire_sound 24         # the sound of another weapon (TS_SNDLOG=1 lists the numbers of the sounds as they play)
