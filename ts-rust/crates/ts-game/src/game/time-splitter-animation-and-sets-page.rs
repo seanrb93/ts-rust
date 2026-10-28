@@ -314,7 +314,7 @@ pub fn chrsets_pageDraw(a0: i32) {
         if id >= 0 {
             let selected = lw(table + offset + 12);
             let strings = lw((lw(g::cur_language) << 2) + g::languages);
-            let name = lh(id * 44 + g::chrs) << 2;
+            let name = lh(id * 44 + CHRS_TABLE) << 2;
             sw(sp, 290);
             let text = lw(name + strings);
             let colour = if selected != 0 { s3 } else { 0x20202040 };
@@ -423,7 +423,7 @@ pub fn chrsets_pageDraw(a0: i32) {
         dlDrawLine(64, y, 263, y, s3_2);
         let index = lw(0x3aff64) + row;
         if index < lw(0x3aff50) {
-            let name = (lh(lw((index << 2) + 0x1fc2b48) * 44 + (g::chrs + 2)) << 2) + lw((lw(g::cur_language) << 2) + g::languages);
+            let name = (lh(lw((index << 2) + 0x1fc2b48) * 44 + (CHRS_TABLE + 2)) << 2) + lw((lw(g::cur_language) << 2) + g::languages);
             textPrint(sp + 8, sp + 12, lw(name), s3_2);
         }
         row += 1;

@@ -86,7 +86,7 @@ pub fn drawTeamPlayers(team: i32, x_ptr: i32, y: i32) {
             } else {
                 let sign_on = signonGet(i);
                 let chr = lw(sign_on * 2936 + lw(g::signonarray) + 116);
-                let image = if (lw(chr * 44 + (g::chrs + 16)) ^ 1) == 0 { 23 } else { 22 };
+                let image = if (lw(chr * 44 + (CHRS_TABLE + 16)) ^ 1) == 0 { 23 } else { 22 };
                 guiDrawImage(image, 64, (lw(x_ptr) + 3) as f32, (y + 1) as f32);
                 guiDrawImage(image, -0x7f7fff80, lw(x_ptr) as f32, y as f32);
                 sw(x_ptr, lw(x_ptr) + 16);
@@ -122,7 +122,7 @@ pub fn drawTeamBots(team: i32, x_ptr: i32, y: i32, coloured: i32) {
                 if team_play != 0 && coloured != 0 {
                     colour = lw(team_colour_at + 4);
                 }
-                let image = if (lw(lw(slot) * 44 + (g::chrs + 16)) ^ 1) == 0 { 23 } else { 22 };
+                let image = if (lw(lw(slot) * 44 + (CHRS_TABLE + 16)) ^ 1) == 0 { 23 } else { 22 };
                 guiDrawImage(image, 64, (x + 3) as f32, (y + 1) as f32);
                 guiDrawImage(image, colour, lw(x_ptr) as f32, y as f32);
                 x = lw(x_ptr) + 16;

@@ -47,8 +47,8 @@ pub fn chr_names_once() {
         }
         for (k, (chr, _)) in NAMES.iter().enumerate() {
             // (the first text is the name the menus show, the second the one the level shows: "Killed by ...", the scores)
-            sh(g::chrs + 44 * chr, TEXTS + k as i32);
-            sh(g::chrs + 44 * chr + 2, TEXTS + k as i32);
+            sh(CHRS_TABLE + 44 * chr, TEXTS + k as i32);
+            sh(CHRS_TABLE + 44 * chr + 2, TEXTS + k as i32);
         }
     });
     if std::env::var_os("TS_CHRLOG").is_some() {
@@ -62,7 +62,7 @@ pub fn chr_names_once() {
             t
         };
         for chr in [69, 71] {
-            eprintln!("[chr] {chr}: menu name {:?}, level name {:?}", text(lhu(g::chrs + 44 * chr)), text(lhu(g::chrs + 44 * chr + 2)));
+            eprintln!("[chr] {chr}: menu name {:?}, level name {:?}", text(lhu(CHRS_TABLE + 44 * chr)), text(lhu(CHRS_TABLE + 44 * chr + 2)));
         }
     }
 }

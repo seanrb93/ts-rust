@@ -2,3 +2,10 @@
 # This sample only makes character 3 a little bigger.
 character 3
   scale 1.1
+
+# A new character (a build with extended-tables): a copy of character 2 with its own name and model file, which the mod holds as OB.PAK/ob/chrs/chr90.raw.
+# (it is left out here because the sample has no such file)
+#character 80
+#  copy 2
+#  name "Robo"
+#  model_file ob/chrs/chr90.raw

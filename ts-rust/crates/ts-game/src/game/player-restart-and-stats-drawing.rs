@@ -33,7 +33,7 @@ pub fn playerRestart() {
                 playerSetControls(p);
                 let parms = g::curgameparms;
                 let kind = if (lw(parms + 80) & 32) == 0 { lw(lw(p + 24) + 84) } else { lbu(parms + 21) };
-                let set = kind * 44 + g::chrs;
+                let set = kind * 44 + CHRS_TABLE;
                 let chr = chrNew(kind, kind, 0, player, -1, 1, 0.0_f32, 0.0_f32, 0.0_f32, 1.8e+02_f32);
                 let flags = lw(chr + 16);
                 let all_players = (0x1000000 << (lw(g::lvnumplayers) & 31)) - 1;

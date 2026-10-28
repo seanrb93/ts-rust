@@ -224,7 +224,7 @@ pub fn propEditMove(a0: i32) {
 
 /// Preload the character type `a0`: its body model, up to 18 sounds of its first list and 6 of its second (each list ends at a 0), and the head prop (@ 0x2887e8).
 pub fn chrPreload(a0: i32, a1: i32) {
-    let entry = a0 * 44 + g::chrs;
+    let entry = a0 * 44 + CHRS_TABLE;
     let sounds = lw(entry + 4);
     propAddPreLoad(lw(entry + 8));
     let mut i = 0;

@@ -31,7 +31,7 @@ pub const AMMOINFO: i32 = 0x3661a0;
 pub const AMMO_KINDS: i32 = 15;
 pub const CHRS: i32 = 0x3650e0;
 pub const CHR_SIZE: i32 = 44;
-pub const CHR_COUNT: i32 = 96;
+pub const CHR_COUNT: i32 = 80;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Kind {
@@ -298,6 +298,95 @@ pub fn apply(ops: &[Op]) {
     }
 }
 
+/// Take the characters a mod adds (the numbers from the game's 80 on) out of a `characters.txt`: the text of the rest (the game's own characters, which `parse` reads), the added characters and
+/// the complaints.  An added character has `copy <character>`, `name "text"`, `model_file <path in the pack>` (the model file the mod holds, such as `ob/chrs/chr90.raw`) and the fields of a character.
+pub fn split_new_characters(text: &str) -> (String, Vec<ts_game::NewCharacter>, Vec<String>) {
+    let fields = character_fields();
+    let mut rest = String::new();
+    let mut chars: Vec<ts_game::NewCharacter> = Vec::new();
+    let mut errors = Vec::new();
+    let mut current_new = false;
+    for (n, line) in text.lines().enumerate() {
+        let n = n + 1;
+        let body = line.split('#').next().unwrap_or("").trim();
+        let words: Vec<&str> = body.split_whitespace().collect();
+        if words.first() == Some(&"character") {
+            current_new = false;
+            if let Some(v) = words.get(1).and_then(|w| parse_int(w)) {
+                if (CHR_COUNT as i64..ts_game::MAX_CHARACTERS as i64).contains(&v) {
+                    current_new = true;
+                    chars.push(ts_game::NewCharacter { number: v as i32, copy_of: -1, name: String::new(), model_file: String::new(), puts: Vec::new() });
+                    continue;
+                }
+            }
+        }
+        if !current_new || body.is_empty() {
+            rest.push_str(line);
+            rest.push('\n');
+            continue;
+        }
+        let c = chars.last_mut().unwrap();
+        let key = words[0];
+        let arg = || words.get(1).copied();
+        match key {
+            "copy" => match arg().and_then(parse_int) {
+                Some(v) if (0..c.number as i64).contains(&v) => c.copy_of = v as i32,
+                _ => errors.push(format!("line {n}: `copy` needs the number of an earlier character")),
+            },
+            "name" => {
+                let name = body.splitn(2, char::is_whitespace).nth(1).unwrap_or("").trim().trim_matches('"').to_string();
+                if name.is_empty() {
+                    errors.push(format!("line {n}: `name` needs a name"));
+                } else {
+                    c.name = name;
+                }
+            }
+            "model_file" => match arg() {
+                Some(p) if !p.contains("..") => c.model_file = p.trim_matches('"').trim_start_matches('/').to_string(),
+                _ => errors.push(format!("line {n}: `model_file` needs a path in the pack, such as ob/chrs/chr90.raw")),
+            },
+            "raw" => {
+                let (Some(off), Some(kind), Some(val)) = (words.get(1).and_then(|w| parse_int(w.trim_start_matches('+'))), words.get(2), words.get(3)) else {
+                    errors.push(format!("line {n}: expected `raw +<offset> <b|h|w|f> <value>`"));
+                    continue;
+                };
+                let (width, bits) = match (*kind, if *kind == "f" { val.parse::<f32>().ok().map(|f| f.to_bits() as i64) } else { parse_int(val) }) {
+                    ("b", Some(v)) => (1, v as u32),
+                    ("h", Some(v)) => (2, v as u32),
+                    ("w", Some(v)) => (4, v as u32),
+                    ("f", Some(v)) => (4, v as u32),
+                    _ => {
+                        errors.push(format!("line {n}: expected `raw +<offset> <b|h|w|f> <value>`"));
+                        continue;
+                    }
+                };
+                if (0..CHR_SIZE as i64).contains(&off) && off + width as i64 <= CHR_SIZE as i64 {
+                    c.puts.push((off as i32, width, bits));
+                } else {
+                    errors.push(format!("line {n}: offset {off} is outside the entry ({CHR_SIZE} bytes)"));
+                }
+            }
+            _ => match fields.iter().find(|f| f.name == key) {
+                Some(f) => {
+                    let value = if f.kind == Kind::F { arg().and_then(|w| w.parse::<f32>().ok()).filter(|v| (f.min..=f.max).contains(&(*v as f64))).map(|v| v.to_bits()) } else { arg().and_then(parse_int).filter(|v| (f.min..=f.max).contains(&(*v as f64))).map(|v| v as u32) };
+                    match value {
+                        Some(bits) => c.puts.push((f.at, match f.kind { Kind::B => 1, Kind::H => 2, _ => 4 }, bits)),
+                        None => errors.push(format!("line {n}: `{key}` needs a number in its range")),
+                    }
+                }
+                None => errors.push(format!("line {n}: unknown field `{key}` of an added character (copy, name, model_file, raw and the fields of a character)")),
+            },
+        }
+    }
+    for c in &chars {
+        if c.copy_of < 0 {
+            errors.push(format!("character {} has no `copy <character>` line", c.number));
+        }
+    }
+    chars.retain(|c| c.copy_of >= 0);
+    (rest, chars, errors)
+}
+
 /// The game modes by name: the number of the mode in the game's records of options.
 fn mode_number(word: &str) -> Option<i32> {
     match word.to_ascii_lowercase().as_str() {
@@ -417,6 +506,18 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
 /// Read and apply the file `path` of the mod `mod_name`; the complaints go to the log.
 pub fn load_file(mod_name: &str, which: &str, path: &Path) {
     let Ok(text) = std::fs::read_to_string(path) else { return };
+    let (text, new_characters) = if which == "character" {
+        let (rest, chars, errors) = split_new_characters(&text);
+        for e in &errors {
+            eprintln!("[mods] {mod_name}/characters.txt {e}");
+        }
+        (rest, chars)
+    } else {
+        (text, Vec::new())
+    };
+    for c in new_characters {
+        ts_game::register_character(c);
+    }
     if which == "mode" {
         let (presets, variants, errors) = parse_modes(&text);
         for e in &errors {
@@ -500,6 +601,29 @@ weapon 0
  damage 1
 ");
         assert_eq!(errors.len(), 1, "{errors:?}");
+    }
+
+    #[test]
+    fn adds_characters() {
+        let (rest, chars, errors) = split_new_characters("character 3
+ scale 1.1
+character 80
+ copy 1
+ name \"Robo\"
+ model_file ob/chrs/chr90.raw
+ scale 1.2
+character 81
+ scale 2
+");
+        assert_eq!(chars.len(), 1);
+        assert_eq!(chars[0].number, 80);
+        assert_eq!(chars[0].copy_of, 1);
+        assert_eq!(chars[0].model_file, "ob/chrs/chr90.raw");
+        assert_eq!(chars[0].puts, vec![(40, 4, 1.2f32.to_bits())]);
+        assert_eq!(errors.len(), 1, "{errors:?}");
+        assert!(rest.contains("character 3") && rest.contains("scale 1.1") && !rest.contains("Robo"));
+        let (ops, _, e2) = parse("character", &rest);
+        assert!(e2.is_empty() && ops.len() == 1, "{e2:?}");
     }
 
     #[test]

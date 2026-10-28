@@ -150,7 +150,7 @@ pub fn playerRespawn() {
     let chr = lw(player_now + 384);
     sw(chr + 16, lw(chr + 16) | 289);
     sw(player_now + 20, lw(player_now + 20) & -4);
-    swc1(player_now + 112, lwc1(lh(record + 4) * 44 + (g::chrs + 28)));
+    swc1(player_now + 112, lwc1(lh(record + 4) * 44 + (CHRS_TABLE + 28)));
     chrResetAmmo(record);
     if bossCheckParm(0x3a87e0) != 0 {
         camSetMode(1);

@@ -593,7 +593,7 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
         if !(0.0_f32 < f1_6) {
             let lo_1 = lh(s5_1 + 4) * 44;
             sw(g::lastreactionframenum, a1_24);
-            let s1_3 = lw(lo_1 + (g::chrs + 4));
+            let s1_3 = lw(lo_1 + (CHRS_TABLE + 4));
             let mut s0_3 = 0;
             'b67: {
                 if lh(s1_3 + 36) != 0 {
@@ -626,7 +626,7 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
             }
             let v1_16 = lh(s5_1 + 4);
             sw(g::lastreactionframenum, a1_24);
-            let s1_2 = lw(v1_16 * 44 + (g::chrs + 4));
+            let s1_2 = lw(v1_16 * 44 + (CHRS_TABLE + 4));
             let mut s0_2 = 0;
             'b70: {
                 if lh(s1_2) != 0 {

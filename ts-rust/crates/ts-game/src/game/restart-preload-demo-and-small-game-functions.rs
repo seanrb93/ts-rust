@@ -72,7 +72,7 @@ pub fn challengechr_pageDraw(a0: i32) {
     if lbu(lw(lw(g::front)) + 0x3aff28) != 2 {
         return;
     }
-    let name = lw((lh(character * 44 + g::chrs) << 2) + lw((lw(g::cur_language) << 2) + g::languages));
+    let name = lw((lh(character * 44 + CHRS_TABLE) << 2) + lw((lw(g::cur_language) << 2) + g::languages));
     drawCharName(a0, 1, name, 0);
 }
 
@@ -270,7 +270,7 @@ pub fn storychrsel_pageDraw(a0: i32) {
     if lbu(lw(lw(g::front)) + 0x3aff28) != 2 {
         return;
     }
-    let name = lw((lh(lw(entry + 84) * 44 + g::chrs) << 2) + lw((lw(g::cur_language) << 2) + g::languages));
+    let name = lw((lh(lw(entry + 84) * 44 + CHRS_TABLE) << 2) + lw((lw(g::cur_language) << 2) + g::languages));
     drawCharName(a0, 1, name, 1);
 }
 

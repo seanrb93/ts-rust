@@ -846,7 +846,7 @@ pub fn chrplayer_pageDraw(a0: i32) {
             }
         }
     } else if state == 2 {
-        let name = lw((lh(character * 44 + g::chrs) << 2) + lw((lw(g::cur_language) << 2) + g::languages));
+        let name = lw((lh(character * 44 + CHRS_TABLE) << 2) + lw((lw(g::cur_language) << 2) + g::languages));
         drawCharName(a0, 1, name, 1);
     }
 }

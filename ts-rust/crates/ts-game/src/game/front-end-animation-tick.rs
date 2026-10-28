@@ -154,7 +154,7 @@ pub fn animTick(a0: i32) {
                                             v0_21 = lw(lw(g::front));
                                             break 'b14;
                                         }
-                                        let s3_3 = lh(lw(idx * 44 + (g::chrs + 4)) + 48);
+                                        let s3_3 = lh(lw(idx * 44 + (CHRS_TABLE + 4)) + 48);
                                         sw(a4_3, 1);
                                         if idx != 29 {
                                             let a1_16 = lw(s0_3);

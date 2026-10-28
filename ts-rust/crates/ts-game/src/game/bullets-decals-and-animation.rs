@@ -14,7 +14,7 @@ pub fn bulletTypeExplosive(t: i32) -> i32 {
 
 /// Size scale of a character (@ 0x2891e0).
 pub fn chrGetScale(chr: i32) -> f32 {
-    lwc1(chr * 44 + (g::chrs + 40))
+    lwc1(chr * 44 + (CHRS_TABLE + 40))
 }
 
 /// @ 0x2c7ed8

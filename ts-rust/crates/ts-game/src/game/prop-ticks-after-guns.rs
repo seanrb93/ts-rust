@@ -154,7 +154,7 @@ pub fn statistics_pageDraw(a0: i32) {
         }
     }
     let name = if best >= 0 {
-        lw((lh(best * 44 + g::chrs) << 2) + lw((lw(g::cur_language) << 2) + g::languages))
+        lw((lh(best * 44 + CHRS_TABLE) << 2) + lw((lw(g::cur_language) << 2) + g::languages))
     } else {
         lw(lw((lw(g::cur_language) << 2) + g::languages) + 1068)
     };
@@ -447,7 +447,7 @@ pub fn soundselect_pageTick(a0: i32) {
 /// team and colour by the game kind, the role flag at +8, the name), cleared, respawned and (with `a5`) its bounding box data is made (@ 0x287cc0).
 pub fn chrNew(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, f13: f32, f14: f32, f15: f32) -> i32 {
     sw(g::chrnew_lastchrnum, a0);
-    let model = if a2 == 0 { lw(a0 * 44 + (g::chrs + 8)) } else { lw(a0 * 44 + (g::chrs + 12)) };
+    let model = if a2 == 0 { lw(a0 * 44 + (CHRS_TABLE + 8)) } else { lw(a0 * 44 + (CHRS_TABLE + 12)) };
     let prop;
     if a4 >= 0 {
         let pad = a4 * 28 + lw(g::levelpads);
@@ -505,14 +505,14 @@ pub fn chrNew(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, f1
         sw(record + 24, team);
         sw(record + 20, lw((lw(record + 24) << 3) + (g::storydata + 68)));
     }
-    sw(record + 16, lw((lh(a0 * 44 + (g::chrs + 2)) << 2) + lw((lw(g::cur_language) << 2) + g::languages)));
+    sw(record + 16, lw((lh(a0 * 44 + (CHRS_TABLE + 2)) << 2) + lw((lw(g::cur_language) << 2) + g::languages)));
     memset(record + 32, 0, 216);
     sw(record + 248, 0);
     sw(record + 440, 0);
     sw(record + 332, 0);
     sw(record + 484, 0);
     chrRespawn(record);
-    swc1(record + 2840, lwc1(a0 * 44 + (g::chrs + 40)));
+    swc1(record + 2840, lwc1(a0 * 44 + (CHRS_TABLE + 40)));
     if a5 != 0 {
         InitialiseChrBoundingBoxData(record);
     }
