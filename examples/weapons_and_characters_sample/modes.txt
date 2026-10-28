@@ -13,3 +13,7 @@ mode deathmatch
   variant "One Shot"
   one_shot_kill on
   kill_limit 15
+
+# A rule ends the match by itself: win_score N (the first team whose score reaches N; in Deathmatch the score is the kills), and win_score_seconds N (BagTag: seconds of holding the bag).
+  variant "First to 8"
+  rule win_score 8

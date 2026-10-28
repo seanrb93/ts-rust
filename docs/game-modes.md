@@ -52,4 +52,5 @@ Each tick ends with `UnlockCombo()` (a combination of weapons that is unlocked c
   (the way the port keeps what a character owns of the added combinations, `weapontable.rs`).
 * Nothing in the ticks creates the objects of a mode except KnockOut's bags; bases, bags and the escortee come from the level's set-up and from code that runs when a level starts
   (`gmEscortSetup`, `knockoutSetup`), so a mode that needs other objects needs that code read too.
-* What is not read yet: the end-of-game pages and the statistics of each mode (they are keyed by the mode number), `UnlockCombo`, and the set-up functions.
+* Read since: `UnlockCombo` always gives 0 in this build; `gameLevelCompleted` sets the game state to 4, pauses the time, plays the sound and opens the in-game menu of each player; `teamGetScore` sums the characters' scores of a team, where a character's score is its kills in Deathmatch (mode 3) and its `+248` in the other modes; `gmEscortSetup` finds the escort's pad as the level set-up's record of kind 16.
+* What is not read yet: the end-of-game pages and the statistics of each mode (they are keyed by the mode number).

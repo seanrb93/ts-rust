@@ -361,8 +361,22 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
             if name.is_empty() {
                 errors.push(format!("line {n}: `variant` needs a name"));
             } else {
-                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new() });
+                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new(), rules: Vec::new() });
                 in_variant = true;
+            }
+            continue;
+        }
+        if words[0] == "rule" {
+            let rule = match words.get(1).copied() {
+                Some("win_score") => Some(ts_game::Rule::WinScore),
+                Some("win_score_seconds") => Some(ts_game::Rule::WinScoreSeconds),
+                _ => None,
+            };
+            match (variants.last_mut().filter(|_| in_variant), rule, words.get(2).and_then(|w| parse_int(w))) {
+                (None, _, _) => errors.push(format!("line {n}: a `rule` belongs to a `variant`")),
+                (_, None, _) => errors.push(format!("line {n}: unknown rule (the rules are win_score, win_score_seconds)")),
+                (Some(v), Some(r), Some(val)) if (1..=100000).contains(&val) => v.rules.push((r, val as i32)),
+                _ => errors.push(format!("line {n}: a rule needs a number from 1 to 100000")),
             }
             continue;
         }
@@ -518,6 +532,20 @@ mode ko
         assert_eq!(vs[0].name, "Short");
         assert_eq!(vs[0].fields, vec![(16, 5), (8, 0)]);
         assert_eq!(vs[1].fields, vec![(16, 50)]);
+        let (_, vs, errors) = parse_modes("mode bagtag
+ variant \"First to 30\"
+ rule win_score_seconds 30
+ rule win_score 9
+");
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(vs[0].rules, vec![(ts_game::Rule::WinScoreSeconds, 30), (ts_game::Rule::WinScore, 9)]);
+        let (_, _, errors) = parse_modes("mode bagtag
+ rule win_score 5
+ variant \"A\"
+ rule chess 1
+ rule win_score 0
+");
+        assert_eq!(errors.len(), 3, "{errors:?}");
         let (_, _, errors) = parse_modes("kill_limit 3
 mode chess
 mode ls

@@ -94,6 +94,18 @@ fn track_name(track: i32) -> String {
     format!("Track {track}")
 }
 
+/// The variant chosen on the Options page for the mode `mode` (0: Standard, or the page was not shown for this mode).
+pub fn variant_choice(mode: i32) -> usize {
+    // (a test aid: TS_VARIANT=<number> plays that variant of whatever mode runs, without the page)
+    if let Some(v) = std::env::var("TS_VARIANT").ok().and_then(|v| v.parse::<usize>().ok()) {
+        return v;
+    }
+    if VARIANT_MODE.load(Ordering::Relaxed) != mode || !ARCADE.load(Ordering::Relaxed) {
+        return 0;
+    }
+    VARIANT.load(Ordering::Relaxed).max(0) as usize
+}
+
 /// The table, with the new row made, for the page's menu (called by the tick after it has put the game's rows where they go).
 pub fn av_opt_ready() -> i32 {
     let m = av_opt_menu();

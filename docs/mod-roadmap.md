@@ -135,6 +135,8 @@ and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bulle
 
 * Step 1 of the modes plan: `docs/game-modes.md` writes down how the six ticks work and what state they use (the parameters record, the options records, a character's score field, the teams' scores).  The ticks turned out to be small: a win condition is a few lines over those fields.
 
+* Rules of a variant (`rule win_score N`, `rule win_score_seconds N`): applied after the mode's own tick by `custom_rules_tick` (`mode-presets.rs`), which completes the level when a team's score reaches the goal.  Tested in a headless run with the test aids `TS_VARIANT` and `TS_RULEGOAL`: the level completes once with the variant on and not with Standard.  The first two parts of the plan's list (score methods, win conditions); team rules, objects, respawn and HUD text are not done.
+
 ## Order of work
 
 1. The mod file format and the loader: one place (`mod.ini` sections or `characters.txt`, `weapons.txt`, `modes.txt`) where all three are described, with validation and clear errors in

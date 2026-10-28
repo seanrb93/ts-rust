@@ -29,6 +29,17 @@ pub struct ModeVariant {
     pub kind: i32,
     pub name: String,
     pub fields: Vec<(i32, i32)>,
+    /// rules the tick applies while this variant is played: (the rule, the value)
+    pub rules: Vec<(Rule, i32)>,
+}
+
+/// A rule of a variant (`rule <name> <value>` in `modes.txt`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Rule {
+    /// the level is completed when a team's score reaches the value (the score the mode keeps: the kills in Deathmatch, else the character's score field; BagTag counts ticks of 1/60 second)
+    WinScore,
+    /// the same for BagTag, with the value in seconds of holding the bag
+    WinScoreSeconds,
 }
 
 static VARIANTS: Mutex<Vec<ModeVariant>> = Mutex::new(Vec::new());
@@ -39,6 +50,15 @@ pub fn register_mode_variant(v: ModeVariant) {
     if (1..=6).contains(&v.kind) {
         VARIANTS.lock().unwrap().push(v);
     }
+}
+
+/// The rules of the variant that is being played, if the mode is the one it was chosen for.
+pub fn active_rules(mode: i32) -> Vec<(Rule, i32)> {
+    let choice = super::arcadeopts::variant_choice(mode);
+    if choice == 0 {
+        return Vec::new();
+    }
+    VARIANTS.lock().unwrap().iter().filter(|v| v.kind == mode).nth(choice - 1).map_or(Vec::new(), |v| v.rules.clone())
 }
 
 /// The names of the variants of a mode.
@@ -107,6 +127,36 @@ pub fn mode_base_save() {
     for kind in 1..=6usize {
         for i in 0..8 {
             base[kind][i] = lw(RECORDS + ((kind as i32) << 5) + 4 * i as i32);
+        }
+    }
+}
+
+/// The rules of the variant that is being played, applied after the mode's own tick (`game-status-and-level-tick.rs` calls this through `custom_rules_x`).
+pub fn custom_rules_tick() {
+    // (a level that is completed is not completed again: that would open the menus again)
+    if lw(g::gamestate) == 4 {
+        return;
+    }
+    let mode = lw(g::curgameparms + 72);
+    if std::env::var_os("TS_COMBOLOG").is_some() && ts_sdk::frame_count() % 600 == 1 {
+        eprintln!("[rules] frame {} mode {mode}", ts_sdk::frame_count());
+    }
+    for (rule, value) in active_rules(mode) {
+        let goal = match rule {
+            Rule::WinScore => value,
+            Rule::WinScoreSeconds => value.saturating_mul(60),
+        };
+        // (a test aid: TS_RULEGOAL=-1 makes the goal reached at once)
+        let goal = std::env::var("TS_RULEGOAL").ok().and_then(|v| v.parse().ok()).unwrap_or(goal);
+        if goal == 0 {
+            continue;
+        }
+        if (1..=5).any(|team| teamGetScore(team) >= goal) {
+            if std::env::var_os("TS_COMBOLOG").is_some() {
+                eprintln!("[rules] {rule:?} {value} reached in mode {mode}");
+            }
+            gameLevelCompleted();
+            return;
         }
     }
 }

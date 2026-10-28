@@ -897,6 +897,12 @@ pub fn room_slot_read(distance: i32, index: i32) -> i32 {
 /// at +1784 and the rest of the record.  The rooms come from the farthest level to the nearest, so a full list loses its first, the farthest.
 /// The presets of the game modes that mods give are written into the records of the options, after the game has made them (`gameoptionsMake`).
 #[inline]
+pub fn custom_rules_x() {
+    #[cfg(feature = "extensions")]
+    custom_rules_tick();
+}
+
+#[inline]
 pub fn mode_presets_x() {
     #[cfg(feature = "extensions")]
     mode_presets_apply();

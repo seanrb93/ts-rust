@@ -1037,5 +1037,6 @@ pub fn gameLevelTick() {
             5 => gmLastStandTick(),
             _ => gmStoryTick(),
         }
+        custom_rules_x();
     }
 }
