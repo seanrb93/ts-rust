@@ -101,6 +101,11 @@ pub fn dual_of(single: i32) -> Option<i32> {
     SINGLES.lock().unwrap().iter().position(|&s| s == single).map(|k| GAME_COMBOS + k as i32)
 }
 
+/// The single combinations of the weapons that mods added (they are not among the game's 32 that the weapon page lists).
+pub fn added_singles() -> Vec<i32> {
+    SINGLES.lock().unwrap().iter().copied().filter(|&s| s >= GAME_COMBOS).collect()
+}
+
 /// The number of the added pairs.
 pub fn dual_count() -> i32 {
     SINGLES.lock().unwrap().len() as i32

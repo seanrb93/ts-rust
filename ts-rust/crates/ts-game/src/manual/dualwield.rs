@@ -54,7 +54,15 @@ pub fn pickup_name(combo: i32, name: i32) -> i32 {
 /// `weapons_pageTick`, after it made the list of the weapons that can be chosen: the added pairs follow the singles they are made from.
 pub fn weapons_list_extend() {
     WEAPONS_PAGE.store(ts_sdk::frame_count() as u64, std::sync::atomic::Ordering::Relaxed);
-    let n = lw(COUNT).clamp(0, 40);
+    let mut n = lw(COUNT).clamp(0, 40);
+    // (the weapons of mods come after the game's, singles first, then their pairs below)
+    for id in added_singles() {
+        if n < 64 && !(0..n).any(|i| lw(LIST + 4 * i) == id) {
+            sw(LIST + 4 * n, id);
+            n += 1;
+        }
+    }
+    sw(COUNT, n);
     let have: Vec<i32> = (0..n).map(|i| lw(LIST + 4 * i)).collect();
     if !ts_sdk::dual_all() {
         return;
