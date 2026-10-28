@@ -37,6 +37,11 @@ is rigid on one of the two joints, and a seam changes shape because its two halv
 `python tools/obdump.py <OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes the triangles of a model (the strips, as the vector unit draws them) as an OBJ.  The vertices of a character are in the model's own space in a rest pose: `chr01` comes out as a figure 1.95 high and 0.65 wide with the head at the top, the arms hanging
 at the sides and the feet on the ground (1598 triangles, 4794 vertices), as a plot of the positions shows.  So a converter can write the rest pose of a mesh directly; what remains is the joints (their rest positions and which vertices go with which joint) and the animations.
 
+### Writing a model
+
+`python tools/obedit.py <OB.PAK> <name> <mods folder>/<mod> scale <factor>` makes a mod that holds a changed copy of a model (every position multiplied).  Run with that mod, the game builds `OB.PAK`, loads the changed `chr01.raw` (the file log shows it in Village) and runs 600 frames without a fault, so a model file made by a tool is
+taken by the loader as long as it keeps the layout above.  This was not looked at on the screen (a headless screenshot of the level showed no character in view), so how it looks is not checked: the joints of the animations do not scale with the mesh, so a scaled character would be out of joint.
+
 ## Animations
 
 The animation record the game holds for each number (`pAnimations`) has the number of key frames at +4, flags at +12 (bit 1: it loops), the end time in seconds at +16 and a table of the key frames' times in 60ths of a second at +20 (`getKeyFrames` finds the two frames round a time).  `calMatrices` moves the time of a character's two animations (the second blends in while it
