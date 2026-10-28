@@ -1,4 +1,28 @@
-# Making mods: a walk through
+# Making mods
+
+## The easy way: the mod kit
+
+`modkit.exe` is one program with all the mod making tools.  Put it next to `ts-port.exe` (or anywhere: it asks where the game is the first time) and double-click it.  A menu asks what you
+want to make; every question has a default you can accept with Enter, and your files go into the mod you are working on (the first thing you make creates one).
+
+```
+1. A level (from a map or a 3D model)         Source / GoldSrc maps, OBJ, glTF, Blender: the level converter
+2. A character (from a 3D model)              rigged to the game's skeleton, with its seams; or get a game character as a model to start from
+3. Weapons (change or add)                    pick a weapon, change the numbers that matter (clip, damage, sound ...), or copy it as a new weapon
+4. Game modes (ways to play)                  what a mode starts with, and variants with a rule that ends the match
+5. Sounds, music and pictures                 your own sounds, music tracks and textures in place of the game's
+6. Try it in the game                         starts the game; looks at your character walking; tries your weapon on bots
+7. Share                                      a zip file of the mod, and installing one from a zip
+8. Mods                                       choose, make, turn on and off
+```
+
+Without a build of `modkit.exe`: `pip install numpy pillow imageio-ffmpeg`, then `python tools/modkit-entry.py` (or double-click `tools/modkit.bat`).  To make the exe: `pip install pyinstaller` and
+`python tools/build-modkit.py` (it ends up in `dist/`).  `modkit weapons`, `modkit character`, `modkit level`, `modes`, `sounds`, `play`, `share`, `mods` start a part of the menu directly.
+
+Adding weapons, characters and mode names needs the game build with the extended tables.  The numbers of added weapons and characters are chosen by the kit from the name, so that mods made apart seldom
+use the same one; the game gives them its own numbers when it starts, in the order of the numbers.
+
+Below is what the kit does, by hand, for those who prefer files.
 
 This is the short route to each kind of mod.  `docs/reference.md` ("Mods") lists every file and key; `docs/mod-roadmap.md` says how each part was found and what is still missing.
 

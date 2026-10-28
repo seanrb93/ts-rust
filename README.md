@@ -58,7 +58,7 @@ levels show no differences.  The method, the tools and the known artefacts are i
 
 ## Making mods
 
-`docs/modding-guide.md` walks through changing and adding weapons, characters, game mode variants and levels.
+`modkit.exe` (see `docs/modding-guide.md`) makes levels, characters, weapons, game mode variants, sounds, music and textures from menus; the guide also shows the files it writes.
 
 ## Layout
 

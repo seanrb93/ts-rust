@@ -123,15 +123,26 @@ pub fn weapon_table_init() {
     let mut added = NEW_WEAPONS.lock().unwrap().clone();
     added.sort_by_key(|w| w.number);
     let mut accepted: Vec<NewWeapon> = Vec::new();
-    for w in added {
+    // (the numbers a mod gives are only names for the weapon: the weapons get the next numbers in the order of the numbers, so mods can leave gaps and use numbers that others do not)
+    let mut renumbered: std::collections::HashMap<i32, i32> = std::collections::HashMap::new();
+    for mut w in added {
         let next = GAME_GUNS + accepted.len() as i32;
-        if w.number != next {
-            eprintln!("[mods] weapon {} is not the next added weapon ({} is); left out", w.number, next);
+        if renumbered.contains_key(&w.number) {
+            eprintln!("[mods] weapon {} is given by two mods; the second is left out (change its number)", w.number);
+            continue;
+        }
+        let given = w.number;
+        w.number = next;
+        if w.copy_of >= GAME_GUNS {
+            w.copy_of = renumbered.get(&w.copy_of).copied().unwrap_or(-1);
+        }
+        if false {
         } else if !(0..next).contains(&w.copy_of) {
             eprintln!("[mods] weapon {}: `copy {}` is not a weapon that exists at that point", w.number, w.copy_of);
         } else if next >= MAX_GUNS || GAME_COMBOS + singles.len() as i32 + 2 * (accepted.len() as i32 + 1) > MAX_COMBOS {
             eprintln!("[mods] weapon {}: the tables are full", w.number);
         } else {
+            renumbered.insert(given, next);
             accepted.push(w);
         }
     }

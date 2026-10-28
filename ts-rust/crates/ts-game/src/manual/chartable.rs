@@ -101,16 +101,27 @@ pub fn character_table_init() {
     let mut added = NEW_CHARACTERS.lock().unwrap().clone();
     added.sort_by_key(|c| c.number);
     let mut accepted = 0;
-    for c in added {
+    // (the numbers a mod gives are only names: the characters get the next numbers in the order of the numbers, so mods can leave gaps and use numbers that others do not)
+    let mut renumbered: std::collections::HashMap<i32, i32> = std::collections::HashMap::new();
+    for mut c in added {
         let next = GAME_CHARACTERS + accepted;
-        if c.number != next {
-            eprintln!("[mods] character {} is not the next added character ({} is); left out", c.number, next);
+        if renumbered.contains_key(&c.number) {
+            eprintln!("[mods] character {} is given by two mods; the second is left out (change its number)", c.number);
             continue;
+        }
+        let given = c.number;
+        c.number = next;
+        if c.copy_of >= GAME_CHARACTERS {
+            c.copy_of = renumbered.get(&c.copy_of).copied().unwrap_or(-1);
+        }
+        if c.voice_of >= GAME_CHARACTERS {
+            c.voice_of = renumbered.get(&c.voice_of).copied().unwrap_or(-1);
         }
         if !(0..next).contains(&c.copy_of) || next >= MAX_CHARACTERS {
-            eprintln!("[mods] character {}: `copy {}` is not a character that exists at that point, or the table is full", c.number, c.copy_of);
+            eprintln!("[mods] character {}: `copy {}` is not a character that exists at that point, or the table is full", given, c.copy_of);
             continue;
         }
+        renumbered.insert(given, next);
         let entry = CHRS_TABLE + CHR_BYTES * next;
         for i in 0..CHR_BYTES / 4 {
             sw(entry + 4 * i, lw(CHRS_TABLE + CHR_BYTES * c.copy_of + 4 * i));

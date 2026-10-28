@@ -35,3 +35,7 @@ demo.bin
 # the sample mod: its own art and sounds (its folders are named like the game's packs, so they would be ignored above)
 !examples/sample_mod/**/
 !examples/sample_mod/**
+modkit.json
+dist/
+build/
+modkit-error.txt

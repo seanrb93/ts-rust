@@ -89,18 +89,13 @@ def distance_to_segment(p, a, b):
     return float(np.linalg.norm(p - (a + t * ab)))
 
 
-def main():
-    if len(sys.argv) < 3 or '--out' not in sys.argv:
-        sys.exit(__doc__)
-    game, mesh = sys.argv[1], sys.argv[2]
-    arg = lambda k, d=None: sys.argv[sys.argv.index(k) + 1] if k in sys.argv else d
-    out, name = arg('--out'), arg('--name', 'Custom')
-    base, number = int(arg('--base', 0)), int(arg('--number', 80))
-    size = float(arg('--scale', 1.0))
-    height = float(arg('--height', 1.95)) * size
-    skeleton_file = 'anim/data/newanims/fskel.raw' if arg('--skeleton', 'male') == 'female' else 'anim/data/male_skeleton.raw'
-    tex_base = int(arg('--tex-base', 9000))
-    model_file = arg('--model-file', f'ob/chrs/chr{90 + number - 80:02d}.raw')
+def make_character(game, mesh, out, name='Custom', base=0, number=80, scale=1.0, height=1.95, skeleton='male', tex_base=9000, model_file=None, voice=None, write_entry=True):
+    """Make the character: its model and pictures go into the mod folder `out`; the lines for `characters.txt` are returned (and, with `write_entry`, written with a `mod.ini`, replacing
+    the file).  `scale` makes it larger or smaller (the mesh and the character's `scale` field together)."""
+    size = float(scale)
+    height = float(height) * size
+    skeleton_file = 'anim/data/newanims/fskel.raw' if skeleton == 'female' else 'anim/data/male_skeleton.raw'
+    model_file = model_file or f'ob/chrs/chr{90 + number - 80:02d}.raw'
     ob_path = os.path.join(game, 'PAK', 'OB.PAK')
     d, es = pakls.entries(ob_path)
     base_name = f'ob/chrs/chr{base + 1:02d}.raw'
@@ -209,12 +204,25 @@ def main():
     target = os.path.join(out, 'OB.PAK', model_file)
     os.makedirs(os.path.dirname(target), exist_ok=True)
     open(target, 'wb').write(data)
-    open(os.path.join(out, 'mod.ini'), 'w').write('enabled = true' + chr(10))
     nl = chr(10)
-    open(os.path.join(out, 'characters.txt'), 'w').write(f'character {number}{nl}  copy {base}{nl}  name "{name}"{nl}  model_file {model_file}{nl}' + (f'  voice {arg("--voice")}{nl}' if arg('--voice') else '') + (f'  scale {size}{nl}' if size != 1.0 else ''))
+    entry = f'character {number}{nl}  copy {base}{nl}  name "{name}"{nl}  model_file {model_file}{nl}' + (f'  voice {voice}{nl}' if voice not in (None, '') else '') + (f'  scale {size}{nl}' if size != 1.0 else '')
+    if write_entry:
+        open(os.path.join(out, 'mod.ini'), 'w').write('enabled = true' + nl)
+        open(os.path.join(out, 'characters.txt'), 'w').write(entry)
     used = sum(1 for p in kind0 if by_part[p])
     print(f'{len(moved)} faces on {used} of the {len(kind0)} bones; model {target}')
     print(f'characters.txt: character {number} "{name}", a copy of character {base}')
+    return entry
+
+
+def main():
+    if len(sys.argv) < 3 or '--out' not in sys.argv:
+        sys.exit(__doc__)
+    game, mesh = sys.argv[1], sys.argv[2]
+    arg = lambda k, d=None: sys.argv[sys.argv.index(k) + 1] if k in sys.argv else d
+    number = int(arg('--number', 80))
+    make_character(game, mesh, arg('--out'), arg('--name', 'Custom'), int(arg('--base', 0)), number, float(arg('--scale', 1.0)), float(arg('--height', 1.95)), arg('--skeleton', 'male'),
+                   int(arg('--tex-base', 9000)), arg('--model-file'), arg('--voice'))
 
 
 if __name__ == '__main__':
