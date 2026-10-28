@@ -1,0 +1,4 @@
+character 80
+  copy 0
+  name "Pumpkin Jack"
+  model_file ob/chrs/chr90.raw
