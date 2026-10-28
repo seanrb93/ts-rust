@@ -162,7 +162,9 @@ Working and seen on screen: changing the stats of weapons; added weapons (held, 
 
 A rule ending a match: with "First to 8" chosen on the Rules row and `TS_RULEGOAL=-1` (the goal is reached at once), the log says `WinScore 8 reached in mode 3` and the match ends on the scores page; with the real goal the same code runs on the real scores, which were not played to 8.
 
-Not seen working: the damage of an added weapon, an added character's look and movement as a bot in a match (it spawns and plays; the camera aid, `TS_CAMREAL`, rarely has a clear view), a scaled character walking, seams bending in a match.
+The damage of an added weapon (seen with the harness: `--level Prison --bots 3,4,5 --spawn 12,0,-26` with `TS_GIVE=40:49 TS_EQUIP=1`, the right stick swept while the trigger is held, and `TS_BOTLOG=1` printing the kills): an added pistol with `damage 1` killed a bot, one with `damage 0.001` none.  The damage is a fraction of a character's health (the pistol's is 0.3).
+
+Not seen working: an added character's look and movement as a bot in a match (it spawns and plays; the camera aid, `TS_CAMREAL`, rarely has a clear view), a scaled character walking, seams bending in a match.
 
 Not done: new sound files for weapons (only the choice of a game sound with `fire_sound`) and sounds of their own for characters (only `voice`), a different skeleton or animations, the 7th and later game modes with their own objects, pages and rules of play (variants cover numbers and the three rules), end-of-game pages per mode, the added characters in the availability masks and the story.
 

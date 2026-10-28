@@ -340,6 +340,7 @@ pub fn present_frame() {
         }
     }
     if std::env::var_os("TS_BOTLOG").is_some() && lw(g::gamestate) == 3 && ts_sdk::frame_count() % 120 == 0 {
+        eprintln!("[bot] kills: player {} first bot {}", chrCountKills(lw(g::chrinfo)), chrCountKills(lw(g::chrinfo) + 0x1210));
         let b = lw(g::chrinfo) + 0x1210;
         eprintln!("[bot] chars {} f{} state {:#x} prev {:#x} flags {:#x} {:#x} mode {} target {:#x} gun {} combo {} pos {:.1},{:.1}", lw(g::numactivechars), ts_sdk::frame_count(), lw(b + 2716), lw(b + 2720), lw(b + 2704), lw(b + 2708), lw(b + 2724), lw(b + 2788), lw(lw(lw(b + 3020) + 352) + 376), lw(lw(lw(b + 3020) + 352) + 260), lwc1(lw(b + 3020) + 48), lwc1(lw(b + 3020) + 56));
     }
