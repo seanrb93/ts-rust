@@ -40,7 +40,9 @@ at the sides and the feet on the ground (1598 triangles, 4794 vertices), as a pl
 ### Writing a model
 
 `python tools/obedit.py <OB.PAK> <name> <mods folder>/<mod> scale <factor>` makes a mod that holds a changed copy of a model (every position multiplied).  Run with that mod, the game builds `OB.PAK`, loads the changed `chr01.raw` (the file log shows it in Village) and runs 600 frames without a fault, so a model file made by a tool is
-taken by the loader as long as it keeps the layout above.  It was looked at on the screen too: `TS_CAMMODE=2:300` (a test aid: the camera goes to the third person view at frame 300) with `--screenshot` shows the player's own character close up, and with `chr01_head.raw` scaled by 1.5 the face fills the picture more than it does without the mod.  The joints of the animations do not scale with the mesh, so a scaled body would be out of joint.
+taken by the loader as long as it keeps the layout above.  `TS_CAMMODE=2:300` (a test aid: the camera goes to the third person view at frame 300) with `--screenshot` shows the player's own character close up.  The head of a character in a level is part 22 of `chr01.raw` (486 triangles, joint 15); `chr01_head.raw` is a different file that a level run does not load (the file log shows only `chr01.raw`; an earlier note here that a scaled `chr01_head.raw` showed on the screen was wrong: the bigger face came from the scaled body file).  The joints of the animations do not scale with the mesh, so a scaled body would be out of joint.
+
+`python tools/obedit.py <OB.PAK> ob/chrs/chr01.raw <mod> box 22 0.8` replaces the geometry of part 22 by a box made from nothing: the strips, positions, coordinates, colours and normals are written by the tool into the arrays the part has, and its chunk list becomes one chunk of 6 strips and 24 vertices.  In the game the head is a box, with the head's texture on it (its coordinates are those of a box, so the picture is scrambled), which shows that strips, positions, coordinates, colours and normals written from nothing are drawn.
 
 ## Animations
 
