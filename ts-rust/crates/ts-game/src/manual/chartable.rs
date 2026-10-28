@@ -40,6 +40,21 @@ pub fn register_character(c: NewCharacter) {
     eprintln!("[mods] character {} ({}) needs a build with extended-tables", c.number, c.name);
 }
 
+/// How many characters mods have added (0 without the `extended-tables` feature): the select page lists them after the game's 64.
+pub fn added_characters() -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        ADDED.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        0
+    }
+}
+
+#[cfg(feature = "extended-tables")]
+static ADDED: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
+
 /// Make the table in the port's memory: the game's characters, then the added ones.
 #[cfg(feature = "extended-tables")]
 pub fn character_table_init() {
@@ -90,6 +105,7 @@ pub fn character_table_init() {
         }
         eprintln!("[mods] character {} \"{}\" added (a copy of {}{})", next, c.name, c.copy_of, if c.model_file.is_empty() { String::new() } else { format!(", model {}", c.model_file) });
         accepted += 1;
+        ADDED.store(accepted, std::sync::atomic::Ordering::Relaxed);
     }
 }
 

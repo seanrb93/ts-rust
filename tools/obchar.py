@@ -15,7 +15,7 @@ The model is made from a character of the game (`--base`, 0 by default): its fil
     <out>/OB.PAK/ob/chrs/<file>.raw     the model
     <out>/MISC.PAK/textures/<n>.qpm, .png   the pictures
 
-A build with extended-tables is needed.  The character is in the table of characters and can be used wherever a character number is given (it is not in the select page yet).
+A build with extended-tables is needed.  The character is in the table of characters and can be used wherever a character number is given (the select page reaches it after the game's own characters).
 """
 import os
 import struct

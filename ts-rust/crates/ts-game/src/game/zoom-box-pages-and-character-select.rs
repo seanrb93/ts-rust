@@ -72,15 +72,19 @@ fn select_character(kind: i32, right: bool) {
     let sign_on = signonGet(lw(lw(g::front)));
     let record = lw(g::signonarray) + sign_on * 2936 + 32;
     if kind == 0 {
+        // (the order is the game's 64 characters, then the ones mods added, all playable)
+        let extra = crate::manual::chartable::added_characters();
+        let total = 64 + extra;
+        let order = |i: i32| if i < 64 { lbu(i + g::characterorder) } else { crate::manual::chartable::GAME_CHARACTERS + i - 64 };
         let current = lw(record + 84);
         let mut at = 0;
-        if lbu(g::characterorder) != current {
+        if order(0) != current {
             at += 1;
             loop {
-                if (at as u32) >= 64 {
+                if at >= total {
                     break;
                 }
-                if lbu(at + g::characterorder) == current {
+                if order(at) == current {
                     break;
                 }
                 at += 1;
@@ -90,19 +94,19 @@ fn select_character(kind: i32, right: bool) {
         let chosen;
         loop {
             let wrapped = if right {
-                if (candidate as u32) >= 64 { 0 } else { candidate }
+                if candidate >= total { 0 } else { candidate }
             } else if -1 >= candidate {
-                63
+                total - 1
             } else {
                 candidate
             };
-            if chrPlayable(lbu(wrapped + g::characterorder)) != 0 {
+            if wrapped >= 64 || chrPlayable(order(wrapped)) != 0 {
                 chosen = wrapped;
                 break;
             }
             candidate = if right { wrapped + 1 } else { wrapped - 1 };
         }
-        let chr = lbu(chosen + g::characterorder);
+        let chr = order(chosen);
         if lw(record + 84) != chr {
             sw(record + 84, chr);
         }
