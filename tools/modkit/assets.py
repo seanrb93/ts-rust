@@ -52,7 +52,7 @@ def to_audio(src, dst, mono, rate=None):
     if mono:
         cmd += ['-ac', '1']
     else:
-        cmd += ['-ac', '2', '-ar', '48000', '-c:a', 'libopus', '-b:a', '112k', '-vbr', 'on']
+        cmd += ['-ac', '2', '-ar', '48000', '-c:a', 'libopus', '-b:a', '128k', '-vbr', 'on']
     if rate:
         cmd += ['-ar', str(rate)]
     cmd += [dst]

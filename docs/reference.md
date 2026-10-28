@@ -349,8 +349,8 @@ drawn (about 70 ms for 4096x4096).  The game's own palette tricks do not reach a
 `examples/sample_mod/` is a small working mod (a texture, a sound, a music stream and `patches.txt`).
 `tools/make_hd_sample.py <extracted textures> <mods folder>` makes an HD sample mod from ten wall textures of the Tomb (16 times as big, teal and grainy: easy to see); it is written next to the game, not into the repository.
 
-`tools/convert_music.py <game folder>` turns the game's own music (`MUSIC/*.MSC`, 344 MB) into Opus files next to them (about 85 MB at 96 kbit/s); the port plays an
-`.opus` when there is one beside the `.MSC` (`--delete-originals` removes the `.MSC`).  It needs ffmpeg.
+`tools/convert_music.py <game folder>` turns the game's own music (`MUSIC/*.MSC`, 344 MB) into Opus files next to them (about 110 MB at 128 kbit/s, the default: the originals are ADPCM at 403 kbit/s; `--bitrate N` changes it); the port plays an
+`.opus` when there is one beside the `.MSC`, and also when there is no `.MSC` at all, so the originals can be removed (`--delete-originals` does it).  It needs ffmpeg.
 
 The packs are never changed: when the mods change, the changed packs are built again in `mods/.cache/` and the game reads those (a new
 file is added to the pack's directory, a replaced one points to the new data).  Mods are applied in alphabetical order, a later one wins.  The

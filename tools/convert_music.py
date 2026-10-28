@@ -1,9 +1,9 @@
 """Turn the game's music (MUSIC/*.MSC, raw ADPCM, about 13 MB for a track) into Opus files (about 1 MB), which the game uses in place of the .MSC next to them.
 
-    python tools/convert_music.py <game folder> [--bitrate 96] [--delete-originals]
+    python tools/convert_music.py <game folder> [--bitrate 128] [--delete-originals]
 
 The game folder is the one with ts-port.exe and MUSIC/.  Each MUSIC/NNNN.MSC is decoded by `ts-port.exe --msc-to-wav` and encoded with ffmpeg
-(libopus; ffmpeg has to be on the PATH, or imageio_ffmpeg installed) as MUSIC/NNNN.opus, stereo, 44.1 kHz, at the bitrate (kbit/s, default 96) in variable
+(libopus; ffmpeg has to be on the PATH, or imageio_ffmpeg installed) as MUSIC/NNNN.opus, stereo, 44.1 kHz, at the bitrate (kbit/s, default 128) in variable
 bit rate.  The port plays an .opus when there is one next to the .MSC; with `--delete-originals` the .MSC is removed once its Opus file is
 made (keep a copy of the game's files if you want to go back).
 """
@@ -27,7 +27,7 @@ def ffmpeg():
 
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
-    bitrate = 96
+    bitrate = 128
     if '--bitrate' in sys.argv:
         bitrate = int(sys.argv[sys.argv.index('--bitrate') + 1])
         args = [a for a in args if a != str(bitrate)]

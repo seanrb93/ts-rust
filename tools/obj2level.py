@@ -1245,7 +1245,7 @@ def make_music(src, dst):
             exe = imageio_ffmpeg.get_ffmpeg_exe()
         except Exception:
             sys.exit('--music needs ffmpeg (put it on the PATH, or pip install imageio-ffmpeg), or an .opus file')
-    subprocess.run([exe, '-y', '-loglevel', 'error', '-i', src, '-vn', '-ac', '2', '-ar', '48000', '-c:a', 'libopus', '-b:a', '112k', '-vbr', 'on', dst], check=True)
+    subprocess.run([exe, '-y', '-loglevel', 'error', '-i', src, '-vn', '-ac', '2', '-ar', '48000', '-c:a', 'libopus', '-b:a', '128k', '-vbr', 'on', dst], check=True)
 
 
 def friendly_defaults(args):
