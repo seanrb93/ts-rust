@@ -179,13 +179,14 @@ def add_pictures(mod, pictures, base):
     return numbers
 
 
-def mesh_part(f, faces, part=0, numbers=None, raw_strips=None):
+def mesh_part(f, faces, part=0, numbers=None, raw_strips=None, corner_binds=None):
     """Replace the geometry of a part by the faces `faces` (`read_obj`'s): a triangle is a strip of three vertices, a quad a, b, c, d the strip a, b, d, c, and the faces are packed into
     chunks, one texture each, within what the vector unit's memory holds (at most 64 vertices, 24 strips and `3 * vertices + strips` of 212: the size of one draw, not a limit of the
     mesh).  There is no limit on the size of the mesh: the new arrays and chunk list are written after the file's other data, the bones and the object record move behind them, and
     the pointers (of the part, and the offsets of the object and of the texture table in the file's header) are changed.  `numbers` is material -> texture number (`add_pictures`): each
     gets a place in the file's table of textures after the ones it has; a face with another material (or none) has the texture of the part's largest chunk.  Normals are the face's own
-    when the OBJ gives none."""
+    when the OBJ gives none.  `corner_binds` (for a part that blends joints) maps `id(corners)` of a face to the joint each of its corners follows; a corner without one follows the joint
+    of the nearest vertex of the part's old geometry."""
     f = bytes(f)
     tex, tab = struct.unpack_from('<2I', f, 0)
     n = struct.unpack_from('<I', f, tab)[0]
@@ -267,12 +268,15 @@ def mesh_part(f, faces, part=0, numbers=None, raw_strips=None):
             fn = [(bb[1] - a[1]) * (c[2] - a[2]) - (bb[2] - a[2]) * (c[1] - a[1]), (bb[2] - a[2]) * (c[0] - a[0]) - (bb[0] - a[0]) * (c[2] - a[2]), (bb[0] - a[0]) * (c[1] - a[1]) - (bb[1] - a[1]) * (c[0] - a[0])]
             ln = sum(x * x for x in fn) ** 0.5 or 1.0
             fn = [x / ln for x in fn]
-            for pos, st, nrm, col in (t if (raw_strips is not None or len(t) == 3) else [t[0], t[1], t[3], t[2]]):
+            given = (corner_binds or {}).get(id(t))
+            for ci, (pos, st, nrm, col) in enumerate(t if (raw_strips is not None or len(t) == 3) else [t[0], t[1], t[3], t[2]]):
                 positions += struct.pack('<3f', *pos)
                 coords += struct.pack('<4f', st[0], st[1], 1.0, 1.0)
                 colours += bytes((col[0] >> 1, col[1] >> 1, col[2] >> 1, 0x7f)) if col else bytes((0x7f, 0x7f, 0x7f, 0x7f))
                 normals += struct.pack('<3f', *(nrm or fn))
-                if old_arr is not None:
+                if given is not None:
+                    binds += bytes((given[ci], 0, 0, 0))
+                elif old_arr is not None:
                     nearest = int(np.argmin(((old_arr - np.array(pos)) ** 2).sum(axis=1)))
                     binds += bytes((old_bind[nearest], 0, 0, 0))
                 else:

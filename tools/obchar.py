@@ -5,8 +5,8 @@
 The mesh is an OBJ of a whole figure standing in the pose of the game's skeleton (arms down at the sides, feet on the ground, facing the way the game's characters face; `python tools/obdump.py
 <OB.PAK> ob/chrs/chr01.raw --obj out.obj` writes a game character in the pose, to model on).  It is scaled to the height of a game character (`--height`, 1.95 by default) and put on the ground.  Each triangle
 is given to the bone of the game's skeleton nearest to it (the bone is the stretch from a joint to the next one, or to a point past the end of a limb), so every part of the mesh follows the
-joint that is nearest to it, rigidly: the game's characters have separate parts that join two joints at an elbow or a knee (kinds 1 to 3 of `docs/model-format.md`), which this does not make, so a bent
-joint shows a gap.  The materials of the OBJ with a `map_Kd` picture (any size) become textures of the game (`--tex-base`, 9000 by default).
+joint that is nearest to it.  The triangles near a joint between two bones go to the model's own seam part there (kinds 1 and 2 of `docs/model-format.md`, the ones the game's characters have at an elbow
+or a knee), each corner following the joint of the nearer bone, and for a seam of kind 2 the corners right at the joint follow its own joint, so a bent joint stretches instead of opening.  The materials of the OBJ with a `map_Kd` picture (any size) become textures of the game (`--tex-base`, 9000 by default).
 
 The model is made from a character of the game (`--base`, 0 by default): its file is the pattern, so the bones, the places of the hands and the head and the animations are those of the skeleton.  The result:
 
@@ -47,7 +47,7 @@ def skeleton_joints(game, model, skeleton_file):
     tex, tab = struct.unpack_from('<2I', model, 0)
     n = struct.unpack_from('<I', model, tab)[0]
     b0 = tab - n * 80
-    parts = [(model[b0 + 80 * i], struct.unpack_from('<4b', model, b0 + 80 * i + 2)) for i in range(n)]
+    parts = [(model[b0 + 80 * i], struct.unpack_from('<4b', model, b0 + 80 * i + 2), model[b0 + 80 * i + 1]) for i in range(n)]
     kind0 = [i for i, p in enumerate(parts) if p[0] == 0]
 
     def ancestor(i):
@@ -127,12 +127,36 @@ def main():
             # (a mesh written by obdump.py: the parts here are all rigid, whose chunks are of kind 3)
             mat = 'slot%s_k3' % mat[4:].partition('_k')[0]
         moved.append(([(place(c[0]), c[1], c[2], c[3]) for c in corners], mat))
-    # each face to the bone nearest its middle
+    # each face to the bone nearest its middle; a face near the joint between two bones goes to the seam of the model that joins them, each of its corners following the joint
+    # (a seam of kind 2 has a joint of its own between them, which the corners at the joint follow) of the nearer bone
     by_part = {p: [] for p in kind0}
+    seams = {}
+    for p in range(len(parts)):
+        if parts[p][0] in (1, 2) and parts[p][1][0] in segs and parts[p][1][1] in segs:
+            x, y = parts[p][1][0], parts[p][1][1]
+            lengths = [float(np.linalg.norm(segs[q][1] - segs[q][0])) for q in (x, y)]
+            seams[p] = (x, y, max(0.04, 0.35 * min(lengths)))
+    corner_binds = {}
+    nearest = lambda v, among: min(among, key=lambda q: distance_to_segment(v, *segs[q]))
     for corners, mat in moved:
         mid = np.mean([c[0] for c in corners], axis=0)
         best = min(kind0, key=lambda p: distance_to_segment(mid, *segs[p]))
-        by_part[best].append((corners, mat))
+        for sp, (x, y, radius) in seams.items():
+            joint = world[y]
+            if len(corners) == 3 and np.linalg.norm(mid - joint) < radius and {nearest(np.array(c[0]), kind0) for c in corners} <= {x, y}:
+                binds = []
+                for c in corners:
+                    v = np.array(c[0])
+                    if parts[sp][0] == 2 and np.linalg.norm(v - joint) < radius / 2:
+                        binds.append(parts[sp][2])
+                    else:
+                        binds.append(parts[nearest(v, (x, y))][2])
+                corner_binds[id(corners)] = binds
+                # (the chunks of a part that blends joints are of kind 4)
+                by_part.setdefault(sp, []).append((corners, mat[:-1] + '4' if mat and mat.endswith('_k3') else mat))
+                break
+        else:
+            by_part[best].append((corners, mat))
     numbers = obedit.add_pictures(out, pictures, tex_base) if pictures else None
     data = model
     only = {int(x) for x in os.environ['OBONLY'].split(',')} if os.environ.get('OBONLY') else None
@@ -141,7 +165,7 @@ def main():
         if only is not None and p not in only:
             continue
         if parts[p][0] == 0 or fs:
-            data, _ = obedit.mesh_part(data, fs, p, numbers)
+            data, _ = obedit.mesh_part(data, fs, p, numbers, corner_binds=corner_binds)
         elif not os.environ.get('OBKEEP'):
             # (a part that joins two joints is left without surfaces)
             data, _ = obedit.mesh_part(data, [], p, numbers)
