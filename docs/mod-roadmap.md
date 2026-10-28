@@ -115,8 +115,12 @@ Plan:
    verifier, make a sample mod in `examples/`.
 4. The default build stays the original: the checks of `docs/decompilation.md` run after every change.
 
-## Open questions for the owner of the mods
+## Decisions
 
-* Who writes the mods?  Players who edit text files, or people who can use a modelling tool?  This decides how much of a converter and of validation is needed.
-* Is a mod that only reuses the game's models and animations good enough for the first characters?
-* Should a mode mod be able to add new HUD pages and menus, or only use the game's?
+* **Who writes the mods:** both kinds of people, those who edit text files and those who use a modelling tool.  So the text formats (`weapons.txt`, `modes.txt`, `characters.txt`) have
+  to be readable and checked with clear messages, and the converters (a model exporter, as `obj2level.py` is for levels) have to be as easy to start as the level converter now is
+  (answers for what is left out, defaults, a wizard when started without options).
+* **First characters:** a mod that reuses the game's skeleton and animations with a new mesh and textures is good enough.  New skeletons and animations are not planned.
+* **Modes:** a mode mod can add pages and menus of its own, not only use the game's.  This needs the menu and page code (`avmenu.rs` and the page tables) to be extensible
+  the way the mode list is, and a step of the plan for it is added: after the mode list can be extended, make the pages a mode shows (rules, options, end of game, stats) come from
+  a table the mod can add rows to.
