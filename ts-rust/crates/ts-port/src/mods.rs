@@ -264,7 +264,9 @@ fn register_picture(game_dir: &Path, mod_name: &str, rel: &str, host: &Path, pac
     let first = stem.split('/').next().unwrap_or("");
     let inner = if PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/') { &stem[first.len() + 1..] } else { stem };
     let name = format!("{inner}.qpm");
-    if original_texture_size(packs, game_dir, &name).is_none() {
+    // (a texture of the mod's own: the mod has a .qpm of that name beside the picture, a small one the game's loader takes; the picture is shown in its place at any size)
+    let own = host.with_extension("qpm").is_file();
+    if original_texture_size(packs, game_dir, &name).is_none() && !own {
         eprintln!("[mods] {mod_name}: {name} is not a texture of the game: {rel} is not used");
         return;
     }

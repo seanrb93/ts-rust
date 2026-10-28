@@ -143,6 +143,8 @@ and what the word at +76 of a shot (+24 of it) does (it goes to +80 of the bulle
 
 * Writing a model: `tools/obedit.py` makes a mod with a changed character model; the game loads it, runs, and a head replaced by a sphere of quads made by `obedit.py mesh` is drawn too, and a head replaced by a box made from nothing is drawn by the game (`TS_CAMMODE=2:300` puts the camera in the third person view for a screenshot).  (An earlier line said a scaled `chr01_head.raw` was seen: that was wrong, the file is not loaded in a level.)
 
+* Models: no limit on the size of a replacement mesh and on its textures (any number of materials, pictures of any size, `obedit.py mesh --tex-base`).  The size of one draw (64 vertices, 24 strips, 212 words of the vector unit's memory) is not a limit on a mesh: a mesh is cut into as many chunks as it needs.  Lifting that would mean changing the vector unit's own program.
+
 ## Order of work
 
 1. The mod file format and the loader: one place (`mod.ini` sections or `characters.txt`, `weapons.txt`, `modes.txt`) where all three are described, with validation and clear errors in
