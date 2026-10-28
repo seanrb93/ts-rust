@@ -718,6 +718,7 @@ SLUS_200.90 has to be in the same folder as the program:
     ts_sdk::set_disc_root(&game_dir);
     ts_gfx::hd::set_loader(texmod::load_hd);
     mods::load(&exe_dir(), &exe);
+    mods::publish_pack_names();
     ts_game::prop_table_init();
     ts_game::character_table_init();
     ts_game::weapon_table_init();

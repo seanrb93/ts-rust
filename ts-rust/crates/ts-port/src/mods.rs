@@ -143,6 +143,32 @@ fn read_pack(path: &Path) -> Option<(Vec<u8>, Vec<Entry>)> {
     Some((d, entries))
 }
 
+/// The names of the files of the packs the game will read (the packs the mods changed, or the game's own), given to the game so that a mod's model file that is in none of them is noticed
+/// before the game asks for it.  Only the directories of the packs are read.
+pub fn publish_pack_names() {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut names = std::collections::HashSet::new();
+    for pack in PACKS {
+        let Some(path) = ts_sdk::disc_host_path(&format!(r"\PAK\{pack};1")) else { continue };
+        let Ok(mut f) = std::fs::File::open(&path) else { continue };
+        let mut head = [0u8; 12];
+        if f.read_exact(&mut head).is_err() || &head[0..4] != b"P4CK" {
+            continue;
+        }
+        let dir_at = u32::from_le_bytes(head[4..8].try_into().unwrap()) as u64;
+        let dir_len = u32::from_le_bytes(head[8..12].try_into().unwrap()) as usize;
+        let mut dir = vec![0u8; dir_len];
+        if f.seek(SeekFrom::Start(dir_at)).is_err() || f.read_exact(&mut dir).is_err() {
+            continue;
+        }
+        for e in dir.chunks_exact(60) {
+            let n = e[..48].iter().position(|&c| c == 0).unwrap_or(48);
+            names.insert(String::from_utf8_lossy(&e[..n]).to_ascii_lowercase());
+        }
+    }
+    ts_game::set_pack_names(names);
+}
+
 /// Build `out` from the pack `src` with the files of `changes` (name in the pack -> host file) replaced or added.
 fn build_pack(src: &Path, changes: &BTreeMap<String, PathBuf>, out: &Path) -> Result<(), String> {
     let (d, entries) = read_pack(src).ok_or_else(|| format!("{} is not a pack", src.display()))?;

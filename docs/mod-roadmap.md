@@ -164,7 +164,9 @@ A rule ending a match: with "First to 8" chosen on the Rules row and `TS_RULEGOA
 
 The damage of an added weapon (seen with the harness: `--level Prison --bots 3,4,5 --spawn 12,0,-26` with `TS_GIVE=40:49 TS_EQUIP=1`, the right stick swept while the trigger is held, and `TS_BOTLOG=1` printing the kills): an added pistol with `damage 1` killed a bot, one with `damage 0.001` none.  The damage is a fraction of a character's health (the pistol's is 0.3).
 
-Not seen working: an added character's look and movement as a bot in a match (it spawns and plays; the camera aid, `TS_CAMREAL`, rarely has a clear view), a scaled character walking, seams bending in a match.
+A scaled character in the level (the harness, `--level Prison --character 80 --cam 5,1.5` with a walk): `obchar.py --scale 1.4` gives a character about 1.4 times taller than the stock one with its joints in place; the same `scale 1.4` with the ordinary mesh does not make it taller.  The harness found two bugs on the way: `chrPlayable` was false for an added character, so the sign on went back to the first character (now always true for them), and the check I had added for a missing model file looked for it on the disc, where files inside the packs are not, so every model file was dropped; it now reads the directories of the packs the game will use (`publish_pack_names`).
+
+Not seen working: an added character's look and movement as a bot in a match (it spawns and plays; the camera aid, `TS_CAMREAL`, rarely has a clear view), seams bending in a match.
 
 Not done: new sound files for weapons (only the choice of a game sound with `fire_sound`) and sounds of their own for characters (only `voice`), a different skeleton or animations, the 7th and later game modes with their own objects, pages and rules of play (variants cover numbers and the three rules), end-of-game pages per mode, the added characters in the availability masks and the story.
 

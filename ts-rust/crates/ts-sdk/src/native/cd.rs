@@ -80,12 +80,6 @@ pub fn disc_host_path(name: &str) -> Option<PathBuf> {
     resolve(&g.as_ref()?.root, name)
 }
 
-/// Whether the virtual disc has a file of that name (`None` when no disc is set up yet).
-pub fn disc_has(name: &str) -> Option<bool> {
-    let g = DISC.lock().unwrap();
-    Some(resolve(&g.as_ref()?.root, name).is_some())
-}
-
 /// Find a file on the virtual disc.  Returns (first LSN, size in bytes).
 pub fn disc_find(name: &str) -> Option<(u32, u32)> {
     let mut g = DISC.lock().unwrap();

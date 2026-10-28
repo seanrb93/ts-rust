@@ -13,12 +13,27 @@ const STRINGS_AT: i32 = 0x240_0000 + 0x4a000;
 static NEXT_PROP: AtomicI32 = AtomicI32::new(FIRST_NEW_PROP);
 static STRINGS_USED: AtomicI32 = AtomicI32::new(0);
 
+static PACK_NAMES: std::sync::Mutex<Option<std::collections::HashSet<String>>> = std::sync::Mutex::new(None);
+
+/// The names of the files in the packs the game reads (the port gives them after the mods are loaded).
+pub fn set_pack_names(names: std::collections::HashSet<String>) {
+    *PACK_NAMES.lock().unwrap() = Some(names);
+}
+
+/// Whether a file is in the packs (true when the names are not known).
+fn pack_has(path: &str) -> bool {
+    match PACK_NAMES.lock().unwrap().as_ref() {
+        Some(names) => names.contains(&path.to_ascii_lowercase()),
+        None => true,
+    }
+}
+
 /// A new prop that is a copy of the prop `copy_of` and names the file `path` (in the packs, such as `ob/chrs/chr90.raw`); its number, or -1 when there is no more room (or the build has no
 /// `extended-tables`).
 pub fn new_prop(copy_of: i32, label: &str, path: &str) -> i32 {
     #[cfg(feature = "extended-tables")]
     {
-        if ts_sdk::disc_has(&format!("host0:{path}")) == Some(false) {
+        if !pack_has(path) {
             eprintln!("[mods] the model file {path} is not in the packs or the mod: left out (the copy's own model is used)");
             return -1;
         }

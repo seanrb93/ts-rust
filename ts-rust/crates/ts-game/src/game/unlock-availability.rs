@@ -18,6 +18,10 @@ pub fn challengeModeAvail() -> i32 {
 
 /// Whether character `chr` can be played: always with the flag at +1 of the player array, else when its unlock item (16 bytes each) is unlocked (@ 0x224bb0).
 pub fn chrPlayable(chr: i32) -> i32 {
+    // (a character that a mod added is always playable; the table of unlocks has the game's characters only)
+    if crate::manual::chartable::is_added(chr) {
+        return 1;
+    }
     let item = chr << 4;
     if lw(item + g::unlock_playable_chrs) != 0 && lb(g::pcarray + 1) != 0 {
         return 1;
