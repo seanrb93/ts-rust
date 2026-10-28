@@ -31,12 +31,38 @@ The vectors at `+72` are what the code of a gun reads for the places on a model 
 
 The animation record the game holds for each number (`pAnimations`) has the number of key frames at +4, flags at +12 (bit 1: it loops), the end time in seconds at +16 and a table of the key frames' times in 60ths of a second at +20 (`getKeyFrames` finds the two frames round a time).  `calMatrices` moves the time of a character's two animations (the second blends in while it
 changes from the first), blends the position and rotation of every bone between the two key frames of each, turns the heading with the root, adds the hit reaction, makes the global matrices (and the fillets), tilts the head and body of characters that look about, applies the size of the cheats and keeps the
-movement of the root.  The files of `ANIM.PAK` (`anim/data/*.raw`) start with small numbers, the second of them the key frame count (20 in `rf_m0`); the layout of the key frames is not read yet.
+movement of the root.  The layout of the files is in the next section.
+
+### The animation file
+
+Read from `loadAnimation` and checked with `python tools/anidump.py <ANIM.PAK> <name>` on `anim/data/rf_m0.raw` (every quaternion comes out of length 1, and the data ends exactly at the end of the file).  All offsets are from the start of the file; the file is laid out as the memory the loader sets up, which starts at an aligned address.
+
+| At | What |
+|---|---|
+| +0 | the number of frames (60 a second; the length in seconds is `(frames - 1) / 60`) |
+| +4 | the number of key frames |
+| +8 | the number of bones the animation drives |
+| +12 | flags: bit 1 loops |
+| +28 | the number of channels (one for each bone) |
+| +48 | the key frames' times, a 32 bit number each, in 60ths of a second (0, 4, 8, ... in `rf_m0`) |
+| `(keys * 4 + 63) & -16` | the channels, 32 bytes each: `+0` the bone, `+4` the kind, `+8` the frame count as a float, `+12` the number of key frames |
+| right after the channels | the channels' data, each part starting on a 16 byte boundary |
+
+A pose is seven floats: a position (x, y, z) then a rotation as a quaternion (x, y, z, w).  The data of a channel by its kind (the sizes are those of `loadAnimation`; the reading is that of `extractAnimData`):
+
+| Kind | The data | Bytes |
+|---|---|---|
+| 0 | one pose, for every frame | 28 |
+| 2 | one position (12 bytes) for every frame, then a rotation of 16 bytes for each key frame | `keys * 16 + 12` |
+| 4 | one pose for the first frame, then a position of 12 bytes for each later key frame; the rotation of the first pose is used for all | `(keys - 1) * 12 + 28` |
+| 8 | a whole pose for each key frame | `keys * 28` |
+
+The root's channel is kind 8 (it moves, `rf_m0` has it at a height of about 1.05); the other bones are kind 2: a fixed offset from their parent along the bone and a rotation for each key frame.  The game blends the two key frames round the time (`quaternionSlerp` for the rotations, a straight blend for the positions).
 
 ## What is not known yet
 
 * The sixth array: how the weights of a vertex are stored for the three matrices.
-* The skeleton's rest pose: where the joints are.  The animations (`ANIM.PAK`, `anim/data/*.raw`) hold the joints' motion by number, and what they are matched to is not read.
+* The skeleton's rest pose (the character's own file has no joint positions that were found: they come from the animations, whose kind 2 channels give each bone's offset from its parent).  Which animation file is which (a character plays an animation by its number in a table, and what the numbers are matched to is not read).
 * How a gun is attached to a character (its model is a prop with parts that carry the muzzle points).
 
 The plan for characters (`docs/mod-roadmap.md`) starts here: read those three, make `obdump.py` print a model's triangles and joints and check it by drawing the result, and only then write a
