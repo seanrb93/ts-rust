@@ -109,7 +109,11 @@ def main(argv=None):
         print('Start it with no words to get the menu.  Or: weapons, character, level, modes, sounds, play, share, mods.')
         return
     ui.say(f'TimeSplitters mod kit {VERSION}')
-    if not ctx.setup.ensure():
+    try:
+        found = ctx.setup.ensure()
+    except (KeyboardInterrupt, EOFError):
+        return
+    if not found:
         ui.say('\nWithout the game folder I cannot go on.')
         ui.pause()
         return
