@@ -153,5 +153,10 @@ pub fn musicSetVol(a0: i32, a1: i32) {
 
 /// Add the model of the prop `a0` to what is preloaded (@ 0x267220).
 pub fn propAddPreLoad(a0: i32) {
+    // (a character with no front end model, BlueRobot, has the prop number -1: its row would be read before the table of props and a made up file preloaded, which spoils every texture of the front end)
+    #[cfg(feature = "extensions")]
+    if a0 < 0 {
+        return;
+    }
     preloadAddOb(lw(a0 * 28 + (PROPTABLE + 12)), 0);
 }

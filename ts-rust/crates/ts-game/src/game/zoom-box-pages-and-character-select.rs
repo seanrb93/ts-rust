@@ -100,7 +100,12 @@ fn select_character(kind: i32, right: bool) {
             } else {
                 candidate
             };
-            if wrapped >= 64 || chrPlayable(order(wrapped)) != 0 {
+            // (a character with no front end model, BlueRobot, is not offered here: there is nothing to show of him; he can still be a bot)
+            #[cfg(feature = "extensions")]
+            let shown = wrapped >= 64 || lw(order(wrapped) * 44 + (CHRS_TABLE + 12)) != -1;
+            #[cfg(not(feature = "extensions"))]
+            let shown = true;
+            if shown && (wrapped >= 64 || chrPlayable(order(wrapped)) != 0) {
                 chosen = wrapped;
                 break;
             }
