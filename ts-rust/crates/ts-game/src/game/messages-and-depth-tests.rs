@@ -255,7 +255,7 @@ pub fn gunSetAmmoToMax(player: i32, combo: i32) {
     let entry = GUNCOMBOS + (combo << 3);
     for hand in [2, 4] {
         let gun = lhu(entry + hand);
-        if (gun as u32) < 30 {
+        if (gun as u32) < gun_count() as u32 {
             let ammo_type = lw((gun as i16 as i32) * 400 + (GUNS_TABLE + 16));
             sw(player + (ammo_type << 2) + 620, lw((ammo_type << 3) + g::ammoinfo));
         }

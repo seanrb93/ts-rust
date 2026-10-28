@@ -76,6 +76,13 @@ static COUNT: AtomicI32 = AtomicI32::new(GAME_COMBOS);
 /// the single weapons that got a pair: the pair of `SINGLES[k]` is the combination `GAME_COMBOS + k`
 static SINGLES: Mutex<Vec<i32>> = Mutex::new(Vec::new());
 
+static GUNS: AtomicI32 = AtomicI32::new(GAME_GUNS);
+
+/// The number of weapons (the game's 30 and the added ones).
+pub fn gun_count() -> i32 {
+    GUNS.load(Ordering::Relaxed)
+}
+
 /// The number of combinations (the game's and the added ones).
 pub fn combo_count() -> i32 {
     COUNT.load(Ordering::Relaxed)
@@ -210,6 +217,7 @@ pub fn weapon_table_init() {
         sw(GUNSINV + 4 * i as i32, *v);
     }
     COUNT.store(count, Ordering::Relaxed);
+    GUNS.store(GAME_GUNS + n_new, Ordering::Relaxed);
     let mut single_of_dual = singles;
     single_of_dual.extend(new_singles);
     *SINGLES.lock().unwrap() = single_of_dual;

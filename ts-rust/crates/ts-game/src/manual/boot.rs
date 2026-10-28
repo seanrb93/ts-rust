@@ -358,7 +358,7 @@ pub fn present_frame() {
         let owned: Vec<i32> = (0..combo_count()).filter(|&c| own_get(s, c) != 0).collect();
         eprintln!("[combo] f{} combo {} next {} owned {:?} left {} right {}", ts_sdk::frame_count(), lw(s + 260), lw(s + 264), owned, lw(s + 376), lw(s + 268));
     }
-    // test aid: TS_GIVE=<frame>:<combo> gives player 1 the weapon at that frame of a level
+    // test aid: TS_GIVE=<frame>:<combo> gives player 1 the weapon at that frame of a level (with TS_EQUIP set it is taken into the hands too)
     if let (Ok(v), true) = (std::env::var("TS_GIVE"), lw(g::gamestate) == 3) {
         if let Some((f, c)) = v.split_once(':') {
             if f.parse::<u64>().ok() == Some(ts_sdk::frame_count() as u64) {
@@ -366,6 +366,14 @@ pub fn present_frame() {
                 let c: i32 = c.parse().unwrap_or(0);
                 own_set(s, c);
                 gunSetAmmoToMax(s, c);
+                // (TS_EQUIP also takes it into the right hand: the combination, its gun and a request to make the gun)
+                if std::env::var_os("TS_EQUIP").is_some() {
+                    sw(s + 260, c);
+                    sw(s + 376, lh((c << 3) + GUNCOMBOS + 4));
+                    sw(lw(g::players) + 600, 4);
+                    let kind = lw(lh((c << 3) + GUNCOMBOS + 4) * 400 + GUNS_TABLE + 16);
+                    sw(s + (kind << 2) + 380, 99);
+                }
             }
         }
     }

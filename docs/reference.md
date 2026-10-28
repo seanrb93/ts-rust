@@ -259,7 +259,7 @@ room for 33 only: what a character owns (`chr + 488`, right before the ammo) is 
 dual version with its single weapon (`stats_combo`), the cycling (`getnextcombo`, `getprevcombo`, `getmostpowerfulcombo`) and the range checks of
 `pickupPropTick`, `propDrop` and `playerSetStartGun` use `combo_count()`.  With the **Dual Wield Everything** option off the added versions are not
 listed and an entry of a set that is one is the single weapon.  Test aids: `TS_COMBOLOG` (the table, the weapon and what player 1 owns, and every
-pickup of an added version), `TS_GIVE=<frame>:<combo>`.  Left hands: `gunUpdate` only let a hand take its turn when the weapon had a clip, so rockets,
+pickup of an added version), `TS_GIVE=<frame>:<combo>` (with `TS_EQUIP=1` the weapon is taken into the hands too).  Left hands: `gunUpdate` only let a hand take its turn when the weapon had a clip, so rockets,
 the blunderbuss, mines, TNT and the brick fired from the right hand only; the turn is now taken from the hands' timers for those weapons too (patch),
 and the dynamite and the brick are rolled over by 95 degrees in the left hand (their models are not mirrored by the attachment).  The weapon page's
 list box is wider and the selected-weapons box (with the set's value and arrows) is 24 units further right.  With four players the black frame around
