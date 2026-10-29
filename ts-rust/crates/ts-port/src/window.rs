@@ -20,7 +20,8 @@ use winit::window::{Fullscreen, Window, WindowId};
 
 struct Presenter {
     window: Arc<Window>,
-    surface: wgpu::Surface<'static>,
+    /// (none while the app is in the background: the native window is gone then)
+    surface: Option<wgpu::Surface<'static>>,
     config: wgpu::SurfaceConfiguration,
     renderer: ts_render::Renderer,
     /// present mode used when vsync is off
@@ -153,7 +154,9 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
     if (size.width, size.height) != (p.config.width, p.config.height) {
         p.config.width = size.width;
         p.config.height = size.height;
-        p.surface.configure(p.renderer.device(), &p.config);
+        if let Some(s) = &p.surface {
+            s.configure(p.renderer.device(), &p.config);
+        }
     }
     let cfg = crate::config::get();
     #[cfg(feature = "extensions")]
@@ -184,7 +187,9 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
         p.config.present_mode = want_mode;
         // (one picture queued at most with vsync: the wait for the monitor is then the wait of the frame)
         p.config.desired_maximum_frame_latency = if cfg.vsync { 1 } else { 2 };
-        p.surface.configure(p.renderer.device(), &p.config);
+        if let Some(s) = &p.surface {
+            s.configure(p.renderer.device(), &p.config);
+        }
     }
     // (the frame rate: the FPS Counter row of Game Options)
     p.renderer.overlay_text = if cfg.show_fps {
@@ -196,13 +201,14 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
         p.renderer.render_scene((size.width, size.height), f);
         ts_sdk::perf::set_gpu(p.renderer.gpu_ms);
     }
-    match p.surface.get_current_texture() {
+    let Some(surface) = &p.surface else { return };
+    match surface.get_current_texture() {
         Ok(tex) => {
             p.renderer.present_scene(&tex.texture, (size.width, size.height), t, warp);
             tex.present();
             ts_sdk::perf::display_frame();
         }
-        Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => p.surface.configure(p.renderer.device(), &p.config),
+        Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => surface.configure(p.renderer.device(), &p.config),
         Err(e) => eprintln!("[window] surface error: {e:?}"),
     }
 }
@@ -422,6 +428,10 @@ impl App {
 impl ApplicationHandler for App {
     fn suspended(&mut self, _el: &ActiveEventLoop) {
         // (Android: the native window is gone until the app is brought back)
+        // (a surface of a window that is gone has to be let go of before the next one is made)
+        if let Some(p) = PRESENTER.lock().unwrap().as_mut() {
+            p.surface = None;
+        }
         SUSPENDED.store(true, std::sync::atomic::Ordering::Relaxed);
         crate::audio::PAUSED.store(true, std::sync::atomic::Ordering::Relaxed);
     }
@@ -430,22 +440,20 @@ impl ApplicationHandler for App {
         if self.window.is_some() {
             // the app came back: the window has a new native surface, which the picture is drawn on from now on
             if let Some(p) = PRESENTER.lock().unwrap().as_mut() {
+                // (the old surface was let go when the app went to the background)
+                p.surface = None;
                 if let Ok(surface) = p.instance.create_surface(p.window.clone()) {
                     let size = p.window.inner_size();
                     p.config.width = size.width.max(1);
                     p.config.height = size.height.max(1);
                     surface.configure(p.renderer.device(), &p.config);
-                    p.surface = surface;
+                    p.surface = Some(surface);
                 }
             }
             SUSPENDED.store(false, std::sync::atomic::Ordering::Relaxed);
             crate::audio::PAUSED.store(false, std::sync::atomic::Ordering::Relaxed);
-            #[cfg(target_os = "android")]
-            crate::android::immersive();
             return;
         }
-        #[cfg(target_os = "android")]
-        crate::android::immersive();
         let cfg = crate::config::get();
         let mut attrs = Window::default_attributes().with_title("TimeSplitters").with_inner_size(winit::dpi::PhysicalSize::new(cfg.width.max(320), cfg.height.max(240)));
         let monitor = el.primary_monitor().or_else(|| el.available_monitors().next());
@@ -487,7 +495,7 @@ impl ApplicationHandler for App {
         surface.configure(renderer.device(), &config);
         self.window = Some(window.clone());
         let mailbox = if caps_adapter.present_modes.contains(&wgpu::PresentMode::Mailbox) { wgpu::PresentMode::Mailbox } else { wgpu::PresentMode::AutoNoVsync };
-        *PRESENTER.lock().unwrap() = Some(Presenter { window, surface, config, renderer, mailbox, monitor_hz: None, presents: 0, instance });
+        *PRESENTER.lock().unwrap() = Some(Presenter { window, surface: Some(surface), config, renderer, mailbox, monitor_hz: None, presents: 0, instance });
         if let Some(f) = self.start_game.take() {
             f();
         }
@@ -567,10 +575,6 @@ impl ApplicationHandler for App {
             }
             WindowEvent::Focused(f) => {
                 self.focused = f;
-                #[cfg(target_os = "android")]
-                if f {
-                    crate::android::immersive();
-                }
                 if !f {
                     self.keys.clear();
                     self.kbm.left = false;

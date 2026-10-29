@@ -2552,7 +2552,6 @@ dependencies = [
  "android_logger",
  "cpal",
  "embed-resource",
- "jni 0.21.1",
  "libc",
  "log",
  "png",
