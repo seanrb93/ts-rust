@@ -64,12 +64,20 @@ fn resolve(root: &Path, name: &str) -> Option<PathBuf> {
 fn resolve_plain(root: &Path, name: &str) -> Option<PathBuf> {
     let mut cur = root.to_path_buf();
     for comp in name.split(['\\', '/']).filter(|c| !c.is_empty()) {
+        // (the name as it is asked for first, and the folder's list only when that is not there: a folder of a phone's storage
+        // may not list itself, or have an entry in it that cannot be read)
+        let exact = cur.join(comp);
+        if exact.exists() {
+            cur = exact;
+            continue;
+        }
         let mut found = None;
-        for e in std::fs::read_dir(&cur).ok()? {
-            let e = e.ok()?;
-            if e.file_name().to_string_lossy().eq_ignore_ascii_case(comp) {
-                found = Some(e.path());
-                break;
+        if let Ok(rd) = std::fs::read_dir(&cur) {
+            for e in rd.flatten() {
+                if e.file_name().to_string_lossy().eq_ignore_ascii_case(comp) {
+                    found = Some(e.path());
+                    break;
+                }
             }
         }
         cur = found?;
@@ -90,7 +98,12 @@ pub fn disc_find(name: &str) -> Option<(u32, u32)> {
     if std::env::var_os("TS_CDLOG").is_some() {
         eprintln!("[cd] find {name}");
     }
-    let path = resolve(&d.root, name)?;
+    let Some(path) = resolve(&d.root, name) else {
+        // (why: the folders and files as the program sees them)
+        let pak = d.root.join("PAK");
+        eprintln!("[cd] not found: {name}; root {} exists {}; PAK exists {}; listing of PAK: {:?}", d.root.display(), d.root.exists(), pak.exists(), std::fs::read_dir(&pak).map(|r| r.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect::<Vec<_>>()));
+        return None;
+    };
     if let Some(f) = d.files.iter().find(|f| f.path == path) {
         return Some((f.lsn, f.size as u32));
     }
