@@ -193,6 +193,10 @@ pub fn emLoadTextureNum(a0: i32, a1: i32, a2: i32) {
     let slot = (a0 << 1) + texnum_table();
     let current = lh(slot);
     if current < 0 {
+        #[cfg(feature = "extensions")]
+        if std::env::var_os("TS_TEXLOG").is_some() {
+            eprintln!("[texload] {a0}");
+        }
         let buffer = lw(g::thistexbuf);
         let kind = lbu(a1 + 12);
         sb(tex_kind_addr(buffer, lw(buffer + 0x1a08)), kind);

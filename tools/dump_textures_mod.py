@@ -48,12 +48,24 @@ def main():
             continue
         users = r['used by'].replace('\\', '/')
         sets = sorted({int(m) for m in re.findall(r'objects/tile(\d+)_', users)})
+        used_by_levels = sorted({int(m) for m in re.findall(r'levels/level(\d+)', users)})
         if folder.startswith('levels/'):
             where = level_name(folder)
+            levels += 1
+        elif used_by_levels:
+            # (a texture that a level shares with a model, such as the doors of the Tomb, is stored under the model: it is put with the first level that uses it)
+            where = names.get(used_by_levels[0], 'Level%02d' % used_by_levels[0])
+            levels += 1
+        elif re.search(r'objects/sky', users):
+            where = 'Skies'
             levels += 1
         elif sets:
             where = 'Tilesets/' + extract_textures.TILESET_NAMES[sets[0]]
             tilesets += 1
+        elif folder.startswith('unreferenced'):
+            # (no model of the game names it: the game may ask for it by number in its code, so it is kept)
+            where = 'NotListed'
+            levels += 1
         else:
             continue
         os.makedirs(os.path.join(out, where), exist_ok=True)
@@ -70,7 +82,7 @@ def main():
     with open(os.path.join(root, 'README.txt'), 'w') as f:
         f.write(
             "The textures of the game's levels and of the map maker's tile sets as PNG files, at their own size, to edit.\n\n"
-            f"MISC.PAK/textures/<Level>/<number>.png               {levels} textures, in a folder named after the level they are stored under.\n"
+            f"MISC.PAK/textures/<Level>/<number>.png               {levels} textures: in a folder named after the level that uses them (a texture a level shares with a model, such as the Tomb doors, is with the first level that uses it), Skies (the sky pictures) and NotListed (textures no model of the game names; the game may ask for them by number).\n"
             f"MISC.PAK/textures/Tilesets/<Name>/<number>.png        {tilesets} textures of the five tile sets of the map maker, named as the game names them (Virtual, Industrial, Gothic, Alien, Spaceport).\n"
             "_index/textures.csv                                  the size of each, where it is, and every level or model that uses it.  (A folder starting with _ is not loaded.)\n\n"
             "Only the number of a file counts: a file can be moved to another folder.  A picture may be made larger (up to hd_texture_max in ts-rust.ini, 4096 by default); keep its proportions.\n"
