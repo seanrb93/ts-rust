@@ -259,7 +259,7 @@ pub fn button_text(text: i32) -> i32 {
     // (a quick look for a ^, or for the texts that name the controller's buttons: the help of the MapMaker, each line of it)
     let src = read(text);
     let has = src.contains('^');
-    let help = src.contains("analog") || src.contains(" button - ") || src.contains("PRESS START");
+    let help = src.contains("analog") || src.contains(" button - ") || src.contains(" button (") || src.contains("PRESS START");
     if !has && !help {
         return text;
     }
@@ -295,6 +295,12 @@ pub fn button_text(text: i32) -> i32 {
             2 => ("L".to_string(), "R".to_string(), "ZL".to_string(), "ZR".to_string()),
             _ => (ts_sdk::pad::key_short(4), ts_sdk::pad::key_short(6), ts_sdk::pad::key_short(5), ts_sdk::pad::key_short(7)),
         };
+        if style == 3 {
+            // (the keyboard: the keys of the left stick and of the right stick, which is the mouse)
+            out = out.replace("left analog stick", "WASD").replace("right analog stick", "Mouse");
+            // (a key is not a button: the legend names the key, with its picture beside it, and says what it does)
+            out = out.replace(" button", "");
+        }
         out = out.replace("analog stick", "stick").replace("L1", &l1).replace("L2", &l2).replace("R1", &r1).replace("R2", &r2);
         // (the title screen: the start button)
         let start = match style {

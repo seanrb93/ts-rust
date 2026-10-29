@@ -132,6 +132,16 @@ def pill(label, size=24, wide=None, h=None, colour=TEXT, fs=0.42):
     return img
 
 
+def pill_cursor(label):
+    """The pill of the shoulder buttons as the game's own are laid out (`mm_cursor13` and `14`): 32 x 32 with the pill, 32 x 18, in the top left."""
+    img = canvas(32, 32)
+    d = ImageDraw.Draw(img)
+    plate(d, (0, 0, 31, 17), 8, 32, 18)
+    fs = 18 * (0.66 if len(label) <= 2 else 0.5 if len(label) <= 4 else 0.4)
+    centred(d, label, 16 * SS, 9 * SS, font(int(fs * SS), bold=len(label) > 2), TEXT)
+    return img
+
+
 def small_disc(draw_symbol, size=24, colour=TEXT):
     img = round_plate(size)
     d = ImageDraw.Draw(img)
@@ -277,6 +287,8 @@ def build(scale, out):
     keys.update({'up': arrow_key('up'), 'down': arrow_key('down'), 'left': arrow_key('left'), 'right': arrow_key('right'),
                  'mouse_left': mouse('left'), 'mouse_right': mouse('right'), 'mouse_middle': mouse('middle')})
     sets['keys'] = keys
+    sets['pills'] = {'xbox_lb': pill_cursor('LB'), 'xbox_lt': pill_cursor('LT'), 'switch_l': pill_cursor('L'), 'switch_zl': pill_cursor('ZL')}
+    sets['pills'].update({'key_' + NAMES.get(k, k.lower()): pill_cursor(k) for k in KEYS})
     sets['keys_sq'] = {NAMES.get(k, k.lower()): keycap_sq(k) for k in KEYS + ['`']}
     for group, icons in sets.items():
         os.makedirs(os.path.join(out, group), exist_ok=True)
@@ -314,10 +326,10 @@ def preview(sets, path):
 def emit_rust(assets, rust):
     """The 96 pixel pictures the port draws (the face buttons of the Xbox and Switch and the square key caps) as a Rust table of `include_bytes!`."""
     entries = []
-    for group in ('xbox', 'switch', 'keys_sq'):
+    for group in ('xbox', 'switch', 'keys_sq', 'pills'):
         folder = os.path.join(assets, group)
         for name in sorted(os.listdir(folder)):
-            if group != 'keys_sq' and name[:-4] not in ('a', 'b', 'x', 'y'):
+            if group in ('xbox', 'switch') and name[:-4] not in ('a', 'b', 'x', 'y'):
                 continue
             entries.append((group + '/' + name[:-4], '../assets/icons/' + group + '/' + name))
     nl = chr(10)
@@ -342,6 +354,7 @@ def main():
         import shutil
         shutil.rmtree(sys.argv[2], ignore_errors=True)
         shutil.copytree(os.path.join(out, '96'), sys.argv[2])
+        shutil.rmtree(os.path.join(sys.argv[2], 'keys'), ignore_errors=True)  # (the wide caps are for the preview and for modders; the port draws the square ones)
         # (the game's 24 x 24 button textures sit in 32 x 32 of texture memory and are addressed that way: a picture that replaces one has to have its 24 x 24 in the top left of a 32 x 32,
         # here 96 x 96 in the top left of 128 x 128)
         for group in ('xbox', 'switch', 'keys_sq'):
