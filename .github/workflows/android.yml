@@ -18,6 +18,8 @@ jobs:
           targets: aarch64-linux-android
       - name: cargo-apk
         run: cargo install cargo-apk --locked
+      - name: Android platform 33 (the one the app is built against)
+        run: yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-33" "build-tools;33.0.2" || true
       - name: Debug keystore (the app is signed with it)
         run: |
           mkdir -p ~/.android
