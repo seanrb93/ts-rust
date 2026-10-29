@@ -61,16 +61,25 @@ def plate(d, box, radius, w, h):
     d.rounded_rectangle([x0 + j, y0 + j, x1 - j, y0 + (y1 - y0) // 2 + 2 * SS], radius=max(radius - 2, 1) * SS, fill=BODY)
 
 
+def centred(d, text, cx, cy, f, colour):
+    """The text with the middle of its ink at `cx` and the middle of the height of a capital at `cy` (both in pixels of the drawing), so that the letters of a button are centred and the
+    labels of the keys ('Space', 'Esc') sit on the same line whatever letters hang below it."""
+    ink = d.textbbox((0, 0), text, font=f, anchor='la')
+    cap = d.textbbox((0, 0), 'H', font=f, anchor='la')
+    x = cx - (ink[0] + ink[2]) / 2
+    y = cy - (cap[1] + cap[3]) / 2
+    d.text((x, y), text, font=f, fill=colour, anchor='la')
+
+
 def letter(d, text, cx, cy, size, colour):
-    f = font(size * SS)
-    d.text((cx * SS, cy * SS), text, font=f, fill=colour, anchor='mm')
+    centred(d, text, cx * SS, cy * SS, font(size * SS), colour)
 
 
 def disc_button(label, colour, size=24):
     img = canvas(size, size)
     d = ImageDraw.Draw(img)
     plate(d, (0, 0, size - 1, size - 1), size // 2, size, size)
-    letter(d, label, size / 2, size / 2 + 0.3, size * 0.66, colour)
+    letter(d, label, size / 2, size / 2, size * 0.66, colour)
     return img
 
 
@@ -80,7 +89,7 @@ def pill(label, size=24, wide=None, h=None, colour=TEXT, fs=0.42):
     img = canvas(w, h)
     d = ImageDraw.Draw(img)
     plate(d, (0, 0, w - 1, h - 1), h // 2 - 1, w, h)
-    letter(d, label, w / 2, h / 2 + 0.2, size * 0.5, colour)
+    letter(d, label, w / 2, h / 2, size * 0.5, colour)
     return img
 
 
@@ -127,7 +136,7 @@ def stick(label, size=24):
     c = size / 2 * SS
     r = size * 0.3 * SS
     d.ellipse([c - r, c - r, c + r, c + r], outline=TEXT, width=int(size * 0.07 * SS))
-    letter(d, label, size / 2, size / 2 + 0.2, size * 0.4, TEXT)
+    letter(d, label, size / 2, size / 2, size * 0.4, TEXT)
     return img
 
 
@@ -139,7 +148,7 @@ def keycap(label, size=24):
     img = canvas(w, size)
     d = ImageDraw.Draw(img)
     plate(d, (0, 0, w - 1, size - 1), max(size // 5, 3), w, size)
-    d.text((w / 2 * SS, (size / 2 + 0.2) * SS), label, font=f, fill=TEXT, anchor='mm')
+    centred(d, label, w / 2 * SS, size / 2 * SS, f, TEXT)
     return img
 
 
