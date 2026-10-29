@@ -28,7 +28,12 @@ struct Presenter {
     /// refresh rate of the monitor the window is on, in Hz
     monitor_hz: Option<f32>,
     presents: u32,
+    /// the instance the surface was made with (a new surface is made with it when the app comes back)
+    instance: wgpu::Instance,
 }
+
+/// The app is in the background (Android): there is no surface to draw on.
+static SUSPENDED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 static PRESENTER: Mutex<Option<Presenter>> = Mutex::new(None);
 
@@ -135,6 +140,11 @@ pub fn present_ex(frame: &ts_gfx::scene::Frame, update_last: bool) {
 /// Draw `frame` (if given) and show the picture `t` of the way back towards the previous game frame (`warp`), or the
 /// frame as it is.  `None` re-shows the scene drawn last.
 pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t: f32, warp: bool) {
+    if SUSPENDED.load(std::sync::atomic::Ordering::Relaxed) {
+        // (nothing is drawn in the background; the game waits a moment so that it does not run at full speed)
+        std::thread::sleep(Duration::from_millis(16));
+        return;
+    }
     let mut g = PRESENTER.lock().unwrap();
     let Some(p) = g.as_mut() else { return };
     let size = p.window.inner_size();
@@ -411,10 +421,30 @@ impl App {
 }
 
 impl ApplicationHandler for App {
+    fn suspended(&mut self, _el: &ActiveEventLoop) {
+        // (Android: the native window is gone until the app is brought back)
+        SUSPENDED.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+
     fn resumed(&mut self, el: &ActiveEventLoop) {
         if self.window.is_some() {
+            // the app came back: the window has a new native surface, which the picture is drawn on from now on
+            if let Some(p) = PRESENTER.lock().unwrap().as_mut() {
+                if let Ok(surface) = p.instance.create_surface(p.window.clone()) {
+                    let size = p.window.inner_size();
+                    p.config.width = size.width.max(1);
+                    p.config.height = size.height.max(1);
+                    surface.configure(p.renderer.device(), &p.config);
+                    p.surface = surface;
+                }
+            }
+            SUSPENDED.store(false, std::sync::atomic::Ordering::Relaxed);
+            #[cfg(target_os = "android")]
+            crate::android::immersive();
             return;
         }
+        #[cfg(target_os = "android")]
+        crate::android::immersive();
         let cfg = crate::config::get();
         let mut attrs = Window::default_attributes().with_title("TimeSplitters").with_inner_size(winit::dpi::PhysicalSize::new(cfg.width.max(320), cfg.height.max(240)));
         let monitor = el.primary_monitor().or_else(|| el.available_monitors().next());
@@ -456,7 +486,7 @@ impl ApplicationHandler for App {
         surface.configure(renderer.device(), &config);
         self.window = Some(window.clone());
         let mailbox = if caps_adapter.present_modes.contains(&wgpu::PresentMode::Mailbox) { wgpu::PresentMode::Mailbox } else { wgpu::PresentMode::AutoNoVsync };
-        *PRESENTER.lock().unwrap() = Some(Presenter { window, surface, config, renderer, mailbox, monitor_hz: None, presents: 0 });
+        *PRESENTER.lock().unwrap() = Some(Presenter { window, surface, config, renderer, mailbox, monitor_hz: None, presents: 0, instance });
         if let Some(f) = self.start_game.take() {
             f();
         }
@@ -536,6 +566,10 @@ impl ApplicationHandler for App {
             }
             WindowEvent::Focused(f) => {
                 self.focused = f;
+                #[cfg(target_os = "android")]
+                if f {
+                    crate::android::immersive();
+                }
                 if !f {
                     self.keys.clear();
                     self.kbm.left = false;
@@ -625,7 +659,11 @@ fn pollster_adapter_caps(instance: &wgpu::Instance, surface: &wgpu::Surface) -> 
 static ANDROID_APP: Mutex<Option<android_activity::AndroidApp>> = Mutex::new(None);
 
 #[cfg(target_os = "android")]
+pub(crate) static ACTIVITY: Mutex<Option<android_activity::AndroidApp>> = Mutex::new(None);
+
+#[cfg(target_os = "android")]
 pub fn set_android_app(app: android_activity::AndroidApp) {
+    *ACTIVITY.lock().unwrap() = Some(app.clone());
     *ANDROID_APP.lock().unwrap() = Some(app);
 }
 

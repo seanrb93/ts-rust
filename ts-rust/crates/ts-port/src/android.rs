@@ -54,3 +54,31 @@ fn android_main(app: android_activity::AndroidApp) {
     crate::window::set_android_app(app);
     crate::run();
 }
+
+/// Hide the status bar and the navigation bar (the buttons at the bottom): the picture is the whole screen and a swipe from the edge shows
+/// the bars for a moment.  Called when the app starts, comes back and gets the focus.
+#[cfg(target_os = "android")]
+pub fn immersive() {
+    use jni::objects::JObject;
+    let Some(app) = crate::window::ACTIVITY.lock().unwrap().clone() else { return };
+    // (the window flag of a full screen can be set from any thread)
+    app.set_window_flags(android_activity::WindowManagerFlags::FULLSCREEN, android_activity::WindowManagerFlags::empty());
+    unsafe {
+        let Ok(vm) = jni::JavaVM::from_raw(app.vm_as_ptr() as *mut _) else { return };
+        let Ok(mut env) = vm.attach_current_thread() else { return };
+        let activity = JObject::from_raw(app.activity_as_ptr() as *mut _);
+        // (the system bars are hidden for good, as far as a swipe from the edge: IMMERSIVE_STICKY | LAYOUT_* | HIDE_NAVIGATION | FULLSCREEN)
+        let flags: i32 = 0x1000 | 0x0400 | 0x0200 | 0x0100 | 0x0004 | 0x0002;
+        let result = (|| -> jni::errors::Result<()> {
+            let window = env.call_method(&activity, "getWindow", "()Landroid/view/Window;", &[])?.l()?;
+            let decor = env.call_method(&window, "getDecorView", "()Landroid/view/View;", &[])?.l()?;
+            env.call_method(&decor, "setSystemUiVisibility", "(I)V", &[flags.into()])?;
+            Ok(())
+        })();
+        if let Err(e) = result {
+            // (a call from another thread than the app's may be refused: the full screen flag has hidden the status bar all the same)
+            eprintln!("[android] the navigation bar could not be hidden: {e}");
+            let _ = env.exception_clear();
+        }
+    }
+}
