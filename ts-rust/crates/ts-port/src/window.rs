@@ -39,9 +39,11 @@ pub struct MonitorInfo {
     pub desktop: (u32, u32),
     /// video modes (width, height) without repeats, ascending
     pub modes: Vec<(u32, u32)>,
+    /// the refresh rates of its video modes in Hz (rounded), without repeats, ascending
+    pub rates: Vec<u32>,
 }
 
-static MONITOR: Mutex<MonitorInfo> = Mutex::new(MonitorInfo { desktop: (0, 0), modes: Vec::new() });
+static MONITOR: Mutex<MonitorInfo> = Mutex::new(MonitorInfo { desktop: (0, 0), modes: Vec::new(), rates: Vec::new() });
 
 /// The style of the controller that was used last (see `ts_sdk::pad::input_style`)
 static LAST_STYLE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
@@ -77,7 +79,15 @@ fn read_monitor(m: &MonitorHandle) {
     let mut modes: Vec<(u32, u32)> = m.video_modes().map(|v| (v.size().width, v.size().height)).filter(|&(w, h)| w >= 640 && h >= 480).collect();
     modes.sort_by_key(|&(w, h)| (w * h, w));
     modes.dedup();
-    *MONITOR.lock().unwrap() = MonitorInfo { desktop: (size.width, size.height), modes };
+    let mut rates: Vec<u32> = m.video_modes().map(|v| (v.refresh_rate_millihertz() + 500) / 1000).filter(|&r| r > 0).collect();
+    // (the rate the desktop runs at, in case the list of modes does not have it)
+    if let Some(r) = m.refresh_rate_millihertz() {
+        rates.push((r + 500) / 1000);
+    }
+    rates.sort_unstable();
+    rates.dedup();
+    eprintln!("[window] monitor {}x{}, refresh rates {:?} Hz", size.width, size.height, rates);
+    *MONITOR.lock().unwrap() = MonitorInfo { desktop: (size.width, size.height), modes, rates };
 }
 
 /// The fullscreen state to ask for: `None` for a window, a borderless window over the monitor, or the monitor's video mode of the

@@ -9,12 +9,15 @@ pub static MAX_MSAA: AtomicU32 = AtomicU32::new(1 << 1);
 /// aspect ratios x 1000 (0 = follow the window)
 const ASPECTS: [i64; 5] = [0, 1333, 1600, 1778, 2333];
 const FOVS: [f32; 8] = [0.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0];
-const SCALES: [f32; 7] = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0];
 const AF: [u16; 5] = [1, 2, 4, 8, 16];
-/// internal resolutions as heights (0 = the window's size times the render scale)
-const INTERNAL: [u32; 6] = [0, 480, 720, 1080, 1440, 2160];
-/// game frame rates (0 = the monitor's refresh rate)
-const RATES: [u32; 8] = [60, 90, 120, 144, 165, 240, 360, 0];
+/// The game frame rates to choose from: 60 (the original), the refresh rates the monitor has video modes for and above 60 (any of them is a rate it can show), and 0 for the
+/// monitor's own current rate.
+fn rates() -> Vec<u32> {
+    let mut list = vec![60];
+    list.extend(crate::window::monitor_info().rates.into_iter().filter(|&r| r > 60));
+    list.push(0);
+    list
+}
 
 /// Window sizes offered in windowed mode (those larger than the desktop are left out).
 const WINDOW_SIZES: [(u32, u32); 12] = [
@@ -101,7 +104,10 @@ impl ts_game::AvOptions for PortAv {
         let max = MAX_MSAA.load(Ordering::Relaxed);
         let aspect_cur = c.aspect.map(|v| (v * 1000.0).round() as i64).unwrap_or(0);
         let aspect_idx = ASPECTS.iter().enumerate().min_by_key(|(_, a)| (**a - aspect_cur).abs()).map(|x| x.0).unwrap_or(0);
-        let rate_idx = RATES.iter().enumerate().min_by_key(|(_, v)| (**v as i64 - c.framerate as i64).abs()).map(|x| x.0).unwrap_or(0);
+        let rates = rates();
+        // (a rate that the monitor does not have, from an old settings file, is shown as the nearest of those it has)
+        let rate_idx = rates.iter().enumerate().filter(|(_, v)| **v != 0).min_by_key(|(_, v)| (**v as i64 - c.framerate as i64).abs()).map(|x| x.0).unwrap_or(0);
+        let rate_idx = if c.framerate == 0 { rates.len() - 1 } else { rate_idx };
         let aa = msaa_options();
         let aa_idx = aa.iter().position(|&n| n == c.msaa_eff(max)).unwrap_or(0);
         let aniso_idx = AF.iter().position(|&n| n == c.aniso).unwrap_or(0);
@@ -130,10 +136,7 @@ impl ts_game::AvOptions for PortAv {
                 ts_render::HudMode::Stretch => 2,
             }),
             row("VSync", onoff(), c.vsync as usize),
-            row("Frame Rate", names(&RATES, |r| if *r == 0 { "Monitor".into() } else if *r == 60 { "60 (Original)".into() } else { r.to_string() }), rate_idx),
-            row("Render Scale", names(&SCALES, |s| format!("{s}x")), nearest_idx_f32(&SCALES, c.render_scale)),
-            row("Internal Res.", names(&INTERNAL, |h| match *h { 0 => "Window".into(), 480 => "480 (Original)".into(), h => h.to_string() }), INTERNAL.iter().position(|&h| h == c.internal_height).unwrap_or(0)),
-            row("Upscaling", vec!["Smooth".into(), "Sharp".into()], c.upscale_sharp as usize),
+            row("Frame Rate", names(&rates, |r| if *r == 0 { "Monitor".into() } else if *r == 60 { "60 (Original)".into() } else { r.to_string() }), rate_idx),
             row("Anti-Aliasing", names(&aa, |n| if *n <= 1 { "Off".into() } else { format!("{n}x") }), aa_idx),
             row("Texture Filter", vec!["Nearest".into(), "Bilinear".into(), "Trilinear".into()], match c.filter {
                 ts_render::Filter::Nearest => 0,
@@ -283,19 +286,19 @@ impl ts_game::AvOptions for PortAv {
                 c.hud = [Edges, Center, Stretch][index.min(2)];
             }
             5 => c.vsync = index != 0,
-            6 => c.framerate = RATES[index.min(RATES.len() - 1)],
-            7 => c.render_scale = SCALES[index.min(SCALES.len() - 1)],
-            8 => c.internal_height = INTERNAL[index.min(INTERNAL.len() - 1)],
-            9 => c.upscale_sharp = index != 0,
-            10 => {
+            6 => {
+                let list = rates();
+                c.framerate = list[index.min(list.len() - 1)];
+            }
+            7 => {
                 let opts = msaa_options();
                 c.msaa = opts[index.min(opts.len() - 1)];
             }
-            11 => {
+            8 => {
                 use ts_render::Filter::*;
                 c.filter = [Nearest, Bilinear, Trilinear][index.min(2)];
             }
-            12 => c.aniso = AF[index.min(AF.len() - 1)],
+            9 => c.aniso = AF[index.min(AF.len() - 1)],
             _ => {}
         });
         config::get().save();
