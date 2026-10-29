@@ -471,13 +471,8 @@ impl Config {
         {
             if self.framerate == 0 {
                 let hz = monitor_hz.unwrap_or(60.0).max(60.0);
-                // with vsync the monitor sets the pace (the game waits for the picture before it, and its frame time is the
-                // measured one); the game's own timer must not compete with it
-                if self.vsync {
-                    hz * 1.03
-                } else {
-                    hz
-                }
+                // (with vsync the monitor sets the pace: see `set_paced_by_present`)
+                hz
             } else {
                 self.framerate as f32
             }

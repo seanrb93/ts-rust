@@ -63,6 +63,13 @@ pub fn set_logic_hz(hz: f32) {
     LOGIC_HZ.store(hz.clamp(60.0, 1000.0).to_bits(), std::sync::atomic::Ordering::Relaxed);
 }
 
+/// true when the picture's presentation waits for the monitor (vsync): the frame clock then follows it instead of sleeping
+static PACED_BY_PRESENT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_paced_by_present(on: bool) {
+    PACED_BY_PRESENT.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
 pub fn logic_hz() -> f32 {
     f32::from_bits(LOGIC_HZ.load(std::sync::atomic::Ordering::Relaxed))
 }
@@ -101,6 +108,20 @@ pub fn wait_frame(hz: f64) -> f64 {
     let dt;
     if std::env::var_os("TS_NOPACE").is_some() {
         dt = period.as_secs_f64();
+    } else if PACED_BY_PRESENT.load(std::sync::atomic::Ordering::Relaxed) {
+        // with vsync the wait for the picture paces the game: a frame stands for the whole number of monitor periods it took (so
+        // a steady lock gives even steps), and a program that is not held back by the presentation is held to the rate anyway
+        let floor = *last + period;
+        if Instant::now() < floor {
+            let t = Instant::now();
+            sleep_until(floor);
+            perf::add_wait(t.elapsed());
+        }
+        let now = Instant::now();
+        let el = now.duration_since(*last).as_secs_f64();
+        let whole = (el * hz).round().max(1.0);
+        dt = if (el * hz - whole).abs() < 0.2 { whole / hz } else { el };
+        *last = now;
     } else if Instant::now() < target {
         let t = Instant::now();
         sleep_until(target);

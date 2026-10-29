@@ -161,12 +161,15 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
     }
     p.presents = p.presents.wrapping_add(1);
     ts_sdk::set_logic_hz(cfg.logic_hz(p.monitor_hz));
+    ts_sdk::set_paced_by_present(cfg.vsync);
     p.renderer.settings = cfg.render_settings();
     p.renderer.update_last = update_last;
     crate::menu::MAX_MSAA.store(p.renderer.max_msaa, std::sync::atomic::Ordering::Relaxed);
-    let want_mode = if cfg.vsync { wgpu::PresentMode::AutoVsync } else { p.mailbox };
+    let want_mode = if cfg.vsync { wgpu::PresentMode::Fifo } else { p.mailbox };
     if p.config.present_mode != want_mode {
         p.config.present_mode = want_mode;
+        // (one picture queued at most with vsync: the wait for the monitor is then the wait of the frame)
+        p.config.desired_maximum_frame_latency = if cfg.vsync { 1 } else { 2 };
         p.surface.configure(p.renderer.device(), &p.config);
     }
     // (the frame rate: the FPS Counter row of Game Options)
@@ -429,13 +432,13 @@ impl ApplicationHandler for App {
             height: size.height.max(1),
             // the game paces itself to 60 Hz (wait_vsync); don't stack a second vsync wait on top
             present_mode: if cfg.vsync {
-                wgpu::PresentMode::AutoVsync
+                wgpu::PresentMode::Fifo
             } else if caps_adapter.present_modes.contains(&wgpu::PresentMode::Mailbox) {
                 wgpu::PresentMode::Mailbox
             } else {
                 wgpu::PresentMode::AutoNoVsync
             },
-            desired_maximum_frame_latency: 2,
+            desired_maximum_frame_latency: if cfg.vsync { 1 } else { 2 },
             alpha_mode: caps_adapter.alpha_modes[0],
             view_formats: vec![],
         };
