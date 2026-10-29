@@ -719,9 +719,20 @@ pub fn run() {
     let game_dir = game_dir.unwrap_or_else(exe_dir);
     let missing: Vec<&str> = ["ANIM.PAK", "BG.PAK", "FRONTEND.PAK", "MISC.PAK", "OB.PAK", "SFX.PAK"].into_iter().filter(|p| !game_dir.join("PAK").join(p).is_file()).collect();
     if !game_dir.join("PAK").is_dir() || !missing.is_empty() {
-        let what = if missing.is_empty() { String::new() } else { format!("
+        // (what the program sees, to tell a folder that is empty for it from files that are not there)
+        let seen = |d: &std::path::Path| match std::fs::read_dir(d) {
+            Ok(rd) => format!("{:?}", rd.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect::<Vec<_>>()),
+            Err(e) => format!("cannot be read: {e}"),
+        };
+        let what = if missing.is_empty() {
+            String::new()
+        } else {
+            format!("
 
-Not found in PAK: {}", missing.join(", ")) };
+Not found in PAK: {}
+The program sees in the folder: {}
+in PAK: {}", missing.join(", "), seen(&game_dir), seen(&game_dir.join("PAK")))
+        };
         fatal(&format!("The game's files are missing.
 
 Put the PAK and MUSIC folders of the game in the same folder as the program:
