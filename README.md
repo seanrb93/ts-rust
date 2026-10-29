@@ -76,3 +76,7 @@ levels show no differences.  The method, the tools and the known artefacts are i
   second memory card are lightly tested.
 - Documents: `docs/decompilation.md` (how the code was decompiled and verified), `docs/reference.md` (options, extensions, mods, tools),
   `docs/level-converter.md` and `docs/level-formats.md` (making levels).
+
+## Linux and the Steam Deck
+
+The program is written to run on Linux (Vulkan through wgpu, SDL for the controllers, ALSA/PulseAudio for the sound), but it has been built for Windows only so far: the Linux build is made by GitHub Actions (`.github/workflows/linux.yml`; Actions tab, "Linux build", Run workflow) and has not been tried on a real machine yet.  Download the artifact `ts-rust-linux`, unpack it next to the game's `PAK/` and `MUSIC/` folders and run `./ts-rust`.  On a Steam Deck, switch to the Desktop, do the same, and add `ts-rust` to Steam as a non-Steam game to play it in Game mode.  To build it yourself on Linux, install the packages listed in the workflow, then `python3 tools/build-game.py`.

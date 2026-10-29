@@ -1,0 +1,35 @@
+name: Linux build
+
+# Builds the game for Linux and the Steam Deck (x86-64).  Run it from the Actions tab (Run workflow), or it runs on each push
+# to the branches below.  The program is the artifact `ts-rust-linux`: put it in the folder with PAK/ and MUSIC/ and run it.
+on:
+  workflow_dispatch:
+  push:
+    branches: [extensions, main]
+
+jobs:
+  build:
+    # (an older system than SteamOS: the program then runs on it and on most others)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Packages for SDL3 and the audio
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libasound2-dev libpulse-dev libudev-dev libdbus-1-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libxkbcommon-dev \
+            libwayland-dev libdecor-0-dev libdrm-dev libgbm-dev libegl-dev libgl-dev
+      - name: Build
+        run: python3 tools/build-game.py
+      - name: Pack
+        run: |
+          mkdir out
+          cp ts-rust/target/release/ts-rust out/
+          chmod +x out/ts-rust
+          cp README.md out/
+          tar -C out -czf ts-rust-linux.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ts-rust-linux
+          path: ts-rust-linux.tar.gz
