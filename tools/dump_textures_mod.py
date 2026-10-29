@@ -5,7 +5,8 @@ to the game, not into the repository).
 
 First extract the textures: `python tools/extract_textures.py <PAK folder> <folder>`.  The mod (switched off, `enabled = false`) gets
     MISC.PAK/textures/<Level>/<number>.png           a folder with the name of each level (Prison, Village, Tomb ...; the numbered textures stored under the level)
-    MISC.PAK/textures/Tilesets/Tileset<N>/<number>.png   the textures of the five tile sets of the map maker (a texture two sets share is in the lower one)
+    MISC.PAK/textures/Tilesets/<Name>/<number>.png      the textures of the five tile sets of the map maker, named as the game names them (Virtual, Industrial, Gothic, Alien, Spaceport;
+                                                         a texture two sets share is in the lower-numbered one)
     _index/textures.csv                              each texture's size, where it is, and every level and model that uses it (a folder starting with _ is not loaded)
 Only the number of a file counts to the game, so a file may be moved to another folder; see "Textures" in docs/reference.md.
 """
@@ -51,7 +52,7 @@ def main():
             where = level_name(folder)
             levels += 1
         elif sets:
-            where = 'Tilesets/Tileset%d' % sets[0]
+            where = 'Tilesets/' + extract_textures.TILESET_NAMES[sets[0]]
             tilesets += 1
         else:
             continue
@@ -70,7 +71,7 @@ def main():
         f.write(
             "The textures of the game's levels and of the map maker's tile sets as PNG files, at their own size, to edit.\n\n"
             f"MISC.PAK/textures/<Level>/<number>.png               {levels} textures, in a folder named after the level they are stored under.\n"
-            f"MISC.PAK/textures/Tilesets/Tileset<N>/<number>.png   {tilesets} textures of the five tile sets of the map maker (the game gives them no names).\n"
+            f"MISC.PAK/textures/Tilesets/<Name>/<number>.png        {tilesets} textures of the five tile sets of the map maker, named as the game names them (Virtual, Industrial, Gothic, Alien, Spaceport).\n"
             "_index/textures.csv                                  the size of each, where it is, and every level or model that uses it.  (A folder starting with _ is not loaded.)\n\n"
             "Only the number of a file counts: a file can be moved to another folder.  A picture may be made larger (up to hd_texture_max in ts-rust.ini, 4096 by default); keep its proportions.\n"
             "A texture used by several levels is stored once, under the first of them, and changes everywhere it is used.\n"

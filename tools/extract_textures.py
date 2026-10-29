@@ -50,6 +50,25 @@ def level_names():
 LEVEL_NAMES = level_names()
 
 
+def tileset_names():
+    """The names of the five tile sets of the map maker by number (1 to 5), from the game's own table of texts (five pointers at 0x3145b4): Virtual, Industrial, Gothic, Alien and
+    Spaceport."""
+    import struct
+    import ps2elf
+    ram = ps2elf.data_image()
+    names = {}
+    for n in range(1, 6):
+        at = struct.unpack_from('<I', ram, 0x3145b4 + 4 * (n - 1))[0]
+        end = at
+        while ram[end] and end - at < 40:
+            end += 1
+        names[n] = ''.join(c for c in bytes(ram[at:end]).decode('latin-1') if c.isalnum())
+    return names
+
+
+TILESET_NAMES = tileset_names()
+
+
 def decode(b):
     """A .qpm file -> (kind, width, height, RGBA image)."""
     i = 0
