@@ -80,3 +80,5 @@ levels show no differences.  The method, the tools and the known artefacts are i
 ## Linux and the Steam Deck
 
 The program is written to run on Linux (Vulkan through wgpu, SDL for the controllers, ALSA/PulseAudio for the sound), but it has been built for Windows only so far: the Linux build is made by GitHub Actions (`.github/workflows/linux.yml`; Actions tab, "Linux build", Run workflow) and has not been tried on a real machine yet.  Download the artifact `ts-rust-linux`, unpack it next to the game's `PAK/` and `MUSIC/` folders and run `./ts-rust`.  On a Steam Deck, switch to the Desktop, do the same, and add `ts-rust` to Steam as a non-Steam game to play it in Game mode.  To build it yourself on Linux, install the packages listed in the workflow, then `python3 tools/build-game.py`.
+
+The Windows build is made the same way (`.github/workflows/windows.yml`, artifact `ts-rust-windows`): unpack `ts-rust.exe` next to the game's `PAK/` and `MUSIC/` folders.  Both workflows build the version with the mod extensions; the game's own files are not in the repository and are not in the artifacts.

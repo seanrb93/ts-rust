@@ -1,0 +1,28 @@
+name: Windows build
+
+# Builds the game for Windows (x86-64).  Run it from the Actions tab (Run workflow), or it runs on each push to the branches below.
+# The program is the artifact `ts-rust-windows`: put ts-rust.exe in the folder with PAK/ and MUSIC/ and run it.
+on:
+  workflow_dispatch:
+  push:
+    branches: [extensions, main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        run: python tools/build-game.py
+      - name: Pack
+        shell: bash
+        run: |
+          mkdir out
+          cp ts-rust/target/release/ts-rust.exe out/
+          cp README.md out/
+          cd out && 7z a ../ts-rust-windows.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ts-rust-windows
+          path: ts-rust-windows.zip
