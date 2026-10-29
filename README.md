@@ -1,84 +1,63 @@
 # ts-rust
 
-A native PC port of the PS2 game *TimeSplitters*. The game's MIPS code (R5900) is hand-decompiled to Rust and runs natively; there is no
-emulator, and the console's hardware (EE, GS, VUs, DMA, SPU2, IOP) is replaced by native code.
-
-You need the game's assets, from Version 2.0 (SLUS 20090) of TimeSplitters: its `PAK` and `MUSIC` folders go next to the executable (the program tells you if something is missing).
-The original executable (`SLUS_200.90`) is not needed: all of its code is Rust here, and its data (tables, strings, the graphics microcode) is part of this repository.
+A native PC port of the PS2 game *TimeSplitters*. The game's MIPS code is hand-decompiled to Rust and runs natively; there is no emulator.
+Put the `PAK` and `MUSIC` folders of the game (Version 2.0, SLUS 20090) next to the program. The original executable is not needed: its code is Rust here, and its data is in this repository.
 
 ## Build and run
 
-Everything needed to build is in the repository.
-
-Then:
-
 ```
-python tools/build-game.py                      # builds in build/cargo/ and puts ts-rust.exe in the play folder, ts-rust/target/release/
-                                                #   (--original: the build that behaves as the original game; --kit: also tools/modkit.exe)
-ts-rust/target/release/ts-rust.exe              # the front end, in a window
-ts-rust/target/release/ts-rust.exe --level Village   # straight into a level
+python tools/build-game.py             # builds and puts ts-rust.exe in the play folder, ts-rust/target/release/
+python tools/build-game.py --original  # the build that behaves exactly as the original game
+python tools/build-game.py --kit       # also builds tools/modkit.exe (needs pyinstaller)
+ts-rust/target/release/ts-rust.exe --level Village   # straight into a level (no option: the front end)
 ```
 
-The play folder holds only `ts-rust.exe`, the game's `PAK/` and `MUSIC/` (put them there), and what the game makes (`ts-rust.ini`, `saves/`, `mods/`).
-Cargo itself builds in `build/cargo/` (`ts-rust/.cargo/config.toml`), so `cargo build` and `cargo clean` never touch the play folder.
+The play folder holds the program, the game's `PAK/` and `MUSIC/`, and what the game makes there (`ts-rust.ini`, `saves/`, `mods/`).
+Settings are in `ts-rust.ini` (commented, made on the first start) and in the Audio and Video Options pages; `--set key=value` changes one for a run.
+Other options: `--players N`, `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[:frames]`.
+Controls: keyboard and mouse (WASD, the mouse looks and fires, the wheel changes weapon) or any gamepad; the button pictures follow the controller. F11 switches window and borderless, F10 quits.
 
-Options: `--level NAME`, `--players N`, `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[:frames]`,
-`--set key=value` (a setting of `ts-rust.ini` for one run).  Settings are saved in `ts-rust.ini` beside the executable (created on the first start,
-commented) and can be changed in the game's Audio / Video Options page.  A crash is written to `ts-rust-crash.log`.
+## Builds
 
-Controls: keyboard and mouse (WASD, the mouse looks and fires, the wheel changes weapon; the keys are the `key_*` lines of `ts-rust.ini`) or any
-gamepad.  F11 switches between window and borderless, F10 quits.
-
-## The default build is the original
-
-The port is built to play exactly like the original: its game code is the original's logic, 60 Hz, a 640x448 picture in 4:3.  Everything it adds is behind
-features of `ts-port`, which are off by default:
+The default `cargo build` is the original game: 60 Hz, 4:3, the original's logic. The extras are features of `ts-port`:
 
 | Feature | What it adds |
 |---|---|
-| `extensions` | widescreen and field of view, a Game Options page, weapon sets, bot sets, randomisers, mouse and keyboard play, mods, HD textures, the developer menu, PC wording, unlock everything |
-| `extended-tables` | dual versions of every weapon, levels added by mods, bigger room and prop tables |
-| `high-framerate` | frame rates above 60 Hz |
-| `all-extensions` | all of the above |
+| `extensions` | widescreen, field of view, extra option pages, mouse and keyboard play, mods, HD textures, weapon and bot sets, the developer menu |
+| `extended-tables` | dual versions of every weapon, levels added by mods, bigger tables |
+| `high-framerate` | frame rates above 60 Hz, up to the monitor's |
+| `all-extensions` | all of them |
 
-```
-cargo build -p ts-port --release --features all-extensions      # (in build/cargo/: copy ts-rust.exe from there to the play folder, or use tools/build-game.py)
-```
+`tools/build-game.py` builds with all three; `--original` builds without them.
 
-Where each extension hooks into the game's code, and how to use them, is in `docs/reference.md`.
+## Mods
+
+A mod is a folder in `mods/` with a `mod.ini` (`name = ...`, `enabled = true`); the Mods page switches them on and off. Mods can add levels, characters, weapons,
+game modes, sounds, music and HD textures, and can turn on features (Unlock Everything, Dual Wield Everything, Bots Punch: see `examples/`).
+`tools/modkit.exe` makes them from menus. See `docs/modding-guide.md`.
 
 ## Verification
 
-`ts-verify` runs each hand-written function and the original machine code (in an interpreter) on the same random memory and compares the results and every
-byte written; it also runs on memory snapshots of the running game.  The port can also check itself against the original while it plays
-(`--features shadow`).  Every function passes except a short list of known artefacts, and scripted runs of every challenge, 12 story levels and 20 arcade
-levels show no differences.  The method, the tools and the known artefacts are in `docs/decompilation.md`.
-
-## Making mods
-
-`modkit.exe` (see `docs/modding-guide.md`) makes levels, characters, weapons, game mode variants, sounds, music and textures from menus; the guide also shows the files it writes.
+`ts-verify` runs each hand-written function and the original machine code on the same random memory and compares the results and every byte written, and also on snapshots of the running game.
+Every function passes except a short list of known artefacts (`docs/decompilation.md`).
 
 ## Layout
 
 | Crate | Role |
 |---|---|
-| `ts-game` | the game: hand-written functions in `src/game`, platform glue and extensions in `src/manual` |
-| `ts-rt` | the console's memory and arithmetic (no NaN, clamped overflow) |
-| `ts-sdk` | native replacements for the console's libraries, disc, pad, memory card |
-| `ts-gfx`, `ts-render` | the graphics: display lists, the vector unit programs, the renderer |
-| `ts-audio` | sound and music |
+| `ts-game` | the game: decompiled functions in `src/game`, platform glue and extensions in `src/manual` |
+| `ts-rt`, `ts-sdk` | the console's memory and arithmetic; native replacements for its libraries |
+| `ts-gfx`, `ts-render`, `ts-audio` | graphics (display lists, vector unit programs, renderer) and sound |
 | `ts-verify` | the verifier |
 | `ts-port` | the program: window, input, settings |
 
-## Notes
+## Linux, Steam Deck and Windows builds
 
-- Known gaps: the console's reverb is not implemented (the game never uses it); fisheye and a few screen effects are approximate; multiplayer and the
-  second memory card are lightly tested.
-- Documents: `docs/decompilation.md` (how the code was decompiled and verified), `docs/reference.md` (options, extensions, mods, tools),
-  `docs/level-converter.md` and `docs/level-formats.md` (making levels).
+GitHub Actions builds the game (`.github/workflows/linux.yml` and `windows.yml`; Actions tab, Run workflow). Unpack the artifact next to `PAK/` and `MUSIC/`
+(the game's own files are not in the repository or the artifacts). The Linux build is untried on real hardware; on a Steam Deck, unpack it in Desktop mode and add `ts-rust` to Steam as a non-Steam game.
 
-## Linux and the Steam Deck
+## Documents
 
-The program is written to run on Linux (Vulkan through wgpu, SDL for the controllers, ALSA/PulseAudio for the sound), but it has been built for Windows only so far: the Linux build is made by GitHub Actions (`.github/workflows/linux.yml`; Actions tab, "Linux build", Run workflow) and has not been tried on a real machine yet.  Download the artifact `ts-rust-linux`, unpack it next to the game's `PAK/` and `MUSIC/` folders and run `./ts-rust`.  On a Steam Deck, switch to the Desktop, do the same, and add `ts-rust` to Steam as a non-Steam game to play it in Game mode.  To build it yourself on Linux, install the packages listed in the workflow, then `python3 tools/build-game.py`.
+`docs/reference.md` (options, extensions, mods, tools), `docs/modding-guide.md`, `docs/decompilation.md` (decompiling and verifying), `docs/damage.md`, `docs/game-modes.md`, `docs/level-converter.md`, `docs/level-formats.md`, `docs/model-format.md`, `docs/mod-roadmap.md`.
 
-The Windows build is made the same way (`.github/workflows/windows.yml`, artifact `ts-rust-windows`): unpack `ts-rust.exe` next to the game's `PAK/` and `MUSIC/` folders.  Both workflows build the version with the mod extensions; the game's own files are not in the repository and are not in the artifacts.
+Known gaps: the console's reverb is not implemented (the game never uses it); fisheye and a few screen effects are approximate; multiplayer and the second memory card are lightly tested.
