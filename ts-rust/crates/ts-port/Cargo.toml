@@ -40,7 +40,7 @@ package = "org.tsrust.game"
 build_targets = ["aarch64-linux-android"]
 
 [package.metadata.android.signing.release]
-path = "$HOME/.android/debug.keystore"
+path = "/home/runner/.android/debug.keystore"
 keystore_password = "android"
 
 [package.metadata.android.sdk]
