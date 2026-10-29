@@ -21,7 +21,7 @@ EXE = 'ts-rust.exe' if os.name == 'nt' else 'ts-rust'
 def main():
     cmd = ['cargo', 'build', '--release', '-p', 'ts-port']
     if '--original' not in sys.argv:
-        cmd += ['--features', 'extended-tables,extensions']
+        cmd += ['--features', 'extended-tables,extensions,high-framerate']
     if subprocess.run(cmd, cwd=WS).returncode:
         sys.exit(1)
     os.makedirs(PLAY, exist_ok=True)
