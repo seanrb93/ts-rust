@@ -390,7 +390,9 @@ impl App {
         // what the buttons are called in the game's texts, and whether the mouse is the player's
         let keyboard_method = crate::config::get().input_method == 1;
         ts_sdk::pad::set_mkb_active(keyboard_method);
-        ts_sdk::pad::set_input_style(if keyboard_method { 3 } else { LAST_STYLE.load(std::sync::atomic::Ordering::Relaxed) });
+        let style = if keyboard_method { 3 } else { LAST_STYLE.load(std::sync::atomic::Ordering::Relaxed) };
+        ts_sdk::pad::set_input_style(style);
+        crate::icons::update(style);
     }
 }
 

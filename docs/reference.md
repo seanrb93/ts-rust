@@ -430,3 +430,8 @@ state, `ts-rust-hang.txt` gets a line with what the game was waiting for (game s
 graphics threads drop a frame that panics instead of leaving the game waiting for them; after a long wait on the loading state the music is
 closed and the level is ended by hand.  `TS_FORCEPLAYERS=<n>` (test aid) starts the next match with n players.
 
+**Button pictures for the device in use.**  The game draws a picture where its texts have `^1` to `^4` (circle, cross, triangle, square: the textures `mm_button01` to `mm_button04`).  With a PlayStation pad those are the game's own;
+with an Xbox or Switch controller the buttons of that controller are drawn in their place (circle, cross, triangle and square are B, A, Y, X on an Xbox, A, B, X, Y on a Switch), and with the keyboard the cap of the key the
+player gave the button (`key_*` in `ts-rust.ini`; a long name such as Enter or Space is a symbol).  The pictures are drawn by `tools/make-button-icons.py` (`assets/button-icons/` has all of them, the port carries the 96 pixel ones in
+`crates/ts-port/assets/icons/`) and shown by the renderer in place of the texture while that device is the one in use (`ts_gfx::hd::register_variant`, `crates/ts-port/src/icons.rs`); the device follows the last one used.
+`TS_BUTTONS=xbox|switch|keyboard` chooses one for a headless run.  A picture that replaces one of the game's non-power-of-two textures has to sit in the top left of the next power of two (the 24 x 24 buttons are 32 x 32 in texture memory).

@@ -8,6 +8,7 @@
 mod audio;
 mod config;
 mod gamepads;
+mod icons;
 mod menu;
 mod mods;
 mod moddata;
@@ -718,6 +719,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
     config::load(&overrides);
     ts_sdk::set_disc_root(&game_dir);
     ts_gfx::hd::set_loader(texmod::load_hd);
+    icons::init();
     mods::load(&exe_dir());
     mods::publish_pack_names();
     ts_game::prop_table_init();
@@ -733,6 +735,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
         Ok("keyboard") => ts_sdk::pad::set_input_style(3),
         _ => {}
     }
+    icons::update(ts_sdk::pad::input_style());
     // the saves (the virtual memory card) are in the program's folder too
     let save_dir = save_dir.unwrap_or_else(|| exe_dir().join("saves"));
     eprintln!("[port] save directory: {}", save_dir.display());

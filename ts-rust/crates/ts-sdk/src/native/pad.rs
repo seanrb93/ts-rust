@@ -193,6 +193,18 @@ pub fn input_style() -> u8 {
     INPUT_STYLE.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// Which of the buttons the texts mark with a picture (bit 0 for `^1` circle, bit 1 cross, bit 2 triangle, bit 3 square) have a picture of their own for the device in use: the game then
+/// draws that picture, and the texts do not name the button in words.
+static ICON_MASK: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+pub fn set_button_icons(mask: u8) {
+    ICON_MASK.store(mask, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn button_icon(code: u8) -> bool {
+    (1..=4).contains(&code) && ICON_MASK.load(std::sync::atomic::Ordering::Relaxed) >> (code - 1) & 1 != 0
+}
+
 /// How fast the right stick (and the keys that stand for it) turns the view, as a factor (1 = as the game has it).
 static LOOK_SENS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0x3f80_0000);
 

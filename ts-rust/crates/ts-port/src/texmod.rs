@@ -9,34 +9,53 @@ pub const MAX_PIXELS: usize = 65536;
 /// The picture of a PNG file as RGBA8: (width, height, pixels).
 pub fn read_png(path: &Path) -> Result<(usize, usize, Vec<[u8; 4]>), String> {
     let f = std::fs::File::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let mut dec = png::Decoder::new(std::io::BufReader::new(f));
+    read_png_from(std::io::BufReader::new(f), &path.display().to_string())
+}
+
+/// The picture of PNG data (`what` names it in the messages).
+pub fn read_png_from<R: std::io::Read>(source: R, what: &str) -> Result<(usize, usize, Vec<[u8; 4]>), String> {
+    let mut dec = png::Decoder::new(source);
     dec.set_transformations(png::Transformations::EXPAND | png::Transformations::STRIP_16);
-    let mut r = dec.read_info().map_err(|e| format!("{}: {e}", path.display()))?;
+    let mut r = dec.read_info().map_err(|e| format!("{what}: {e}"))?;
     let mut buf = vec![0u8; r.output_buffer_size()];
-    let info = r.next_frame(&mut buf).map_err(|e| format!("{}: {e}", path.display()))?;
+    let info = r.next_frame(&mut buf).map_err(|e| format!("{what}: {e}"))?;
     let (w, h) = (info.width as usize, info.height as usize);
     let px: Vec<[u8; 4]> = match info.color_type {
         png::ColorType::Rgba => buf.chunks_exact(4).map(|p| [p[0], p[1], p[2], p[3]]).collect(),
         png::ColorType::Rgb => buf.chunks_exact(3).map(|p| [p[0], p[1], p[2], 255]).collect(),
         png::ColorType::GrayscaleAlpha => buf.chunks_exact(2).map(|p| [p[0], p[0], p[0], p[1]]).collect(),
         png::ColorType::Grayscale => buf.iter().map(|&g| [g, g, g, 255]).collect(),
-        png::ColorType::Indexed => return Err(format!("{}: a PNG with a palette was not expanded", path.display())),
+        png::ColorType::Indexed => return Err(format!("{what}: a PNG with a palette was not expanded")),
     };
     if px.len() < w * h {
-        return Err(format!("{}: the picture is incomplete", path.display()));
+        return Err(format!("{what}: the picture is incomplete"));
     }
     Ok((w, h, px))
 }
 
 /// A picture of a mod as the renderer takes it: RGBA8 with the console's alpha (0 to 128, 128 = opaque), whatever its size.
 pub fn load_hd(path: &Path) -> Option<(u32, u32, Vec<u8>)> {
-    let (w, h, px) = match read_png(path) {
-        Ok(x) => x,
+    match read_png(path) {
+        Ok((w, h, px)) => finish_hd(w, h, px),
         Err(e) => {
             eprintln!("[mods] {e}");
-            return None;
+            None
         }
-    };
+    }
+}
+
+/// The same for a picture the program carries (PNG data in memory).
+pub fn load_hd_bytes(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
+    match read_png_from(bytes, "(a picture of the program)") {
+        Ok((w, h, px)) => finish_hd(w, h, px),
+        Err(e) => {
+            eprintln!("[icons] {e}");
+            None
+        }
+    }
+}
+
+fn finish_hd(w: usize, h: usize, px: Vec<[u8; 4]>) -> Option<(u32, u32, Vec<u8>)> {
     let mut rgba = Vec::with_capacity(w * h * 4);
     for p in &px[..w * h] {
         rgba.extend_from_slice(&[p[0], p[1], p[2], ((p[3] as u32 * 128 + 127) / 255) as u8]);

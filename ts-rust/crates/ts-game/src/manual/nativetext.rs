@@ -273,7 +273,12 @@ pub fn button_text(text: i32) -> i32 {
     while lbu(at) != 0 && at - text < 600 {
         let c = lbu(at);
         let next = lbu(at + 1);
-        if c == 94 && (b'1' as i32..=b'4' as i32).contains(&next) {
+        if c == 94 && (b'1' as i32..=b'4' as i32).contains(&next) && ts_sdk::pad::button_icon((next - b'0' as i32) as u8) {
+            // (the device has a picture of this button: the game draws it where the text has the marker)
+            out.push('^');
+            out.push(next as u8 as char);
+            at += 2;
+        } else if c == 94 && (b'1' as i32..=b'4' as i32).contains(&next) {
             out.push('(');
             out.push_str(&name((next - b'0' as i32) as u8).unwrap_or_else(|| "?".to_string()));
             out.push(')');

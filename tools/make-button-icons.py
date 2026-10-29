@@ -6,6 +6,7 @@ Writes, for each size (`24/` is the size of the game's own buttons, `96/` four t
     xbox/    a b x y  lb rb lt rt  menu view  ls rs  dpad
     switch/  a b x y  l r zl zr  plus minus  ls rs  dpad
     keys/    one cap for each key of the list KEYS (letters, digits, F1 to F12, space, enter, shift, ctrl, alt, tab, esc, backspace, the arrows), and the mouse
+    keys_sq/ a square cap (24 x 24) for each key, with a short label or a symbol (Enter, Space, Shift, Back ...), for the places that have room for one square picture
     preview.png   all of them on the menu's colour
 The pictures are drawn from nothing (the letters with the system's Segoe UI Semibold or Arial when it is there, else DejaVu or Pillow's own font), at 8 times the size and reduced, so the edges are smooth.
 """
@@ -184,9 +185,41 @@ def mouse(which, size=24):
     return img
 
 
+def keycap_sq(label, size=24):
+    """A square cap: the label as large as fits (a long one smaller), or a symbol for Enter, Space, Shift, Tab and Back."""
+    img = canvas(size, size)
+    d = ImageDraw.Draw(img)
+    plate(d, (0, 0, size - 1, size - 1), max(size // 5, 3), size, size)
+    c = size / 2 * SS
+    u = size * SS
+    w = int(u * 0.05)
+    key = label.lower()
+    if key == 'enter':
+        # the return arrow: down, then left with a head
+        d.line([(c + u * 0.2, c - u * 0.22), (c + u * 0.2, c + u * 0.08), (c - u * 0.18, c + u * 0.08)], fill=TEXT, width=w, joint='curve')
+        d.polygon([(c - u * 0.28, c + u * 0.08), (c - u * 0.14, c - u * 0.04), (c - u * 0.14, c + u * 0.2)], fill=TEXT)
+    elif key == 'space':
+        d.line([(c - u * 0.24, c - u * 0.06), (c - u * 0.24, c + u * 0.1), (c + u * 0.24, c + u * 0.1), (c + u * 0.24, c - u * 0.06)], fill=TEXT, width=w, joint='curve')
+    elif key == 'shift':
+        d.polygon([(c, c - u * 0.26), (c + u * 0.24, c + u * 0.02), (c + u * 0.11, c + u * 0.02), (c + u * 0.11, c + u * 0.24), (c - u * 0.11, c + u * 0.24), (c - u * 0.11, c + u * 0.02), (c - u * 0.24, c + u * 0.02)], outline=TEXT, width=w)
+    elif key == 'back':
+        d.polygon([(c - u * 0.28, c), (c - u * 0.08, c - u * 0.18), (c + u * 0.26, c - u * 0.18), (c + u * 0.26, c + u * 0.18), (c - u * 0.08, c + u * 0.18)], outline=TEXT, width=w)
+        d.line([(c - u * 0.02, c - u * 0.07), (c + u * 0.16, c + u * 0.07)], fill=TEXT, width=w)
+        d.line([(c - u * 0.02, c + u * 0.07), (c + u * 0.16, c - u * 0.07)], fill=TEXT, width=w)
+    elif key == 'tab':
+        d.line([(c - u * 0.26, c), (c + u * 0.18, c)], fill=TEXT, width=w)
+        d.polygon([(c + u * 0.26, c), (c + u * 0.1, c - u * 0.12), (c + u * 0.1, c + u * 0.12)], fill=TEXT)
+        d.line([(c + u * 0.28, c - u * 0.2), (c + u * 0.28, c + u * 0.2)], fill=TEXT, width=w)
+    else:
+        text = {'ctrl': 'Ctl'}.get(key, label)
+        fs = size * (0.5 if len(text) <= 2 else 0.34 if len(text) == 3 else 0.27)
+        centred(d, text, c, c, font(int(fs * SS)), TEXT)
+    return img
+
+
 KEYS = (list('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') + ['F%d' % i for i in range(1, 13)]
         + ['Space', 'Enter', 'Shift', 'Ctrl', 'Alt', 'Tab', 'Esc', 'Back', 'Ins', 'Del', 'Home', 'End', 'PgUp', 'PgDn', ',', '.', '/', ';', "'", '[', ']', '\\', '-', '='])
-NAMES = {'/': 'slash', '\\': 'backslash', ',': 'comma', '.': 'period', ';': 'semicolon', "'": 'quote', '[': 'lbracket', ']': 'rbracket', '-': 'minus', '=': 'equals'}
+NAMES = {'`': 'grave', '/': 'slash', '\\': 'backslash', ',': 'comma', '.': 'period', ';': 'semicolon', "'": 'quote', '[': 'lbracket', ']': 'rbracket', '-': 'minus', '=': 'equals'}
 
 
 def build(scale, out):
@@ -206,6 +239,7 @@ def build(scale, out):
     keys.update({'up': arrow_key('up'), 'down': arrow_key('down'), 'left': arrow_key('left'), 'right': arrow_key('right'),
                  'mouse_left': mouse('left'), 'mouse_right': mouse('right'), 'mouse_middle': mouse('middle')})
     sets['keys'] = keys
+    sets['keys_sq'] = {NAMES.get(k, k.lower()): keycap_sq(k) for k in KEYS + ['`']}
     for group, icons in sets.items():
         os.makedirs(os.path.join(out, group), exist_ok=True)
         for name, img in icons.items():
@@ -239,6 +273,24 @@ def preview(sets, path):
     sheet.crop((0, 0, width, y)).convert('RGB').save(path)
 
 
+def emit_rust(assets, rust):
+    """The 96 pixel pictures the port draws (the face buttons of the Xbox and Switch and the square key caps) as a Rust table of `include_bytes!`."""
+    entries = []
+    for group in ('xbox', 'switch', 'keys_sq'):
+        folder = os.path.join(assets, group)
+        for name in sorted(os.listdir(folder)):
+            if group != 'keys_sq' and name[:-4] not in ('a', 'b', 'x', 'y'):
+                continue
+            entries.append((group + '/' + name[:-4], '../assets/icons/' + group + '/' + name))
+    nl = chr(10)
+    with open(rust, 'w', newline='') as f:
+        f.write('// Written by tools/make-button-icons.py: the pictures of the buttons and keys (96 pixels), by name.' + nl)
+        f.write('pub static ICONS: &[(&str, &[u8])] = &[' + nl)
+        for n, p in entries:
+            f.write('    ("' + n + '", include_bytes!("' + p + '")),' + nl)
+        f.write('];' + nl)
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -247,6 +299,22 @@ def main():
     for scale in (1, 4):
         sets = build(scale, os.path.join(out, str(24 * scale)))
     preview(sets, os.path.join(out, 'preview.png'))
+    if len(sys.argv) > 3:
+        # (the port's copy: python tools/make-button-icons.py <out> <port assets/icons folder> <port src/icons_data.rs>)
+        import shutil
+        shutil.rmtree(sys.argv[2], ignore_errors=True)
+        shutil.copytree(os.path.join(out, '96'), sys.argv[2])
+        # (the game's 24 x 24 button textures sit in 32 x 32 of texture memory and are addressed that way: a picture that replaces one has to have its 24 x 24 in the top left of a 32 x 32,
+        # here 96 x 96 in the top left of 128 x 128)
+        for group in ('xbox', 'switch', 'keys_sq'):
+            for name in os.listdir(os.path.join(sys.argv[2], group)):
+                path = os.path.join(sys.argv[2], group, name)
+                pic = Image.open(path).convert('RGBA')
+                if pic.size == (96, 96):
+                    padded = Image.new('RGBA', (128, 128), (0, 0, 0, 0))
+                    padded.paste(pic, (0, 0))
+                    padded.save(path)
+        emit_rust(sys.argv[2], sys.argv[3])
     print('icons written to', out, '(' + ', '.join(f'{k}: {len(v)}' for k, v in sets.items()) + ')')
 
 
