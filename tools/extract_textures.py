@@ -27,7 +27,27 @@ from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pakls import entries  # noqa: E402
 
-LEVEL_NAMES = {1: 'Prison', 2: 'Village', 5: 'ChemicalPlant', 7: 'Asylum', 8: 'Mansion', 9: 'PlanetX', 11: 'Streets', 18: 'Mall', 23: 'Tomb', 25: 'Ron'}
+def level_names():
+    """The names of the levels by number, from the game's own table of them (the pointers at 0x314410, level 1 first: the names the command line takes), such as 'Prison' or
+    'ChemicalPlant'; the placeholders of the game ('spare1') are left out."""
+    import struct
+    import ps2elf
+    ram = ps2elf.data_image()
+    names = {}
+    for n in range(1, 31):
+        at = struct.unpack_from('<I', ram, 0x314410 + 4 * (n - 1))[0]
+        if not 0 < at < len(ram) - 40:
+            continue
+        end = at
+        while ram[end] and end - at < 40:
+            end += 1
+        name = ''.join(c for c in bytes(ram[at:end]).decode('latin-1') if c.isalnum())
+        if name and not name.lower().startswith('spare'):
+            names[n] = name
+    return names
+
+
+LEVEL_NAMES = level_names()
 
 
 def decode(b):
