@@ -1,0 +1,75 @@
+# A rebalance of the stock weapons, tuned on the measured rates of fire (docs/damage.md): the damage of a full hit on the body is scaled so that the damage per second
+# is about 1 to 1.2 for the sidearms, 1.4 to 1.7 for the automatics and rifles, and the shotguns are about 2.5 to 3 at point blank.
+
+weapon 0   # Pistol
+  damage 0.3
+  ammo_reserve 30
+  max_ammo 200   # the most of this ammunition kind that can be carried (all weapons of the kind share it)
+
+weapon 1   # M16
+  damage 0.16
+  ammo_reserve 60
+  max_ammo 160   # the most of this ammunition kind that can be carried (all weapons of the kind share it)
+
+weapon 2   # Assault Rifle
+  damage 0.2
+  ammo_reserve 60
+
+weapon 3   # Sniper Rifle
+  damage 0.55
+  ammo_reserve 10
+
+weapon 4   # Raygun
+  damage 0.35
+  ammo_reserve 40
+  max_ammo 150   # the most of this ammunition kind that can be carried (all weapons of the kind share it)
+
+weapon 5   # Raygun Carbine
+  damage 0.15
+  ammo_reserve 40
+
+weapon 6   # Scifi Autorifle
+  damage 0.22
+  ammo_reserve 100
+
+weapon 7   # Scifi Handgun
+  damage 0.15
+  ammo_reserve 40
+
+weapon 9   # Mauser Pistol
+  damage 0.22
+  ammo_reserve 30
+
+weapon 10   # Minigun
+  damage 0.15
+  ammo_reserve 120
+
+weapon 12   # Scifi Sniper Rifle
+  damage 0.5
+  ammo_reserve 10
+
+weapon 19   # Tommy Gun
+  damage 0.16
+  ammo_reserve 64
+
+weapon 20   # Assault Shotgun
+  damage 0.1
+  ammo_reserve 16
+
+weapon 21   # Uzi
+  damage 0.13
+  ammo_reserve 60
+
+weapon 22   # Blunderbuss
+  damage 0.15
+  ammo_reserve 10
+
+weapon 23   # Colt Pistol
+  damage 0.5
+  ammo_reserve 18
+
+weapon 24   # Shotgun
+  damage 0.2
+  ammo_reserve 8
+  max_ammo 50   # the most of this ammunition kind that can be carried (all weapons of the kind share it)
+

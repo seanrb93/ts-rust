@@ -85,3 +85,20 @@ A full shot of the Shotgun (6 pellets of 0.5) is 3 full health bars if all pelle
 ## What a mod can change
 
 `weapons.txt`: `damage` (the fraction of a bar for each bullet; the pellets, the multipliers and the explosions are code and are not in it).  The handicap and challenge tables are data and can be changed by `patches.txt` (`<symbol>+offset <f> value`).
+
+## Rates of fire (measured)
+
+`TS_FIRELOG=1` (an extensions build) prints each shot of the player with its frame; holding the trigger with `TS_GIVE=20:<combo> TS_EQUIP=1` gave these shots per second (60 frames a second):
+
+| Weapon | Shots per second | Weapon | Shots per second |
+|---|---|---|---|
+| Pistol | 3.2 | Minigun | 10.2 |
+| Mauser Pistol | 5.3 | Uzi | 10.8 |
+| Colt Pistol | 1.6 | Tommy Gun | 8.9 |
+| Scifi Handgun | 7.8 | M16, Assault Rifle | 8.9 |
+| Raygun | 4.1 | Scifi Autorifle | 7.6 |
+| Raygun Carbine | 7.8 | Sniper Rifle, Scifi Sniper Rifle | 1.0 |
+| Shotgun | 2.4 | Assault Shotgun | 3.2 |
+| Blunderbuss | 1.0 | Rocket Launcher, Grenade Launcher | 1.0 |
+
+The stock damage per second of a full hit on the body (damage times the bullets of the shot times the rate) runs from 0.5 (Sniper Rifle, Rocket Launcher) and 0.8 (Colt) to 1.6 to 2.3 (the automatics and rifles) and 5.8 and 7.2 for the Assault Shotgun and the Shotgun, which is why the shotguns feel so strong.  `examples/balance_mod` rescales the damage by these rates.

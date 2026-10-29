@@ -768,6 +768,10 @@ pub fn playerFireShots(a0: i32) {
     if gun == 0 {
         return;
     }
+    #[cfg(feature = "extensions")]
+    if std::env::var_os("TS_FIRELOG").is_some() {
+        eprintln!("[fire] frame {} gun {} second {}", ts_sdk::frame_count(), lw(gun), lw(a0 + 52));
+    }
     let prop = lw(gun + 64);
     if prop == 0 {
         return;
