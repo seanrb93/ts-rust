@@ -305,7 +305,7 @@ of `gv_weaponset` by `weaponset_effective`, which answers 0 for any custom set).
 
 ## Mods
 
-Every folder in `mods/` next to the program is a mod (folders starting with `.` or `_`, or with `enabled = false` in a `mod.ini`, are skipped).  The **Mods** page of the main menu (between Game Options and Exit Game) lists the folders of `mods/` and switches
+Every folder in `mods/` next to the program is a mod (folders starting with `.` or `_`, or with `enabled = false` in a `mod.ini`, are skipped).  The **Mods** page of the main menu (between Game Options and Exit Game) lists the mods of `mods/` (each by the `name = ...` line of its `mod.ini`, or by its folder's name when it has none) and switches
 each On or Off (it writes `enabled = true` or `false` into the mod's `mod.ini`, keeping the other lines).  The mods are loaded when the program starts, so a change shows as "(after
 restart)" until the game is started again.
 A mod can hold:

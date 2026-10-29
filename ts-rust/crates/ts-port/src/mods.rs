@@ -60,8 +60,12 @@ static MODS_DIR: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None)
 static LOADED: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
 
 /// A mod folder for the Mods page.
+#[derive(Clone)]
 pub struct Listed {
+    /// the folder's name (what the files are found by)
     pub name: String,
+    /// the name shown on the page: `name = ...` of the `mod.ini`, else the folder's name
+    pub title: String,
     /// switched on in its `mod.ini` now
     pub enabled: bool,
     /// was loaded when the program started (a change of `enabled` takes effect at the next start)
@@ -72,7 +76,23 @@ pub struct Listed {
 pub fn list() -> Vec<Listed> {
     let Some(dir) = MODS_DIR.lock().unwrap().clone() else { return Vec::new() };
     let loaded = LOADED.lock().unwrap().clone();
-    all_mods_in(&dir).into_iter().map(|(m, enabled)| Listed { loaded: loaded.contains(&m.name), name: m.name, enabled }).collect()
+    all_mods_in(&dir)
+        .into_iter()
+        .map(|(m, enabled)| {
+            let ini = std::fs::read_to_string(m.dir.join("mod.ini")).unwrap_or_default();
+            let title = ini_name(&ini).unwrap_or_else(|| m.name.clone());
+            Listed { loaded: loaded.contains(&m.name), title, name: m.name, enabled }
+        })
+        .collect()
+}
+
+/// The `name = ...` line of a `mod.ini`.
+fn ini_name(ini: &str) -> Option<String> {
+    ini.lines().find_map(|l| {
+        let (k, v) = l.split_once('=')?;
+        let v = v.trim().trim_matches('"');
+        (k.trim().eq_ignore_ascii_case("name") && !v.is_empty()).then(|| v.to_string())
+    })
 }
 
 /// Switch a mod on or off in its `mod.ini` (the other lines of the file stay as they are).

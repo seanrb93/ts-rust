@@ -955,7 +955,8 @@ fn navigate(page: i32, n: usize) {
     }
     if flags & 0x30 != 0 && layout().paged {
         // left and right turn the page; the cursor goes to its first line
-        let pages = layout().pages();
+        // (only the pages that have rows: a page without any would show nothing)
+        let pages = if n > 0 { (layout().row_page(n as usize - 1) + 1).min(layout().pages()) } else { 1 };
         let to = if lw(front + 16) > 0 { (page_shown() + 1) % pages } else { (page_shown() + pages - 1) % pages };
         PAGE.store(to, order);
         let first = if mode() == Mode::Audio && to == 0 { 1 } else { FIRST_ID + (0..n as i32).find(|&i| layout().row_page(i as usize) == to).unwrap_or(0) };

@@ -213,7 +213,7 @@ impl ts_game::AvOptions for PortAv {
                 // (a change shows as pending: the mods are loaded when the program starts)
                 let pending = if m.enabled != m.loaded { " (after restart)" } else { "" };
                 let (on, off) = if m.enabled { (format!("On{pending}"), "Off".to_string()) } else { ("On".to_string(), format!("Off{pending}")) };
-                let label: String = m.name.chars().take(28).collect();
+                let label: String = m.title.chars().take(28).collect();
                 ts_game::AvRow { label, values: vec![on, off], index: if m.enabled { 0 } else { 1 } }
             })
             .collect()
@@ -302,12 +302,12 @@ impl ts_game::AvOptions for PortAv {
 /// The installed mods for the Mods page, read again after a second (or when `refresh` says a change was made).
 fn mod_cache(refresh: bool) -> Vec<crate::mods::Listed> {
     use std::sync::Mutex;
-    static CACHE: Mutex<Option<(std::time::Instant, Vec<(String, bool, bool)>)>> = Mutex::new(None);
+    static CACHE: Mutex<Option<(std::time::Instant, Vec<crate::mods::Listed>)>> = Mutex::new(None);
     let mut g = CACHE.lock().unwrap();
     let stale = g.as_ref().map_or(true, |(t, _)| refresh || t.elapsed().as_millis() > 1000);
     if stale {
-        let v = crate::mods::list().into_iter().map(|m| (m.name, m.enabled, m.loaded)).collect();
+        let v = crate::mods::list();
         *g = Some((std::time::Instant::now(), v));
     }
-    g.as_ref().map(|(_, v)| v.iter().map(|(n, e, l)| crate::mods::Listed { name: n.clone(), enabled: *e, loaded: *l }).collect()).unwrap_or_default()
+    g.as_ref().map(|(_, v)| v.clone()).unwrap_or_default()
 }
