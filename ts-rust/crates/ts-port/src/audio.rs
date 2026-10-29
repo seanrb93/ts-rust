@@ -5,6 +5,9 @@ use std::sync::Mutex;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
+/// The sound is held (the app is in the background): the mixer does not advance and nothing is played.
+pub static PAUSED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 static WAV: Mutex<Option<(String, Vec<i16>)>> = Mutex::new(None);
 
 /// Open the default output device.  Failure is reported and the game runs silent.
@@ -28,6 +31,10 @@ pub fn start_device() {
     let stream = device.build_output_stream(
         &cfg.into(),
         move |data: &mut [f32], _| {
+            if PAUSED.load(std::sync::atomic::Ordering::Relaxed) {
+                data.fill(0.0);
+                return;
+            }
             let frames = data.len() / ch;
             tmp.resize(frames * 2, 0.0);
             ts_audio::render(&mut tmp, rate);

@@ -140,10 +140,9 @@ pub fn present_ex(frame: &ts_gfx::scene::Frame, update_last: bool) {
 /// Draw `frame` (if given) and show the picture `t` of the way back towards the previous game frame (`warp`), or the
 /// frame as it is.  `None` re-shows the scene drawn last.
 pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t: f32, warp: bool) {
-    if SUSPENDED.load(std::sync::atomic::Ordering::Relaxed) {
-        // (nothing is drawn in the background; the game waits a moment so that it does not run at full speed)
-        std::thread::sleep(Duration::from_millis(16));
-        return;
+    // (in the background the game stands still here, with the sound held, until the app is back)
+    while SUSPENDED.load(std::sync::atomic::Ordering::Relaxed) {
+        std::thread::sleep(Duration::from_millis(50));
     }
     let mut g = PRESENTER.lock().unwrap();
     let Some(p) = g.as_mut() else { return };
@@ -424,6 +423,7 @@ impl ApplicationHandler for App {
     fn suspended(&mut self, _el: &ActiveEventLoop) {
         // (Android: the native window is gone until the app is brought back)
         SUSPENDED.store(true, std::sync::atomic::Ordering::Relaxed);
+        crate::audio::PAUSED.store(true, std::sync::atomic::Ordering::Relaxed);
     }
 
     fn resumed(&mut self, el: &ActiveEventLoop) {
@@ -439,6 +439,7 @@ impl ApplicationHandler for App {
                 }
             }
             SUSPENDED.store(false, std::sync::atomic::Ordering::Relaxed);
+            crate::audio::PAUSED.store(false, std::sync::atomic::Ordering::Relaxed);
             #[cfg(target_os = "android")]
             crate::android::immersive();
             return;
