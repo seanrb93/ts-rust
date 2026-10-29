@@ -717,11 +717,15 @@ pub fn run() {
     WINDOWED.store(windowed, std::sync::atomic::Ordering::Relaxed);
     // the game's files have to be in the program's own folder (`--game-dir` is for testing)
     let game_dir = game_dir.unwrap_or_else(exe_dir);
-    if !game_dir.join("PAK").is_dir() {
+    let missing: Vec<&str> = ["ANIM.PAK", "BG.PAK", "FRONTEND.PAK", "MISC.PAK", "OB.PAK", "SFX.PAK"].into_iter().filter(|p| !game_dir.join("PAK").join(p).is_file()).collect();
+    if !game_dir.join("PAK").is_dir() || !missing.is_empty() {
+        let what = if missing.is_empty() { String::new() } else { format!("
+
+Not found in PAK: {}", missing.join(", ")) };
         fatal(&format!("The game's files are missing.
 
 Put the PAK and MUSIC folders of the game in the same folder as the program:
-{}", game_dir.display()));
+{}{what}", game_dir.display()));
     }
     eprintln!("[port] game directory: {}", game_dir.display());
 
