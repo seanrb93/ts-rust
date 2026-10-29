@@ -5,6 +5,7 @@ weapon 0   # Pistol
   damage 0.3
   ammo_reserve 30
   max_ammo 200   # the most of this ammunition kind that can be carried (all weapons of the kind share it)
+  raw +60 w 19   # the bots' pause between shots, in frames (the game gave 2; the player is held to about this by the animation)
 
 weapon 1   # M16
   damage 0.16
@@ -14,15 +15,18 @@ weapon 1   # M16
 weapon 2   # Assault Rifle
   damage 0.2
   ammo_reserve 60
+  raw +60 w 7   # the bots' pause between shots, in frames (the game gave 6; the player is held to about this by the animation)
 
 weapon 3   # Sniper Rifle
   damage 0.55
   ammo_reserve 10
+  raw +60 w 58   # the bots' pause between shots, in frames (the game gave 20; the player is held to about this by the animation)
 
 weapon 4   # Raygun
   damage 0.35
   ammo_reserve 40
   max_ammo 150   # the most of this ammunition kind that can be carried (all weapons of the kind share it)
+  raw +60 w 15   # the bots' pause between shots, in frames (the game gave 10; the player is held to about this by the animation)
 
 weapon 5   # Raygun Carbine
   damage 0.15
@@ -35,10 +39,12 @@ weapon 6   # Scifi Autorifle
 weapon 7   # Scifi Handgun
   damage 0.15
   ammo_reserve 40
+  raw +60 w 8   # the bots' pause between shots, in frames (the game gave 6; the player is held to about this by the animation)
 
 weapon 9   # Mauser Pistol
   damage 0.22
   ammo_reserve 30
+  raw +60 w 11   # the bots' pause between shots, in frames (the game gave 10; the player is held to about this by the animation)
 
 weapon 10   # Minigun
   damage 0.15
@@ -47,6 +53,7 @@ weapon 10   # Minigun
 weapon 12   # Scifi Sniper Rifle
   damage 0.5
   ammo_reserve 10
+  raw +60 w 59   # the bots' pause between shots, in frames (the game gave 30; the player is held to about this by the animation)
 
 weapon 19   # Tommy Gun
   damage 0.16
@@ -55,6 +62,7 @@ weapon 19   # Tommy Gun
 weapon 20   # Assault Shotgun
   damage 0.1
   ammo_reserve 16
+  raw +60 w 19   # the bots' pause between shots, in frames (the game gave 15; the player is held to about this by the animation)
 
 weapon 21   # Uzi
   damage 0.13
@@ -67,9 +75,17 @@ weapon 22   # Blunderbuss
 weapon 23   # Colt Pistol
   damage 0.5
   ammo_reserve 18
+  raw +60 w 38   # the bots' pause between shots, in frames (the game gave 20; the player is held to about this by the animation)
 
 weapon 24   # Shotgun
   damage 0.2
   ammo_reserve 8
   max_ammo 50   # the most of this ammunition kind that can be carried (all weapons of the kind share it)
+  raw +60 w 25   # the bots' pause between shots, in frames (the game gave 12; the player is held to about this by the animation)
+
+weapon 8
+  raw +60 w 59   # the bots' pause between shots, in frames (the game gave 30; the player is held to about this by the animation)
+
+weapon 11
+  raw +60 w 59   # the bots' pause between shots, in frames (the game gave 30; the player is held to about this by the animation)
 
