@@ -13,6 +13,7 @@ The pictures are drawn from nothing (the letters with the system's Segoe UI Semi
 import os
 import sys
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 SS = 8  # the drawing is made this many times larger and reduced
@@ -80,14 +81,43 @@ def centred(d, text, cx, cy, f, colour):
     d.text((x, y), text, font=f, fill=colour, anchor='la')
 
 
+def smooth(a, b, x):
+    t = np.clip((x - a) / (b - a), 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def round_plate(size):
+    """The disc of a round button as the game draws its own, measured from `mm_button01` to `04` (the median of the four has no symbol): a soft edge that fades over the last pixels,
+    a near-black band inside it, a grey rim at 9.6 of the radius of 12 (bright at the top, only 45 grey at the sides and the bottom), and the body of (45, 50, 58) that is a little darker
+    in its lower half.  Returns the picture at SS times the size and the ImageDraw to put the symbol on."""
+    n = size * SS
+    yy, xx = np.mgrid[0:n, 0:n].astype(float)
+    c = (n - 1) / 2
+    unit = n / 24.0
+    dx, dy = xx - c, yy - c
+    ru = np.hypot(dx, dy) / unit
+    ang = np.arctan2(dy, dx)
+    lit = np.clip(-np.sin(ang), 0, 1) ** 3
+    side, top = np.array([62.0, 66.0, 76.0]), np.array([118.0, 125.0, 136.0])
+    rim = side + (top - side) * lit[..., None]
+    below = smooth(-1.0, 4.0, dy / unit)[..., None]
+    body = np.array(BODY, float) * (1 - below) + np.array(BODY_DARK, float) * below
+    rim_w = np.exp(-(((ru - 9.6) / 0.8) ** 2))[..., None]
+    col = body * (1 - rim_w) + rim * rim_w
+    edge_w = smooth(10.2, 10.9, ru)[..., None]
+    col = col * (1 - edge_w) + np.array([14.0, 14.0, 17.0]) * edge_w
+    alpha = 1 - smooth(10.2, 12.2, ru)
+    out = np.dstack([np.clip(col, 0, 255), alpha * 255]).astype(np.uint8)
+    return Image.fromarray(out, 'RGBA')
+
+
 def letter(d, text, cx, cy, size, colour, bold=False):
     centred(d, text, cx * SS, cy * SS, font(size * SS, bold), colour)
 
 
 def disc_button(label, colour, size=24):
-    img = canvas(size, size)
+    img = round_plate(size)
     d = ImageDraw.Draw(img)
-    plate(d, (0, 0, size - 1, size - 1), size // 2, size, size)
     letter(d, label, size / 2, size / 2, size * 0.88, colour)
     return img
 
@@ -103,9 +133,8 @@ def pill(label, size=24, wide=None, h=None, colour=TEXT, fs=0.42):
 
 
 def small_disc(draw_symbol, size=24, colour=TEXT):
-    img = canvas(size, size)
+    img = round_plate(size)
     d = ImageDraw.Draw(img)
-    plate(d, (0, 0, size - 1, size - 1), size // 2, size, size)
     draw_symbol(d, size / 2 * SS, size / 2 * SS, size * SS, colour)
     return img
 
@@ -139,9 +168,8 @@ def sym_dpad(d, cx, cy, s, c):
 
 
 def stick(label, size=24):
-    img = canvas(size, size)
+    img = round_plate(size)
     d = ImageDraw.Draw(img)
-    plate(d, (0, 0, size - 1, size - 1), size // 2, size, size)
     c = size / 2 * SS
     r = size * 0.3 * SS
     d.ellipse([c - r, c - r, c + r, c + r], outline=TEXT, width=int(size * 0.07 * SS))
