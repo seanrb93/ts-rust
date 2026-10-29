@@ -2521,6 +2521,7 @@ dependencies = [
 name = "ts-port"
 version = "0.1.0"
 dependencies = [
+ "android-activity",
  "cpal",
  "embed-resource",
  "png",

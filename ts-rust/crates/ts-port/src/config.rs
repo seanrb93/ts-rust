@@ -353,7 +353,7 @@ impl Config {
 }
 
 fn ini_path() -> PathBuf {
-    std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("ts-rust.ini"))).unwrap_or_else(|| PathBuf::from("ts-rust.ini"))
+    crate::base_dir().join("ts-rust.ini")
 }
 
 pub static CONFIG: Mutex<Option<Config>> = Mutex::new(None);

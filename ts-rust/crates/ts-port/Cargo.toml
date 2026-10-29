@@ -3,6 +3,9 @@ name = "ts-port"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [[bin]]
 name = "ts-rust"
 path = "src/main.rs"
@@ -20,11 +23,36 @@ ts-render = { path = "../ts-render" }
 wgpu = "22"
 winit = "0.30"
 pollster = "0.3"
-sdl3 = { version = "0.20", default-features = false, features = ["build-from-source-static"] }
 cpal = "0.15"
 png = "0.17"
 ts-audio = { path = "../ts-audio" }
 ts-verify = { path = "../ts-verify", optional = true, features = ["shadow-hook"] }
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+sdl3 = { version = "0.20", default-features = false, features = ["build-from-source-static"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+winit = { version = "0.30", features = ["android-native-activity"] }
+android-activity = { version = "0.6", features = ["native-activity"] }
+
+[package.metadata.android]
+package = "org.tsrust.game"
+build_targets = ["aarch64-linux-android"]
+
+[package.metadata.android.signing.release]
+path = "$HOME/.android/debug.keystore"
+keystore_password = "android"
+
+[package.metadata.android.sdk]
+min_sdk_version = 26
+target_sdk_version = 33
+
+[package.metadata.android.application]
+label = "TimeSplitters (ts-rust)"
+
+[package.metadata.android.application.activity]
+orientation = "landscape"
+config_changes = "orientation|keyboardHidden|screenSize"
 
 [features]
 calltrace = ["ts-game/calltrace", "ts-rt/calltrace", "ts-sdk/calltrace"]

@@ -293,6 +293,8 @@ struct App {
     grabbed: bool,
     focused: bool,
     pads: Option<crate::gamepads::Pads>,
+    /// the fingers on a touch screen
+    touch: crate::touch::Touch,
     /// window state asked for last, and when
     applied: Option<WindowWant>,
     applied_at: Instant,
@@ -354,6 +356,10 @@ impl App {
         }
         // (both devices always work; the method is the one used last, and shows in the Controls page, where it can be set too)
         let mut pads = [Some(self.kbm.state(&self.keys)), None];
+        if self.touch.active() {
+            let t = self.touch.state();
+            pads[0] = Some(merge(pads[0].unwrap_or(PadState::idle(true)), t));
+        }
         if let Some(gp) = self.pads.as_mut() {
             let states = gp.poll();
             let styles = gp.styles();
@@ -496,6 +502,14 @@ impl ApplicationHandler for App {
                     self.update_pads();
                 }
             }
+            WindowEvent::Touch(t) => {
+                if let Some(w) = &self.window {
+                    let s = w.inner_size();
+                    self.touch.set_size(s.width as f64, s.height as f64);
+                }
+                self.touch.event(t.id, t.phase, t.location.x, t.location.y);
+                self.update_pads();
+            }
             WindowEvent::Resized(size) => {
                 // a window the player resized by dragging its edge is the new windowed size
                 if let Some(w) = &self.window {
@@ -592,9 +606,25 @@ fn pollster_adapter_caps(instance: &wgpu::Instance, surface: &wgpu::Surface) -> 
     surface.get_capabilities(&adapter)
 }
 
+/// The Android app handed over by `android_main`.
+#[cfg(target_os = "android")]
+static ANDROID_APP: Mutex<Option<android_activity::AndroidApp>> = Mutex::new(None);
+
+#[cfg(target_os = "android")]
+pub fn set_android_app(app: android_activity::AndroidApp) {
+    *ANDROID_APP.lock().unwrap() = Some(app);
+}
+
 /// Open the window and run the event loop on the calling (main) thread.  `start_game` is invoked once the window and
 /// swap chain exist.  Never returns.
 pub fn run(start_game: impl FnOnce() + Send + 'static) -> ! {
+    #[cfg(target_os = "android")]
+    let event_loop = {
+        use winit::platform::android::EventLoopBuilderExtAndroid;
+        let app = ANDROID_APP.lock().unwrap().take().expect("no Android app");
+        EventLoop::builder().with_android_app(app).build().expect("cannot create event loop")
+    };
+    #[cfg(not(target_os = "android"))]
     let event_loop = EventLoop::new().expect("cannot create event loop");
     let pads = match crate::gamepads::Pads::new() {
         Ok(p) => Some(p),
@@ -603,7 +633,7 @@ pub fn run(start_game: impl FnOnce() + Send + 'static) -> ! {
             None
         }
     };
-    let mut app = App { window: None, start_game: Some(Box::new(start_game)), keys: HashSet::new(), kbm: KbMouse::new(), grabbed: false, focused: true, pads, applied: None, applied_at: Instant::now() };
+    let mut app = App { window: None, start_game: Some(Box::new(start_game)), keys: HashSet::new(), kbm: KbMouse::new(), grabbed: false, focused: true, pads, touch: Default::default(), applied: None, applied_at: Instant::now() };
     event_loop.run_app(&mut app).expect("event loop failed");
     std::process::exit(0);
 }
