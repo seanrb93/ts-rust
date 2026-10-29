@@ -18,10 +18,10 @@ from PIL import Image, ImageDraw, ImageFont
 SS = 8  # the drawing is made this many times larger and reduced
 
 # the colours of the game's buttons, read from its own pictures (the rim's light, the body, the outline)
-OUTLINE = (6, 7, 10)
-BODY = (40, 45, 52)
+OUTLINE = (16, 18, 24)
+BODY = (47, 53, 61)
 BODY_DARK = (35, 39, 46)
-RIM_LIGHT = (112, 122, 136)
+RIM_LIGHT = (150, 160, 176)
 RIM_MID = (62, 68, 78)
 TEXT = (176, 182, 190)
 
@@ -29,8 +29,8 @@ GREEN, RED, BLUE, YELLOW = (130, 214, 120), (240, 104, 104), (128, 184, 246), (2
 CREAM = (226, 228, 234)
 
 
-def font(size):
-    for name in ('segoeuisb.ttf', 'segoeui.ttf', 'arial.ttf', 'DejaVuSans.ttf'):
+def font(size, bold=False):
+    for name in (('segoeuib.ttf', 'arialbd.ttf', 'DejaVuSans-Bold.ttf') if bold else ('segoeuisb.ttf', 'segoeui.ttf', 'arial.ttf', 'DejaVuSans.ttf')):
         for folder in (os.path.join(os.environ.get('WINDIR', 'C:/Windows'), 'Fonts'), '/usr/share/fonts/truetype/dejavu'):
             path = os.path.join(folder, name)
             if os.path.isfile(path):
@@ -60,6 +60,11 @@ def plate(d, box, radius, w, h):
     # (a little darker towards the bottom)
     d.rounded_rectangle([x0 + j, y0 + (y1 - y0) // 2, x1 - j, y1 - j], radius=max(radius - 2, 1) * SS, fill=BODY_DARK)
     d.rounded_rectangle([x0 + j, y0 + j, x1 - j, y0 + (y1 - y0) // 2 + 2 * SS], radius=max(radius - 2, 1) * SS, fill=BODY)
+    if x1 - x0 == y1 - y0:
+        # (the rim of a round button is lit along its top and falls into shadow at the bottom)
+        k = SS
+        d.arc([x0 + k, y0 + k, x1 - k, y1 - k], start=180, end=360, fill=RIM_LIGHT, width=int(1.6 * SS))
+        d.arc([x0 + k, y0 + k, x1 - k, y1 - k], start=0, end=180, fill=(48, 54, 62), width=int(1.6 * SS))
 
 
 def centred(d, text, cx, cy, f, colour):
@@ -72,15 +77,15 @@ def centred(d, text, cx, cy, f, colour):
     d.text((x, y), text, font=f, fill=colour, anchor='la')
 
 
-def letter(d, text, cx, cy, size, colour):
-    centred(d, text, cx * SS, cy * SS, font(size * SS), colour)
+def letter(d, text, cx, cy, size, colour, bold=False):
+    centred(d, text, cx * SS, cy * SS, font(size * SS, bold), colour)
 
 
 def disc_button(label, colour, size=24):
     img = canvas(size, size)
     d = ImageDraw.Draw(img)
     plate(d, (0, 0, size - 1, size - 1), size // 2, size, size)
-    letter(d, label, size / 2, size / 2, size * 0.66, colour)
+    letter(d, label, size / 2, size / 2, size * 0.62, colour)
     return img
 
 
