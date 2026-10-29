@@ -59,6 +59,16 @@ fn android_main(app: android_activity::AndroidApp) {
 /// the bars for a moment.  Called when the app starts, comes back and gets the focus.
 #[cfg(target_os = "android")]
 pub fn immersive() {
+    // (on a thread of its own, a moment later: the calls into the Java side wait for the activity's own thread, which at the start of the app
+    // is waiting for this one, so made in place they stopped the game from starting)
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        hide_bars();
+    });
+}
+
+#[cfg(target_os = "android")]
+fn hide_bars() {
     use jni::objects::JObject;
     let Some(app) = crate::window::ACTIVITY.lock().unwrap().clone() else { return };
     // (the window flag of a full screen can be set from any thread)
