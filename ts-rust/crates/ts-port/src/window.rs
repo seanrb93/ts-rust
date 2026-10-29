@@ -151,12 +151,17 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
     ts_sdk::set_view(cfg.aspect.unwrap_or(size.width as f32 / size.height as f32), cfg.fov);
     #[cfg(not(feature = "extensions"))]
     ts_sdk::set_view(4.0 / 3.0, cfg.fov);
-    if p.presents % 120 == 0 {
+    // (asking Windows about the monitor and listing its video modes takes several milliseconds: a hitch in the frame rate when it
+    // is done every second, so it is done at the start and then rarely)
+    let ask = p.presents == 0 || p.presents % 1800 == 0;
+    if ask {
+        let t = Instant::now();
         p.monitor_hz = p.window.current_monitor().and_then(|m| m.refresh_rate_millihertz()).map(|m| m as f32 / 1000.0);
-    }
-    if p.presents % 120 == 1 {
         if let Some(m) = p.window.current_monitor() {
             read_monitor(&m);
+        }
+        if std::env::var_os("TS_PERFLOG").is_some() {
+            eprintln!("[window] monitor query {:.1} ms", t.elapsed().as_secs_f64() * 1e3);
         }
     }
     p.presents = p.presents.wrapping_add(1);
