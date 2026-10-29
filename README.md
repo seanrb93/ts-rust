@@ -14,12 +14,12 @@ Then:
 
 ```
 python tools/build-game.py                      # builds in build/cargo/ and puts ts-rust.exe in the play folder, ts-rust/target/release/
-                                                #   (--original: the build that behaves as the original game; --kit: also modkit.exe)
+                                                #   (--original: the build that behaves as the original game; --kit: also modkit.exe, in the root of the repository)
 ts-rust/target/release/ts-rust.exe              # the front end, in a window
 ts-rust/target/release/ts-rust.exe --level Village   # straight into a level
 ```
 
-The play folder holds only `ts-rust.exe`, `modkit.exe` if you want it, the game's `PAK/` and `MUSIC/` (put them there), and what the game makes (`ts-rust.ini`, `saves/`, `mods/`).
+The play folder holds only `ts-rust.exe`, the game's `PAK/` and `MUSIC/` (put them there), and what the game makes (`ts-rust.ini`, `saves/`, `mods/`).
 Cargo itself builds in `build/cargo/` (`ts-rust/.cargo/config.toml`), so `cargo build` and `cargo clean` never touch the play folder.
 
 Options: `--level NAME`, `--players N`, `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[:frames]`,

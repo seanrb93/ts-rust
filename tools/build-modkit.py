@@ -1,6 +1,6 @@
 """Build `modkit.exe`: one program with all the mod making tools, which needs no Python on the machine it runs on.
 
-    python tools/build-modkit.py            makes dist/modkit.exe
+    python tools/build-modkit.py            makes modkit.exe in the root of the repository (not in the play folder)
 
 Needs `pip install pyinstaller numpy pillow imageio-ffmpeg` once.  Put modkit.exe in the game's folder (next to ts-rust.exe), or anywhere: it asks where the game is the first time.
 """
@@ -14,7 +14,7 @@ TOOLS = os.path.join(ROOT, 'tools')
 
 def main():
     cmd = [sys.executable, '-m', 'PyInstaller', '--onefile', '--console', '--noconfirm', '--clean', '--name', 'modkit',
-           '--distpath', os.path.join(ROOT, 'dist'), '--workpath', os.path.join(ROOT, 'build', 'modkit'), '--specpath', os.path.join(ROOT, 'build'),
+           '--distpath', ROOT, '--workpath', os.path.join(ROOT, 'build', 'modkit'), '--specpath', os.path.join(ROOT, 'build'),
            '--paths', TOOLS, '--collect-submodules', 'lvimport', '--collect-submodules', 'modkit', '--collect-all', 'imageio_ffmpeg',
            '--hidden-import', 'tkinter', '--add-data', os.path.join(ROOT, 'ts-rust', 'crates', 'ts-rt', 'data', 'game-data.bin') + os.pathsep + '.', os.path.join(TOOLS, 'modkit-entry.py')]
     print(' '.join(cmd))

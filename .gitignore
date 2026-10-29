@@ -35,3 +35,7 @@ modkit.json
 dist/
 build/
 modkit-error.txt
+
+# the mod kit program (built by tools/build-modkit.py into the root)
+/modkit.exe
+/modkit
