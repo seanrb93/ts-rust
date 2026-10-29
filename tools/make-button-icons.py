@@ -118,7 +118,7 @@ def letter(d, text, cx, cy, size, colour, bold=False):
 def disc_button(label, colour, size=24):
     img = round_plate(size)
     d = ImageDraw.Draw(img)
-    letter(d, label, size / 2, size / 2, size * 0.88, colour)
+    letter(d, label, size / 2, size / 2, size * 0.78, colour)
     return img
 
 
@@ -230,7 +230,7 @@ def keycap_sq(label, size=24):
     plate(d, (m, m, size - 1 - m, size - 1 - m), 3, size, size)
     c = size / 2 * SS
     u = size * SS * 0.84
-    w = int(size * SS * 0.05)
+    w = int(size * SS * 0.07)
     key = label.lower()
     if key == 'enter':
         # the return arrow: down, then left with a head
@@ -251,7 +251,7 @@ def keycap_sq(label, size=24):
     else:
         text = {'ctrl': 'Ctl'}.get(key, label)
         fs = size * 0.84 * (0.66 if len(text) <= 2 else 0.4 if len(text) == 3 else 0.3)
-        centred(d, text, c, c, font(int(fs * SS)), TEXT)
+        centred(d, text, c, c, font(int(fs * SS), bold=True), TEXT)
     return img
 
 
