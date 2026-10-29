@@ -52,7 +52,8 @@ def port_exe(folder):
 
 def _candidates():
     base = app_dir()
-    out = [base, os.path.dirname(base), os.getcwd(), os.path.join(base, 'ts-rust', 'target', 'release'), os.path.join(base, 'game')]
+    root = os.path.dirname(base) if os.path.basename(base).lower() == 'tools' else base
+    out = [base, os.path.dirname(base), os.getcwd(), os.path.join(base, 'ts-rust', 'target', 'release'), os.path.join(root, 'ts-rust', 'target', 'release'), os.path.join(base, 'game')]
     seen = []
     for c in out:
         c = os.path.normpath(c)
