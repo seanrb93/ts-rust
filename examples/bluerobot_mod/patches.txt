@@ -1,4 +1,0 @@
-# Puts BlueRobot (character 79, unused in the game) on the arcade character select page, to look at him.
-# The select order has 64 places, all used: he takes the last one (the Past TimeSplitter), and is made playable.
-characterorder+63 b 79
-unlock_playable_chrs+1264 w 1

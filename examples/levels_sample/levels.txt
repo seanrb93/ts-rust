@@ -1,3 +1,0 @@
-# number  "name"  like <game level>  [tune <track 1..27>]  [modes dm,bagtag,ctb,escort,ko,ls]
-level 31 "Tomb Remix" like 23 tune 7 modes dm,bagtag,ctb
-level 32 "Docks Night" like 24
