@@ -34,7 +34,7 @@ pub fn hudAmmoGfx(ammo: i32, _unused: i32, x: i32) {
         } else {
             // (and the left hand's starts at the left edge: its leftmost part is the clip's number when the gun has a clip, else the picture of the ammo)
             // (the pictures of the ammo have clear columns at their left: the rocket's picture starts 9 pixels in)
-            const INK: [i32; 10] = [0, 12, 12, 0, 7, 9, 4, 4, 4, 4];
+            const INK: [i32; 15] = [0, 12, 12, 0, 7, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4];
             let mut leftmost = x - 16 + INK.get(kind as usize).copied().unwrap_or(0);
             if lw(gun + 20) > 0 {
                 let clip = vafmt(&[0x3afba8, lw(ammo + (kind << 2) + 4) as i64]);
