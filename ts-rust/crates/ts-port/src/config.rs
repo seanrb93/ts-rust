@@ -57,14 +57,8 @@ pub struct Config {
     pub stick_sensitivity: f32,
     /// turning with the mouse: 1 = 0.12 degrees for a count of the mouse (at the game's normal field of view)
     pub mouse_sensitivity: f32,
-    /// everything the game keeps locked is open
-    pub unlock_all: bool,
     /// F2 opens the developer menu in a level
     pub debug_menu: bool,
-    /// the dual versions of the weapons (and the two fists) are on
-    pub dual_all: bool,
-    /// bots without a weapon chase and punch
-    pub bot_punch: bool,
     /// the frame rate and timing figures are drawn over the picture
     pub show_fps: bool,
     /// turning speed of the right stick as a factor
@@ -102,10 +96,7 @@ impl Default for Config {
             stick_deadzone: 0.0,
             stick_sensitivity: 1.33,
             mouse_sensitivity: 1.0,
-            unlock_all: false,
             debug_menu: false,
-            dual_all: true,
-            bot_punch: true,
             show_fps: false,
             look_sensitivity: 1.0,
             mapmaker_unlimited: false,
@@ -156,17 +147,8 @@ stick_sensitivity = 1.33
 # mouse look: 1 = 0.12 degrees for a count of the mouse (a zoomed view turns less); the mouse also follows look_sensitivity below
 mouse_sensitivity = 1
 
-# everything the game keeps locked (levels, characters, bot sets, challenges, cheats) is open; also a row of the Audio / Video Options page
-unlock_all = false
-
 # the developer menu (F2 in a level: camera views, invincible, invisible, noclip); also a row of the Game Options page
 debug_menu = false
-
-# the dual (x2) versions of the weapons in the weapon sets, and the left fist when unarmed; also a row of the Game Options page
-dual_wield_all = true
-
-# bots that have no weapon (Always start with gun: No, and none to pick up) go after their target and punch it, instead of standing still; also a row of the Game Options page
-bots_punch = true
 
 # the frame rate drawn in a corner of the picture; also a row of the Game Options page
 show_fps = false
@@ -266,9 +248,8 @@ impl Config {
             "aspect" => self.aspect = parse_aspect(value).ok_or_else(bad)?,
             "stick_deadzone" => self.stick_deadzone = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.0, 0.95),
             "debug_menu" => self.debug_menu = parse_bool(value).ok_or_else(bad)?,
-            "unlock_all" => self.unlock_all = parse_bool(value).ok_or_else(bad)?,
-            "dual_wield_all" => self.dual_all = parse_bool(value).ok_or_else(bad)?,
-            "bots_punch" => self.bot_punch = parse_bool(value).ok_or_else(bad)?,
+            // (retired: these are mods now, `mod.ini` of a mod says `unlock_all`, `dual_wield_all` or `bots_punch` = true; an old settings file may still have them)
+            "unlock_all" | "dual_wield_all" | "bots_punch" => {}
             "show_fps" => self.show_fps = parse_bool(value).ok_or_else(bad)?,
             "mapmaker_unlimited" => self.mapmaker_unlimited = parse_bool(value).ok_or_else(bad)?,
             "look_sensitivity" => self.look_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.1, 5.0),
@@ -394,16 +375,24 @@ pub fn load(overrides: &[(String, String)]) {
             std::fs::write(&path, TEMPLATE).ok();
         }
     }
+    // (the three features of the mods are off unless a mod turns them on; `--set` names them for a test run)
+    ts_sdk::set_unlock_all(false);
+    ts_sdk::set_dual_all(false);
+    ts_sdk::set_bots_punch(false);
     for (k, v) in overrides {
+        let on = parse_bool(v).unwrap_or(false);
+        match k.as_str() {
+            "unlock_all" => ts_sdk::set_unlock_all(on),
+            "dual_wield_all" => ts_sdk::set_dual_all(on),
+            "bots_punch" => ts_sdk::set_bots_punch(on),
+            _ => {}
+        }
         if let Err(e) = c.set(k, v) {
             eprintln!("[config] {e}");
         }
     }
     ts_sdk::set_view(c.aspect.unwrap_or(4.0 / 3.0), c.fov);
     ts_sdk::set_logic_hz(c.logic_hz(None));
-    ts_sdk::set_unlock_all(c.unlock_all);
-    ts_sdk::set_dual_all(c.dual_all);
-    ts_sdk::set_bots_punch(c.bot_punch);
     ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
     ts_game::set_mm_unlimited(c.mapmaker_unlimited);
     apply_sound_mix(&c);
@@ -419,9 +408,6 @@ pub fn get() -> Config {
 pub fn update(f: impl FnOnce(&mut Config)) {
     if let Some(c) = CONFIG.lock().unwrap().as_mut() {
         f(c);
-        ts_sdk::set_unlock_all(c.unlock_all);
-        ts_sdk::set_dual_all(c.dual_all);
-        ts_sdk::set_bots_punch(c.bot_punch);
         ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
         apply_sound_mix(c);
         apply_keys(c);
@@ -504,7 +490,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 44] = [
+        let vals: [(&str, String); 41] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -523,10 +509,7 @@ impl Config {
             ("stick_deadzone", format!("{}", self.stick_deadzone)),
             ("stick_sensitivity", format!("{}", self.stick_sensitivity)),
             ("mouse_sensitivity", format!("{}", self.mouse_sensitivity)),
-            ("unlock_all", self.unlock_all.to_string()),
             ("debug_menu", self.debug_menu.to_string()),
-            ("dual_wield_all", self.dual_all.to_string()),
-            ("bots_punch", self.bot_punch.to_string()),
             ("show_fps", self.show_fps.to_string()),
             ("look_sensitivity", format!("{}", self.look_sensitivity)),
             ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),

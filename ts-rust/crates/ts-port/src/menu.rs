@@ -151,10 +151,7 @@ impl ts_game::AvOptions for PortAv {
         let c = config::get();
         let onoff = || vec!["Off".to_string(), "On".to_string()];
         vec![
-            ts_game::AvRow { label: "Unlock Everything".into(), values: onoff(), index: c.unlock_all as usize },
             ts_game::AvRow { label: "Debug Menu".into(), values: onoff(), index: c.debug_menu as usize },
-            ts_game::AvRow { label: "Dual Wield Everything".into(), values: onoff(), index: c.dual_all as usize },
-            ts_game::AvRow { label: "Bots Punch".into(), values: onoff(), index: c.bot_punch as usize },
             ts_game::AvRow { label: "FPS Counter".into(), values: onoff(), index: c.show_fps as usize },
         ]
     }
@@ -240,11 +237,8 @@ impl ts_game::AvOptions for PortAv {
     fn set_game(&self, row: usize, index: usize) {
         config::update(|c| {
             match row {
-                0 => c.unlock_all = index != 0,
-                1 => c.debug_menu = index != 0,
-                2 => c.dual_all = index != 0,
-                3 => c.bot_punch = index != 0,
-                4 => c.show_fps = index != 0,
+                0 => c.debug_menu = index != 0,
+                1 => c.show_fps = index != 0,
                 _ => {}
             }
         });

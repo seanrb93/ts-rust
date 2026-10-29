@@ -367,11 +367,38 @@ fn stamp(files: &BTreeMap<String, PathBuf>) -> String {
     s
 }
 
+/// A mod's `mod.ini` can turn on three features of the port, each with a line `name = true`:
+///   `unlock_all`      everything the game keeps locked (levels, characters, bot sets, challenges, cheats) is open
+///   `dual_wield_all`  the dual (x2) versions of the weapons in the weapon sets, and the left fist when unarmed
+///   `bots_punch`      bots that have no weapon go after their target and punch it, instead of standing still
+/// (any mod that is switched on and has the line turns it on).
+fn apply_features(mods: &[Mod]) {
+    for m in mods {
+        let ini = std::fs::read_to_string(m.dir.join("mod.ini")).unwrap_or_default();
+        for line in ini.lines() {
+            let line = line.split('#').next().unwrap_or("");
+            let Some((k, v)) = line.split_once('=') else { continue };
+            let on = matches!(v.trim().to_ascii_lowercase().as_str(), "true" | "1" | "yes" | "on");
+            if !on {
+                continue;
+            }
+            match k.trim().to_ascii_lowercase().as_str() {
+                "unlock_all" => ts_sdk::set_unlock_all(true),
+                "dual_wield_all" => ts_sdk::set_dual_all(true),
+                "bots_punch" => ts_sdk::set_bots_punch(true),
+                _ => continue,
+            }
+            eprintln!("[mods] {}: {}", m.name, k.trim());
+        }
+    }
+}
+
 /// Load the mods: set up the file overlay of the virtual disc and apply the memory patches.
 pub fn load(game_dir: &Path) {
     let root = game_dir.join("mods");
     *MODS_DIR.lock().unwrap() = Some(root.clone());
     let mods = mods_in(&root);
+    apply_features(&mods);
     *LOADED.lock().unwrap() = mods.iter().map(|m| m.name.clone()).collect();
     if mods.is_empty() {
         return;

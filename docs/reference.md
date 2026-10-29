@@ -220,7 +220,7 @@ test) is skipped for the player's own move.  Everything the menu changes is rese
 
 The game type page (and the SETUP page of the pause menu) lead to separate pages: **Controls** (configuration, inverse look, aim mode, crouch
 mode, auto lookahead, auto aim, weapon change, vibration, vibration mode: the game's Setup Controls and Preferences pages in one),
-**Audio Options**, **Video Options** (the port's graphics settings) and, in the front end only, **Game Options** (Unlock Everything, Debug Menu, Dual Wield Everything, Bots Punch, FPS Counter,
+**Audio Options**, **Video Options** (the port's graphics settings) and, in the front end only, **Game Options** (Debug Menu, FPS Counter,
 View Statistics, and View Credits once the game has been completed).  All of them work the same way: X starts editing the row under the cursor
 (its arrows appear), left / right change the value, X or triangle ends it; left / right otherwise move between the columns or the pages.
 Choosing X on the Custom configuration of the Controls page (after editing it) opens the page where each button is chosen.  `avmenu.rs` builds the tables.
@@ -257,7 +257,7 @@ The weapon page of the custom weapon sets lists a dual version ("Uzi (x2)") afte
 room for 33 only: what a character owns (`chr + 488`, right before the ammo) is kept for the added ones in a table of the port (`own_get`, `own_set`,
 `own_clear`, patched into `gunShouldSwitchTo`, `gunPickedUpAmmo`, `pickupPropTick`, `playerSetStartGun`, `chrClearGuns`), the statistics count a
 dual version with its single weapon (`stats_combo`), the cycling (`getnextcombo`, `getprevcombo`, `getmostpowerfulcombo`) and the range checks of
-`pickupPropTick`, `propDrop` and `playerSetStartGun` use `combo_count()`.  With the **Dual Wield Everything** option off the added versions are not
+`pickupPropTick`, `propDrop` and `playerSetStartGun` use `combo_count()`.  Without the Dual Wield Everything mod (see "Features that mods turn on") the added versions are not
 listed and an entry of a set that is one is the single weapon.  Test aids: `TS_COMBOLOG` (the table, the weapon and what player 1 owns, and every
 pickup of an added version), `TS_GIVE=<frame>:<combo>` (with `TS_EQUIP=1` the weapon is taken into the hands too).  Left hands: `gunUpdate` only let a hand take its turn when the weapon had a clip, so rockets,
 the blunderbuss, mines, TNT and the brick fired from the right hand only; the turn is now taken from the hands' timers for those weapons too (patch),
@@ -274,7 +274,7 @@ between (x -> 640 - x).  The hit test of the game is unchanged (the left swipe h
 
 ## Dual wield toggle
 
-The **Dual Wield Everything** row of Game Options (`dual_wield_all` in `ts-rust.ini`, on by default) switches the added "(x2)" weapons and the left
+The **Dual Wield Everything** mod (`examples/dual_wield_everything_mod`: its `mod.ini` says `dual_wield_all = true`) switches the added "(x2)" weapons and the left
 fist on and off together.  Off, the weapon page lists only the game's own weapons, dual entries already in a set act as the single weapon, and
 unarmed punches are all right-handed.  The left fist's hit test (`punch_mirror_points`) mirrors the two points of the swipe across the plane through
 the player along his view direction.
@@ -373,7 +373,7 @@ texture.
 
 ## Unlock Everything
 
-The **Unlock Everything** row of the **Game Options** page (an item of the game type page; `unlock_all` in `ts-rust.ini`, or `--set unlock_all=true` for one
+The **Unlock Everything** mod (`examples/unlock_everything_mod`: its `mod.ini` says `unlock_all = true`; `--set unlock_all=true` does it for one
 run) opens everything the game keeps locked: the levels of the story and arcade modes, the characters, bot sets, the challenge mode and the
 unlockable cheats (the Cheats Menu button on the level select page).  Every unlock in the game is a test on the profile's statistics
 (`unlockedEx`); the game has a switch that makes all of those tests pass (what one of its cheat codes sets), and the option keeps it on.  The
@@ -435,3 +435,15 @@ with an Xbox or Switch controller the buttons of that controller are drawn in th
 player gave the button (`key_*` in `ts-rust.ini`; a long name such as Enter or Space is a symbol).  The pictures are drawn by `tools/make-button-icons.py` (`assets/button-icons/` has all of them, the port carries the 96 pixel ones in
 `crates/ts-port/assets/icons/`) and shown by the renderer in place of the texture while that device is the one in use (`ts_gfx::hd::register_variant`, `crates/ts-port/src/icons.rs`); the device follows the last one used.
 The MapMaker's L1 and L2 pills (`mm_cursor13` and `14`) are replaced the same way (LB and LT, L and ZL, or the caps of the keys bound to them), and with the keyboard its help lines say WASD and Mouse for the sticks and drop the word button.  `TS_BUTTONS=xbox|switch|keyboard` chooses one for a headless run.  A picture that replaces one of the game's non-power-of-two textures has to sit in the top left of the next power of two (the 24 x 24 buttons are 32 x 32 in texture memory).
+
+## Features that mods turn on
+
+Three features of the port are switched on by a mod, with a line in its `mod.ini` (they were rows of the Game Options page):
+
+| Line in `mod.ini` | What it does | Example |
+|---|---|---|
+| `unlock_all = true` | everything the game keeps locked (levels, characters, bot sets, challenges, cheats) is open | `examples/unlock_everything_mod` |
+| `dual_wield_all = true` | the dual (x2) versions of the weapons in the weapon sets, and the left fist when unarmed | `examples/dual_wield_everything_mod` |
+| `bots_punch = true` | bots that have no weapon go after their target and punch it, instead of standing still | `examples/bots_punch_mod` |
+
+Any mod that is switched on and has the line turns the feature on; with none, they are off.  They take effect when the program starts, like the rest of a mod.  `--set unlock_all=true` (and the other two) does the same for one test run.  A `ts-rust.ini` that still has the old settings is read without them and loses them the next time it is saved.
