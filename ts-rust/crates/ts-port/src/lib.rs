@@ -77,6 +77,12 @@ pub(crate) fn base_dir() -> PathBuf {
 /// Tell the player what is wrong and stop (the program has no console window to show it in).
 fn fatal(msg: &str) -> ! {
     eprintln!("[port] {msg}");
+    {
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(base_dir().join("ts-rust-crash.log")) {
+            let _ = writeln!(f, "[stopped] {msg}");
+        }
+    }
     #[cfg(windows)]
     if WINDOWED.load(std::sync::atomic::Ordering::Relaxed) {
         #[link(name = "user32")]
