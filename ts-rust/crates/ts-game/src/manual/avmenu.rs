@@ -232,10 +232,10 @@ fn item_shown(id: i32) -> bool {
 }
 
 /// front end: the page covers the screen
-const FRONT_VIDEO: Layout = Layout { pitch: 15, columns: &[(-49, 174, 303), (280, 500, 605)], header: (0x40, 0x20), rows: &[(0, 0, 0), (5, 1, 0)], hint_slot: 0, hint_dy: 7, dy: 24, paged: false };
+const FRONT_VIDEO: Layout = Layout { pitch: 15, columns: &[(-49, 174, 303), (300, 500, 605)], header: (0x40, 0x20), rows: &[(0, 0, 0), (5, 1, 0)], hint_slot: 0, hint_dy: 7, dy: 24, paged: false };
 const FRONT_ONE: Layout = Layout { pitch: 15, columns: &[(-19, 300, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: false };
 /// pause menu: the page is drawn over the running game
-const PAUSE_VIDEO: Layout = Layout { pitch: 13, columns: &[(-49, 174, 303), (280, 500, 605)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 1, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: false };
+const PAUSE_VIDEO: Layout = Layout { pitch: 13, columns: &[(-49, 174, 303), (300, 500, 605)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 1, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: false };
 const PAUSE_ONE: Layout = Layout { pitch: 13, columns: &[(-19, 300, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: false };
 /// pause menu of a split screen: the game draws the items' places at half the size (the text as large as ever; the values stay
 /// where the page says) and every picture is at most half as high, so there is room for five lines of a readable height.  The rows
