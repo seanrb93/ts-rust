@@ -3,6 +3,11 @@
 fn main() {
     println!("cargo:rerun-if-changed=assets/ts-rust.ico");
     println!("cargo:rerun-if-changed=assets/ts-rust.rc");
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("android") {
+        // the audio library (oboe) is C++: its runtime is linked into the library (nothing to load from the phone but libc)
+        println!("cargo:rustc-link-lib=static=c++_static");
+        println!("cargo:rustc-link-lib=static=c++abi");
+    }
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
         embed_resource::compile("assets/ts-rust.rc", embed_resource::NONE);
     }
