@@ -18,7 +18,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pkg-config libasound2-dev libpulse-dev libudev-dev libdbus-1-dev \
-            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libxkbcommon-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxtst-dev libxss-dev libxkbcommon-dev \
             libwayland-dev libdecor-0-dev libdrm-dev libgbm-dev libegl-dev libgl-dev
       - name: Build
         run: python3 tools/build-game.py
