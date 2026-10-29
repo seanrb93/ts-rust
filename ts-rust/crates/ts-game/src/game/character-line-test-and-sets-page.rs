@@ -423,6 +423,10 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
     if target == 0 {
         return;
     }
+    #[cfg(feature = "extensions")]
+    if std::env::var_os("TS_FIRELOG").is_some() {
+        eprintln!("[botfire] frame {} chr {} gun {} second {} timer {}", ts_sdk::frame_count(), lw(mind), lw(a1), a2, lw(a1 + 68));
+    }
     let frames = running_x();
     if lw(a0 + 12) == 0 {
         return;
