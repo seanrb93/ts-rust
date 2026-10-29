@@ -24,6 +24,17 @@ pub fn hudAmmoGfx(ammo: i32, _unused: i32, x: i32) {
     }
     sw(sp + 24, font);
     let mut kind = lw(gun + 16);
+    #[cfg(feature = "extensions")]
+    let x = {
+        // (the right hand's counter ends at the edge of the screen whatever its width; the original left it where its digits ended)
+        let right = lw(window + 4);
+        if x > (lw(window) + right) / 2 {
+            let digits = vafmt(&[0x3afba8, lw(record + (kind << 2) + 620) as i64, x as i64, 0]);
+            right - 4 - 16 - textWidth(digits)
+        } else {
+            x
+        }
+    };
     let texture = lw((kind << 2) + 0x1feaf40);
     let buffers = lw(g::thistexbuf);
     if texture >= 0 {
