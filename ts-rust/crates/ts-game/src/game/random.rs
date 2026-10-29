@@ -20,6 +20,9 @@ pub fn newrnd() -> i64 {
 
 /// Set the seed and restart the count (@ 0x2b68f8).
 pub fn newrndseed(seed: i32) {
+    // (a test aid of the extensions build: TS_SEED=<number> makes every seed that of the game's own, so that two runs choose the same spawn points and the like)
+    #[cfg(feature = "extensions")]
+    let seed = std::env::var("TS_SEED").ok().and_then(|v| v.trim().parse::<i32>().ok()).unwrap_or(seed);
     sw(g::rndcount, 0);
     sd(g::newrndseedval, seed as u32 as i64 + 1);
 }
