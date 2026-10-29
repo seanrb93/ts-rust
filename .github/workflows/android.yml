@@ -1,8 +1,8 @@
 name: Android build
 
 # Builds the game as an Android app (arm64), a proof of concept: touch controls, no controller support yet.  Run it from the Actions tab.
-# Artifact `ts-rust-android`: install the .apk, then copy the game's PAK/ and MUSIC/ folders into
-# Android/data/org.tsrust.game/files/ on the device (from a computer) and start the app.
+# Artifact `ts-rust-android`: install the .apk, give the app "All files access" (Settings > Apps > TimeSplitters), start it once (it makes
+# a folder TimeSplitters in the device's storage), copy the game's PAK/ and MUSIC/ (and mods/) into that folder and start the app again.
 on:
   workflow_dispatch:
   push:
@@ -37,4 +37,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ts-rust-android
-          path: build/cargo/release/apk/*.apk
+          path: build/cargo/release/apk/ts-port.apk

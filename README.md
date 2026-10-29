@@ -61,3 +61,8 @@ GitHub Actions builds the game (`.github/workflows/linux.yml` and `windows.yml`;
 `docs/reference.md` (options, extensions, mods, tools), `docs/modding-guide.md`, `docs/decompilation.md` (decompiling and verifying), `docs/damage.md`, `docs/game-modes.md`, `docs/level-converter.md`, `docs/level-formats.md`, `docs/model-format.md`, `docs/mod-roadmap.md`.
 
 Known gaps: the console's reverb is not implemented (the game never uses it); fisheye and a few screen effects are approximate; multiplayer and the second memory card are lightly tested.
+
+## Android (proof of concept)
+
+The `android` branch builds an arm64 app (`.github/workflows/android.yml`, artifact `ts-rust-android`): touch controls, no controller support yet. Install the apk, give the app "All files access" (Settings > Apps),
+start it once so it makes a `TimeSplitters` folder in the device's storage, copy the game's `PAK/` and `MUSIC/` (and `mods/`) into it, and start the app again. Tried on a Pixel 10 Pro and an AYN Thor.
