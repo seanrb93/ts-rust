@@ -18,10 +18,10 @@ from PIL import Image, ImageDraw, ImageFont
 SS = 8  # the drawing is made this many times larger and reduced
 
 # the colours of the game's buttons, read from its own pictures (the rim's light, the body, the outline)
-OUTLINE = (16, 18, 24)
-BODY = (47, 53, 61)
-BODY_DARK = (35, 39, 46)
-RIM_LIGHT = (150, 160, 176)
+OUTLINE = (8, 9, 13)
+BODY = (45, 50, 58)
+BODY_DARK = (38, 42, 50)
+RIM_LIGHT = (110, 120, 134)
 RIM_MID = (62, 68, 78)
 TEXT = (176, 182, 190)
 
@@ -61,10 +61,9 @@ def plate(d, box, radius, w, h):
     d.rounded_rectangle([x0 + j, y0 + (y1 - y0) // 2, x1 - j, y1 - j], radius=max(radius - 2, 1) * SS, fill=BODY_DARK)
     d.rounded_rectangle([x0 + j, y0 + j, x1 - j, y0 + (y1 - y0) // 2 + 2 * SS], radius=max(radius - 2, 1) * SS, fill=BODY)
     if x1 - x0 == y1 - y0:
-        # (the rim of a round button is lit along its top and falls into shadow at the bottom)
-        k = SS
-        d.arc([x0 + k, y0 + k, x1 - k, y1 - k], start=180, end=360, fill=RIM_LIGHT, width=int(1.6 * SS))
-        d.arc([x0 + k, y0 + k, x1 - k, y1 - k], start=0, end=180, fill=(48, 54, 62), width=int(1.6 * SS))
+        # (the game's round buttons have a thin light arc along the top of the rim and nothing else)
+        k = int(1.2 * SS)
+        d.arc([x0 + k, y0 + k, x1 - k, y1 - k], start=212, end=328, fill=RIM_LIGHT, width=int(1.1 * SS))
 
 
 def centred(d, text, cx, cy, f, colour):
@@ -85,7 +84,7 @@ def disc_button(label, colour, size=24):
     img = canvas(size, size)
     d = ImageDraw.Draw(img)
     plate(d, (0, 0, size - 1, size - 1), size // 2, size, size)
-    letter(d, label, size / 2, size / 2, size * 0.62, colour)
+    letter(d, label, size / 2, size / 2, size * 0.88, colour)
     return img
 
 
