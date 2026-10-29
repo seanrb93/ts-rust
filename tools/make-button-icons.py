@@ -60,10 +60,14 @@ def plate(d, box, radius, w, h):
     # (a little darker towards the bottom)
     d.rounded_rectangle([x0 + j, y0 + (y1 - y0) // 2, x1 - j, y1 - j], radius=max(radius - 2, 1) * SS, fill=BODY_DARK)
     d.rounded_rectangle([x0 + j, y0 + j, x1 - j, y0 + (y1 - y0) // 2 + 2 * SS], radius=max(radius - 2, 1) * SS, fill=BODY)
-    if x1 - x0 == y1 - y0:
+    if x1 - x0 == y1 - y0 and radius * SS * 2 >= x1 - x0:
         # (the game's round buttons have a thin light arc along the top of the rim and nothing else)
         k = int(1.2 * SS)
         d.arc([x0 + k, y0 + k, x1 - k, y1 - k], start=212, end=328, fill=RIM_LIGHT, width=int(1.1 * SS))
+    else:
+        # (a cap with corners: the light is a short straight line along the top edge)
+        r = radius * SS
+        d.line([(x0 + r, y0 + int(1.4 * SS)), (x1 - r, y0 + int(1.4 * SS))], fill=RIM_LIGHT, width=int(1.1 * SS))
 
 
 def centred(d, text, cx, cy, f, colour):
@@ -190,13 +194,15 @@ def mouse(which, size=24):
 
 
 def keycap_sq(label, size=24):
-    """A square cap: the label as large as fits (a long one smaller), or a symbol for Enter, Space, Shift, Tab and Back."""
+    """A square cap: the label as large as fits (a long one smaller), or a symbol for Enter, Space, Shift, Tab and Back.  The cap is smaller than the picture (a margin of 2 pixels
+    all round), so that it is not larger to the eye than the round buttons beside it."""
     img = canvas(size, size)
     d = ImageDraw.Draw(img)
-    plate(d, (0, 0, size - 1, size - 1), max(size // 5, 3), size, size)
+    m = 2
+    plate(d, (m, m, size - 1 - m, size - 1 - m), 3, size, size)
     c = size / 2 * SS
-    u = size * SS
-    w = int(u * 0.05)
+    u = size * SS * 0.84
+    w = int(size * SS * 0.05)
     key = label.lower()
     if key == 'enter':
         # the return arrow: down, then left with a head
@@ -216,7 +222,7 @@ def keycap_sq(label, size=24):
         d.line([(c + u * 0.28, c - u * 0.2), (c + u * 0.28, c + u * 0.2)], fill=TEXT, width=w)
     else:
         text = {'ctrl': 'Ctl'}.get(key, label)
-        fs = size * (0.5 if len(text) <= 2 else 0.34 if len(text) == 3 else 0.27)
+        fs = size * 0.84 * (0.66 if len(text) <= 2 else 0.4 if len(text) == 3 else 0.3)
         centred(d, text, c, c, font(int(fs * SS)), TEXT)
     return img
 
