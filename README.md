@@ -14,7 +14,7 @@ Then:
 
 ```
 python tools/build-game.py                      # builds in build/cargo/ and puts ts-rust.exe in the play folder, ts-rust/target/release/
-                                                #   (--original: the build that behaves as the original game; --kit: also modkit.exe, in the root of the repository)
+                                                #   (--original: the build that behaves as the original game; --kit: also tools/modkit.exe)
 ts-rust/target/release/ts-rust.exe              # the front end, in a window
 ts-rust/target/release/ts-rust.exe --level Village   # straight into a level
 ```

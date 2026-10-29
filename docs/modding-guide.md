@@ -2,7 +2,7 @@
 
 ## The easy way: the mod kit
 
-`modkit.exe` is one program with all the mod making tools.  It is in the root of the repository, not in the play folder (`python tools/build-modkit.py` makes it); double-click it: it asks where the game is the first time.  A menu asks what you
+`modkit.exe` is one program with all the mod making tools.  It is in `tools/`, not in the play folder (`python tools/build-modkit.py` makes it); double-click it: it asks where the game is the first time.  A menu asks what you
 want to make; every question has a default you can accept with Enter, and your files go into the mod you are working on (the first thing you make creates one).
 
 ```
@@ -17,7 +17,7 @@ want to make; every question has a default you can accept with Enter, and your f
 ```
 
 Without a build of `modkit.exe`: `pip install numpy pillow imageio-ffmpeg`, then `python tools/modkit-entry.py` (or double-click `tools/modkit.bat`).  To make the exe: `pip install pyinstaller` and
-`python tools/build-modkit.py` (it ends up in the root of the repository).  `modkit weapons`, `modkit character`, `modkit level`, `modes`, `sounds`, `play`, `share`, `mods` start a part of the menu directly.
+`python tools/build-modkit.py` (it ends up in `tools/`).  `modkit weapons`, `modkit character`, `modkit level`, `modes`, `sounds`, `play`, `share`, `mods` start a part of the menu directly.
 
 Adding weapons, characters and mode names needs the game build with the extended tables.  The numbers of added weapons and characters are chosen by the kit from the name, so that mods made apart seldom
 use the same one; the game gives them its own numbers when it starts, in the order of the numbers.

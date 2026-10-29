@@ -2,7 +2,7 @@
 
     python tools/build-game.py             the build with everything for mods (extended tables, extensions)
     python tools/build-game.py --original  the build that behaves as the original game
-    python tools/build-game.py --kit       also build modkit.exe (needs pyinstaller) in the root of the repository (it is not put in the play folder)
+    python tools/build-game.py --kit       also build tools/modkit.exe (needs pyinstaller; it is not put in the play folder)
 
 Cargo builds in `build/cargo/` (set in `ts-rust/.cargo/config.toml`), so its many files stay out of the play folder, `ts-rust/target/release/`, which then holds only the program (`ts-rust.exe`),
 the game's `PAK/` and `MUSIC/` (yours to put there), and what the game makes there (`ts-rust.ini`, `saves/`, `mods/`).
@@ -36,7 +36,7 @@ def main():
         if subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'build-modkit.py')]).returncode:
             sys.exit(1)
         kit = 'modkit.exe' if os.name == 'nt' else 'modkit'
-        print(f'the mod kit: {os.path.join(ROOT, kit)}')
+        print(f'the mod kit: {os.path.join(ROOT, "tools", kit)}')
     for name in ('PAK', 'MUSIC'):
         if not os.path.isdir(os.path.join(PLAY, name)):
             print(f'note: the game needs its {name}/ folder in {PLAY}')
