@@ -30,7 +30,7 @@ pub fn hudAmmoGfx(ammo: i32, _unused: i32, x: i32) {
         let right = lw(window + 4);
         if x > (lw(window) + right) / 2 {
             let digits = vafmt(&[0x3afba8, lw(record + (kind << 2) + 620) as i64, x as i64, 0]);
-            right - 4 - 16 - textWidth(digits)
+            right - 16 - 16 - textWidth(digits)
         } else {
             // (and the left hand's starts at the left edge: its leftmost part is the clip's number when the gun has a clip, else the picture of the ammo)
             let mut leftmost = x - 16;
@@ -38,7 +38,7 @@ pub fn hudAmmoGfx(ammo: i32, _unused: i32, x: i32) {
                 let clip = vafmt(&[0x3afba8, lw(ammo + (kind << 2) + 4) as i64]);
                 leftmost = x - textWidth(clip) - 20;
             }
-            x + (lw(window) + 4 - leftmost)
+            x + (lw(window) + 16 - leftmost)
         }
     };
     let texture = lw((kind << 2) + 0x1feaf40);
