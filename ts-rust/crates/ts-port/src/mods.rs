@@ -285,10 +285,24 @@ fn original_texture_size(packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec
 
 /// A picture given as PNG replaces the texture of that name when it is drawn, whatever its size (the renderer shows it in place of the game's own
 /// picture over the same surface; `ts_gfx::hd`).  The file is read when the texture is first used.
+/// A numbered texture may sit in a folder of any name under `textures/` (`textures/level01_Prison/1180.png` is the texture `textures/1180`), so that a mod can keep its pictures sorted;
+/// only the number counts.  The named textures (`textures/misc/...`) keep their path.
+fn canon_texture(inner: &str) -> String {
+    let parts: Vec<&str> = inner.split('/').collect();
+    if parts.len() > 2 && parts[0] == "textures" && parts[1] != "misc" {
+        let last = parts[parts.len() - 1];
+        if !last.is_empty() && last.bytes().all(|b| b.is_ascii_digit()) {
+            return format!("textures/{last}");
+        }
+    }
+    inner.to_string()
+}
+
 fn register_picture(game_dir: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) {
     let Some((stem, _)) = rel.rsplit_once('.') else { return };
     let first = stem.split('/').next().unwrap_or("");
-    let inner = if PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/') { &stem[first.len() + 1..] } else { stem };
+    let inner = canon_texture(if PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/') { &stem[first.len() + 1..] } else { stem });
+    let inner = inner.as_str();
     let name = format!("{inner}.qpm");
     // (a texture of the mod's own: the mod has a .qpm of that name beside the picture, a small one the game's loader takes; the picture is shown in its place at any size)
     let own = host.with_extension("qpm").is_file();
@@ -306,7 +320,8 @@ fn convert_texture(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, hos
     let (stem, _) = rel.rsplit_once('.')?;
     let first = stem.split('/').next().unwrap_or("");
     let has_pack = PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/');
-    let inner = if has_pack { &stem[first.len() + 1..] } else { stem };
+    let inner = canon_texture(if has_pack { &stem[first.len() + 1..] } else { stem });
+    let inner = inner.as_str();
     let name = format!("{inner}.qpm");
     let out_dir = cache.join("converted").join(mod_name);
     let _ = std::fs::create_dir_all(&out_dir);
