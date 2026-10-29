@@ -469,6 +469,20 @@ impl ApplicationHandler for App {
                 std::process::exit(0);
             }
             WindowEvent::KeyboardInput { event, .. } => {
+                // (the buttons of a game controller are keys of an Android code that winit has no name for; the D-pad is arrow keys)
+                #[cfg(target_os = "android")]
+                {
+                    let down = event.state == ElementState::Pressed;
+                    match event.physical_key {
+                        PhysicalKey::Unidentified(winit::keyboard::NativeKeyCode::Android(code)) => crate::gamepads::key(code, down),
+                        PhysicalKey::Code(KeyCode::ArrowUp) => crate::gamepads::key(19, down),
+                        PhysicalKey::Code(KeyCode::ArrowDown) => crate::gamepads::key(20, down),
+                        PhysicalKey::Code(KeyCode::ArrowLeft) => crate::gamepads::key(21, down),
+                        PhysicalKey::Code(KeyCode::ArrowRight) => crate::gamepads::key(22, down),
+                        _ => {}
+                    }
+                    self.update_pads();
+                }
                 if let PhysicalKey::Code(code) = event.physical_key {
                     match event.state {
                         ElementState::Pressed => {

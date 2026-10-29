@@ -2,6 +2,11 @@
 resolver = "2"
 members = ["crates/ts-audio", "crates/ts-rt", "crates/ts-sdk", "crates/ts-game", "crates/ts-port", "crates/ts-verify", "crates/ts-gfx", "crates/ts-render"]
 
+# winit with one change for Android: the axes of a game controller are kept (`winit::platform::android::gamepad_axes`) instead of being
+# turned into touches (third_party/winit; the rest is winit 0.30.13 as published).
+[patch.crates-io]
+winit = { path = "third_party/winit" }
+
 # The decompiled code relies on two's-complement wrapping arithmetic (as the original MIPS code does).
 [profile.dev]
 opt-level = 1
