@@ -35,7 +35,17 @@ fn android_main(app: android_activity::AndroidApp) {
     send_stderr_to_log();
     let shared = std::path::PathBuf::from("/storage/emulated/0/TimeSplitters");
     let own = app.external_data_path().or_else(|| app.internal_data_path());
-    let dir = if usable(&shared) { Some(shared) } else { own };
+    // the folder that has the game's files wins; with none, the shared one when it can be used
+    let has_game = |d: &std::path::Path| d.join("PAK").is_dir();
+    let dir = if has_game(&shared) {
+        Some(shared)
+    } else if own.as_deref().is_some_and(has_game) {
+        own
+    } else if usable(&shared) {
+        Some(shared)
+    } else {
+        own
+    };
     if let Some(dir) = dir {
         eprintln!("[android] the game's folder: {}", dir.display());
         let _ = std::fs::create_dir_all(&dir);
