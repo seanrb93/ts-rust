@@ -249,7 +249,7 @@ const SPLIT_ONE: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], heade
 /// the buttons of the Custom configuration: eighteen rows, on pages
 const FRONT_CUSTOM: Layout = Layout { pitch: 15, columns: &[(-49, 250, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 24, paged: true };
 /// the Mods page: a mod on each row, on pages of eight (up to four pages)
-const FRONT_MODS: Layout = Layout { pitch: 15, columns: &[(-19, 300, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (8, 0, 0), (16, 0, 0), (24, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: true };
+const FRONT_MODS: Layout = Layout { pitch: 15, columns: &[(-19, 440, 600)], header: (0x40, 0x20), rows: &[(0, 0, 0), (8, 0, 0), (16, 0, 0), (24, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: true };
 const PAUSE_CUSTOM: Layout = Layout { pitch: 13, columns: &[(-49, 250, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: true };
 const SPLIT_CUSTOM: Layout = Layout { pitch: 18, columns: &[(-49, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 0, 0), (10, 0, 0), (15, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
 /// the Audio Options: the game's own items on the first page, the volumes of the kinds of effects on the second (the rows of the second
