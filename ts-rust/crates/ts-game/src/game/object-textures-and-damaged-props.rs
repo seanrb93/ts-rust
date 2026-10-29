@@ -46,7 +46,9 @@ pub fn obLoadTextures(a0: i32) {
             let mut entry = textures;
             let mut i = 1;
             loop {
+                texnum_restore_x(entry);
                 emLoadTextureNum(lw(entry), entry, entry);
+                texnum_note_x(entry);
                 entry = (i << 4) + textures;
                 i += 1;
                 if lw(entry) == -1 {

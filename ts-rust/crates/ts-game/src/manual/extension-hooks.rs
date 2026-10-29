@@ -1509,3 +1509,40 @@ pub fn room_depth_limit(max_level: i32) -> i32 {
         max_level
     }
 }
+
+/// A model whose textures are not shared is loaded by writing the slot of each texture over its number in the model's own table (`obLoadTextures`).  A model that stays in memory
+/// (a character of a mod, in the big pool) is loaded again when the select page shows it a second time, and found the slots where it wants numbers: the glitched textures.
+/// The numbers are kept here, by the place of the entry, and put back before a load (when the entry still holds the slot this wrote, so a model read into the same place is not
+/// mistaken for it).
+#[cfg(feature = "extensions")]
+static TEXNUMS: std::sync::Mutex<Option<std::collections::HashMap<i32, (i32, i32)>>> = std::sync::Mutex::new(None);
+
+#[inline]
+pub fn texnum_restore_x(entry: i32) {
+    #[cfg(feature = "extensions")]
+    {
+        let mut g = TEXNUMS.lock().unwrap();
+        let map = g.get_or_insert_with(Default::default);
+        let now = lw(entry);
+        match map.get(&entry).copied() {
+            Some((number, slot)) if slot == now => sw(entry, number),
+            _ => {
+                map.insert(entry, (now, -1));
+            }
+        }
+    }
+    #[cfg(not(feature = "extensions"))]
+    let _ = entry;
+}
+
+#[inline]
+pub fn texnum_note_x(entry: i32) {
+    #[cfg(feature = "extensions")]
+    {
+        if let Some(e) = TEXNUMS.lock().unwrap().get_or_insert_with(Default::default).get_mut(&entry) {
+            e.1 = lw(entry);
+        }
+    }
+    #[cfg(not(feature = "extensions"))]
+    let _ = entry;
+}
