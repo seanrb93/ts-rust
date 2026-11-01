@@ -24,6 +24,10 @@ const MAX_PADS: u32 = 24;
 /// how long a tick waits for a pad before the link is given up (the first tick waits longer: the other machines may still be loading)
 const TIMEOUT: Duration = Duration::from_secs(10);
 const FIRST_TIMEOUT: Duration = Duration::from_secs(90);
+/// how long a machine that has been heard from may stay silent, while this one waits for it, before it is given up
+const DROP_AFTER: Duration = Duration::from_secs(4);
+/// how many of a given-up player's last pads each packet passes on, so the machines that are left all end up with the same ones
+const RELAY_PADS: usize = 16;
 
 /// What to do when the link is lost: told the reason (the port shows it and ends the game).
 static ON_LOST: Mutex<Option<fn(&str)>> = Mutex::new(None);
@@ -110,6 +114,14 @@ struct Session {
     /// desyncs found
     desyncs: u32,
     last_heard: Instant,
+    /// when each player was last heard from
+    last: Vec<Instant>,
+    /// this machine has given the player up (what it has of their pads is then fixed, and it tells the others)
+    suspect: Vec<bool>,
+    /// `reports[r][q]`: how many of the pads of the given-up player `q` the machine `r` had when it gave `q` up
+    reports: Vec<Vec<Option<u32>>>,
+    /// a dropped player and the tick from which their pad is nothing pressed: the most pads of theirs that any machine has
+    dropped: Vec<Option<u32>>,
 }
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
@@ -145,6 +157,10 @@ pub fn start(cfg: Config) -> Result<(), String> {
         tick: 0,
         desyncs: 0,
         last_heard: Instant::now(),
+        last: vec![Instant::now(); n],
+        suspect: vec![false; n],
+        reports: vec![vec![None; n]; n],
+        dropped: vec![None; n],
     });
     Ok(())
 }
@@ -186,7 +202,7 @@ impl Session {
         let mine = self.local;
         let have_to = self.pads[mine].keys().next_back().map_or(0, |t| t + 1);
         for p in 0..self.n() {
-            if p == mine {
+            if p == mine || self.suspect[p] {
                 continue;
             }
             let first = self.acked[p];
@@ -209,6 +225,23 @@ impl Session {
                 b.extend_from_slice(&t.to_le_bytes());
                 b.extend_from_slice(&s.to_le_bytes());
             }
+            // the pads of the players given up on that this machine has, and which they are
+            let gone: Vec<usize> = (0..self.n()).filter(|&q| q != mine && self.suspect[q]).collect();
+            b.push(gone.len() as u8);
+            for &q in &gone {
+                let last: Vec<(&u32, &[u8; PAD_BYTES])> = self.pads[q].iter().rev().take(RELAY_PADS).collect();
+                b.push(q as u8);
+                b.push(last.len() as u8);
+                for (t, pad) in last {
+                    b.extend_from_slice(&t.to_le_bytes());
+                    b.extend_from_slice(pad);
+                }
+            }
+            b.push(gone.len() as u8);
+            for &q in &gone {
+                b.push(q as u8);
+                b.extend_from_slice(&self.reports[mine][q].unwrap_or(self.have[q]).to_le_bytes());
+            }
             let _ = self.sock.send_to(&b, self.peers[p]);
         }
         let mut buf = [0u8; 2048];
@@ -228,11 +261,12 @@ impl Session {
             return;
         }
         let who = b[4] as usize;
-        if who >= self.n() || who == self.local {
+        if who >= self.n() || who == self.local || self.suspect[who] {
             return;
         }
         self.heard[who] = true;
         self.last_heard = Instant::now();
+        self.last[who] = Instant::now();
         let (Some(wants), Some(first)) = (u32_at(5), u32_at(9)) else { return };
         let count = b[13] as usize;
         self.acked[who] = self.acked[who].max(wants);
@@ -254,13 +288,80 @@ impl Session {
             self.sums[who].insert(t, s);
             at += 8;
         }
+        // the pads of given-up players that this machine may not have
+        let Some(&relays) = b.get(at) else { return };
+        at += 1;
+        for _ in 0..relays {
+            let (Some(&q), Some(&count)) = (b.get(at), b.get(at + 1)) else { return };
+            at += 2;
+            for _ in 0..count {
+                let Some(t) = u32_at(at) else { return };
+                let Some(rec) = b.get(at + 4..at + 4 + PAD_BYTES) else { return };
+                let q = q as usize;
+                if q < self.n() && q != self.local {
+                    let mut r = [0u8; PAD_BYTES];
+                    r.copy_from_slice(rec);
+                    self.pads[q].entry(t).or_insert(r);
+                }
+                at += 4 + PAD_BYTES;
+            }
+        }
+        for q in 0..self.n() {
+            while q != self.local && self.pads[q].contains_key(&self.have[q]) {
+                self.have[q] += 1;
+            }
+        }
+        // who the sender has given up on: this machine does too
+        let Some(&reported) = b.get(at) else { return };
+        at += 1;
+        for _ in 0..reported {
+            let (Some(&q), Some(have)) = (b.get(at), u32_at(at + 1)) else { return };
+            at += 5;
+            let q = q as usize;
+            if q >= self.n() || q == self.local || q == who {
+                continue;
+            }
+            self.reports[who][q].get_or_insert(have);
+            self.give_up(q);
+        }
+    }
+
+    /// This machine gives the player `q` up: what it has of their pads is what it says it has.
+    fn give_up(&mut self, q: usize) {
+        if !self.suspect[q] {
+            self.suspect[q] = true;
+            self.reports[self.local][q] = Some(self.have[q]);
+            eprintln!("[net] player {q} has stopped answering; dropping them");
+        }
+    }
+
+    /// A given-up player is dropped once every machine still in the game has said how many of their pads it has: from the most of those, their pad is
+    /// nothing pressed (no machine has used one beyond it, and the ones before it are passed on by the machines that have them).
+    fn settle(&mut self) {
+        for q in 0..self.n() {
+            if q == self.local || !self.suspect[q] || self.dropped[q].is_some() {
+                continue;
+            }
+            let all = (0..self.n()).filter(|&r| r != q && !self.suspect[r]).all(|r| self.reports[r][q].is_some());
+            if all {
+                let v = (0..self.n()).filter_map(|r| self.reports[r][q]).max().unwrap_or(0);
+                self.dropped[q] = Some(v);
+                eprintln!("[net] player {q} is out from tick {v}");
+            }
+        }
+    }
+
+    /// Everything for the tick `t` is there: the pads of the players still in, and the nothing pressed of those dropped.
+    fn ready(&self, t: u32) -> bool {
+        (0..self.n()).all(|p| self.pads[p].contains_key(&t) || self.dropped[p].map_or(false, |v| t >= v))
+            && (0..self.n()).all(|p| self.heard[p] || self.suspect[p])
     }
 
     /// Compare the checksums of the tick `t`, when everyone's are there.
     fn compare(&mut self, t: u32) {
         let Some(&mine) = self.sums[self.local].get(&t) else { return };
         for p in 0..self.n() {
-            if p == self.local {
+            if p == self.local || self.suspect[p] {
                 continue;
             }
             if let Some(&theirs) = self.sums[p].get(&t) {
@@ -274,7 +375,7 @@ impl Session {
 
     fn prune(&mut self, below: u32) {
         // (what the others still need of this machine's pads stays)
-        let keep = (0..self.n()).filter(|&p| p != self.local).map(|p| self.acked[p]).min().unwrap_or(below).min(below).saturating_sub(2);
+        let keep = (0..self.n()).filter(|&p| p != self.local && !self.suspect[p]).map(|p| self.acked[p]).min().unwrap_or(below).min(below).saturating_sub(2);
         for m in self.pads.iter_mut() {
             *m = m.split_off(&keep);
         }
@@ -303,9 +404,17 @@ pub fn step(local_pad: [u8; PAD_BYTES]) -> Option<Vec<[u8; PAD_BYTES]>> {
             let s = g.as_mut()?;
             s.pump();
             let t = s.tick;
-            let everyone = s.heard.iter().all(|&h| h) && (0..s.n()).all(|p| s.pads[p].contains_key(&t));
-            if everyone {
-                let out: Vec<[u8; PAD_BYTES]> = (0..s.n()).map(|p| s.pads[p][&t]).collect();
+            for p in 0..s.n() {
+                if p != s.local && s.heard[p] && !s.suspect[p] && s.last[p].elapsed() > DROP_AFTER && started.elapsed() > DROP_AFTER {
+                    s.give_up(p);
+                }
+            }
+            s.settle();
+            if (0..s.n()).all(|p| p == s.local || s.suspect[p]) {
+                return None;
+            }
+            if s.ready(t) {
+                let out: Vec<[u8; PAD_BYTES]> = (0..s.n()).map(|p| s.pads[p].get(&t).copied().unwrap_or_else(neutral)).collect();
                 s.compare(t.saturating_sub(SUM_EVERY));
                 s.tick += 1;
                 let below = s.tick;
