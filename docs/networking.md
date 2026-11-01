@@ -19,7 +19,7 @@ machine.
 
 ## The lobby
 
-Start the game with `--lobby`.  The lobby is a plain text screen (keyboard: arrows, Enter, Esc, and the digits and dots of an address; pad: the D-pad,
+Choose Network Game on the front end's Select Game Type page (the program starts again at the lobby), or start the game with `--lobby`.  The lobby is a plain text screen (keyboard: arrows, Enter, Esc, and the digits and dots of an address; pad: the D-pad,
 X and circle):
 
 * **Host a game** listens on UDP port 7777 and shows the address to give out.  Left and Right choose the level; the players that join are listed;

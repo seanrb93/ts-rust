@@ -999,6 +999,8 @@ static PAUSE_FONT: Mutex<Option<(u64, i32)>> = Mutex::new(None);
 
 /// "page" that an Exit Game item opens: selecting it ends the program (`frontPageSet` / `inPage` check for it)
 const EXIT_PAGE: i32 = BASE + 0x6500;
+/// "page" that the Network Game item opens: selecting it starts the program again at the lobby
+const NETWORK_PAGE: i32 = BASE + 0x6580;
 const GAMEMODE_AT: i32 = BASE + 0x6600;
 const EXIT_TEXT_AT: i32 = BASE + 0x6a00;
 
@@ -1078,10 +1080,22 @@ fn confirming() -> bool {
     CONFIRM.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// Network Game: this program ends and starts again with the lobby (where the game is hosted or joined, and which starts the game).
+fn open_lobby() {
+    #[cfg(not(target_os = "android"))]
+    if let Ok(exe) = std::env::current_exe() {
+        let _ = std::process::Command::new(exe).arg("--lobby").spawn();
+    }
+    std::process::exit(0);
+}
+
 /// Front end, `frontPageSet`: the page about to be opened.
 pub fn av_front_page(page: i32) -> i32 {
     if page == EXIT_NOW_PAGE {
         std::process::exit(0);
+    }
+    if page == NETWORK_PAGE {
+        open_lobby();
     }
     for (marker, at, first) in [(AUDIO_PAGE, AUDIO_FRONT_AT, 1), (VIDEO_PAGE, VIDEO_FRONT_AT, FIRST_ID), (GAME_PAGE, GAME_FRONT_AT, FIRST_ID), (CONTROLS_PAGE, CONTROLS_FRONT_AT, FIRST_ID), (CUSTOM_PAGE, CUSTOM_FRONT_AT, FIRST_ID), (MODS_PAGE, MODS_FRONT_AT, FIRST_ID)] {
         if page == marker {
@@ -1295,7 +1309,7 @@ pub fn av_gamemode_menu() -> i32 {
     let label = put_str(&mut at, "Audio Options");
     sw(item(last), label);
     sw(item(last) + 12, AUDIO_PAGE);
-    let new_items = [(10, "Controls", CONTROLS_PAGE), (11, "Video Options", VIDEO_PAGE), (12, "Game Options", GAME_PAGE), (13, "Mods", MODS_PAGE), (9, "Exit Game", EXIT_PAGE)];
+    let new_items = [(10, "Controls", CONTROLS_PAGE), (11, "Video Options", VIDEO_PAGE), (12, "Game Options", GAME_PAGE), (13, "Mods", MODS_PAGE), (14, "Network Game", NETWORK_PAGE), (9, "Exit Game", EXIT_PAGE)];
     for (k, &(id, text, page)) in new_items.iter().enumerate() {
         let it = item(n + k as i32);
         copy(it, item(last), 32);
@@ -1306,7 +1320,7 @@ pub fn av_gamemode_menu() -> i32 {
     }
     // View Credits and View Statistics are on the Game Options page: their items leave the table
     let mut total = 0;
-    for k in 0..n + 5 {
+    for k in 0..n + 6 {
         if matches!(id_of(k), 4 | 5) {
             continue;
         }
@@ -1327,7 +1341,7 @@ pub fn av_gamemode_menu() -> i32 {
     // The small items sit one line apart, ending a little above the back / select line (Exit Game is the last one, the items
     // above it are placed from there).
     let (exit_y, pitch) = (0x9c_i32, 14);
-    let order = [10, 6, 11, 12, 13, 9];
+    let order = [10, 6, 11, 12, 13, 14, 9];
     let find = |id: i32| (0..total).find(|&k| id_of(k) == id);
     for (row, &id) in order.iter().rev().enumerate() {
         if let Some(k) = find(id) {
