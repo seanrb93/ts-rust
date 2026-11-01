@@ -642,7 +642,28 @@ pub fn mm_options_menu_or(own: i32) -> i32 {
     }
 }
 
-/// The MapMaker's Options page: a slider changed with X, a row that takes the limit of the map away.
+/// The menu of the MapMaker's Map Settings page (its rows and a row that takes the limit of the map away).
+#[inline]
+pub fn mm_settings_menu_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        let _ = own;
+        mm_settings_menu()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// The MapMaker's Map Settings page: the value of the new row is read.
+#[inline]
+pub fn mm_settings_tick_hook() {
+    #[cfg(feature = "extensions")]
+    mm_settings_tick();
+}
+
+/// The MapMaker's Options page: a slider changed with X.
 #[inline]
 pub fn mm_options_tick_hook(page: i32) {
     #[cfg(feature = "extensions")]

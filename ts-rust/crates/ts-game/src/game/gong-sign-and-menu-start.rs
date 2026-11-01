@@ -79,13 +79,14 @@ pub fn ingamemenuExit(a0: i32) {
 /// The tick of the map maker's map settings page: the buttons 2304 leave the menu; otherwise the button 64 on the page 3 clears a flag, the menu ticks and its items are made
 /// (@ 0x24ce08).
 pub fn mapsettings_pageTick(a0: i32) {
+    mm_settings_tick_hook();
     if (joyNewBut(0) & 2304) == 0 {
         if (joyNewBut(0) & 64) != 0 {
             if lhu(a0 + 4) == 3 {
                 sb(0x3b0038, 0);
             }
         }
-        let menu = g::mapsettings_menu;
+        let menu = mm_settings_menu_or(g::mapsettings_menu);
         menutick_24c3a8(a0, menu);
         let made = menumake(lw(a0 + 8), menu);
         sw(a0 + 12, made);
