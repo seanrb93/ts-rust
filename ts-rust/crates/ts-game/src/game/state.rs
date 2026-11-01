@@ -90,7 +90,8 @@ pub fn statsGet() -> i32 {
 
 /// Whether the game is paused (@ 0x2b6850).
 pub fn timeGetPause() -> i32 {
-    (lw(g::gamepaused) != 0) as i32
+    // (a network game goes on for everybody while a player's pause menu is open: the level's tick must run on every machine)
+    (lw(g::gamepaused) != 0 && netlink_active_or() == 0) as i32
 }
 
 /// Empty in the build (@ 0x2671a0).

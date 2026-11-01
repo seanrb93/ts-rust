@@ -64,6 +64,13 @@ fn state_sum() -> u32 {
     feed((ld(g::newrndseedval) >> 32) as u32);
     feed(lw(g::rndcount) as u32);
     feed(lw(g::gameframe) as u32);
+    // the match: the scores and the like
+    for i in 0..(14 * 1368 / 4) {
+        feed(lw(g::matchstats + 4 * i) as u32);
+    }
+    for i in 0..28 {
+        feed(lw(g::curgameparms + 4 * i) as u32);
+    }
     h
 }
 
