@@ -741,7 +741,16 @@ impl Lobby {
                 s += "\n Up/Down and Enter (or the D-pad and X)\n";
             }
             Screen::Host => {
-                s += &format!(" Hosting.  Players should join {}:{PORT}\n\n", local_ip_hint());
+                s += &format!(" Hosting.  Players should join {}:{PORT}\n", local_ip_hint());
+                // (the players first, so that they are on the screen whatever its size)
+                s += &format!(" {}\n", self.status);
+                let chr0 = self.chars.get(self.picks[0]).map_or("?", |c| c.1.as_str());
+                s += &format!("   1  {} (you, the host)  {}\n", self.my_name, chr0);
+                for (i, a) in self.others.iter().enumerate() {
+                    let name = self.names.get(a).map_or("", |n| n.as_str());
+                    s += &format!("   {}  {}  {}  {}\n", i + 2, name, a, self.chars.get(self.picks[i + 1]).map_or("?", |c| c.1.as_str()));
+                }
+                s += "\n";
                 let cur = |r: usize| if r == self.row { ">" } else { " " };
                 let level = self.levels.get(self.level).map_or("?", |l| l.as_str());
                 let mode = MODES.iter().find(|m| m.0 == self.setup.mode).map_or("?", |m| m.1);
@@ -754,14 +763,9 @@ impl Lobby {
                 s += &format!(" {} Bots             < {} >\n", cur(4), self.bots);
                 s += &format!(" {} Friendly fire    < {} >\n", cur(5), if self.setup.friendly { "yes" } else { "no" });
                 s += &format!(" {} Weapons          < {} >\n", cur(6), self.wset_name(self.wset));
-                s += &format!(" {} Input delay      < {} ticks, {} ms >   (more hides stalls of the network, and the controls lag more)\n", cur(7), self.setup.delay, self.setup.delay * 1000 / 60);
+                s += &format!(" {} Input delay      < {} ticks, {} ms >\n", cur(7), self.setup.delay, self.setup.delay * 1000 / 60);
                 s += &format!(" {} Your character   < {} >\n\n", cur(8), chr);
-                s += &format!("   1  {} (you, the host)  {}\n", self.my_name, chr);
-                for (i, a) in self.others.iter().enumerate() {
-                    let name = self.names.get(a).map_or("", |n| n.as_str());
-                    s += &format!("   {}  {}  {}  {}\n", i + 2, name, a, self.chars.get(self.picks[i + 1]).map_or("?", |c| c.1.as_str()));
-                }
-                s += &format!("\n {}\n\n Up/Down, Left/Right change a row.  Enter: start the game      Esc: cancel\n", self.status);
+                s += " Up/Down, Left/Right change a row.  Enter: start the game      Esc: cancel\n";
             }
             Screen::Join => {
                 if self.sock.is_none() {
