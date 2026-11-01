@@ -67,11 +67,13 @@ pub struct Setup {
     pub weapons: Option<(i32, [i32; 5])>,
     /// the name of each player
     pub names: Vec<String>,
+    /// ticks between a pad being read and being used: more hides longer stalls of the network and makes the controls lag
+    pub delay: u32,
 }
 
 impl Default for Setup {
     fn default() -> Setup {
-        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new() }
+        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new(), delay: 6 }
     }
 }
 

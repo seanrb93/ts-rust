@@ -921,7 +921,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
         let (level, players) = match LOBBY_OUTCOME.lock().unwrap().take() {
             Some(o) => {
                 if o.players >= 2 {
-                    let cfg = ts_sdk::net::Config { local: o.local, peers: o.peers.clone(), bind: o.bind, seed: o.seed, delay: 6 };
+                    let cfg = ts_sdk::net::Config { local: o.local, peers: o.peers.clone(), bind: o.bind, seed: o.seed, delay: o.setup.delay };
                     if let Err(e) = ts_sdk::net::start(cfg) {
                         fatal(&format!("The network game cannot start: {e}"));
                     }

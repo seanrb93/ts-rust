@@ -29,6 +29,8 @@ X and circle):
 When the host starts, every machine gets the level, the number of the player, the others' addresses and the random seed, and starts the game at once.
 The host also chooses the weapon set (one of its own custom sets, or a preset); the five weapons of a custom set go to the other machines with the rest of the match, so the sets saved on each machine do not matter.  The bot sets are not needed: the bots' characters are sent.
 
+The host also sets the input delay (2 to 24 ticks, 6 by default): the pad read on a machine is used that many ticks later, so a stall of the network shorter than that many ticks is not felt, and the controls lag by as much.  `saves/net-stats.txt` (below) shows how long the stalls are.
+
 A host announces its game once a second to the local network (UDP broadcast to port 7778, a different port from the game's 7777), and the Join screen lists the games it hears (address, players, level) so that one can be picked with Up/Down and Enter; typing an address still works for a host on another network.  The broadcast leaves by the network the PC uses first, and routers do not pass it on.  `TS_LOBBY_AUTO=find` joins the first game found.
 
 For tests without a window: `TS_LOBBY_AUTO=host,3,Prison` (starts when 3 players are there) and `TS_LOBBY_AUTO=join,127.0.0.1:7777`, with `--lobby --headless`.

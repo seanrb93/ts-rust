@@ -22,7 +22,7 @@ const BEACON_PORT: u16 = 7778;
 pub const PORT: u16 = 7777;
 const MAX_PLAYERS: usize = 4;
 /// the rows of the host's screen: the level, the mode, the time limit, the score limit, the bots, friendly fire and the character
-const HOST_ROWS: usize = 8;
+const HOST_ROWS: usize = 9;
 /// the modes the lobby offers: (number, name)
 const MODES: [(i32, &str); 4] = [(3, "Deathmatch"), (1, "Bag Tag"), (2, "Capture the Bag"), (5, "Knockout")];
 
@@ -357,6 +357,7 @@ impl Lobby {
                 self.wset = (self.wset as i32 + d).rem_euclid(n) as usize;
                 self.apply_wset();
             }
+            7 => self.setup.delay = step(self.setup.delay as i32, 2, 24) as u32,
             _ => self.change_char(d),
         }
     }
@@ -456,6 +457,8 @@ impl Lobby {
             b.push(n.len() as u8);
             b.extend_from_slice(n.as_bytes());
         }
+        // the input delay
+        b.push(self.setup.delay as u8);
         b
     }
 
@@ -638,6 +641,9 @@ impl Lobby {
                     }
                     if names.len() == self.n_players {
                         self.roster_names = names;
+                        if let Some(&d) = b.get(o) {
+                            self.setup.delay = (d as u32).clamp(2, 24);
+                        }
                     }
                     // the match the host set
                     if let Some(w) = b.get(at + 5 + self.n_players..at + 5 + self.n_players + 11) {
@@ -748,7 +754,8 @@ impl Lobby {
                 s += &format!(" {} Bots             < {} >\n", cur(4), self.bots);
                 s += &format!(" {} Friendly fire    < {} >\n", cur(5), if self.setup.friendly { "yes" } else { "no" });
                 s += &format!(" {} Weapons          < {} >\n", cur(6), self.wset_name(self.wset));
-                s += &format!(" {} Your character   < {} >\n\n", cur(7), chr);
+                s += &format!(" {} Input delay      < {} ticks, {} ms >   (more hides stalls of the network, and the controls lag more)\n", cur(7), self.setup.delay, self.setup.delay * 1000 / 60);
+                s += &format!(" {} Your character   < {} >\n\n", cur(8), chr);
                 s += &format!("   1  {} (you, the host)  {}\n", self.my_name, chr);
                 for (i, a) in self.others.iter().enumerate() {
                     let name = self.names.get(a).map_or("", |n| n.as_str());
