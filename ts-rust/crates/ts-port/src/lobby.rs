@@ -68,6 +68,10 @@ pub struct Lobby {
     sock: Option<UdpSocket>,
     // host: the other players' addresses (index 0 of the players is this machine)
     others: Vec<SocketAddr>,
+    /// this machine's player's name, the names of the other machines' players (host) and of every player (client)
+    my_name: String,
+    names: std::collections::HashMap<SocketAddr, String>,
+    roster_names: Vec<String>,
     // client: the host, this machine's player and the roster as last heard
     host: Option<SocketAddr>,
     my_index: usize,
@@ -113,6 +117,22 @@ enum Auto {
     Find,
 }
 
+/// A name as the game can show it: letters, digits and spaces, at most 12.
+fn clean_name(s: &str) -> String {
+    let n: String = s.chars().filter(|c| c.is_ascii_alphanumeric() || *c == ' ').take(12).collect();
+    let n = n.trim().to_string();
+    if n.is_empty() {
+        "Player".into()
+    } else {
+        n
+    }
+}
+
+/// The name this machine's player has: the user's name on the computer.
+fn default_name() -> String {
+    clean_name(&std::env::var("USERNAME").or_else(|_| std::env::var("USER")).unwrap_or_default())
+}
+
 fn now_seed() -> i32 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(1, |d| (d.subsec_nanos() ^ d.as_secs() as u32) as i32 & 0x7fff_ffff)
 }
@@ -129,6 +149,9 @@ impl Lobby {
             status: String::new(),
             sock: None,
             others: Vec::new(),
+            my_name: default_name(),
+            names: std::collections::HashMap::new(),
+            roster_names: Vec::new(),
             host: None,
             my_index: 0,
             roster: Vec::new(),
@@ -372,11 +395,21 @@ impl Lobby {
         }
     }
 
+    /// The names of the players as the host has them (this machine's first).
+    fn host_names(&self) -> Vec<String> {
+        let mut v = vec![self.my_name.clone()];
+        for a in &self.others {
+            v.push(self.names.get(a).cloned().unwrap_or_else(|| format!("Player {}", v.len() + 1)));
+        }
+        v
+    }
+
     /// The match as it stands: the options, the bots and the character of each player.
     fn match_setup(&self, players: usize) -> ts_sdk::net::Setup {
         let mut s = self.setup.clone();
         let chr = |i: usize| self.chars.get(i % self.chars.len().max(1)).map_or(0, |c| c.0);
         s.chars = (0..players).map(|p| chr(self.picks.get(p).copied().unwrap_or(0))).collect();
+        s.names = if self.screen == Screen::Host { self.host_names() } else { self.roster_names.clone() };
         // (the bots are characters the players are not: the next ones of the list)
         s.bots = (0..self.bots).map(|b| chr(8 + 3 * b)).collect();
         s
@@ -417,6 +450,11 @@ impl Lobby {
         b.push(set as u8);
         for w in pack {
             b.extend_from_slice(&(w as i16).to_le_bytes());
+        }
+        // the players' names
+        for n in self.host_names() {
+            b.push(n.len() as u8);
+            b.extend_from_slice(n.as_bytes());
         }
         b
     }
@@ -502,6 +540,11 @@ impl Lobby {
                             }
                         }
                         T_JOIN => {
+                            if let Some(&len) = b.get(9) {
+                                if let Some(n) = b.get(10..10 + len as usize) {
+                                    self.names.insert(from, clean_name(&String::from_utf8_lossy(n)));
+                                }
+                            }
                             if !self.others.contains(&from) && self.others.len() + 1 < MAX_PLAYERS && self.starting.is_none() {
                                 self.others.push(from);
                             }
@@ -584,6 +627,18 @@ impl Lobby {
                     if roster.len() == self.n_players {
                         self.roster = roster;
                     }
+                    // the players' names
+                    let mut names = Vec::new();
+                    let mut o = at + 5 + self.n_players + 11;
+                    for _ in 0..self.n_players {
+                        let Some(&len) = b.get(o) else { break };
+                        let Some(n) = b.get(o + 1..o + 1 + len as usize) else { break };
+                        names.push(clean_name(&String::from_utf8_lossy(n)));
+                        o += 1 + len as usize;
+                    }
+                    if names.len() == self.n_players {
+                        self.roster_names = names;
+                    }
                     // the match the host set
                     if let Some(w) = b.get(at + 5 + self.n_players..at + 5 + self.n_players + 11) {
                         let mut pack = [0i32; 5];
@@ -609,7 +664,7 @@ impl Lobby {
                     }
                 }
                 // (the test aid: a character picked at the start)
-                if let (Some(Auto::Join), Ok(v), true) = (&self.auto, std::env::var("TS_LOBBY_CHAR"), !self.roster.is_empty()) {
+                if let (Some(Auto::Join | Auto::Find), Ok(v), true) = (&self.auto, std::env::var("TS_LOBBY_CHAR"), !self.roster.is_empty()) {
                     if let Ok(i) = v.parse::<usize>() {
                         if self.picks[self.my_index.min(MAX_PLAYERS - 1)] != i {
                             self.picks[self.my_index.min(MAX_PLAYERS - 1)] = 0;
@@ -641,6 +696,8 @@ impl Lobby {
                     let mut b = MAGIC.to_le_bytes().to_vec();
                     b.push(T_JOIN);
                     b.extend_from_slice(&self.compat.to_le_bytes());
+                    b.push(self.my_name.len() as u8);
+                    b.extend_from_slice(self.my_name.as_bytes());
                     if let Some(s) = &self.sock {
                         let _ = s.send_to(&b, host);
                     }
@@ -692,9 +749,10 @@ impl Lobby {
                 s += &format!(" {} Friendly fire    < {} >\n", cur(5), if self.setup.friendly { "yes" } else { "no" });
                 s += &format!(" {} Weapons          < {} >\n", cur(6), self.wset_name(self.wset));
                 s += &format!(" {} Your character   < {} >\n\n", cur(7), chr);
-                s += &format!("   1  you (host)  {}\n", chr);
+                s += &format!("   1  {} (you, the host)  {}\n", self.my_name, chr);
                 for (i, a) in self.others.iter().enumerate() {
-                    s += &format!("   {}  {}  {}\n", i + 2, a, self.chars.get(self.picks[i + 1]).map_or("?", |c| c.1.as_str()));
+                    let name = self.names.get(a).map_or("", |n| n.as_str());
+                    s += &format!("   {}  {}  {}  {}\n", i + 2, name, a, self.chars.get(self.picks[i + 1]).map_or("?", |c| c.1.as_str()));
                 }
                 s += &format!("\n {}\n\n Up/Down, Left/Right change a row.  Enter: start the game      Esc: cancel\n", self.status);
             }

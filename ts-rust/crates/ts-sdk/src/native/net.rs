@@ -65,11 +65,13 @@ pub struct Setup {
     pub chars: Vec<i32>,
     /// the weapon set (0 custom, 1 to 9 a preset) and the five weapons of the custom one; `None`: as the game has it
     pub weapons: Option<(i32, [i32; 5])>,
+    /// the name of each player
+    pub names: Vec<String>,
 }
 
 impl Default for Setup {
     fn default() -> Setup {
-        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None }
+        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new() }
     }
 }
 
@@ -136,6 +138,8 @@ struct Session {
     /// when packets were last sent, and how many of this machine's pads they had (a packet is sent when there is something new, or now and then)
     last_sent: Instant,
     sent_to: u32,
+    /// the checksums compared one after the other that differed (a lone difference is something that only one machine's picture touches)
+    streak: u32,
 }
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
@@ -178,6 +182,7 @@ pub fn start(cfg: Config) -> Result<(), String> {
         told: vec![false; n],
         last_sent: Instant::now(),
         sent_to: 0,
+        streak: 0,
     });
     Ok(())
 }
@@ -218,6 +223,11 @@ pub fn newly_gone() -> Vec<usize> {
         }
     }
     out
+}
+
+/// The checksums have differed three times running: the machines have parted.
+pub fn out_of_step() -> bool {
+    SESSION.lock().unwrap().as_ref().map_or(false, |s| s.streak >= 3)
 }
 
 pub fn desyncs() -> u32 {
@@ -401,16 +411,22 @@ impl Session {
     /// Compare the checksums of the tick `t`, when everyone's are there.
     fn compare(&mut self, t: u32) {
         let Some(&mine) = self.sums[self.local].get(&t) else { return };
+        let before = self.desyncs;
+        let mut compared = false;
         for p in 0..self.n() {
             if p == self.local || self.suspect[p] {
                 continue;
             }
             if let Some(&theirs) = self.sums[p].get(&t) {
+                compared = true;
                 if theirs != mine {
                     self.desyncs += 1;
                     eprintln!("[net] DESYNC at tick {t}: this machine {mine:08x}, player {p} {theirs:08x}");
                 }
             }
+        }
+        if compared {
+            self.streak = if self.desyncs > before { self.streak + 1 } else { 0 };
         }
     }
 
@@ -430,6 +446,7 @@ impl Session {
 /// there and returns them, in the order of the players.  `None`: the link is lost.
 pub fn step(local_pad: [u8; PAD_BYTES]) -> Option<Vec<[u8; PAD_BYTES]>> {
     let started = Instant::now();
+    note_frame(started);
     {
         let mut g = SESSION.lock().unwrap();
         let s = g.as_mut()?;
@@ -462,6 +479,7 @@ pub fn step(local_pad: [u8; PAD_BYTES]) -> Option<Vec<[u8; PAD_BYTES]>> {
                 if s.tick % 64 == 0 {
                     s.prune(below);
                 }
+                note_wait(started.elapsed(), s.tick);
                 return Some(out);
             }
             if started.elapsed() > Duration::from_secs(3) && started.elapsed().as_millis() % 2000 < 3 {
@@ -473,6 +491,58 @@ pub fn step(local_pad: [u8; PAD_BYTES]) -> Option<Vec<[u8; PAD_BYTES]>> {
             }
         }
         std::thread::sleep(Duration::from_micros(400));
+    }
+}
+
+/// How the ticks went, written to `net-stats.txt` in the saves folder every 300 ticks: the time a tick took (the game's own work and the wait together) and the
+/// part of it spent waiting for the other machines' pads.  A machine whose own work is slow slows everybody; a long wait means the network or another machine.
+struct Stats {
+    last: Option<Instant>,
+    frames: u32,
+    frame_total: f64,
+    frame_max: f64,
+    wait_total: f64,
+    wait_max: f64,
+    waited: u32,
+}
+
+static STATS: Mutex<Stats> = Mutex::new(Stats { last: None, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0 });
+
+fn note_frame(now: Instant) {
+    let mut st = STATS.lock().unwrap();
+    if let Some(l) = st.last {
+        let ms = (now - l).as_secs_f64() * 1000.0;
+        st.frames += 1;
+        st.frame_total += ms;
+        st.frame_max = st.frame_max.max(ms);
+    }
+    st.last = Some(now);
+}
+
+fn note_wait(wait: Duration, tick: u32) {
+    let ms = wait.as_secs_f64() * 1000.0;
+    let mut st = STATS.lock().unwrap();
+    st.wait_total += ms;
+    st.wait_max = st.wait_max.max(ms);
+    if ms > 2.0 {
+        st.waited += 1;
+    }
+    if tick % 300 == 0 && st.frames > 0 {
+        let line = format!(
+            "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms
+",
+            st.frame_total / st.frames as f64,
+            st.frame_max,
+            st.wait_total / st.frames as f64,
+            st.wait_max,
+            st.waited,
+            st.frames
+        );
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(crate::save_root().join("net-stats.txt")) {
+            let _ = f.write_all(line.as_bytes());
+        }
+        *st = Stats { last: st.last, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0 };
     }
 }
 

@@ -59,9 +59,11 @@ line with the checksum and where the players are every 30 ticks, to compare the 
 Every machine plays every player, so whatever the game reads from this machine's settings must not change what happens.  Found by trying it (a client with
 other settings fell out of step, as the checksums showed): the field of view and the picture's shape (they change what the game takes to be in view), the
 look sensitivity, the aim assistance of a keyboard and mouse player, and the mouse itself (it turned player 1 only on the machine it was moved on).  In a
-network game (`--lobby` or `--net`) the picture is 4:3 with the game's own field of view; the look sensitivity is applied to the right stick before the pad
+network game the picture and the field of view are the machine's own, but the game's workings (the aim, the sway of the weapon) use the original's, as `camTick` stores them for the player; the look sensitivity is applied to the right stick before the pad
 is sent; the mouse's movement is sent in the pad (two numbers more) and every machine turns that player by it; the aim assistance is on for everybody.
-When the checksums differ a message "Out of step with the others" shows on that machine and the log has DESYNC lines.
+When the checksums differ three samples running (one a second) a message "Out of step with the others" shows on that machine; every difference is a DESYNC line in the log.  A lone difference can come from a field only one machine's picture touches (what is in view).
+
+Each player has a profile of their own in a network game, named as the lobby says (the name of the user on each computer), with the character the lobby set; before, all the players shared one called DEBUG and so one character.  `saves/net-stats.txt` has a line every 300 ticks: the time a tick takes and how much of it is waiting for the others.
 
 ## What works and what does not (yet)
 

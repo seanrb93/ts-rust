@@ -157,12 +157,24 @@ fn page_log() {
     }
 }
 
+/// The two constants as the original has them.
+static BASE_VIEW: std::sync::OnceLock<(f32, f32)> = std::sync::OnceLock::new();
+
+/// The constants the game's own happenings use for the shape of the picture and the field of view (in a network game the originals: what is seen by the
+/// player's aim and the weapon's sway must not depend on this machine's window; the picture is drawn with the wider ones).
+pub fn sim_view_constants(ratio: f32, to_radians: f32) -> (f32, f32) {
+    if ts_sdk::net::active() {
+        BASE_VIEW.get().copied().unwrap_or((ratio, to_radians))
+    } else {
+        (ratio, to_radians)
+    }
+}
+
 /// Widescreen / field-of-view: the camera setup (`lvCamera`-side code) multiplies the window's aspect by a constant at
 /// 0x3acfc8 and converts the player's field of view (degrees) to radians with a constant at 0x3acfcc.  Rewriting those two
 /// words each frame widens the picture (and the culling frustum, which is derived from the same numbers) and scales the view.
 fn apply_view() {
-    static BASE: std::sync::OnceLock<(f32, f32)> = std::sync::OnceLock::new();
-    let (b20, b22) = *BASE.get_or_init(|| {
+    let (b20, b22) = *BASE_VIEW.get_or_init(|| {
         let b = (lwc1(0x3acfc8), lwc1(0x3acfcc));
         if std::env::var_os("TS_VIEWLOG").is_some() {
             eprintln!("[view] base aspect constant {} degree constant {}", b.0, b.1);

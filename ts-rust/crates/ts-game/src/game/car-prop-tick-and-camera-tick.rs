@@ -325,6 +325,8 @@ pub fn camTick() {
                 let fov = ps2float::mul(lwc1(now + 260), to_radians).pdiv(full);
                 let far = lwc1(g::far_106);
                 matrixPerspective(lw(now + 1760), aspect, fov, near, far);
+                // (what happens in the game uses the original shape of the picture and field of view in a network game, the drawing the wider ones)
+                let (ratio, to_radians) = sim_view_x(ratio, to_radians);
                 let half = tanf(ps2float::mul(ps2float::mul(lwc1(lw(g::currentplayer) + 260), 0.5_f32), to_radians).pdiv(full));
                 let height = lw(window + 32) as f32;
                 let now = lw(g::currentplayer);

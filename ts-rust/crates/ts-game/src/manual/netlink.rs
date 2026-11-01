@@ -73,7 +73,7 @@ fn where_everybody() -> String {
     for i in 0..lw(g::lvnumplayers) {
         let prop = lw(lw(g::players) + i * 1820 + 384);
         if prop != 0 {
-            s += &format!(" p{} ({:.1} {:.1} {:.1})", i, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));
+            s += &format!(" p{} c{} ({:.1} {:.1} {:.1})", i, lhu(lw(prop + 352) + 4), lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));
         }
     }
     s
@@ -140,8 +140,7 @@ pub fn netlink_tick() {
     }
     // (the checksums say the machines have parted: the player is told, once, and the log has it)
     static TOLD: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-    let d = ts_sdk::net::desyncs();
-    if d != 0 && TOLD.swap(d, std::sync::atomic::Ordering::Relaxed) == 0 {
+    if ts_sdk::net::out_of_step() && TOLD.swap(1, std::sync::atomic::Ordering::Relaxed) == 0 {
         sw(0x240_0000 + 0xd700, 0);
         let text = b"Out of step with the others";
         for (i, c) in text.iter().enumerate() {
@@ -156,6 +155,21 @@ pub fn netlink_tick() {
     let t = ts_sdk::net::tick() - 1;
     if t % ts_sdk::net::SUM_EVERY == 0 {
         let sum = state_sum();
+        if std::env::var("TS_NETDUMP").ok().and_then(|v| v.parse::<u32>().ok()) == Some(t) {
+            // test aid: the words of the players' records and the characters' records at this tick, to find which differ between machines
+            for i in 0..lw(g::lvnumplayers) {
+                for k in 0..455 {
+                    eprintln!("[dump] P{i} +{} {:08x}", k * 4, lw(lw(g::players) + i * 1820 + k * 4));
+                }
+            }
+            eprintln!("[dump] R seed {:016x} count {} frame {}", ld(g::newrndseedval), lw(g::rndcount), lw(g::gameframe));
+            let count = lw(g::lvnumplayers) + lw(g::numactivechars);
+            for i in 0..count {
+                for k in 0..(0x1210 / 4) {
+                    eprintln!("[dump] C{i} +{} {:08x}", k * 4, lw(lw(g::chrinfo) + i * 0x1210 + k * 4));
+                }
+            }
+        }
         ts_sdk::net::submit_sum(t, sum);
         if std::env::var_os("TS_NETLOG").is_some() {
             eprintln!("[net] tick {t} sum {sum:08x}{}", where_everybody());

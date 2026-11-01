@@ -136,6 +136,20 @@ pub fn main_(mut a0: i32, mut a1: i32) {
         for player in 0..4 {
             signonSet(player, profile);
         }
+        // a network game: each player has a profile of their own (the lobby's names), so that each has their own character
+        if ts_sdk::net::active() {
+            let names = ts_sdk::net::setup().map(|s| s.names).filter(|n| !n.is_empty()).unwrap_or_else(|| (1..=ts_sdk::net::num_players()).map(|i| format!("Player {i}")).collect());
+            for (player, n) in names.iter().take(4).enumerate() {
+                let text = ts_sdk::malloc(16);
+                for (i, b) in n.bytes().take(12).chain(std::iter::once(0)).enumerate() {
+                    sb(text + i as i32, b as i32);
+                }
+                let own = signonNew(text);
+                if own >= 0 {
+                    signonSet(player as i32, own);
+                }
+            }
+        }
     }
     v0_1 = rtcGetTime();
     a0_6 = v0_1;

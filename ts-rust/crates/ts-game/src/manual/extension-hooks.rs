@@ -1683,3 +1683,16 @@ pub fn texnum_note_x(entry: i32) {
     #[cfg(not(feature = "extensions"))]
     let _ = entry;
 }
+
+/// The shape of the picture and the degrees-to-radians constant that what happens in the game uses (a network game: the original's, whatever the picture).
+#[inline]
+pub fn sim_view_x(ratio: f32, to_radians: f32) -> (f32, f32) {
+    #[cfg(feature = "extensions")]
+    {
+        sim_view_constants(ratio, to_radians)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        (ratio, to_radians)
+    }
+}
