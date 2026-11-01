@@ -28,6 +28,8 @@ const FIRST_TIMEOUT: Duration = Duration::from_secs(90);
 const DROP_AFTER: Duration = Duration::from_secs(4);
 /// how many of a given-up player's last pads each packet passes on, so the machines that are left all end up with the same ones
 const RELAY_PADS: usize = 16;
+/// how long before the packets are sent again when nothing new has come up
+const RESEND: Duration = Duration::from_millis(5);
 
 /// What to do when the link is lost: told the reason (the port shows it and ends the game).
 static ON_LOST: Mutex<Option<fn(&str)>> = Mutex::new(None);
@@ -131,6 +133,9 @@ struct Session {
     dropped: Vec<Option<u32>>,
     /// the game has been told the player is out
     told: Vec<bool>,
+    /// when packets were last sent, and how many of this machine's pads they had (a packet is sent when there is something new, or now and then)
+    last_sent: Instant,
+    sent_to: u32,
 }
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
@@ -171,6 +176,8 @@ pub fn start(cfg: Config) -> Result<(), String> {
         reports: vec![vec![None; n]; n],
         dropped: vec![None; n],
         told: vec![false; n],
+        last_sent: Instant::now(),
+        sent_to: 0,
     });
     Ok(())
 }
@@ -226,7 +233,16 @@ impl Session {
     fn pump(&mut self) {
         let mine = self.local;
         let have_to = self.pads[mine].keys().next_back().map_or(0, |t| t + 1);
+        // (this is called many times a second while a tick waits: a packet goes out when there is a new pad, and otherwise every few milliseconds in case one was lost)
+        let fresh = have_to != self.sent_to || self.last_sent.elapsed() > RESEND;
+        if fresh {
+            self.sent_to = have_to;
+            self.last_sent = Instant::now();
+        }
         for p in 0..self.n() {
+            if !fresh {
+                break;
+            }
             if p == mine || self.suspect[p] {
                 continue;
             }

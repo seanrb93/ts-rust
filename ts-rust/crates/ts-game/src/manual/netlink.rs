@@ -102,8 +102,11 @@ pub fn netlink_tick() {
     if !ts_sdk::net::active() || lw(g::gamestate) != 3 {
         return;
     }
-    // (the game goes on while this player's pause menu is open, so the menu's buttons must not move the character)
-    let local = if lw(g::gamepaused) != 0 { ts_sdk::net::neutral() } else { pad_bytes(g::controllers + LOCAL_PAD * 384) };
+    let mut local = pad_bytes(g::controllers + LOCAL_PAD * 384);
+    if lw(g::gamepaused) != 0 {
+        // (the game goes on while this player's pause menu is open, and the menu reads the same pad: its buttons go on, the sticks do not move the character)
+        local[8..12].fill(128);
+    }
     let Some(pads) = ts_sdk::net::step(local) else {
         ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
         return;

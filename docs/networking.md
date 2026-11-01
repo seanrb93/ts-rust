@@ -60,7 +60,7 @@ Works: 2 and 3 players, with different pads on each machine, in the same game wi
 A machine with other game files or other mods than the host's is turned away by the lobby (a hash of the build, the packs' sizes and the files of the mods
 that are on).  A player whose machine stops answering for 4 seconds is dropped: the machines that are left agree on the tick from which the player's pad is nothing pressed (the most of the player's pads any of them has, passed on between them), and go on; on that tick everybody sees "Player N has left" and the player's character falls.  With only two players, or when no other machine answers, the game ends with a message.  Each machine hears the sounds from its own
 player's place.  Pause does not stop a network game: the pause menu opens on that machine (it still says Game Paused) while the game goes on for everybody,
-and the character stands still while the menu is open.  The lobby (above) with 3 machines on one PC reaches the same state on all of them.
+and while the menu is open the sticks are not passed on (the buttons are: the menu reads the same pad, so a menu choice with X also jumps).  The lobby (above) with 3 machines on one PC reaches the same state on all of them.
 Not done: a game set-up that comes from the game's own front end pages (mode and options, characters, bots, mods must match by hand),
 two players leaving together (that can desync), reaching a machine behind a router, and a test of play between
 different systems.  In a network game the maths functions (`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `pow`) come from the `libm` crate, whose
