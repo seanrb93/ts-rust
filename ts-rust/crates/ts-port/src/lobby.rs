@@ -14,6 +14,10 @@ const T_LEAVE: u8 = 2;
 const T_ROSTER: u8 = 3;
 const T_CHAR: u8 = 4;
 const T_REJECT: u8 = 5;
+/// a host's announcement on the local network, sent to the broadcast address
+const T_BEACON: u8 = 6;
+/// the port the announcements go to (a joining machine listens on it; it is not the host's own port, so a host and a joiner can share a PC)
+const BEACON_PORT: u16 = 7778;
 /// the port a host listens on
 pub const PORT: u16 = 7777;
 const MAX_PLAYERS: usize = 4;
@@ -88,6 +92,12 @@ pub struct Lobby {
     compat: u32,
     /// the character each player chose (this machine's own at `my_index`; the host keeps its clients' here)
     picks: Vec<usize>,
+    /// host: the socket the announcements go out of; client: the one they come in on
+    beacon: Option<UdpSocket>,
+    last_beacon: Instant,
+    /// the hosts heard on the network: (address, when last heard, their compat hash, players there, level)
+    found: Vec<(SocketAddr, Instant, u32, u8, String)>,
+    found_sel: usize,
     /// (a test aid) the lobby answers itself: `host,<players>,<level>` or `join,<address>`
     auto: Option<Auto>,
 }
@@ -96,6 +106,8 @@ pub struct Lobby {
 enum Auto {
     Host(usize),
     Join,
+    /// look for a game on the network and join the first one found
+    Find,
 }
 
 fn now_seed() -> i32 {
@@ -130,6 +142,10 @@ impl Lobby {
             // (a test aid: a machine that is not like the others)
             compat: compat ^ std::env::var("TS_LOBBY_COMPAT_XOR").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(0),
             picks: vec![0; MAX_PLAYERS],
+            beacon: None,
+            last_beacon: Instant::now() - Duration::from_secs(5),
+            found: Vec::new(),
+            found_sel: 0,
             auto: None,
         };
         // the test aid
@@ -159,6 +175,7 @@ impl Lobby {
                     l.auto = Some(Auto::Join);
                     l.begin_join();
                 }
+                ["find"] => l.auto = Some(Auto::Find),
                 _ => {}
             }
         }
@@ -194,6 +211,7 @@ impl Lobby {
             Ok(s) => {
                 let _ = s.set_nonblocking(true);
                 self.sock = Some(s);
+                self.beacon = None;
                 self.host = Some(addr);
                 self.screen = Screen::Join;
                 self.client_start = false;
@@ -212,6 +230,7 @@ impl Lobby {
         }
         self.sock = None;
         self.host = None;
+        self.beacon = None;
         self.others.clear();
         self.roster.clear();
         self.starting = None;
@@ -230,7 +249,10 @@ impl Lobby {
                         self.screen = Screen::Join;
                         self.sock = None;
                         self.host = None;
-                        self.status = "Type the host's address and press Enter".into();
+                        self.beacon = None;
+                        self.found.clear();
+                        self.found_sel = 0;
+                        self.status = "Pick a game that was found, or type the host's address, and press Enter".into();
                     }
                     _ => self.done = Some(Outcome { level: String::new(), players: 0, local: 0, bind: "0.0.0.0:0".parse().unwrap(), peers: Vec::new(), seed: 0, setup: Default::default() }),
                 },
@@ -266,8 +288,18 @@ impl Lobby {
                     Key::Backspace => {
                         self.addr_text.pop();
                     }
-                    Key::Enter => self.begin_join(),
+                    Key::Up if !self.found.is_empty() => self.found_sel = (self.found_sel + self.found.len() - 1) % self.found.len(),
+                    Key::Down if !self.found.is_empty() => self.found_sel = (self.found_sel + 1) % self.found.len(),
+                    Key::Enter => {
+                        if self.addr_text.trim().is_empty() {
+                            if let Some(f) = self.found.get(self.found_sel) {
+                                self.addr_text = f.0.to_string();
+                            }
+                        }
+                        self.begin_join();
+                    }
                     Key::Back => {
+                        self.beacon = None;
                         self.screen = Screen::Main;
                         self.status.clear();
                     }
@@ -357,11 +389,64 @@ impl Lobby {
         b
     }
 
+    /// The hosts announce themselves on the local network once a second; a machine looking for a game listens and keeps the list.
+    fn discover(&mut self) {
+        match self.screen {
+            Screen::Host if self.starting.is_none() && self.sock.is_some() => {
+                if self.beacon.is_none() {
+                    self.beacon = UdpSocket::bind("0.0.0.0:0").ok().inspect(|s| {
+                        let _ = s.set_broadcast(true);
+                    });
+                }
+                let players = 1 + self.others.len();
+                if self.last_beacon.elapsed() > Duration::from_secs(1) && players < MAX_PLAYERS {
+                    self.last_beacon = Instant::now();
+                    let level = self.levels.get(self.level).cloned().unwrap_or_default();
+                    let mut b = MAGIC.to_le_bytes().to_vec();
+                    b.push(T_BEACON);
+                    b.extend_from_slice(&self.compat.to_le_bytes());
+                    b.push(players as u8);
+                    b.push(level.len().min(60) as u8);
+                    b.extend_from_slice(&level.as_bytes()[..level.len().min(60)]);
+                    if let Some(s) = &self.beacon {
+                        let _ = s.send_to(&b, ("255.255.255.255", BEACON_PORT));
+                    }
+                }
+            }
+            Screen::Join if self.sock.is_none() => {
+                if self.beacon.is_none() {
+                    self.beacon = UdpSocket::bind(("0.0.0.0", BEACON_PORT)).ok().inspect(|s| {
+                        let _ = s.set_nonblocking(true);
+                    });
+                }
+                let mut buf = [0u8; 256];
+                while let Some((n, from)) = self.beacon.as_ref().and_then(|s| s.recv_from(&mut buf).ok()) {
+                    let b = &buf[..n];
+                    if b.len() < 11 || u32::from_le_bytes([b[0], b[1], b[2], b[3]]) != MAGIC || b[4] != T_BEACON {
+                        continue;
+                    }
+                    let compat = u32::from_le_bytes([b[5], b[6], b[7], b[8]]);
+                    let len = b[10] as usize;
+                    let Some(name) = b.get(11..11 + len) else { continue };
+                    let entry = (SocketAddr::new(from.ip(), PORT), Instant::now(), compat, b[9], String::from_utf8_lossy(name).to_string());
+                    match self.found.iter_mut().find(|f| f.0 == entry.0) {
+                        Some(f) => *f = entry,
+                        None => self.found.push(entry),
+                    }
+                }
+                self.found.retain(|f| f.1.elapsed() < Duration::from_secs(4));
+                self.found_sel = self.found_sel.min(self.found.len().saturating_sub(1));
+            }
+            _ => {}
+        }
+    }
+
     /// Once a frame or so: talk to the others and look at what came.
     pub fn tick(&mut self) {
         if self.done.is_some() {
             return;
         }
+        self.discover();
         let mut buf = [0u8; 512];
         let mut got: Vec<(Vec<u8>, SocketAddr)> = Vec::new();
         if let Some(s) = &self.sock {
@@ -530,6 +615,14 @@ impl Lobby {
             _ => {}
         }
         // the test aid: a client that has an address goes straight to it
+        if matches!(self.auto, Some(Auto::Find)) {
+            if self.screen == Screen::Main {
+                self.sel = 1;
+                self.key(Key::Enter);
+            } else if self.screen == Screen::Join && self.sock.is_none() && !self.found.is_empty() {
+                self.key(Key::Enter);
+            }
+        }
         if matches!(self.auto, Some(Auto::Join)) && self.screen == Screen::Main {
             self.begin_join();
         }
@@ -567,7 +660,15 @@ impl Lobby {
             }
             Screen::Join => {
                 if self.sock.is_none() {
-                    s += &format!(" Host address:  {}_\n\n {}\n\n Enter: connect      Esc: back\n", self.addr_text, self.status);
+                    s += " Games found on this network:\n";
+                    if self.found.is_empty() {
+                        s += "   (none yet)\n";
+                    }
+                    for (i, f) in self.found.iter().enumerate() {
+                        let same = if f.2 == self.compat { "" } else { "   (other game files or mods)" };
+                        s += &format!(" {} {}   {} player{}   {}{}\n", if i == self.found_sel { ">" } else { " " }, f.0.ip(), f.3, if f.3 == 1 { "" } else { "s" }, f.4, same);
+                    }
+                    s += &format!("\n Host address:  {}_\n\n {}\n\n Up/Down: pick a game   Enter: connect      Esc: back\n", self.addr_text, self.status);
                 } else {
                     let mode = MODES.iter().find(|m| m.0 == self.setup.mode).map_or("?", |m| m.1);
                     let time = if self.setup.time == 0 { "none".to_string() } else { format!("{} min", self.setup.time) };
