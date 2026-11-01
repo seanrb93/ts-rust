@@ -103,6 +103,23 @@ pub fn netlink_tick() {
         return;
     }
     let mut local = pad_bytes(g::controllers + LOCAL_PAD * 384);
+    // (the look sensitivity and the mouse are part of the pad: the others have no way to know them)
+    let k = ts_sdk::pad::look_sensitivity();
+    if k != 1.0 {
+        for i in [8, 9] {
+            local[i] = (128.0 + (local[i] as f32 - 128.0) * k).round().clamp(0.0, 255.0) as u8;
+        }
+    }
+    let (mut dx, mut dy) = ts_sdk::pad::mouse_take();
+    // test aid: TS_MOUSETEST=<x>,<y> moves the mouse by that much on every tick
+    static TEST: std::sync::OnceLock<(f64, f64)> = std::sync::OnceLock::new();
+    let t = TEST.get_or_init(|| std::env::var("TS_MOUSETEST").ok().and_then(|v| v.split_once(',').map(|(a, b)| (a.parse().unwrap_or(0.0), b.parse().unwrap_or(0.0)))).unwrap_or((0.0, 0.0)));
+    dx += t.0;
+    dy += t.1;
+    if mouse_look_active() {
+        local[16..18].copy_from_slice(&((dx * 8.0).round().clamp(-32000.0, 32000.0) as i16).to_le_bytes());
+        local[18..20].copy_from_slice(&((dy * 8.0).round().clamp(-32000.0, 32000.0) as i16).to_le_bytes());
+    }
     if lw(g::gamepaused) != 0 {
         // (the game goes on while this player's pause menu is open, and the menu reads the same pad: its buttons go on, the sticks do not move the character)
         local[8..12].fill(128);
@@ -115,6 +132,23 @@ pub fn netlink_tick() {
         let record = FIRST_NET_PAD + p as i32;
         put_pad(g::controllers + record * 384, b);
         sw(g::playercontrollers + 4 * p as i32, record);
+        let mx = i16::from_le_bytes([b[16], b[17]]);
+        let my = i16::from_le_bytes([b[18], b[19]]);
+        if (mx != 0 || my != 0) && (p as i32) < lw(g::lvnumplayers) {
+            mouse_turn_player(lw(g::players) + p as i32 * 1820, mx as f32 / 8.0, my as f32 / 8.0);
+        }
+    }
+    // (the checksums say the machines have parted: the player is told, once, and the log has it)
+    static TOLD: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let d = ts_sdk::net::desyncs();
+    if d != 0 && TOLD.swap(d, std::sync::atomic::Ordering::Relaxed) == 0 {
+        sw(0x240_0000 + 0xd700, 0);
+        let text = b"Out of step with the others";
+        for (i, c) in text.iter().enumerate() {
+            sb(0x240_0000 + 0xd700 + i as i32, *c as i32);
+        }
+        sb(0x240_0000 + 0xd700 + text.len() as i32, 0);
+        hudMessage(ts_sdk::net::local_player().min(lw(g::lvnumplayers) - 1), 0x240_0000 + 0xd700);
     }
     for p in ts_sdk::net::newly_gone() {
         player_left(p as i32);

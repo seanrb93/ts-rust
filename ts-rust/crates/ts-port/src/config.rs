@@ -213,6 +213,9 @@ fn parse_bool(v: &str) -> Option<bool> {
     }
 }
 
+/// The program is for a network game (`--lobby` or `--net`): the picture is 4:3 with the game's own field of view.
+pub static NETWORK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 fn parse_aspect(v: &str) -> Option<Option<f32>> {
     let v = v.trim().to_ascii_lowercase();
     if v == "auto" {
@@ -390,6 +393,11 @@ pub fn load(overrides: &[(String, String)]) {
         if let Err(e) = c.set(k, v) {
             eprintln!("[config] {e}");
         }
+    }
+    // (a network game: the picture's shape and the field of view change what the game sees and so what happens, and must be the same on every machine)
+    if NETWORK.load(std::sync::atomic::Ordering::Relaxed) {
+        c.aspect = Some(4.0 / 3.0);
+        c.fov = 0.0;
     }
     ts_sdk::set_view(c.aspect.unwrap_or(4.0 / 3.0), c.fov);
     ts_sdk::set_logic_hz(c.logic_hz(None));

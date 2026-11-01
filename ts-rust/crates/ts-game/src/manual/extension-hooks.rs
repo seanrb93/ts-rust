@@ -907,7 +907,12 @@ pub fn autoaim_off_x() -> bool {
 pub fn look_scale(speed: f32) -> f32 {
     #[cfg(feature = "extensions")]
     {
-        speed * ts_sdk::pad::look_sensitivity()
+        // (a network game: the sensitivity is in the pad this machine sends, so that every machine turns every player the same)
+        if ts_sdk::net::active() {
+            speed
+        } else {
+            speed * ts_sdk::pad::look_sensitivity()
+        }
     }
     #[cfg(not(feature = "extensions"))]
     {

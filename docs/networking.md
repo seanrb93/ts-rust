@@ -54,6 +54,15 @@ ts-rust.exe --level Prison --players 2 --net local=1,peers=192.168.1.10:7000/192
 on its own entry), `seed` and `delay` are the same everywhere.  On one PC use different ports (`127.0.0.1:7000/127.0.0.1:7001`).  `TS_NETLOG=1` prints a
 line with the checksum and where the players are every 30 ticks, to compare the machines.
 
+## What must be the same on every machine
+
+Every machine plays every player, so whatever the game reads from this machine's settings must not change what happens.  Found by trying it (a client with
+other settings fell out of step, as the checksums showed): the field of view and the picture's shape (they change what the game takes to be in view), the
+look sensitivity, the aim assistance of a keyboard and mouse player, and the mouse itself (it turned player 1 only on the machine it was moved on).  In a
+network game (`--lobby` or `--net`) the picture is 4:3 with the game's own field of view; the look sensitivity is applied to the right stick before the pad
+is sent; the mouse's movement is sent in the pad (two numbers more) and every machine turns that player by it; the aim assistance is on for everybody.
+When the checksums differ a message "Out of step with the others" shows on that machine and the log has DESYNC lines.
+
 ## What works and what does not (yet)
 
 Works: 2 and 3 players, with different pads on each machine, in the same game with identical checksums; each machine shows its own view.

@@ -14,7 +14,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 /// The size of a pad record.
-pub const PAD_BYTES: usize = 16;
+pub const PAD_BYTES: usize = 20;
 /// The checksum is compared every this many ticks.
 pub const SUM_EVERY: u32 = 30;
 

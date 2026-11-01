@@ -39,11 +39,31 @@ pub fn weapon_zooms() -> bool {
 
 /// The aim assistance is off for the player who uses the keyboard and the mouse.
 pub fn autoaim_off() -> bool {
-    ts_sdk::pad::mkb_active() && lw(g::currentplayer) == lw(g::players)
+    // (a network game: the same for every player on every machine)
+    !ts_sdk::net::active() && ts_sdk::pad::mkb_active() && lw(g::currentplayer) == lw(g::players)
+}
+
+/// Turn the player `p` (a player of the players array) by the mouse's movement `dx`, `dy` in counts.
+pub fn mouse_turn_player(p: i32, dx: f32, dy: f32) {
+    let fov = (lwc1(p + 260) / 60.0).clamp(0.05, 2.0);
+    let k = DEGREES * fov;
+    let mut yaw = lwc1(p + 276) - dx * k;
+    while yaw < 0.0 {
+        yaw += 360.0;
+    }
+    while yaw >= 360.0 {
+        yaw -= 360.0;
+    }
+    swc1(p + 276, yaw);
+    swc1(p + 284, (lwc1(p + 284) - dy * k).clamp(-50.0, 50.0));
 }
 
 /// Called once per frame.
 pub fn mouse_look_tick() {
+    // (a network game: the mouse's movement goes to the others with the pad, and every machine turns the player by it: see `netlink_tick`)
+    if ts_sdk::net::active() {
+        return;
+    }
     let (mut dx, mut dy) = ts_sdk::pad::mouse_take();
     // test aid: TS_MOUSETEST=<x>,<y> moves the mouse by that much on every frame of a level
     static TEST: std::sync::OnceLock<(f64, f64)> = std::sync::OnceLock::new();

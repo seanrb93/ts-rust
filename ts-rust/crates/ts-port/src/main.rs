@@ -695,7 +695,10 @@ fn main() {
                 ts_sdk::net::set_setup(st);
             }
             // the lobby of a network game before the game starts
-            "--lobby" => lobby_on = true,
+            "--lobby" => {
+                lobby_on = true;
+                config::NETWORK.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
             "--window" => force_window = true,
             "--set" => {
                 if let Some((k, v)) = it.next().and_then(|a| a.split_once('=').map(|(k, v)| (k.to_string(), v.to_string()))) {
@@ -711,6 +714,7 @@ fn main() {
             "--players" => players = it.next(),
             // network play (a test form until there is a lobby): local=<player>,peers=<ip:port>/<ip:port>[/...],seed=<n>,delay=<ticks>
             "--net" => {
+                config::NETWORK.store(true, std::sync::atomic::Ordering::Relaxed);
                 let spec = it.next().unwrap_or_default();
                 let mut cfg = ts_sdk::net::Config { local: 0, peers: Vec::new(), bind: "0.0.0.0:0".parse().unwrap(), seed: 1, delay: 3 };
                 for part in spec.split(',') {
