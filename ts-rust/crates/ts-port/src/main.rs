@@ -961,7 +961,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
     };
     ts_sdk::net::set_on_lost(net_lost);
     LOBBY_WAIT.store(lobby_on, std::sync::atomic::Ordering::Relaxed);
-    let lobby = if lobby_on { Some(lobby::Lobby::new(ts_game::netlink_level_names(), ts_game::netlink_characters(), compat_hash(&exe_dir()))) } else { None };
+    let lobby = if lobby_on { Some(lobby::Lobby::new(ts_game::netlink_level_names(), ts_game::netlink_characters(), compat_hash(&exe_dir()), ts_game::netlink_weapon_sets())) } else { None };
     if windowed {
         // the OS event loop must own the main thread; the game thread is started once the window exists (and the lobby is done)
         window::run(lobby, |o| {

@@ -61,11 +61,13 @@ pub struct Setup {
     pub bots: Vec<i32>,
     /// the character of each player
     pub chars: Vec<i32>,
+    /// the weapon set (0 custom, 1 to 9 a preset) and the five weapons of the custom one; `None`: as the game has it
+    pub weapons: Option<(i32, [i32; 5])>,
 }
 
 impl Default for Setup {
     fn default() -> Setup {
-        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new() }
+        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None }
     }
 }
 
@@ -73,6 +75,11 @@ static SETUP: Mutex<Option<Setup>> = Mutex::new(None);
 
 pub fn set_setup(s: Setup) {
     *SETUP.lock().unwrap() = Some(s);
+}
+
+/// The weapon set of the match, when the lobby chose one.
+pub fn weapons() -> Option<(i32, [i32; 5])> {
+    SETUP.lock().unwrap().as_ref().and_then(|s| s.weapons)
 }
 
 pub fn setup() -> Option<Setup> {

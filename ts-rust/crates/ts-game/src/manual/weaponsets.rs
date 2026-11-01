@@ -114,6 +114,13 @@ fn sync(v: i32) {
 
 /// What the game's code is told is the weapon set: any custom set is 0 (its weapons are in `gunzpack` by then), a preset is itself.
 pub fn weaponset_effective() -> i32 {
+    // (a network game: the host's choice, the same on every machine, whatever the files here say)
+    if let Some((set, pack)) = ts_sdk::net::weapons() {
+        if set == 0 {
+            write_gunzpack(&pack);
+        }
+        return set;
+    }
     fix_list();
     let v = lw(g::gv_weaponset);
     sync(v);

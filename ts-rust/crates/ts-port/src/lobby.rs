@@ -22,7 +22,7 @@ const BEACON_PORT: u16 = 7778;
 pub const PORT: u16 = 7777;
 const MAX_PLAYERS: usize = 4;
 /// the rows of the host's screen: the level, the mode, the time limit, the score limit, the bots, friendly fire and the character
-const HOST_ROWS: usize = 7;
+const HOST_ROWS: usize = 8;
 /// the modes the lobby offers: (number, name)
 const MODES: [(i32, &str); 4] = [(3, "Deathmatch"), (1, "Bag Tag"), (2, "Capture the Bag"), (5, "Knockout")];
 
@@ -88,6 +88,9 @@ pub struct Lobby {
     row: usize,
     /// the number of bots
     bots: usize,
+    /// the weapon sets that can be chosen: (number, the five weapons of a custom one) and the one chosen
+    wsets: Vec<(i32, [i32; 5])>,
+    wset: usize,
     /// what the machines must have in common (the build, the game's files, the mods)
     compat: u32,
     /// the character each player chose (this machine's own at `my_index`; the host keeps its clients' here)
@@ -115,7 +118,7 @@ fn now_seed() -> i32 {
 }
 
 impl Lobby {
-    pub fn new(levels: Vec<String>, chars: Vec<(i32, String)>, compat: u32) -> Lobby {
+    pub fn new(levels: Vec<String>, chars: Vec<(i32, String)>, compat: u32, wsets: Vec<(i32, [i32; 5])>) -> Lobby {
         let level = levels.iter().position(|l| l.eq_ignore_ascii_case("Prison")).unwrap_or(0);
         let mut l = Lobby {
             screen: Screen::Main,
@@ -139,6 +142,8 @@ impl Lobby {
             chars,
             row: 0,
             bots: 0,
+            wsets,
+            wset: 0,
             // (a test aid: a machine that is not like the others)
             compat: compat ^ std::env::var("TS_LOBBY_COMPAT_XOR").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(0),
             picks: vec![0; MAX_PLAYERS],
@@ -148,6 +153,7 @@ impl Lobby {
             found_sel: 0,
             auto: None,
         };
+        l.apply_wset();
         // the test aid
         if let Ok(a) = std::env::var("TS_LOBBY_AUTO") {
             let parts: Vec<&str> = a.split(',').collect();
@@ -323,7 +329,27 @@ impl Lobby {
             3 => self.setup.limit = step(self.setup.limit, 1, 100),
             4 => self.bots = step(self.bots as i32, 0, 6) as usize,
             5 => self.setup.friendly = !self.setup.friendly,
+            6 => {
+                let n = self.wsets.len().max(1) as i32;
+                self.wset = (self.wset as i32 + d).rem_euclid(n) as usize;
+                self.apply_wset();
+            }
             _ => self.change_char(d),
+        }
+    }
+
+    /// The weapon set chosen goes into the match.
+    fn apply_wset(&mut self) {
+        self.setup.weapons = self.wsets.get(self.wset).map(|w| (if w.0 == 0 || w.0 >= 10 { 0 } else { w.0 }, w.1));
+    }
+
+    /// The name of a weapon set.
+    fn wset_name(&self, i: usize) -> String {
+        match self.wsets.get(i) {
+            Some(&(v, _)) if v == 0 => "Custom 1".into(),
+            Some(&(v, _)) if v >= 10 => format!("Custom {}", v - 8),
+            Some(&(v, _)) => format!("Preset {v}"),
+            None => "?".into(),
         }
     }
 
@@ -385,6 +411,12 @@ impl Lobby {
         b.push(self.bots as u8);
         for p in 0..1 + self.others.len() {
             b.push(self.picks[p] as u8);
+        }
+        // the weapon set and the five weapons of the custom one
+        let (set, pack) = self.setup.weapons.unwrap_or((0, [-1; 5]));
+        b.push(set as u8);
+        for w in pack {
+            b.extend_from_slice(&(w as i16).to_le_bytes());
         }
         b
     }
@@ -553,6 +585,13 @@ impl Lobby {
                         self.roster = roster;
                     }
                     // the match the host set
+                    if let Some(w) = b.get(at + 5 + self.n_players..at + 5 + self.n_players + 11) {
+                        let mut pack = [0i32; 5];
+                        for (k, p) in pack.iter_mut().enumerate() {
+                            *p = i16::from_le_bytes([w[1 + 2 * k], w[2 + 2 * k]]) as i32;
+                        }
+                        self.setup.weapons = Some((w[0] as i32, pack));
+                    }
                     if let Some(m) = b.get(at..at + 5 + self.n_players) {
                         self.setup.mode = m[0] as i32;
                         self.setup.time = m[1] as i32;
@@ -651,7 +690,8 @@ impl Lobby {
                 s += &format!(" {} Score limit      < {} >\n", cur(3), self.setup.limit);
                 s += &format!(" {} Bots             < {} >\n", cur(4), self.bots);
                 s += &format!(" {} Friendly fire    < {} >\n", cur(5), if self.setup.friendly { "yes" } else { "no" });
-                s += &format!(" {} Your character   < {} >\n\n", cur(6), chr);
+                s += &format!(" {} Weapons          < {} >\n", cur(6), self.wset_name(self.wset));
+                s += &format!(" {} Your character   < {} >\n\n", cur(7), chr);
                 s += &format!("   1  you (host)  {}\n", chr);
                 for (i, a) in self.others.iter().enumerate() {
                     s += &format!("   {}  {}  {}\n", i + 2, a, self.chars.get(self.picks[i + 1]).map_or("?", |c| c.1.as_str()));
@@ -673,7 +713,12 @@ impl Lobby {
                     let mode = MODES.iter().find(|m| m.0 == self.setup.mode).map_or("?", |m| m.1);
                     let time = if self.setup.time == 0 { "none".to_string() } else { format!("{} min", self.setup.time) };
                     let chr = self.chars.get(self.picks[self.my_index.min(MAX_PLAYERS - 1)]).map_or("?", |c| c.1.as_str());
-                    s += &format!(" Level: {}   Mode: {}   Time: {}   Score limit: {}   Bots: {}\n\n", self.levels.get(self.level).map_or("?", |l| l.as_str()), mode, time, self.setup.limit, self.bots);
+                    let weapons = match self.setup.weapons {
+                        Some((0, _)) => "Custom".to_string(),
+                        Some((v, _)) => format!("Preset {v}"),
+                        None => "?".to_string(),
+                    };
+                    s += &format!(" Level: {}   Mode: {}   Time: {}   Score limit: {}   Bots: {}   Weapons: {}\n\n", self.levels.get(self.level).map_or("?", |l| l.as_str()), mode, time, self.setup.limit, self.bots, weapons);
                     s += &format!(" Your character  < {} >   (Left / Right)\n\n {}\n\n Esc: leave\n", chr, self.status);
                 }
             }

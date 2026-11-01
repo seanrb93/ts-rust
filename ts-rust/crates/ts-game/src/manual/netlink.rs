@@ -188,6 +188,30 @@ pub fn netlink_characters() -> Vec<(i32, String)> {
     v
 }
 
+/// The weapon sets the lobby offers: (the set's number, its five weapons): the custom ones that have weapons (from the file of the sets, the first from the
+/// game's own when there is no file), then the nine presets.
+pub fn netlink_weapon_sets() -> Vec<(i32, [i32; 5])> {
+    let mut v = Vec::new();
+    let text = std::fs::read_to_string(ts_sdk::save_root().join("weapon_sets.txt")).unwrap_or_default();
+    for (i, line) in text.lines().take(5).enumerate() {
+        let nums: Vec<i32> = line.split_whitespace().filter_map(|x| x.parse().ok()).collect();
+        if nums.len() == 5 && nums[0] >= 0 {
+            v.push((if i == 0 { 0 } else { 9 + i as i32 }, [nums[0], nums[1], nums[2], nums[3], nums[4]]));
+        }
+    }
+    if v.is_empty() {
+        let mut a = [0; 5];
+        for (k, w) in a.iter_mut().enumerate() {
+            *w = lw(g::gunzpack + 4 * k as i32);
+        }
+        v.push((0, a));
+    }
+    for p in 1..10 {
+        v.push((p, [0; 5]));
+    }
+    v
+}
+
 /// The names of the levels the game has, in the order of its table (the lobby offers them).
 pub fn netlink_level_names() -> Vec<String> {
     let mut v = Vec::new();
