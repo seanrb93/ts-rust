@@ -29,8 +29,15 @@ X and circle):
 When the host starts, every machine gets the level, the number of the player, the others' addresses and the random seed, and starts the game at once.
 For tests without a window: `TS_LOBBY_AUTO=host,3,Prison` (starts when 3 players are there) and `TS_LOBBY_AUTO=join,127.0.0.1:7777`, with `--lobby --headless`.
 
-The lobby is separate from the game's own menus for now: it starts a Deathmatch on the chosen level with default settings and the first characters.
-Choosing the mode, the options, the characters, bots and weapon sets from the arcade pages is still to do.
+The host's rows (Up/Down to move, Left/Right to change): Level, Mode (Deathmatch, Bag Tag, Capture the Bag, Knockout), Time limit (minutes), Score limit
+(the kills of Deathmatch, the goal of Capture the Bag and Knockout), Bots (0 to 6), Friendly fire and Your character.  A player who has joined picks
+their own character with Left/Right and the others see it.  These are the options of the game's own Options page for the mode, written into the game's records
+when the match starts (`netlink_options`, `netlink_parms`, `netlink_player_char`, `netlink_bots` in `netlink.rs`); the lobby is still separate from the
+game's menus, and weapon sets, bot sets, handicaps and the other options are not in it yet.  Not every level suits every mode (a level needs the pads
+of a mode's set-up); a mode that does not fit its level may misbehave.
+
+For tests the same setup can be given without a lobby with `--setup mode=5,time=2,limit=7,friendly=0,bots=11/12,chars=3/9` (the numbers are characters),
+and `TS_LOBBY_SETUP`, `TS_LOBBY_CHAR` with the auto lobby.
 
 ## Trying it by hand (all the machines on one PC, or a LAN)
 

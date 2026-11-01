@@ -24,6 +24,39 @@ const MAX_PADS: u32 = 24;
 /// how long a tick waits for a pad before the link is given up
 const TIMEOUT: Duration = Duration::from_secs(30);
 
+/// What the lobby decided about the match, besides the level: the same on every machine.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Setup {
+    /// the game mode: 1 BagTag, 2 Capture the Bag, 3 Deathmatch, 4 Escort, 5 KnockOut, 6 Last Stand
+    pub mode: i32,
+    /// the time limit in minutes (0: none)
+    pub time: i32,
+    /// the score limit (the kills of Deathmatch, the goal of Capture the Bag and KnockOut)
+    pub limit: i32,
+    /// friendly fire in team games
+    pub friendly: bool,
+    /// the characters of the bots
+    pub bots: Vec<i32>,
+    /// the character of each player
+    pub chars: Vec<i32>,
+}
+
+impl Default for Setup {
+    fn default() -> Setup {
+        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new() }
+    }
+}
+
+static SETUP: Mutex<Option<Setup>> = Mutex::new(None);
+
+pub fn set_setup(s: Setup) {
+    *SETUP.lock().unwrap() = Some(s);
+}
+
+pub fn setup() -> Option<Setup> {
+    SETUP.lock().unwrap().clone()
+}
+
 /// How to start a session.
 pub struct Config {
     /// this machine's player (0 to `peers.len() - 1`)

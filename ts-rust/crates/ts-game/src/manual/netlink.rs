@@ -105,6 +105,68 @@ pub fn netlink_tick() {
     }
 }
 
+/// The options of the match the lobby set (called where the mods' presets are written, after the game made the records of the options).
+pub fn netlink_options() {
+    let Some(s) = ts_sdk::net::setup() else { return };
+    let rec = 0x1fc2c98 + (s.mode << 5);
+    sw(rec + 12, s.time);
+    match s.mode {
+        3 => sw(rec + 16, s.limit),
+        2 | 5 => sw(rec + 20, s.limit),
+        _ => {}
+    }
+    sw(rec + 4, s.friendly as i32);
+}
+
+/// The mode and the bots of the match the lobby set (called when the game's parameters have been given their starts).
+pub fn netlink_parms() {
+    let Some(s) = ts_sdk::net::setup() else { return };
+    sw(g::curgameparms + 72, s.mode);
+}
+
+/// The character of a player the lobby set (at the start of a player's restart).
+pub fn netlink_player_char(player: i32) {
+    let Some(s) = ts_sdk::net::setup() else { return };
+    let Some(&chr) = s.chars.get(player as usize) else { return };
+    let id = signonGet(player);
+    if id >= 0 && (0..128).contains(&chr) {
+        sw(lw(g::signonarray) + id * 2936 + 32 + 84, chr);
+    }
+}
+
+/// The bots the lobby set (at the start of the bots' restart).
+pub fn netlink_bots() {
+    let Some(s) = ts_sdk::net::setup() else { return };
+    let parms = g::curgameparms;
+    let players = lw(g::lvnumplayers).max(1);
+    let n = s.bots.len().min(10);
+    sw(parms + 8, n as i32);
+    for (i, b) in s.bots.iter().take(n).enumerate() {
+        sb(parms + 21 + players + i as i32, *b);
+    }
+}
+
+/// The characters of the game: (number, name), those with a name in the menus.
+pub fn netlink_characters() -> Vec<(i32, String)> {
+    let mut v = Vec::new();
+    for chr in 0..128 {
+        let id = lhu(CHRS_TABLE + 44 * chr);
+        if id == 0 {
+            continue;
+        }
+        let mut at = lw(lw(g::languages + 4 * lw(g::cur_language)) + 4 * id);
+        let mut name = String::new();
+        while at != 0 && lbu(at) != 0 && name.len() < 30 {
+            name.push(lbu(at) as u8 as char);
+            at += 1;
+        }
+        if !name.is_empty() {
+            v.push((chr, name));
+        }
+    }
+    v
+}
+
 /// The names of the levels the game has, in the order of its table (the lobby offers them).
 pub fn netlink_level_names() -> Vec<String> {
     let mut v = Vec::new();

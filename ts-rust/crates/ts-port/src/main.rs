@@ -676,6 +676,24 @@ fn main() {
                 }
             }
             "--headless" => headless = true,
+            // the match the lobby decides (a test form): mode=<n>,time=<minutes>,limit=<points>,friendly=<0|1>,bots=<chr>/<chr>,chars=<chr>/<chr>
+            "--setup" => {
+                let spec = it.next().unwrap_or_default();
+                let mut st = ts_sdk::net::Setup::default();
+                let list = |v: &str| v.split('/').filter_map(|x| x.parse::<i32>().ok()).collect::<Vec<_>>();
+                for part in spec.split(',') {
+                    match part.split_once('=') {
+                        Some(("mode", v)) => st.mode = v.parse().unwrap_or(3),
+                        Some(("time", v)) => st.time = v.parse().unwrap_or(0),
+                        Some(("limit", v)) => st.limit = v.parse().unwrap_or(20),
+                        Some(("friendly", v)) => st.friendly = v != "0",
+                        Some(("bots", v)) => st.bots = list(v),
+                        Some(("chars", v)) => st.chars = list(v),
+                        _ => {}
+                    }
+                }
+                ts_sdk::net::set_setup(st);
+            }
             // the lobby of a network game before the game starts
             "--lobby" => lobby_on = true,
             "--window" => force_window = true,
@@ -908,6 +926,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
                         fatal(&format!("The network game cannot start: {e}"));
                     }
                 }
+                ts_sdk::net::set_setup(o.setup.clone());
                 (Some(o.level), Some(o.players.to_string()))
             }
             None => (level.clone(), players.clone()),
@@ -941,7 +960,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
         std::process::exit(0);
     };
     LOBBY_WAIT.store(lobby_on, std::sync::atomic::Ordering::Relaxed);
-    let lobby = if lobby_on { Some(lobby::Lobby::new(ts_game::netlink_level_names())) } else { None };
+    let lobby = if lobby_on { Some(lobby::Lobby::new(ts_game::netlink_level_names(), ts_game::netlink_characters())) } else { None };
     if windowed {
         // the OS event loop must own the main thread; the game thread is started once the window exists (and the lobby is done)
         window::run(lobby, |o| {

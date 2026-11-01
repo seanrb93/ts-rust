@@ -12,9 +12,14 @@ const MAGIC: u32 = 0x4c42_5354; // "TSBL"
 const T_JOIN: u8 = 1;
 const T_LEAVE: u8 = 2;
 const T_ROSTER: u8 = 3;
+const T_CHAR: u8 = 4;
 /// the port a host listens on
 pub const PORT: u16 = 7777;
 const MAX_PLAYERS: usize = 4;
+/// the rows of the host's screen: the level, the mode, the time limit, the score limit, the bots, friendly fire and the character
+const HOST_ROWS: usize = 7;
+/// the modes the lobby offers: (number, name)
+const MODES: [(i32, &str); 4] = [(3, "Deathmatch"), (1, "Bag Tag"), (2, "Capture the Bag"), (5, "Knockout")];
 
 /// What the lobby decided.
 #[derive(Clone, Debug)]
@@ -25,6 +30,7 @@ pub struct Outcome {
     pub bind: SocketAddr,
     pub peers: Vec<SocketAddr>,
     pub seed: i32,
+    pub setup: ts_sdk::net::Setup,
 }
 
 /// A key or a button of the lobby.
@@ -69,6 +75,16 @@ pub struct Lobby {
     done: Option<Outcome>,
     /// a client has seen the start
     client_start: bool,
+    /// the match: what the host chose (a client sees it as the host sends it)
+    setup: ts_sdk::net::Setup,
+    /// the characters of the game: (number, name)
+    chars: Vec<(i32, String)>,
+    /// the row of the screen the cursor is on
+    row: usize,
+    /// the number of bots
+    bots: usize,
+    /// the character each player chose (this machine's own at `my_index`; the host keeps its clients' here)
+    picks: Vec<usize>,
     /// (a test aid) the lobby answers itself: `host,<players>,<level>` or `join,<address>`
     auto: Option<Auto>,
 }
@@ -84,7 +100,7 @@ fn now_seed() -> i32 {
 }
 
 impl Lobby {
-    pub fn new(levels: Vec<String>) -> Lobby {
+    pub fn new(levels: Vec<String>, chars: Vec<(i32, String)>) -> Lobby {
         let level = levels.iter().position(|l| l.eq_ignore_ascii_case("Prison")).unwrap_or(0);
         let mut l = Lobby {
             screen: Screen::Main,
@@ -104,6 +120,11 @@ impl Lobby {
             last_send: Instant::now() - Duration::from_secs(1),
             done: None,
             client_start: false,
+            setup: ts_sdk::net::Setup::default(),
+            chars,
+            row: 0,
+            bots: 0,
+            picks: vec![0; MAX_PLAYERS],
             auto: None,
         };
         // the test aid
@@ -115,6 +136,17 @@ impl Lobby {
                         l.level = i;
                     }
                     l.auto = Some(Auto::Host(n.parse().unwrap_or(2)));
+                    // (the match, for a test: mode=<n>,time=<minutes>,limit=<points>,bots=<count>,char=<index>)
+                    for part in std::env::var("TS_LOBBY_SETUP").unwrap_or_default().split(',') {
+                        match part.split_once('=') {
+                            Some(("mode", v)) => l.setup.mode = v.parse().unwrap_or(3),
+                            Some(("time", v)) => l.setup.time = v.parse().unwrap_or(0),
+                            Some(("limit", v)) => l.setup.limit = v.parse().unwrap_or(20),
+                            Some(("bots", v)) => l.bots = v.parse().unwrap_or(0),
+                            Some(("char", v)) => l.picks[0] = v.parse().unwrap_or(0),
+                            _ => {}
+                        }
+                    }
                     l.begin_host();
                 }
                 ["join", addr] => {
@@ -195,14 +227,16 @@ impl Lobby {
                         self.host = None;
                         self.status = "Type the host's address and press Enter".into();
                     }
-                    _ => self.done = Some(Outcome { level: String::new(), players: 0, local: 0, bind: "0.0.0.0:0".parse().unwrap(), peers: Vec::new(), seed: 0 }),
+                    _ => self.done = Some(Outcome { level: String::new(), players: 0, local: 0, bind: "0.0.0.0:0".parse().unwrap(), peers: Vec::new(), seed: 0, setup: Default::default() }),
                 },
-                Key::Back => self.done = Some(Outcome { level: String::new(), players: 0, local: 0, bind: "0.0.0.0:0".parse().unwrap(), peers: Vec::new(), seed: 0 }),
+                Key::Back => self.done = Some(Outcome { level: String::new(), players: 0, local: 0, bind: "0.0.0.0:0".parse().unwrap(), peers: Vec::new(), seed: 0, setup: Default::default() }),
                 _ => {}
             },
             Screen::Host => match k {
-                Key::Left if self.starting.is_none() && !self.levels.is_empty() => self.level = (self.level + self.levels.len() - 1) % self.levels.len(),
-                Key::Right if self.starting.is_none() && !self.levels.is_empty() => self.level = (self.level + 1) % self.levels.len(),
+                Key::Up if self.starting.is_none() => self.row = (self.row + HOST_ROWS - 1) % HOST_ROWS,
+                Key::Down if self.starting.is_none() => self.row = (self.row + 1) % HOST_ROWS,
+                Key::Left if self.starting.is_none() => self.change(-1),
+                Key::Right if self.starting.is_none() => self.change(1),
                 Key::Enter if self.starting.is_none() && !self.others.is_empty() => {
                     self.seed = now_seed();
                     self.starting = Some(Instant::now());
@@ -214,8 +248,11 @@ impl Lobby {
             },
             Screen::Join => {
                 if self.sock.is_some() {
-                    if k == Key::Back {
-                        self.leave();
+                    match k {
+                        Key::Back => self.leave(),
+                        Key::Left => self.change_char(-1),
+                        Key::Right => self.change_char(1),
+                        _ => {}
                     }
                     return;
                 }
@@ -233,6 +270,53 @@ impl Lobby {
                 }
             }
         }
+    }
+
+    /// Change the value of the row the host's cursor is on.
+    fn change(&mut self, d: i32) {
+        let step = |v: i32, lo: i32, hi: i32| (v + d).clamp(lo, hi);
+        let n = self.levels.len().max(1) as i32;
+        match self.row {
+            0 => self.level = ((self.level as i32 + d).rem_euclid(n)) as usize,
+            1 => {
+                let at = MODES.iter().position(|m| m.0 == self.setup.mode).unwrap_or(0) as i32;
+                self.setup.mode = MODES[(at + d).rem_euclid(MODES.len() as i32) as usize].0;
+            }
+            2 => self.setup.time = step(self.setup.time, 0, 60),
+            3 => self.setup.limit = step(self.setup.limit, 1, 100),
+            4 => self.bots = step(self.bots as i32, 0, 6) as usize,
+            5 => self.setup.friendly = !self.setup.friendly,
+            _ => self.change_char(d),
+        }
+    }
+
+    /// Change the character this machine's player plays.
+    fn change_char(&mut self, d: i32) {
+        if self.chars.is_empty() {
+            return;
+        }
+        let n = self.chars.len() as i32;
+        let at = (self.picks[self.my_index.min(MAX_PLAYERS - 1)] as i32 + d).rem_euclid(n) as usize;
+        self.picks[self.my_index.min(MAX_PLAYERS - 1)] = at;
+        // (a client tells the host)
+        if self.screen == Screen::Join {
+            if let (Some(s), Some(h)) = (&self.sock, self.host) {
+                let mut b = MAGIC.to_le_bytes().to_vec();
+                b.push(T_CHAR);
+                b.push(at as u8);
+                let _ = s.send_to(&b, h);
+            }
+        }
+    }
+
+    /// The match as it stands: the options, the bots and the character of each player.
+    fn match_setup(&self, players: usize) -> ts_sdk::net::Setup {
+        let mut s = self.setup.clone();
+        let chr = |i: usize| self.chars.get(i % self.chars.len().max(1)).map_or(0, |c| c.0);
+        s.chars = (0..players).map(|p| chr(self.picks.get(p).copied().unwrap_or(0))).collect();
+        // (the bots are characters the players are not: the next ones of the list)
+        s.bots = (0..self.bots).map(|b| chr(8 + 3 * b)).collect();
+        s
     }
 
     fn roster_packet(&self, to_index: usize, starting: bool) -> Vec<u8> {
@@ -255,6 +339,15 @@ impl Lobby {
                 }
                 _ => b.extend_from_slice(&[0; 6]),
             }
+        }
+        // the match: the mode, the time limit, the score limit, friendly fire, the bots, the characters picked by the players (the list's numbers)
+        b.push(self.setup.mode as u8);
+        b.push(self.setup.time as u8);
+        b.push(self.setup.limit as u8);
+        b.push(self.setup.friendly as u8);
+        b.push(self.bots as u8);
+        for p in 0..1 + self.others.len() {
+            b.push(self.picks[p] as u8);
         }
         b
     }
@@ -284,6 +377,11 @@ impl Lobby {
                             }
                         }
                         T_LEAVE => self.others.retain(|a| *a != from),
+                        T_CHAR if b.len() >= 6 => {
+                            if let Some(i) = self.others.iter().position(|a| *a == from) {
+                                self.picks[i + 1] = b[5] as usize % self.chars.len().max(1);
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -314,6 +412,7 @@ impl Lobby {
                             players: peers.len(),
                             local: 0,
                             bind: SocketAddr::from(([0, 0, 0, 0], PORT)),
+                            setup: self.match_setup(1 + self.others.len()),
                             peers,
                             seed: self.seed,
                         });
@@ -348,8 +447,30 @@ impl Lobby {
                     if roster.len() == self.n_players {
                         self.roster = roster;
                     }
+                    // the match the host set
+                    if let Some(m) = b.get(at..at + 5 + self.n_players) {
+                        self.setup.mode = m[0] as i32;
+                        self.setup.time = m[1] as i32;
+                        self.setup.limit = m[2] as i32;
+                        self.setup.friendly = m[3] != 0;
+                        self.bots = m[4] as usize;
+                        for p in 0..self.n_players.min(MAX_PLAYERS) {
+                            if p != self.my_index {
+                                self.picks[p] = m[5 + p] as usize;
+                            }
+                        }
+                    }
                     if starting && self.roster.len() == self.n_players {
                         self.client_start = true;
+                    }
+                }
+                // (the test aid: a character picked at the start)
+                if let (Some(Auto::Join), Ok(v), true) = (&self.auto, std::env::var("TS_LOBBY_CHAR"), !self.roster.is_empty()) {
+                    if let Ok(i) = v.parse::<usize>() {
+                        if self.picks[self.my_index.min(MAX_PLAYERS - 1)] != i {
+                            self.picks[self.my_index.min(MAX_PLAYERS - 1)] = 0;
+                            self.change_char(i as i32);
+                        }
                     }
                 }
                 if self.client_start {
@@ -366,6 +487,7 @@ impl Lobby {
                         bind,
                         peers,
                         seed: self.seed,
+                        setup: self.match_setup(self.n_players),
                     });
                     self.sock = None;
                     return;
@@ -404,18 +526,33 @@ impl Lobby {
             }
             Screen::Host => {
                 s += &format!(" Hosting.  Players should join {}:{PORT}\n\n", local_ip_hint());
-                s += &format!(" Level:  < {} >   (Left / Right)\n\n", self.levels.get(self.level).map_or("?", |l| l.as_str()));
-                s += &format!("   1  you (host)\n");
+                let cur = |r: usize| if r == self.row { ">" } else { " " };
+                let level = self.levels.get(self.level).map_or("?", |l| l.as_str());
+                let mode = MODES.iter().find(|m| m.0 == self.setup.mode).map_or("?", |m| m.1);
+                let time = if self.setup.time == 0 { "none".to_string() } else { format!("{} min", self.setup.time) };
+                let chr = self.chars.get(self.picks[0]).map_or("?", |c| c.1.as_str());
+                s += &format!(" {} Level            < {} >\n", cur(0), level);
+                s += &format!(" {} Mode             < {} >\n", cur(1), mode);
+                s += &format!(" {} Time limit       < {} >\n", cur(2), time);
+                s += &format!(" {} Score limit      < {} >\n", cur(3), self.setup.limit);
+                s += &format!(" {} Bots             < {} >\n", cur(4), self.bots);
+                s += &format!(" {} Friendly fire    < {} >\n", cur(5), if self.setup.friendly { "yes" } else { "no" });
+                s += &format!(" {} Your character   < {} >\n\n", cur(6), chr);
+                s += &format!("   1  you (host)  {}\n", chr);
                 for (i, a) in self.others.iter().enumerate() {
-                    s += &format!("   {}  {}\n", i + 2, a);
+                    s += &format!("   {}  {}  {}\n", i + 2, a, self.chars.get(self.picks[i + 1]).map_or("?", |c| c.1.as_str()));
                 }
-                s += &format!("\n {}\n\n Enter: start the game      Esc: cancel\n", self.status);
+                s += &format!("\n {}\n\n Up/Down, Left/Right change a row.  Enter: start the game      Esc: cancel\n", self.status);
             }
             Screen::Join => {
                 if self.sock.is_none() {
                     s += &format!(" Host address:  {}_\n\n {}\n\n Enter: connect      Esc: back\n", self.addr_text, self.status);
                 } else {
-                    s += &format!(" Level: {}\n\n {}\n\n Esc: leave\n", self.levels.get(self.level).map_or("?", |l| l.as_str()), self.status);
+                    let mode = MODES.iter().find(|m| m.0 == self.setup.mode).map_or("?", |m| m.1);
+                    let time = if self.setup.time == 0 { "none".to_string() } else { format!("{} min", self.setup.time) };
+                    let chr = self.chars.get(self.picks[self.my_index.min(MAX_PLAYERS - 1)]).map_or("?", |c| c.1.as_str());
+                    s += &format!(" Level: {}   Mode: {}   Time: {}   Score limit: {}   Bots: {}\n\n", self.levels.get(self.level).map_or("?", |l| l.as_str()), mode, time, self.setup.limit, self.bots);
+                    s += &format!(" Your character  < {} >   (Left / Right)\n\n {}\n\n Esc: leave\n", chr, self.status);
                 }
             }
         }

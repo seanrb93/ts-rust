@@ -18,6 +18,9 @@ fn numbers(var: &str) -> Vec<f32> {
 
 /// Make player 1 the character `TS_PLAYERCHR` names (at the start of `playerRestart`).
 pub fn harness_player() {
+    for i in 0..lw(g::lvnumplayers) {
+        netlink_player_char(i);
+    }
     let Ok(n) = std::env::var("TS_PLAYERCHR").map(|v| v.trim().parse::<i32>()) else { return };
     let Ok(n) = n else { return };
     let id = signonGet(0);
@@ -28,6 +31,7 @@ pub fn harness_player() {
 
 /// Make the bots the characters `TS_BOTCHRS` names (at the start of `enemyRestart`, which reads their number from the game's parameters; `enemySetup` reads who they are).
 pub fn harness_bots() {
+    netlink_bots();
     let bots = numbers("TS_BOTCHRS");
     if bots.is_empty() {
         return;

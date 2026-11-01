@@ -1013,7 +1013,10 @@ pub fn custom_rules_x() {
 #[inline]
 pub fn mode_presets_x() {
     #[cfg(feature = "extensions")]
-    mode_presets_apply();
+    {
+        mode_presets_apply();
+        netlink_options();
+    }
 }
 
 #[inline]

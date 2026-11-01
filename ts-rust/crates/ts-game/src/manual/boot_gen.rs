@@ -187,6 +187,8 @@ pub fn main_(mut a0: i32, mut a1: i32) {
             sw(s0_3 + 8, v0_6);
         }
     }
+    #[cfg(feature = "extensions")]
+    netlink_parms();
     a0_12 = 0x3adb80;
     v0_7 = bossCheckParm(a0_12);
     if v0_7 != 0 {
