@@ -55,8 +55,9 @@ line with the checksum and where the players are every 30 ticks, to compare the 
 Works: 2 and 3 players, with different pads on each machine, in the same game with identical checksums; each machine shows its own view.
 A machine with other game files or other mods than the host's is turned away by the lobby (a hash of the build, the packs' sizes and the files of the mods
 that are on).  A player whose machine stops answering for 10 seconds ends the game on the others with a message.  Each machine hears the sounds from its own
-player's place.  The lobby (above) with 3 machines on one PC reaches the same state on all of them.
-Not done: a game set-up that comes from the game's own front end pages (mode and options, characters, bots, weapon sets; mods must match by hand), pausing,
+player's place.  Pause does not stop a network game: the pause menu opens on that machine (it still says Game Paused) while the game goes on for everybody,
+and the character stands still while the menu is open.  The lobby (above) with 3 machines on one PC reaches the same state on all of them.
+Not done: a game set-up that comes from the game's own front end pages (mode and options, characters, bots, weapon sets; mods must match by hand),
 a player leaving without ending the game, reaching a machine behind a router, and a test of play between
 different systems.  In a network game the maths functions (`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `pow`) come from the `libm` crate, whose
 results are the same on every platform (the platforms' own libraries differ in the last bit); square roots, floors and the rest are exact on any machine.
