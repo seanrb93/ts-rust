@@ -240,6 +240,28 @@ fn demo_resync() {
     }
 }
 
+/// One frame of the level as the main loop makes it, between two calls of `ilinkOKToTick`, but not shown: the game's tick and the building of the display list that
+/// nobody will draw (a network game with rollback plays the frames that went wrong again).
+pub fn sim_frame() {
+    sw(g::cpudone, 0);
+    timeTickStart();
+    let info = g::dbinfo;
+    let number = lw(g::framenum);
+    sw(g::ucodetris, 0);
+    sw(g::bgtris, 0);
+    sw(g::bgcurtris, 0);
+    sw(lw(g::curcpudmabuf) * 12 + info, 1);
+    sw(lw(g::curcpudmabuf) * 12 + (info + 4), number);
+    sw(lw(g::curcpudmabuf) * 12 + (info + 8), 0);
+    bossMainLoop();
+    timeTickEnd();
+    if lw(g::lvfirstframe_130) == 0 {
+        sw(lw(g::curcpudmabuf) * 12 + info, 0);
+    }
+    sw(g::curcpudmabuf, 1 - lw(g::curcpudmabuf));
+    sw(g::cpudone, 1);
+}
+
 pub fn present_frame() {
     ts_sdk::present_sync();
     // (what is not in the original's code is behind `extensions`: without it the game's state is changed only by the game)

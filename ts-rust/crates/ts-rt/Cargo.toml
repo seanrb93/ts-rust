@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 
 [features]
+# Keeps the pages a tick changes so that the memory can go back some ticks (rollback in a network game).
+journal = []
 # Records every store (with the overwritten bytes) so a verifier can compare / roll back memory effects.
 trace = []
 

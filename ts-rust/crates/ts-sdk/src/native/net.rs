@@ -73,7 +73,7 @@ pub struct Setup {
 
 impl Default for Setup {
     fn default() -> Setup {
-        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new(), delay: 6 }
+        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new(), delay: 2 }
     }
 }
 
@@ -142,6 +142,10 @@ struct Session {
     sent_to: u32,
     /// the checksums compared one after the other that differed (a lone difference is something that only one machine's picture touches)
     streak: u32,
+    /// the ticks whose checksums have been compared
+    compared: std::collections::BTreeSet<u32>,
+    lag: Duration,
+    inbox: std::collections::VecDeque<(Instant, Vec<u8>, SocketAddr)>,
 }
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
@@ -185,6 +189,9 @@ pub fn start(cfg: Config) -> Result<(), String> {
         last_sent: Instant::now(),
         sent_to: 0,
         streak: 0,
+        compared: std::collections::BTreeSet::new(),
+        lag: Duration::from_millis(std::env::var("TS_NETLAG").ok().and_then(|v| v.parse().ok()).unwrap_or(0)),
+        inbox: std::collections::VecDeque::new(),
     });
     Ok(())
 }
@@ -299,7 +306,17 @@ impl Session {
         }
         let mut buf = [0u8; 2048];
         while let Ok((len, from)) = self.sock.recv_from(&mut buf) {
-            self.take(&buf[..len], from);
+            if self.lag.is_zero() {
+                self.take(&buf[..len], from);
+            } else {
+                self.inbox.push_back((Instant::now() + self.lag, buf[..len].to_vec(), from));
+            }
+        }
+        // (a test aid, `TS_NETLAG=<milliseconds>`: what comes is held back that long, as on a slow network)
+        while self.inbox.front().map_or(false, |(t, _, _)| *t <= Instant::now()) {
+            if let Some((_, b, from)) = self.inbox.pop_front() {
+                self.take(&b, from);
+            }
         }
     }
 
@@ -410,6 +427,22 @@ impl Session {
             && (0..self.n()).all(|p| self.heard[p] || self.suspect[p])
     }
 
+    /// Compare the checksums that everyone has now (rollback: they come when the game is sure of the tick).
+    fn check_sums(&mut self) {
+        let mine = self.local;
+        let ticks: Vec<u32> = self.sums[mine].keys().copied().filter(|t| !self.compared.contains(t)).collect();
+        for t in ticks {
+            if (0..self.n()).all(|p| p == mine || self.suspect[p] || self.sums[p].contains_key(&t)) {
+                self.compared.insert(t);
+                self.compare(t);
+            }
+        }
+        while self.compared.len() > 64 {
+            let first = *self.compared.iter().next().unwrap();
+            self.compared.remove(&first);
+        }
+    }
+
     /// Compare the checksums of the tick `t`, when everyone's are there.
     fn compare(&mut self, t: u32) {
         let Some(&mine) = self.sums[self.local].get(&t) else { return };
@@ -506,9 +539,11 @@ struct Stats {
     wait_total: f64,
     wait_max: f64,
     waited: u32,
+    rollbacks: u32,
+    replayed: u32,
 }
 
-static STATS: Mutex<Stats> = Mutex::new(Stats { last: None, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0 });
+static STATS: Mutex<Stats> = Mutex::new(Stats { last: None, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0 });
 
 fn note_frame(now: Instant) {
     let mut st = STATS.lock().unwrap();
@@ -531,21 +566,185 @@ fn note_wait(wait: Duration, tick: u32) {
     }
     if tick % 300 == 0 && st.frames > 0 {
         let line = format!(
-            "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms
+            "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms, {} rollbacks ({} ticks played again)
 ",
             st.frame_total / st.frames as f64,
             st.frame_max,
             st.wait_total / st.frames as f64,
             st.wait_max,
             st.waited,
-            st.frames
+            st.frames,
+            st.rollbacks,
+            st.replayed
         );
         use std::io::Write;
         if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(crate::save_root().join("net-stats.txt")) {
             let _ = f.write_all(line.as_bytes());
         }
-        *st = Stats { last: st.last, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0 };
+        *st = Stats { last: st.last, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0 };
     }
+}
+
+// ---- rollback: the game runs on without waiting and goes back when a guess about another player's pad was wrong ------------------------------------------
+
+static ROLLBACK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Play with rollback (the game does not wait for the others' pads: it guesses them and goes back when it guessed wrong) instead of in lockstep.
+pub fn set_rollback(on: bool) {
+    ROLLBACK.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn rollback() -> bool {
+    ROLLBACK.load(std::sync::atomic::Ordering::Relaxed) && active()
+}
+
+static REPLAYING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// The game is playing ticks again after going back: what only shows or sounds (the sounds) is left out.
+pub fn set_replaying(on: bool) {
+    REPLAYING.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn replaying() -> bool {
+    REPLAYING.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// The players whose pad becomes nothing pressed with this tick (they left: bit `p`).
+pub fn gone_mask(t: u32) -> u8 {
+    let g = SESSION.lock().unwrap();
+    let Some(s) = g.as_ref() else { return 0 };
+    (0..s.n()).filter(|&p| s.dropped[p] == Some(t)).fold(0u8, |m, p| m | (1 << p))
+}
+
+/// The most ticks the game may run on with a guessed pad.
+pub const MAX_AHEAD: u32 = 12;
+
+/// The ticks of the game are numbered by the game (rollback): this is the one it is at.
+pub fn set_tick(t: u32) {
+    if let Some(s) = SESSION.lock().unwrap().as_mut() {
+        s.tick = t;
+    }
+}
+
+pub fn delay() -> u32 {
+    SESSION.lock().unwrap().as_ref().map_or(0, |s| s.delay)
+}
+
+/// This machine's pad for the tick `tick` is given; it is used `delay` ticks on (and sent at once).
+pub fn submit(tick: u32, pad: [u8; PAD_BYTES]) {
+    let mut g = SESSION.lock().unwrap();
+    let Some(s) = g.as_mut() else { return };
+    let at = tick + s.delay;
+    let mine = s.local;
+    s.pads[mine].insert(at, pad);
+    s.have[mine] = at + 1;
+    s.pump();
+}
+
+/// Take in what has come and send what is new; see who has stopped answering.  False: nobody else is left.
+pub fn poll(waiting: Duration) -> bool {
+    let mut g = SESSION.lock().unwrap();
+    let Some(s) = g.as_mut() else { return false };
+    s.pump();
+    for p in 0..s.n() {
+        if p != s.local && s.heard[p] && !s.suspect[p] && s.last[p].elapsed() > DROP_AFTER && waiting > DROP_AFTER {
+            s.give_up(p);
+        }
+    }
+    s.settle();
+    s.check_sums();
+    !(0..s.n()).all(|p| p == s.local || s.suspect[p])
+}
+
+/// Every other machine has been heard from.
+pub fn all_heard() -> bool {
+    SESSION.lock().unwrap().as_ref().map_or(false, |s| (0..s.n()).all(|p| s.heard[p] || s.suspect[p]))
+}
+
+/// The pad of the player `p` for the tick, when it is known (the real one: from the machine, or nothing pressed for a player who has gone).
+pub fn pad(p: usize, tick: u32) -> Option<[u8; PAD_BYTES]> {
+    let g = SESSION.lock().unwrap();
+    let s = g.as_ref()?;
+    if let Some(r) = s.pads.get(p)?.get(&tick) {
+        return Some(*r);
+    }
+    match s.dropped[p] {
+        Some(v) if tick >= v => Some(neutral()),
+        _ => None,
+    }
+}
+
+/// The first tick for which a pad of some player is not known yet: the game up to there is certain.
+pub fn confirmed() -> u32 {
+    let g = SESSION.lock().unwrap();
+    let Some(s) = g.as_ref() else { return 0 };
+    (0..s.n()).map(|p| if s.dropped[p].is_some() { u32::MAX } else { s.have[p] }).min().unwrap_or(0)
+}
+
+/// Another player's pad is guessed as the last one known (the buttons held stay held; a button that was just pressed or let go is not pressed again).
+pub fn guess(p: usize, tick: u32) -> [u8; PAD_BYTES] {
+    let g = SESSION.lock().unwrap();
+    let Some(s) = g.as_ref() else { return neutral() };
+    let mut b = s.pads[p].range(..tick).next_back().map(|(_, r)| *r).unwrap_or_else(neutral);
+    // (the words of the buttons newly pressed and newly released: bytes 4 to 8)
+    b[4..8].fill(0);
+    // (and no turning by the mouse)
+    b[16..20].fill(0);
+    b
+}
+
+/// What is older than the tick `t` is not wanted any more.
+pub fn prune_before(t: u32) {
+    if let Some(s) = SESSION.lock().unwrap().as_mut() {
+        s.prune(t);
+    }
+}
+
+/// Wait (polling) until the pads of every player are known for the tick `tick`; false when that does not come (the link is lost).
+pub fn wait_known(tick: u32, limit: Duration) -> bool {
+    let started = Instant::now();
+    loop {
+        if !poll(started.elapsed()) {
+            return false;
+        }
+        if confirmed() > tick {
+            return true;
+        }
+        if started.elapsed() > limit {
+            return false;
+        }
+        std::thread::sleep(Duration::from_micros(300));
+    }
+}
+
+/// Wait until every other machine has been heard from (the others may still be loading).
+pub fn wait_heard(limit: Duration) -> bool {
+    let started = Instant::now();
+    loop {
+        if !poll(Duration::ZERO) {
+            return false;
+        }
+        if all_heard() {
+            return true;
+        }
+        if started.elapsed() > limit {
+            return false;
+        }
+        std::thread::sleep(Duration::from_micros(300));
+    }
+}
+
+/// The ticks that were played again (a measure for the stats): how many times the game went back and how many ticks that made.
+pub fn note_rollback(frames: u32) {
+    let mut st = STATS.lock().unwrap();
+    st.rollbacks += 1;
+    st.replayed += frames;
+}
+
+/// The frame boundary of a game with rollback (`tick` is the tick the game is at, `waited` how long it waited for the others).
+pub fn note_boundary(tick: u32, waited: Duration) {
+    note_frame(Instant::now());
+    note_wait(waited, tick);
 }
 
 /// The tick the game is at (the number of ticks done).

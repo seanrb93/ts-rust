@@ -4,7 +4,10 @@ use crate::*;
 
 /// The tick of the link to the other console: the pads are polled (@ 0x2cddd0).
 pub fn ilinkTick() {
-    joyTick();
+    // (a network game with rollback reads the pads between the frames)
+    if netlink_rollback_or() == 0 {
+        joyTick();
+    }
     netlink_tick_hook();
 }
 

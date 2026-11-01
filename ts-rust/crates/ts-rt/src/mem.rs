@@ -72,8 +72,16 @@ pub fn host_ptr(a: i32) -> *mut u8 {
     ptr(a)
 }
 
+/// The same, for a native service that only reads: the journal is not told of it.
+pub fn host_slice_ro(a: i32, len: usize) -> &'static [u8] {
+    let _ = ptr(a.wrapping_add(len.saturating_sub(1) as i32));
+    unsafe { std::slice::from_raw_parts(ptr(a), len) }
+}
+
 pub fn host_slice(a: i32, len: usize) -> &'static mut [u8] {
     let _ = ptr(a.wrapping_add(len.saturating_sub(1) as i32));
+    #[cfg(feature = "journal")]
+    crate::journal::touch(a, len);
     unsafe { std::slice::from_raw_parts_mut(ptr(a), len) }
 }
 
@@ -109,6 +117,8 @@ macro_rules! store {
             crate::trace::record(a, std::mem::size_of::<$t>(), &t as *const $t as *const u8);
             #[cfg(any(feature = "calltrace", feature = "watch"))]
             crate::watch::check(a, std::mem::size_of::<$t>(), t as u64);
+            #[cfg(feature = "journal")]
+            crate::journal::touch(a, std::mem::size_of::<$t>());
             unsafe { (ptr(a) as *mut $t).write_unaligned(t) }
         }
     };
@@ -136,17 +146,23 @@ pub fn swc1(a: i32, v: f32) {
     crate::watch::check(a, 4, v.to_bits() as u64);
     #[cfg(feature = "calltrace")]
     crate::calltrace::fstore(a, v);
+    #[cfg(feature = "journal")]
+    crate::journal::touch(a, 4);
     unsafe { (ptr(a) as *mut f32).write_unaligned(v) }
 }
 
 pub fn memcpy_game(dst: i32, src: i32, n: usize) {
     #[cfg(feature = "trace")]
     crate::trace::record_bulk(dst, n);
+    #[cfg(feature = "journal")]
+    crate::journal::touch(dst, n);
     unsafe { std::ptr::copy(ptr(src), ptr(dst), n) }
 }
 
 pub fn memset_game(dst: i32, c: u8, n: usize) {
     #[cfg(feature = "trace")]
     crate::trace::record_bulk(dst, n);
+    #[cfg(feature = "journal")]
+    crate::journal::touch(dst, n);
     unsafe { std::ptr::write_bytes(ptr(dst), c, n) }
 }

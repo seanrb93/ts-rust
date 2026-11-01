@@ -56,6 +56,22 @@ ts-rust.exe --level Prison --players 2 --net local=1,peers=192.168.1.10:7000/192
 on its own entry), `seed` and `delay` are the same everywhere.  On one PC use different ports (`127.0.0.1:7000/127.0.0.1:7001`).  `TS_NETLOG=1` prints a
 line with the checksum and where the players are every 30 ticks, to compare the machines.
 
+## Rollback
+
+A game started from the lobby plays with rollback (`TS_LOCKSTEP=1` asks for the lockstep above instead; `--net ...,rollback=1` for a hand start).  The game does not wait
+for the other players' pads.  Each frame it plays the pads that are known and, for a player whose pad has not come yet, a guess: the last pad known, with the buttons
+held still held and no button newly pressed.  When the real pad comes and is not what was played, the game goes back to that tick and plays the frames up to now again
+with the pads as they are known, so that what happens is what the others' machines have.  It runs ahead with guesses for at most 12 ticks (200 ms); beyond that it waits.
+
+How it goes back: `ts-rt/src/journal.rs` keeps, for each of the last 24 ticks, a copy of every 4 KiB page of the game's memory as it was before the tick first changed it
+(every store checks a page mark; only in builds with the `extensions`, and only while a network level is on).  `ts-game/src/manual/netlink.rs` (`netlink_boundary`, between two
+frames, from `ilinkOKToTick`) undoes the last ticks, then plays each frame with `sim_frame` (`boot.rs`: the main loop's frame without showing it).  The ticks played again make no sounds
+(`sceSdRemote`).  The checksums are of the state after a tick once every pad up to it is known.  `TS_NETLAG=<ms>` holds back what comes, to test.  With 120 ms of it and pads
+that change all the time (about 225 times in 300 ticks the game went back, 7 ticks each) the ticks stayed 16.7 ms and the checksums of the two machines agreed.
+
+What is seen: a guess that was wrong shows for a moment (a shot that did not happen, a step the other way) and is put right when the pad comes; the input delay can be low (2 ticks by
+default) because the game does not wait.  Not done: the character's animation and the sounds of a wrong guess are not hidden; a level that ends while a tick is a guess.
+
 ## What must be the same on every machine
 
 Every machine plays every player, so whatever the game reads from this machine's settings must not change what happens.  Found by trying it (a client with

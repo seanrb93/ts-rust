@@ -8,6 +8,8 @@
 //! Over time, individual structures are lifted out of the arena into typed Rust structs.
 
 pub mod mem;
+#[cfg(feature = "journal")]
+pub mod journal;
 pub mod frame;
 pub mod capture;
 pub mod int;

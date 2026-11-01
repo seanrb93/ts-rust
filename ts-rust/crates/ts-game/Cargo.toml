@@ -17,4 +17,4 @@ extended-tables = []
 # frame rates above 60 Hz: the frame time hooks in the game code (the port turns on the setting)
 high-framerate = []
 # what the port adds to the game and its state (widescreen and field of view, mouse look, the debug menu reset, new character names, PC texts, demo resync, the unlock option): off while the code is made to match the original exactly
-extensions = []
+extensions = ["ts-rt/journal"]

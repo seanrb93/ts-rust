@@ -668,6 +668,26 @@ pub fn netlink_start_player_or() -> i32 {
     }
 }
 
+/// The level of a network game with rollback is being played: the pads are read and exchanged between the frames (`netlink_boundary`), not in the frame.
+#[inline]
+pub fn netlink_rollback_or() -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_rollback_level() as i32
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        0
+    }
+}
+
+/// Between two frames of the game: the network game with rollback exchanges the pads, goes back if it guessed wrong and gives the next frame its pads.
+#[inline]
+pub fn netlink_boundary_or() {
+    #[cfg(feature = "extensions")]
+    netlink_boundary();
+}
+
 /// Is the game a network game (the `ilink` of the console game)?
 #[inline]
 pub fn netlink_active_or() -> i32 {

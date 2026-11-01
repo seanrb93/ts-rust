@@ -719,6 +719,7 @@ fn main() {
                         Some(("peers", v)) => cfg.peers = v.split('/').filter_map(|a| a.parse().ok()).collect(),
                         Some(("seed", v)) => cfg.seed = v.parse().unwrap_or(1),
                         Some(("delay", v)) => cfg.delay = v.parse().unwrap_or(3),
+                        Some(("rollback", v)) => ts_sdk::net::set_rollback(v != "0"),
                         _ => {}
                     }
                 }
@@ -805,7 +806,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
         if std::env::var_os("TS_UPLOGLOG").is_some() {
             eprintln!("[upload] frame {} dbp {:#x} dbw {} psm {} size {}x{} bytes {}", ts_sdk::frame_count(), u.dbp, u.dbw, u.psm, u.w, u.h, bytes);
         }
-        let data = ts_rt::host_slice(u.data, bytes).to_vec();
+        let data = ts_rt::host_slice_ro(u.data, bytes).to_vec();
         // Not written to texture memory yet: the drawing threads may still be working on earlier frames.  The upload is
         // queued with the number of the frame being built and applied when that frame is translated.
         PENDING_UPLOADS.lock().unwrap().push_back((ts_sdk::frame_count(), ts_gfx::vram::Image { dbp: u.dbp, dbw: u.dbw, psm: u.psm, w: u.w, h: u.h, data, generation: 0 }));
@@ -927,6 +928,8 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
                     }
                 }
                 ts_sdk::net::set_setup(o.setup.clone());
+                // (rollback, unless the lockstep of the first version is asked for)
+                ts_sdk::net::set_rollback(std::env::var_os("TS_LOCKSTEP").is_none());
                 (Some(o.level), Some(o.players.to_string()))
             }
             None => (level.clone(), players.clone()),

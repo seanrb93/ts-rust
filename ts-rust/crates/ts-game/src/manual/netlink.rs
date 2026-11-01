@@ -106,9 +106,31 @@ fn player_left(p: i32) {
 /// Called at the start of each frame (`ilinkTick`) of a network game once the pads have been read: in a level, this machine's pad is given
 /// to the others, and the pads of every player for the tick are written into their controller records.
 pub fn netlink_tick() {
-    if !ts_sdk::net::active() || lw(g::gamestate) != 3 {
+    if !ts_sdk::net::active() || lw(g::gamestate) != 3 || ts_sdk::net::rollback() {
         return;
     }
+    let local = local_pad();
+    let Some(pads) = ts_sdk::net::step(local) else {
+        ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
+        return;
+    };
+    apply_pads(&pads, 0);
+    check_out_of_step();
+    for p in ts_sdk::net::newly_gone() {
+        player_left(p as i32);
+    }
+    let t = ts_sdk::net::tick() - 1;
+    if t % ts_sdk::net::SUM_EVERY == 0 {
+        let sum = state_sum();
+        ts_sdk::net::submit_sum(t, sum);
+        if std::env::var_os("TS_NETLOG").is_some() {
+            eprintln!("[net] tick {t} sum {sum:08x}{}", where_everybody());
+        }
+    }
+}
+
+/// This machine's pad as it travels: the controller record, with the look sensitivity (the others have no way to know it) and the mouse's movement.
+fn local_pad() -> [u8; ts_sdk::net::PAD_BYTES] {
     let mut local = pad_bytes(g::controllers + LOCAL_PAD * 384);
     // (the look sensitivity and the mouse are part of the pad: the others have no way to know them)
     let k = ts_sdk::pad::look_sensitivity();
@@ -131,10 +153,11 @@ pub fn netlink_tick() {
         // (the game goes on while this player's pause menu is open, and the menu reads the same pad: its buttons go on, the sticks do not move the character)
         local[8..12].fill(128);
     }
-    let Some(pads) = ts_sdk::net::step(local) else {
-        ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
-        return;
-    };
+    local
+}
+
+/// The pads of the players for the tick are written into their controller records, and the mouse turns the players; the players in `gone` have left.
+fn apply_pads(pads: &[[u8; ts_sdk::net::PAD_BYTES]], gone: u8) {
     for (p, b) in pads.iter().enumerate() {
         let record = FIRST_NET_PAD + p as i32;
         put_pad(g::controllers + record * 384, b);
@@ -145,7 +168,15 @@ pub fn netlink_tick() {
             mouse_turn_player(lw(g::players) + p as i32 * 1820, mx as f32 / 8.0, my as f32 / 8.0);
         }
     }
-    // (the checksums say the machines have parted: the player is told, once, and the log has it)
+    for p in 0..pads.len() {
+        if gone & (1 << p) != 0 {
+            player_left(p as i32);
+        }
+    }
+}
+
+/// The checksums say the machines have parted: the player is told, once, and the log has it.
+fn check_out_of_step() {
     static TOLD: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
     if ts_sdk::net::out_of_step() && TOLD.swap(1, std::sync::atomic::Ordering::Relaxed) == 0 {
         sw(0x240_0000 + 0xd700, 0);
@@ -156,32 +187,180 @@ pub fn netlink_tick() {
         sb(0x240_0000 + 0xd700 + text.len() as i32, 0);
         hudMessage(ts_sdk::net::local_player().min(lw(g::lvnumplayers) - 1), 0x240_0000 + 0xd700);
     }
-    for p in ts_sdk::net::newly_gone() {
-        player_left(p as i32);
+}
+
+// ---- rollback ------------------------------------------------------------------------------------------------------------------------------------------------
+
+/// The ticks the journal goes back (more than the game may run ahead with guessed pads).
+#[cfg(feature = "extensions")]
+const KEEP: usize = 24;
+
+#[cfg(feature = "extensions")]
+struct Rollback {
+    started: bool,
+    /// the tick the game is at (the next frame to play)
+    tick: u32,
+    /// the first tick whose pads are all known and were what was played
+    verified: u32,
+    /// the pads that were played for each tick (all the players), and the players who left with it
+    used: std::collections::BTreeMap<u32, (Vec<[u8; ts_sdk::net::PAD_BYTES]>, u8)>,
+    /// the checksums of the state after a tick, waiting until the tick is certain
+    pending: std::collections::BTreeMap<u32, u32>,
+}
+
+#[cfg(feature = "extensions")]
+static ROLLBACK: std::sync::Mutex<Rollback> = std::sync::Mutex::new(Rollback { started: false, tick: 0, verified: 0, used: std::collections::BTreeMap::new(), pending: std::collections::BTreeMap::new() });
+
+/// A level is being played (not its first frames, nor the screens after it).
+#[cfg(feature = "extensions")]
+fn in_level() -> bool {
+    lw(g::gamestate) == 3 && lw(g::lvfirstframe_130) == 0
+}
+
+/// The level of a network game with rollback is being played: the pads are exchanged between the frames.
+#[cfg(feature = "extensions")]
+pub fn netlink_rollback_level() -> bool {
+    ts_sdk::net::rollback() && in_level()
+}
+
+/// The pads for the tick `t` as well as they are known: the real ones, and for a player whose pad has not come yet the last one before.
+#[cfg(feature = "extensions")]
+fn best_pads(t: u32) -> (Vec<[u8; ts_sdk::net::PAD_BYTES]>, u8) {
+    let me = ts_sdk::net::local_player() as usize;
+    let pads = (0..ts_sdk::net::num_players() as usize)
+        .map(|p| ts_sdk::net::pad(p, t).unwrap_or_else(|| if p == me { ts_sdk::net::neutral() } else { ts_sdk::net::guess(p, t) }))
+        .collect();
+    (pads, ts_sdk::net::gone_mask(t))
+}
+
+/// The first tick from `from` before `to` whose pads were guessed wrong (or whose players who left changed).
+#[cfg(feature = "extensions")]
+fn first_wrong(rb: &Rollback, from: u32, to: u32) -> Option<u32> {
+    let me = ts_sdk::net::local_player() as usize;
+    for t in from..to {
+        let Some((used, mask)) = rb.used.get(&t) else { continue };
+        if ts_sdk::net::gone_mask(t) != *mask {
+            return Some(t);
+        }
+        for (p, u) in used.iter().enumerate() {
+            if p != me && ts_sdk::net::pad(p, t).map_or(false, |r| r != *u) {
+                return Some(t);
+            }
+        }
     }
-    let t = ts_sdk::net::tick() - 1;
-    if t % ts_sdk::net::SUM_EVERY == 0 {
+    None
+}
+
+/// Go back to the tick `e` and play the frames up to `k` (not including it) again with the pads as they are known now.  The journal is left with the record of the tick `k`.
+#[cfg(feature = "extensions")]
+fn go_back(rb: &mut Rollback, e: u32, k: u32) {
+    let n = (k - e) as usize;
+    if ts_rt::journal::depth() < n + 1 {
+        ts_sdk::net::lost("The game cannot go back so far; the network game ends.");
+        return;
+    }
+    // (what is being drawn must be finished before the memory changes)
+    ts_sdk::present_sync();
+    ts_rt::journal::undo(n + 1);
+    ts_sdk::net::set_replaying(true);
+    for t in e..k {
+        ts_rt::journal::begin_tick();
+        let (pads, mask) = best_pads(t);
+        apply_pads(&pads, mask);
+        rb.used.insert(t, (pads, mask));
+        sim_frame();
+        if t % ts_sdk::net::SUM_EVERY == 0 {
+            rb.pending.insert(t, state_sum());
+        }
+    }
+    ts_sdk::net::set_replaying(false);
+    ts_rt::journal::begin_tick();
+    ts_sdk::net::note_rollback(n as u32);
+}
+
+/// Between two frames of the level: the pads of the others that have come are taken in; if one of those was guessed wrong the game goes back and plays the frames
+/// again; then this machine's pad is read and sent, and the pads of the next tick (guessed where they have not come) are written for the game.
+#[cfg(feature = "extensions")]
+pub fn netlink_boundary() {
+    if !ts_sdk::net::rollback() {
+        return;
+    }
+    let mut rb = ROLLBACK.lock().unwrap();
+    if !in_level() {
+        if rb.started {
+            ts_rt::journal::disable();
+            rb.started = false;
+            rb.used.clear();
+            rb.pending.clear();
+        }
+        return;
+    }
+    let waited_from = std::time::Instant::now();
+    if !rb.started {
+        if !ts_sdk::net::wait_heard(std::time::Duration::from_secs(90)) {
+            ts_sdk::net::lost("The other players did not answer, so the network game ends.");
+            return;
+        }
+        ts_rt::journal::enable(KEEP);
+        rb.started = true;
+        rb.tick = 0;
+        rb.verified = 0;
+    }
+    let k = rb.tick;
+    ts_sdk::net::set_tick(k);
+    // (what is stored from here is the record of this tick: going back to it undoes the pads written below too)
+    ts_rt::journal::begin_tick();
+    loop {
+        if !ts_sdk::net::poll(waited_from.elapsed()) {
+            ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
+            return;
+        }
+        let from = rb.verified;
+        if let Some(e) = first_wrong(&rb, from, k) {
+            go_back(&mut rb, e, k);
+            continue;
+        }
+        while rb.verified < k && (0..ts_sdk::net::num_players() as usize).all(|p| ts_sdk::net::pad(p, rb.verified).is_some()) {
+            rb.verified += 1;
+        }
+        // (the game does not run on for ever with guessed pads)
+        if k < ts_sdk::net::confirmed().saturating_add(ts_sdk::net::MAX_AHEAD) {
+            break;
+        }
+        if !ts_sdk::net::wait_known(k.saturating_sub(ts_sdk::net::MAX_AHEAD), std::time::Duration::from_secs(10)) {
+            ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
+            return;
+        }
+    }
+    // the checksum of the state after the last tick
+    if k >= 1 && (k - 1) % ts_sdk::net::SUM_EVERY == 0 {
         let sum = state_sum();
-        if std::env::var("TS_NETDUMP").ok().and_then(|v| v.parse::<u32>().ok()) == Some(t) {
-            // test aid: the words of the players' records and the characters' records at this tick, to find which differ between machines
-            for i in 0..lw(g::lvnumplayers) {
-                for k in 0..455 {
-                    eprintln!("[dump] P{i} +{} {:08x}", k * 4, lw(lw(g::players) + i * 1820 + k * 4));
-                }
+        rb.pending.insert(k - 1, sum);
+    }
+    let certain = ts_sdk::net::confirmed();
+    let ready: Vec<u32> = rb.pending.keys().copied().filter(|&t| t < certain && t < rb.verified).collect();
+    for t in ready {
+        if let Some(sum) = rb.pending.remove(&t) {
+            ts_sdk::net::submit_sum(t, sum);
+            if std::env::var_os("TS_NETLOG").is_some() {
+                eprintln!("[net] tick {t} sum {sum:08x}{}", where_everybody());
             }
-            eprintln!("[dump] R seed {:016x} count {} frame {}", ld(g::newrndseedval), lw(g::rndcount), lw(g::gameframe));
-            let count = lw(g::lvnumplayers) + lw(g::numactivechars);
-            for i in 0..count {
-                for k in 0..(0x1210 / 4) {
-                    eprintln!("[dump] C{i} +{} {:08x}", k * 4, lw(lw(g::chrinfo) + i * 0x1210 + k * 4));
-                }
-            }
-        }
-        ts_sdk::net::submit_sum(t, sum);
-        if std::env::var_os("TS_NETLOG").is_some() {
-            eprintln!("[net] tick {t} sum {sum:08x}{}", where_everybody());
         }
     }
+    check_out_of_step();
+    // this machine's pad: read, and sent (it is used a few ticks on)
+    joyTick();
+    ts_sdk::net::submit(k, local_pad());
+    let (pads, mask) = best_pads(k);
+    apply_pads(&pads, mask);
+    rb.used.insert(k, (pads, mask));
+    rb.tick = k + 1;
+    if k % 64 == 0 {
+        ts_sdk::net::prune_before(k.saturating_sub(48));
+        let keep_from = k.saturating_sub(48);
+        rb.used = rb.used.split_off(&keep_from);
+    }
+    ts_sdk::net::note_boundary(k, waited_from.elapsed());
 }
 
 /// The options of the match the lobby set (called where the mods' presets are written, after the game made the records of the options).

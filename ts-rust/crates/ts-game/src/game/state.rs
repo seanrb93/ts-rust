@@ -67,6 +67,7 @@ pub fn ilinkIsILinkGame() -> i32 {
 
 /// @ 0x2cddd8
 pub fn ilinkOKToTick() -> i32 {
+    netlink_boundary_or();
     1
 }
 

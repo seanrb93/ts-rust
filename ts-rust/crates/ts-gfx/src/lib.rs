@@ -58,7 +58,7 @@ impl Gfx {
         if qwc == 0 {
             return;
         }
-        let d = host_slice(addr, qwc * 16);
+        let d = host_slice_ro(addr, qwc * 16);
         if trace::enabled() {
             let mut line = format!("PACKET @{addr:#x} qwc={qwc}:");
             for q in 0..qwc.min(16) {
