@@ -681,6 +681,41 @@ pub fn netlink_active_or() -> i32 {
     }
 }
 
+/// Which players a sound is heard by: all of them, or in a network game the one on this machine (the first and the one after the last).
+#[inline]
+pub fn netlink_listeners_or(all: i32) -> (i32, i32) {
+    #[cfg(feature = "extensions")]
+    {
+        if netlink_active() {
+            let start = netlink_start_player();
+            (start, start + 1)
+        } else {
+            (0, all)
+        }
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        (0, all)
+    }
+}
+
+/// The player whose camera places the sounds in the stereo picture.
+#[inline]
+pub fn netlink_listener_or(player: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        if netlink_active() {
+            lw(g::players) + netlink_start_player() * 1820
+        } else {
+            player
+        }
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        player
+    }
+}
+
 /// The tick of the link: in a network game the pads are exchanged.
 #[inline]
 pub fn netlink_tick_hook() {

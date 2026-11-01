@@ -14,8 +14,7 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
     if position == 0 {
         loudness = ps2float::mul((lhu(sound + 20) as f32).pdiv(1e+02_f32), (0x1fff - base) as f32);
     } else {
-        let count = lw(g::lvnumplayers);
-        let mut i = 0;
+        let (mut i, count) = netlink_listeners_or(lw(g::lvnumplayers));
         if count > 0 {
             let players = lw(g::players);
             let x = lwc1(position);
@@ -52,8 +51,8 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
     sw(left, volume);
     sw(right, volume);
     let mut shifted = false;
-    if position != 0 && lw(g::lvnumplayers) == 1 {
-        let matrix = lw(lw(g::currentplayer) + 1764);
+    if position != 0 && ilinkGetNumLocalPlayers() == 1 {
+        let matrix = lw(netlink_listener_or(lw(g::currentplayer)) + 1764);
         if matrix != 0 {
             matrixVecRotAligned(&[matrix as i64, sp as i64]);
             let x = lwc1(sp);

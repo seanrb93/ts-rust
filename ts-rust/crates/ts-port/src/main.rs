@@ -959,8 +959,9 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
         }
         std::process::exit(0);
     };
+    ts_sdk::net::set_on_lost(net_lost);
     LOBBY_WAIT.store(lobby_on, std::sync::atomic::Ordering::Relaxed);
-    let lobby = if lobby_on { Some(lobby::Lobby::new(ts_game::netlink_level_names(), ts_game::netlink_characters())) } else { None };
+    let lobby = if lobby_on { Some(lobby::Lobby::new(ts_game::netlink_level_names(), ts_game::netlink_characters(), compat_hash(&exe_dir()))) } else { None };
     if windowed {
         // the OS event loop must own the main thread; the game thread is started once the window exists (and the lobby is done)
         window::run(lobby, |o| {
@@ -987,6 +988,56 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
         }
         run_game();
     }
+}
+
+/// A number that is the same on machines that can play together: the build, the game's files and the mods that are on.
+fn compat_hash(game_dir: &std::path::Path) -> u32 {
+    let mut h: u32 = 0x811c_9dc5;
+    let mut feed = |bytes: &[u8]| {
+        for b in bytes {
+            h = (h ^ *b as u32).wrapping_mul(0x0100_0193);
+        }
+    };
+    feed(env!("CARGO_PKG_VERSION").as_bytes());
+    feed(&[cfg!(feature = "extensions") as u8, cfg!(feature = "extended-tables") as u8]);
+    // (the game's packs: their names and sizes)
+    if let Ok(rd) = std::fs::read_dir(game_dir.join("PAK")) {
+        let mut v: Vec<_> = rd.flatten().filter_map(|e| Some((e.file_name().to_string_lossy().to_ascii_uppercase(), e.metadata().ok()?.len()))).collect();
+        v.sort();
+        for (n, l) in v {
+            feed(n.as_bytes());
+            feed(&l.to_le_bytes());
+        }
+    }
+    // (the mods that are on: their files and sizes)
+    fn walk(dir: &std::path::Path, prefix: &str, out: &mut Vec<(String, u64)>) {
+        let Ok(rd) = std::fs::read_dir(dir) else { return };
+        for e in rd.flatten() {
+            let name = format!("{prefix}/{}", e.file_name().to_string_lossy());
+            match e.metadata() {
+                Ok(m) if m.is_dir() => walk(&e.path(), &name, out),
+                Ok(m) => out.push((name, m.len())),
+                _ => {}
+            }
+        }
+    }
+    let mut mods: Vec<_> = mods::list().into_iter().filter(|m| m.enabled && m.loaded).map(|m| m.name).collect();
+    mods.sort();
+    for m in mods {
+        let mut files = Vec::new();
+        walk(&game_dir.join("mods").join(&m), &m, &mut files);
+        files.sort();
+        for (n, l) in files {
+            feed(n.as_bytes());
+            feed(&l.to_le_bytes());
+        }
+    }
+    h
+}
+
+/// The link of a network game is lost.
+fn net_lost(why: &str) {
+    fatal(why)
 }
 
 /// The lobby is up and the game has not been started.

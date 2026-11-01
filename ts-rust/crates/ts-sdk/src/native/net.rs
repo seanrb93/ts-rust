@@ -21,8 +21,26 @@ pub const SUM_EVERY: u32 = 30;
 const MAGIC: u32 = 0x5453_4e50; // "TSNP"
 /// the most pads a packet carries
 const MAX_PADS: u32 = 24;
-/// how long a tick waits for a pad before the link is given up
-const TIMEOUT: Duration = Duration::from_secs(30);
+/// how long a tick waits for a pad before the link is given up (the first tick waits longer: the other machines may still be loading)
+const TIMEOUT: Duration = Duration::from_secs(10);
+const FIRST_TIMEOUT: Duration = Duration::from_secs(90);
+
+/// What to do when the link is lost: told the reason (the port shows it and ends the game).
+static ON_LOST: Mutex<Option<fn(&str)>> = Mutex::new(None);
+
+pub fn set_on_lost(f: fn(&str)) {
+    *ON_LOST.lock().unwrap() = Some(f);
+}
+
+/// The link is lost: say so (the game ends).
+pub fn lost(why: &str) {
+    eprintln!("[net] {why}");
+    let f = *ON_LOST.lock().unwrap();
+    if let Some(f) = f {
+        f(why);
+    }
+    std::process::exit(3);
+}
 
 /// What the lobby decided about the match, besides the level: the same on every machine.
 #[derive(Clone, Debug, PartialEq)]
@@ -299,8 +317,8 @@ pub fn step(local_pad: [u8; PAD_BYTES]) -> Option<Vec<[u8; PAD_BYTES]>> {
             if started.elapsed() > Duration::from_secs(3) && started.elapsed().as_millis() % 2000 < 3 {
                 eprintln!("[net] waiting at tick {} heard {:?} have {:?} acked {:?}", s.tick, s.heard, s.have, s.acked);
             }
-            if s.last_heard.elapsed() > TIMEOUT && started.elapsed() > TIMEOUT {
-                eprintln!("[net] nothing has been heard of the other players for {} seconds: the link is lost", TIMEOUT.as_secs());
+            let limit = if s.tick == 0 { FIRST_TIMEOUT } else { TIMEOUT };
+            if s.last_heard.elapsed() > limit && started.elapsed() > limit {
                 return None;
             }
         }

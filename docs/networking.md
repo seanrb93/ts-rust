@@ -53,7 +53,9 @@ line with the checksum and where the players are every 30 ticks, to compare the 
 ## What works and what does not (yet)
 
 Works: 2 and 3 players, with different pads on each machine, in the same game with identical checksums; each machine shows its own view.
-The lobby (above) with 3 machines on one PC reaches the same state on all of them.
+A machine with other game files or other mods than the host's is turned away by the lobby (a hash of the build, the packs' sizes and the files of the mods
+that are on).  A player whose machine stops answering for 10 seconds ends the game on the others with a message.  Each machine hears the sounds from its own
+player's place.  The lobby (above) with 3 machines on one PC reaches the same state on all of them.
 Not done: a game set-up that comes from the game's own front end pages (mode and options, characters, bots, weapon sets; mods must match by hand), pausing,
-the sound listener (it hears the first player), a player leaving, reaching a machine behind a router, and a check that a platform's maths
+a player leaving without ending the game, reaching a machine behind a router, and a check that a platform's maths
 functions give the same results as another's (play between different systems may desync; two machines of the same build are fine).

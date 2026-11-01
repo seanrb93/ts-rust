@@ -87,8 +87,8 @@ pub fn netlink_tick() {
     }
     let local = pad_bytes(g::controllers + LOCAL_PAD * 384);
     let Some(pads) = ts_sdk::net::step(local) else {
-        eprintln!("[net] the link is lost: the game ends");
-        std::process::exit(3);
+        ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
+        return;
     };
     for (p, b) in pads.iter().enumerate() {
         let record = FIRST_NET_PAD + p as i32;

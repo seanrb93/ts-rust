@@ -13,6 +13,7 @@ const T_JOIN: u8 = 1;
 const T_LEAVE: u8 = 2;
 const T_ROSTER: u8 = 3;
 const T_CHAR: u8 = 4;
+const T_REJECT: u8 = 5;
 /// the port a host listens on
 pub const PORT: u16 = 7777;
 const MAX_PLAYERS: usize = 4;
@@ -83,6 +84,8 @@ pub struct Lobby {
     row: usize,
     /// the number of bots
     bots: usize,
+    /// what the machines must have in common (the build, the game's files, the mods)
+    compat: u32,
     /// the character each player chose (this machine's own at `my_index`; the host keeps its clients' here)
     picks: Vec<usize>,
     /// (a test aid) the lobby answers itself: `host,<players>,<level>` or `join,<address>`
@@ -100,7 +103,7 @@ fn now_seed() -> i32 {
 }
 
 impl Lobby {
-    pub fn new(levels: Vec<String>, chars: Vec<(i32, String)>) -> Lobby {
+    pub fn new(levels: Vec<String>, chars: Vec<(i32, String)>, compat: u32) -> Lobby {
         let level = levels.iter().position(|l| l.eq_ignore_ascii_case("Prison")).unwrap_or(0);
         let mut l = Lobby {
             screen: Screen::Main,
@@ -124,6 +127,8 @@ impl Lobby {
             chars,
             row: 0,
             bots: 0,
+            // (a test aid: a machine that is not like the others)
+            compat: compat ^ std::env::var("TS_LOBBY_COMPAT_XOR").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(0),
             picks: vec![0; MAX_PLAYERS],
             auto: None,
         };
@@ -371,6 +376,14 @@ impl Lobby {
                         continue;
                     }
                     match b[4] {
+                        T_JOIN if b.len() >= 9 && u32::from_le_bytes([b[5], b[6], b[7], b[8]]) != self.compat => {
+                            // (a machine with other game files or other mods would not stay in step)
+                            let mut r = MAGIC.to_le_bytes().to_vec();
+                            r.push(T_REJECT);
+                            if let Some(s) = &self.sock {
+                                let _ = s.send_to(&r, from);
+                            }
+                        }
                         T_JOIN => {
                             if !self.others.contains(&from) && self.others.len() + 1 < MAX_PLAYERS && self.starting.is_none() {
                                 self.others.push(from);
@@ -421,6 +434,13 @@ impl Lobby {
             }
             Screen::Join if self.sock.is_some() => {
                 let host = self.host.unwrap();
+                for (b, from) in &got {
+                    if b.len() >= 5 && u32::from_le_bytes([b[0], b[1], b[2], b[3]]) == MAGIC && b[4] == T_REJECT && from.ip() == host.ip() {
+                        self.sock = None;
+                        self.status = "The host has other game files or other mods than this machine (the mods that are on must be the same)".into();
+                        return;
+                    }
+                }
                 for (b, from) in got {
                     if b.len() < 14 || u32::from_le_bytes([b[0], b[1], b[2], b[3]]) != MAGIC || b[4] != T_ROSTER || from.ip() != host.ip() {
                         continue;
@@ -496,6 +516,7 @@ impl Lobby {
                     self.last_send = Instant::now();
                     let mut b = MAGIC.to_le_bytes().to_vec();
                     b.push(T_JOIN);
+                    b.extend_from_slice(&self.compat.to_le_bytes());
                     if let Some(s) = &self.sock {
                         let _ = s.send_to(&b, host);
                     }
