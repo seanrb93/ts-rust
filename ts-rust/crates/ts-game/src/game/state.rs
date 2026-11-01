@@ -52,17 +52,17 @@ pub fn guiGetImageWidth(_image: i32) {}
 
 /// Number of players on this machine (@ 0x2cdde0).  The `ilink` functions are for the PS2's network link; the build has no link.
 pub fn ilinkGetNumLocalPlayers() -> i32 {
-    lw(g::lvnumplayers)
+    netlink_local_players_or(lw(g::lvnumplayers))
 }
 
 /// @ 0x2cddf0
 pub fn ilinkGetStartLocalPlayerNum() -> i32 {
-    0
+    netlink_start_player_or()
 }
 
 /// @ 0x2cddf8
 pub fn ilinkIsILinkGame() -> i32 {
-    0
+    netlink_active_or()
 }
 
 /// @ 0x2cddd8

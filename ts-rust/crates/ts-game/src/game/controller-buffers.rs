@@ -8,6 +8,7 @@ fn controller_of(player: i32) -> i32 {
     if slot >= ilinkGetNumLocalPlayers() {
         slot -= ilinkGetNumLocalPlayers() - 4;
     }
+    let slot = netlink_slot_or(player, slot);
     lw((slot << 2) + g::playercontrollers) * 384 + g::controllers
 }
 
@@ -38,6 +39,7 @@ pub fn GetControllerFromBuff(player: i32, buffer: i32) {
     if slot >= ilinkGetNumLocalPlayers() {
         slot -= ilinkGetNumLocalPlayers() - 4;
     }
+    let slot = netlink_slot_or(player, slot);
     let number = lw((slot << 2) + g::playercontrollers);
     let c = number * 384 + g::controllers;
     sw(c + 288, BuffRemoveu16(cursor));

@@ -5,6 +5,7 @@ use crate::*;
 /// The tick of the link to the other console: the pads are polled (@ 0x2cddd0).
 pub fn ilinkTick() {
     joyTick();
+    netlink_tick_hook();
 }
 
 /// Preload for the in-game menu: the user interface's (@ 0x2124a0).

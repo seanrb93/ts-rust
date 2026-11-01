@@ -444,7 +444,8 @@ pub fn present_frame() {
         VBL_ACC.store(acc.to_bits(), Ordering::Relaxed);
     } else {
         // The vertical-blank interrupt drove the game clock; run it once per elapsed 60 Hz tick.
-        for _ in 0..ts_sdk::wait_vsync() {
+        let ticks = ts_sdk::wait_vsync();
+        for _ in 0..(if ilinkIsILinkGame() != 0 { 1 } else { ticks }) {
             timeTickRetrace();
         }
     }
@@ -683,6 +684,10 @@ fn timeTickStart_60() {
         ticks = 5;
     }
     if ticks == 0 {
+        ticks = 1;
+    }
+    if ilinkIsILinkGame() != 0 {
+        // (a network game: every machine ticks one at a time)
         ticks = 1;
     }
     let paused = lw(g::gamepaused);

@@ -460,6 +460,10 @@ impl Config {
 
     /// the frame rate to run the game at, given the refresh rate of the monitor (if known)
     pub fn logic_hz(&self, monitor_hz: Option<f32>) -> f32 {
+        // (a network game ticks at the original's 60)
+        if ts_sdk::net::active() {
+            return 60.0;
+        }
         // (without `high-framerate` the game runs at its own 60 Hz whatever `framerate` says: the logic is made to match the
         // original exactly, and the changes that let it run at other rates are not in it)
         #[cfg(not(feature = "high-framerate"))]

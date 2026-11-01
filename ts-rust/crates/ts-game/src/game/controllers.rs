@@ -9,7 +9,7 @@ pub(super) fn controller_slot(player: i32) -> i32 {
     if lw(g::lvlevelnum) != 102 && slot >= ilinkGetNumLocalPlayers() {
         slot -= ilinkGetNumLocalPlayers() - 4;
     }
-    slot
+    netlink_slot_or(player, slot)
 }
 
 /// Address of a player's controller record (384 bytes each).

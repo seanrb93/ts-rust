@@ -214,6 +214,10 @@ fn process_frame(n: u64, list: i32, world: Vec<(i32, i32)>) {
     frame.smooth = frame.in_game;
     frame.page_open = ts_rt::lw(ts_rt::lw(ts_game::g::front) + 20) != 0;
     frame.players = if matches!(ts_rt::lw(ts_game::g::gamestate), 3..=6) { ts_rt::lw(ts_game::g::lvnumplayers).clamp(0, 4) as u8 } else { 0 };
+    // (a network game shows the one view of this machine)
+    if ts_sdk::net::active() && frame.players > 1 {
+        frame.players = 1;
+    }
     frame.menu_open = frame.in_game && ts_rt::lw(ts_game::g::curmenu) != 0;
     frame.scores_open = frame.in_game && (0..4).any(|p| ts_rt::lhu(0x1fb3240 + 92 * p + 8) & 1 != 0);
     if std::env::var_os("TS_MMDBG").is_some() && n % 50 == 0 {
@@ -683,6 +687,24 @@ fn main() {
             "--spawn" => set_harness("TS_SPAWN", it.next()),
             "--cam" => set_harness("TS_CAM", it.next()),
             "--players" => players = it.next(),
+            // network play (a test form until there is a lobby): local=<player>,peers=<ip:port>/<ip:port>[/...],seed=<n>,delay=<ticks>
+            "--net" => {
+                let spec = it.next().unwrap_or_default();
+                let mut cfg = ts_sdk::net::Config { local: 0, peers: Vec::new(), seed: 1, delay: 3 };
+                for part in spec.split(',') {
+                    match part.split_once('=') {
+                        Some(("local", v)) => cfg.local = v.parse().unwrap_or(0),
+                        Some(("peers", v)) => cfg.peers = v.split('/').filter_map(|a| a.parse().ok()).collect(),
+                        Some(("seed", v)) => cfg.seed = v.parse().unwrap_or(1),
+                        Some(("delay", v)) => cfg.delay = v.parse().unwrap_or(3),
+                        _ => {}
+                    }
+                }
+                if let Err(e) = ts_sdk::net::start(cfg) {
+                    eprintln!("[net] {e}");
+                    std::process::exit(2);
+                }
+            }
             "--dump-frames" => {
                 let v: Vec<u64> = it.next().unwrap_or_default().split(',').filter_map(|x| x.parse().ok()).collect();
                 *DUMP_FRAMES.lock().unwrap() = v;

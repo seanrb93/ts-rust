@@ -628,6 +628,79 @@ pub fn arcade_edit_row(row: i32) -> bool {
     }
 }
 
+/// The controller slot of a player (a network game gives each player the slot of the number).
+#[inline]
+pub fn netlink_slot_or(player: i32, own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_slot(player, own)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = player;
+        own
+    }
+}
+
+/// The number of players on this machine (all of them, except in a network game).
+#[inline]
+pub fn netlink_local_players_or(all: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_local_players(all)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        all
+    }
+}
+
+/// The number of the player on this machine (0 except in a network game).
+#[inline]
+pub fn netlink_start_player_or() -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_start_player()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        0
+    }
+}
+
+/// Is the game a network game (the `ilink` of the console game)?
+#[inline]
+pub fn netlink_active_or() -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_active() as i32
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        0
+    }
+}
+
+/// The tick of the link: in a network game the pads are exchanged.
+#[inline]
+pub fn netlink_tick_hook() {
+    #[cfg(feature = "extensions")]
+    netlink_tick();
+}
+
+/// The seed of the random numbers: that of the network game when there is one.
+#[inline]
+pub fn netlink_seed_or(seed: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        ts_sdk::net::seed().unwrap_or(seed)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        seed
+    }
+}
+
 /// The menu of the MapMaker's Options page.
 #[inline]
 pub fn mm_options_menu_or(own: i32) -> i32 {

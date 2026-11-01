@@ -7,6 +7,7 @@ pub mod levels;
 pub mod libc;
 pub mod math;
 pub mod misc;
+pub mod net;
 pub mod mc;
 pub mod pad;
 pub mod scanf;
