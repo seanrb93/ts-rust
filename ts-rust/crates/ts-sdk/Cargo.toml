@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 ts-rt = { path = "../ts-rt" }
 ts-audio = { path = "../ts-audio" }
+# the maths of a network game: the same results on every platform (the platforms' own libraries differ in the last bit)
+libm = "0.2"
 
 [features]
 calltrace = ["ts-rt/calltrace"]

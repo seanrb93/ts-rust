@@ -57,5 +57,7 @@ A machine with other game files or other mods than the host's is turned away by 
 that are on).  A player whose machine stops answering for 10 seconds ends the game on the others with a message.  Each machine hears the sounds from its own
 player's place.  The lobby (above) with 3 machines on one PC reaches the same state on all of them.
 Not done: a game set-up that comes from the game's own front end pages (mode and options, characters, bots, weapon sets; mods must match by hand), pausing,
-a player leaving without ending the game, reaching a machine behind a router, and a check that a platform's maths
-functions give the same results as another's (play between different systems may desync; two machines of the same build are fine).
+a player leaving without ending the game, reaching a machine behind a router, and a test of play between
+different systems.  In a network game the maths functions (`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `pow`) come from the `libm` crate, whose
+results are the same on every platform (the platforms' own libraries differ in the last bit); square roots, floors and the rest are exact on any machine.
+That makes play between Windows, Linux and Android possible in principle, but it has only been run between copies on one Windows PC.
