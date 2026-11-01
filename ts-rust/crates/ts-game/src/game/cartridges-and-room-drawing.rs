@@ -94,7 +94,8 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     matrixVecRotAligned(&[sp as i64, (sp + 128) as i64]);
     let vy = lwc1(sp + 132);
     let vz = lwc1(sp + 136);
-    let current = lw(g::currentplayer);
+    // (the cartridge is placed in the view that draws it: in a network game that of the player on this machine)
+    let current = netlink_view_player_or(lw(g::currentplayer));
     swc1(a0 + 28, ps2float::add(lwc1(sp + 128), lwc1(prop + 48)));
     let matrix = lw(current + 1772);
     swc1(a0 + 32, ps2float::add(vy, lwc1(prop + 52)));
@@ -118,7 +119,7 @@ pub fn fireCartridges(a0: i32, a1: i32, a2: i32, a3: i32) {
     matrixVecRotAligned(&[sp as i64, (sp + 128) as i64]);
     let vy = lwc1(sp + 132);
     let vz = lwc1(sp + 136);
-    let current = lw(g::currentplayer);
+    let current = netlink_view_player_or(lw(g::currentplayer));
     swc1(a0 + 40, ps2float::add(lwc1(sp + 128), lwc1(prop + 48)));
     let matrix = lw(current + 1772);
     swc1(a0 + 44, ps2float::add(vy, lwc1(prop + 52)));

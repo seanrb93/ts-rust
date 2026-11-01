@@ -688,6 +688,25 @@ pub fn netlink_boundary_or() {
     netlink_boundary();
 }
 
+/// The commands for the sound chip of a frame that a network game with rollback played again are only those that the first time did not have.
+#[inline]
+pub fn netlink_sound_filter_or() {
+    #[cfg(feature = "extensions")]
+    netlink_sound_filter();
+}
+
+/// The player whose view the effects that are placed in a view are made in: in a network game the one on this machine.
+#[inline]
+pub fn netlink_view_player_or(current: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        if netlink_active() {
+            return lw(g::players) + netlink_start_player() * 1820;
+        }
+    }
+    current
+}
+
 /// Is the game a network game (the `ilink` of the console game)?
 #[inline]
 pub fn netlink_active_or() -> i32 {

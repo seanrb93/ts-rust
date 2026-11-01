@@ -211,6 +211,32 @@ struct Rollback {
 #[cfg(feature = "extensions")]
 static ROLLBACK: std::sync::Mutex<Rollback> = std::sync::Mutex::new(Rollback { started: false, tick: 0, verified: 0, used: std::collections::BTreeMap::new(), pending: std::collections::BTreeMap::new() });
 
+/// Before the sound commands of a frame are sent: the ones a tick played again has already sent are taken out.
+#[cfg(feature = "extensions")]
+pub fn netlink_sound_filter() {
+    if !ts_sdk::net::rollback() {
+        return;
+    }
+    let n = lw(g::soundbatchlen);
+    if n <= 0 {
+        return;
+    }
+    let base = 0x1fb19c0 | 0x20000000;
+    let mut keep = 0;
+    for i in 0..n {
+        let e = base + i * 8;
+        let (w0, w1) = (lw(e), lw(e + 4));
+        if ts_sdk::net::sound_new([0xb47c, w0 as u32, w1 as u32, 0]) {
+            if keep != i {
+                sw(base + keep * 8, w0);
+                sw(base + keep * 8 + 4, w1);
+            }
+            keep += 1;
+        }
+    }
+    sw(g::soundbatchlen, keep);
+}
+
 /// A level is being played (not its first frames, nor the screens after it).
 #[cfg(feature = "extensions")]
 fn in_level() -> bool {
@@ -264,6 +290,7 @@ fn go_back(rb: &mut Rollback, e: u32, k: u32) {
     ts_rt::journal::undo(n + 1);
     ts_sdk::net::set_replaying(true);
     for t in e..k {
+        ts_sdk::net::replay_tick(t);
         ts_rt::journal::begin_tick();
         let (pads, mask) = best_pads(t);
         apply_pads(&pads, mask);
@@ -274,6 +301,7 @@ fn go_back(rb: &mut Rollback, e: u32, k: u32) {
         }
     }
     ts_sdk::net::set_replaying(false);
+    ts_sdk::net::set_tick(k);
     ts_rt::journal::begin_tick();
     ts_sdk::net::note_rollback(n as u32);
 }

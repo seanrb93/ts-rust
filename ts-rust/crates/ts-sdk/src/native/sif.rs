@@ -108,8 +108,8 @@ pub fn sceSdTransToIOP(args: &[i64]) -> i32 {
 /// `sceSdRemote(sync, rpc, ...)`: libsd calls, served by the native SPU2-style mixer.
 pub fn sceSdRemote(args: &[i64]) -> i32 {
     let a = |i: usize| args.get(i).copied().unwrap_or(0) as u32;
-    // (ticks played again after a rollback make no sounds: the first time they did)
-    if crate::net::replaying() && matches!(a(1), 0x8010 | 0x8030 | 0x8050 | 0x8070 | 0x80b0 | 0x80d0) {
+    // (a tick played again after a rollback starts only the sounds that the first time did not: see `net::sound_new`)
+    if matches!(a(1), 0x8010 | 0x8030 | 0x8050 | 0x8070) && !crate::net::sound_new([a(1), a(2), a(3), a(4)]) {
         return 0;
     }
     match a(1) {

@@ -69,6 +69,8 @@ frames, from `ilinkOKToTick`) undoes the last ticks, then plays each frame with 
 (`sceSdRemote`).  The checksums are of the state after a tick once every pad up to it is known.  `TS_NETLAG=<ms>` holds back what comes, to test.  With 120 ms of it and pads
 that change all the time (about 225 times in 300 ticks the game went back, 7 ticks each) the ticks stayed 16.7 ms and the checksums of the two machines agreed.
 
+Sounds: each tick keeps what sound commands it sent the first time (`net::sound_new`); a tick played again sends only the ones that are new, so that a shot or a hit that was only learned of in the replay is heard once, and nothing is heard twice.  The shells of the guns (cartridges) are placed in the view of the player on this machine (`netlink_view_player_or`), not in that of whoever was current when the gun was ticked.  `net-stats.txt` also gives the longest time without a packet from the others.
+
 What is seen: a guess that was wrong shows for a moment (a shot that did not happen, a step the other way) and is put right when the pad comes; the input delay can be low (2 ticks by
 default) because the game does not wait.  Not done: the character's animation and the sounds of a wrong guess are not hidden; a level that ends while a tick is a guess.
 

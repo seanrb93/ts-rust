@@ -6,6 +6,7 @@ use crate::*;
 
 /// Send the batch of commands for the sound chip to the IOP and run it there.
 pub fn soundBatchExec() {
+    netlink_sound_filter_or();
     let length = lw(g::soundbatchlen);
     if length <= 0 {
         return;

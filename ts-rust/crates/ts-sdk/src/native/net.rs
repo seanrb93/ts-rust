@@ -336,6 +336,12 @@ impl Session {
         }
         self.heard[who] = true;
         self.last_heard = Instant::now();
+        // (the longest time between two packets of the others: a gap is the network's, or the other machine's game not running)
+        let gap = self.last[who].elapsed().as_secs_f64() * 1000.0;
+        {
+            let mut st = STATS.lock().unwrap();
+            st.gap_max = st.gap_max.max(gap);
+        }
         self.last[who] = Instant::now();
         let (Some(wants), Some(first)) = (u32_at(5), u32_at(9)) else { return };
         let count = b[13] as usize;
@@ -541,9 +547,10 @@ struct Stats {
     waited: u32,
     rollbacks: u32,
     replayed: u32,
+    gap_max: f64,
 }
 
-static STATS: Mutex<Stats> = Mutex::new(Stats { last: None, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0 });
+static STATS: Mutex<Stats> = Mutex::new(Stats { last: None, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0 });
 
 fn note_frame(now: Instant) {
     let mut st = STATS.lock().unwrap();
@@ -566,7 +573,7 @@ fn note_wait(wait: Duration, tick: u32) {
     }
     if tick % 300 == 0 && st.frames > 0 {
         let line = format!(
-            "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms, {} rollbacks ({} ticks played again)
+            "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms, {} rollbacks ({} ticks played again), the longest silence from the others {:.0} ms
 ",
             st.frame_total / st.frames as f64,
             st.frame_max,
@@ -575,13 +582,14 @@ fn note_wait(wait: Duration, tick: u32) {
             st.waited,
             st.frames,
             st.rollbacks,
-            st.replayed
+            st.replayed,
+            st.gap_max
         );
         use std::io::Write;
         if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(crate::save_root().join("net-stats.txt")) {
             let _ = f.write_all(line.as_bytes());
         }
-        *st = Stats { last: st.last, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0 };
+        *st = Stats { last: st.last, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0 };
     }
 }
 
@@ -607,6 +615,49 @@ pub fn set_replaying(on: bool) {
 
 pub fn replaying() -> bool {
     REPLAYING.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// The sounds started in each tick, so that a tick played again after a rollback starts only the sounds that were not started the first time.
+struct Sounds {
+    seen: std::collections::BTreeMap<u32, std::collections::HashMap<[u32; 4], u32>>,
+    used: std::collections::HashMap<[u32; 4], u32>,
+}
+
+static SOUNDS: Mutex<Option<Sounds>> = Mutex::new(None);
+
+/// A tick is being played again: nothing of it has been played again yet.
+pub fn replay_tick(t: u32) {
+    set_tick(t);
+    if let Some(so) = SOUNDS.lock().unwrap().as_mut() {
+        so.used.clear();
+    }
+}
+
+/// The game is about to start a sound (a command for the sound chip); true when it is to be done: the first time in a tick, or when a tick played again has a sound
+/// that the first time did not have.
+pub fn sound_new(key: [u32; 4]) -> bool {
+    if !rollback() {
+        return true;
+    }
+    let tick = SESSION.lock().unwrap().as_ref().map_or(0, |s| s.tick);
+    let mut g = SOUNDS.lock().unwrap();
+    let so = g.get_or_insert_with(|| Sounds { seen: std::collections::BTreeMap::new(), used: std::collections::HashMap::new() });
+    if !replaying() {
+        *so.seen.entry(tick).or_default().entry(key).or_insert(0) += 1;
+        while so.seen.len() > 96 {
+            let first = *so.seen.keys().next().unwrap();
+            so.seen.remove(&first);
+        }
+        return true;
+    }
+    let before = so.seen.get(&tick).and_then(|m| m.get(&key)).copied().unwrap_or(0);
+    let used = so.used.entry(key).or_insert(0);
+    *used += 1;
+    if *used <= before {
+        return false;
+    }
+    *so.seen.entry(tick).or_default().entry(key).or_insert(0) += 1;
+    true
 }
 
 /// The players whose pad becomes nothing pressed with this tick (they left: bit `p`).
