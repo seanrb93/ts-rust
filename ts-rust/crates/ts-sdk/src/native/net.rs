@@ -122,6 +122,8 @@ struct Session {
     reports: Vec<Vec<Option<u32>>>,
     /// a dropped player and the tick from which their pad is nothing pressed: the most pads of theirs that any machine has
     dropped: Vec<Option<u32>>,
+    /// the game has been told the player is out
+    told: Vec<bool>,
 }
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
@@ -161,6 +163,7 @@ pub fn start(cfg: Config) -> Result<(), String> {
         suspect: vec![false; n],
         reports: vec![vec![None; n]; n],
         dropped: vec![None; n],
+        told: vec![false; n],
     });
     Ok(())
 }
@@ -186,6 +189,21 @@ pub fn num_players() -> i32 {
 
 pub fn seed() -> Option<i32> {
     SESSION.lock().unwrap().as_ref().map(|s| s.seed)
+}
+
+/// The players whose pad became nothing pressed with the tick just done (each is given once; the same tick on every machine).
+pub fn newly_gone() -> Vec<usize> {
+    let mut g = SESSION.lock().unwrap();
+    let Some(s) = g.as_mut() else { return Vec::new() };
+    let done = s.tick.saturating_sub(1);
+    let mut out = Vec::new();
+    for p in 0..s.n() {
+        if !s.told[p] && s.dropped[p].map_or(false, |v| done >= v) {
+            s.told[p] = true;
+            out.push(p);
+        }
+    }
+    out
 }
 
 pub fn desyncs() -> u32 {

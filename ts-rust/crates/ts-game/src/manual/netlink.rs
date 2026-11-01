@@ -79,6 +79,23 @@ fn where_everybody() -> String {
     s
 }
 
+/// A player's machine has gone: everybody sees a message and the player's character falls (the same on every machine, on the same tick).
+fn player_left(p: i32) {
+    const TEXT_AT: i32 = 0x240_0000 + 0xd600;
+    let text = format!("Player {} has left", p + 1);
+    for (i, c) in text.bytes().enumerate() {
+        sb(TEXT_AT + i as i32, c as i32);
+    }
+    sb(TEXT_AT + text.len() as i32, 0);
+    for i in 0..lw(g::lvnumplayers) {
+        hudMessage(i, TEXT_AT);
+    }
+    let prop = lw(g::players) + p * 1820;
+    if p < lw(g::lvnumplayers) && lw(prop + 384) != 0 && lw(prop + 296) != 4 {
+        playerDie(prop, 0, -1, 0, 0, 0, 0);
+    }
+}
+
 /// Called at the start of each frame (`ilinkTick`) of a network game once the pads have been read: in a level, this machine's pad is given
 /// to the others, and the pads of every player for the tick are written into their controller records.
 pub fn netlink_tick() {
@@ -95,6 +112,9 @@ pub fn netlink_tick() {
         let record = FIRST_NET_PAD + p as i32;
         put_pad(g::controllers + record * 384, b);
         sw(g::playercontrollers + 4 * p as i32, record);
+    }
+    for p in ts_sdk::net::newly_gone() {
+        player_left(p as i32);
     }
     let t = ts_sdk::net::tick() - 1;
     if t % ts_sdk::net::SUM_EVERY == 0 {
