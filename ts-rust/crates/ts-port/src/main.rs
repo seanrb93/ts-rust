@@ -14,6 +14,7 @@ mod mods;
 mod moddata;
 mod dldump;
 mod keys;
+mod lobby;
 mod texmod;
 mod window;
 mod gfx_worker;
@@ -604,6 +605,7 @@ fn main() {
     let mut max_frames: Option<u64> = None;
     let mut level: Option<String> = None;
     let mut players: Option<String> = None;
+    let mut lobby_on = false;
     let mut headless = false;
     let mut save_dir: Option<PathBuf> = None;
     let mut force_window = false;
@@ -674,6 +676,8 @@ fn main() {
                 }
             }
             "--headless" => headless = true,
+            // the lobby of a network game before the game starts
+            "--lobby" => lobby_on = true,
             "--window" => force_window = true,
             "--set" => {
                 if let Some((k, v)) = it.next().and_then(|a| a.split_once('=').map(|(k, v)| (k.to_string(), v.to_string()))) {
@@ -690,7 +694,7 @@ fn main() {
             // network play (a test form until there is a lobby): local=<player>,peers=<ip:port>/<ip:port>[/...],seed=<n>,delay=<ticks>
             "--net" => {
                 let spec = it.next().unwrap_or_default();
-                let mut cfg = ts_sdk::net::Config { local: 0, peers: Vec::new(), seed: 1, delay: 3 };
+                let mut cfg = ts_sdk::net::Config { local: 0, peers: Vec::new(), bind: "0.0.0.0:0".parse().unwrap(), seed: 1, delay: 3 };
                 for part in spec.split(',') {
                     match part.split_once('=') {
                         Some(("local", v)) => cfg.local = v.parse().unwrap_or(0),
@@ -700,6 +704,7 @@ fn main() {
                         _ => {}
                     }
                 }
+                cfg.bind = cfg.peers.get(cfg.local).copied().unwrap_or(cfg.bind);
                 if let Err(e) = ts_sdk::net::start(cfg) {
                     eprintln!("[net] {e}");
                     std::process::exit(2);
@@ -853,6 +858,10 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
         let mut loading = 0u32;
         loop {
             std::thread::sleep(std::time::Duration::from_secs(2));
+            if LOBBY_WAIT.load(std::sync::atomic::Ordering::Relaxed) {
+                // (the lobby of a network game is up: the game has not started)
+                continue;
+            }
             let n = ts_sdk::frame_count();
             let stuck_frames = n == last;
             last = n;
@@ -886,28 +895,41 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
 
     // The decompiled game keeps its working state in the game address space; run it on a dedicated big-stack thread.
     // argv as the original `main(argc, argv)` expects: [program, level name, players]; no arguments = front end.
-    let mut argv_strings = vec!["timesplitters".to_string()];
-    if let Some(l) = &level {
-        argv_strings.push(l.clone());
-        argv_strings.push(players.clone().unwrap_or_else(|| "1".into()));
-    }
-    let argc = if level.is_some() { argv_strings.len() as i32 } else { 0 };
-    let argv = {
-        let table = ts_sdk::malloc(4 * (argv_strings.len() as i32 + 1));
-        for (i, s) in argv_strings.iter().enumerate() {
-            let p = ts_sdk::malloc(s.len() as i32 + 1);
-            for (k, b) in s.bytes().enumerate() {
-                ts_rt::sb(p + k as i32, b as i32);
-            }
-            ts_rt::sb(p + s.len() as i32, 0);
-            ts_rt::sw(table + 4 * i as i32, p);
-        }
-        table
-    };
     if windowed {
         audio::start_device();
     }
     let run_game = move || {
+        // (the lobby, when there was one, has given the level and the players)
+        let (level, players) = match LOBBY_OUTCOME.lock().unwrap().take() {
+            Some(o) => {
+                if o.players >= 2 {
+                    let cfg = ts_sdk::net::Config { local: o.local, peers: o.peers.clone(), bind: o.bind, seed: o.seed, delay: 3 };
+                    if let Err(e) = ts_sdk::net::start(cfg) {
+                        fatal(&format!("The network game cannot start: {e}"));
+                    }
+                }
+                (Some(o.level), Some(o.players.to_string()))
+            }
+            None => (level.clone(), players.clone()),
+        };
+        let mut argv_strings = vec!["timesplitters".to_string()];
+        if let Some(l) = &level {
+            argv_strings.push(l.clone());
+            argv_strings.push(players.clone().unwrap_or_else(|| "1".into()));
+        }
+        let argc = if level.is_some() { argv_strings.len() as i32 } else { 0 };
+        let argv = {
+            let table = ts_sdk::malloc(4 * (argv_strings.len() as i32 + 1));
+            for (i, s) in argv_strings.iter().enumerate() {
+                let p = ts_sdk::malloc(s.len() as i32 + 1);
+                for (k, b) in s.bytes().enumerate() {
+                    ts_rt::sb(p + k as i32, b as i32);
+                }
+                ts_rt::sb(p + s.len() as i32, 0);
+                ts_rt::sw(table + 4 * i as i32, p);
+            }
+            table
+        };
         let h = std::thread::Builder::new()
             .name("game".into())
             .stack_size(256 << 20)
@@ -918,15 +940,41 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
         }
         std::process::exit(0);
     };
+    LOBBY_WAIT.store(lobby_on, std::sync::atomic::Ordering::Relaxed);
+    let lobby = if lobby_on { Some(lobby::Lobby::new(ts_game::netlink_level_names())) } else { None };
     if windowed {
-        // the OS event loop must own the main thread; the game thread is started once the window exists
-        window::run(move || {
+        // the OS event loop must own the main thread; the game thread is started once the window exists (and the lobby is done)
+        window::run(lobby, |o| {
+            *LOBBY_OUTCOME.lock().unwrap() = Some(o);
+            LOBBY_WAIT.store(false, std::sync::atomic::Ordering::Relaxed);
+        }, move || {
             std::thread::spawn(run_game);
         });
     } else {
+        if let Some(mut l) = lobby {
+            // (no window: the lobby answers itself, `TS_LOBBY_AUTO`)
+            loop {
+                l.tick();
+                if let Some(o) = l.finished() {
+                    if o.players == 0 {
+                        std::process::exit(0);
+                    }
+                    *LOBBY_OUTCOME.lock().unwrap() = Some(o);
+                    LOBBY_WAIT.store(false, std::sync::atomic::Ordering::Relaxed);
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+        }
         run_game();
     }
 }
+
+/// The lobby is up and the game has not been started.
+static LOBBY_WAIT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// What the lobby decided.
+static LOBBY_OUTCOME: Mutex<Option<lobby::Outcome>> = Mutex::new(None);
 
 /// Wait for the game thread; returns true if it panicked.
 fn windowed_exit_watch(h: std::thread::JoinHandle<()>) -> bool {

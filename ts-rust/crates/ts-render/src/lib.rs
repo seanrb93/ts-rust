@@ -1892,6 +1892,32 @@ impl Renderer {
         self.queue.submit(Some(enc.finish()));
     }
 
+    /// A black screen with `text` in the corner (the lobby of a network game, before there is a picture of the game).
+    pub fn present_text_only(&mut self, target_tex: &wgpu::Texture, wsize: (u32, u32), text: &str) {
+        let target_view = target_tex.create_view(&wgpu::TextureViewDescriptor::default());
+        let mut enc = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("lobby") });
+        {
+            let _pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("lobby clear"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &target_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color { r: 0.02, g: 0.02, b: 0.08, a: 1.0 }), store: wgpu::StoreOp::Store },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+        }
+        if self.overlay.is_none() {
+            self.overlay = Some(overlay::Overlay::new(&self.device, &self.queue, self.format));
+        }
+        if let Some(o) = &self.overlay {
+            o.draw(&self.device, &mut enc, &target_view, wsize, text);
+        }
+        self.queue.submit(Some(enc.finish()));
+    }
+
     /// Benchmark helper: render into a scratch texture and wait for the GPU.
     pub fn bench_render(&mut self, frame: &Frame, w: u32, h: u32) {
         let tex = self.device.create_texture(&wgpu::TextureDescriptor {

@@ -105,6 +105,25 @@ pub fn netlink_tick() {
     }
 }
 
+/// The names of the levels the game has, in the order of its table (the lobby offers them).
+pub fn netlink_level_names() -> Vec<String> {
+    let mut v = Vec::new();
+    let language = lw(g::cur_language);
+    let mut entry = LVINFO;
+    for _ in 0..200 {
+        let text = lw((lh(entry) << 2) + lw((language << 2) + g::languages));
+        if text == 0 {
+            break;
+        }
+        let name = ts_rt::cstr(text);
+        if lw(entry + 4) < 100 && !name.is_empty() {
+            v.push(name);
+        }
+        entry += 24;
+    }
+    v
+}
+
 /// The number of players on this machine: in a network game the one.
 pub fn netlink_local_players(all: i32) -> i32 {
     if ts_sdk::net::active() {

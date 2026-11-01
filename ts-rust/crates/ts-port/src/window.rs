@@ -293,12 +293,60 @@ struct App {
     grabbed: bool,
     focused: bool,
     pads: Option<crate::gamepads::Pads>,
+    /// the lobby of a network game, shown until it is done (and what to do with its outcome)
+    lobby: Option<crate::lobby::Lobby>,
+    lobby_done: Box<dyn FnMut(crate::lobby::Outcome)>,
+    lobby_buttons: u16,
     /// window state asked for last, and when
     applied: Option<WindowWant>,
     applied_at: Instant,
 }
 
 impl App {
+    /// The lobby: its pad buttons, its network, its screen; when it is done the game starts.
+    fn run_lobby(&mut self) {
+        use crate::lobby::Key;
+        if let (Some(lobby), Some(pads)) = (self.lobby.as_mut(), self.pads.as_mut()) {
+            let now = pads.poll().first().map_or(0, |s| s.buttons);
+            let new = now & !self.lobby_buttons;
+            self.lobby_buttons = now;
+            for (bit, key) in [(btn::UP, Key::Up), (btn::DOWN, Key::Down), (btn::LEFT, Key::Left), (btn::RIGHT, Key::Right), (btn::CROSS, Key::Enter), (btn::CIRCLE, Key::Back)] {
+                if new & bit != 0 {
+                    lobby.key(key);
+                }
+            }
+        }
+        let Some(lobby) = self.lobby.as_mut() else { return };
+        lobby.tick();
+        let text = lobby.text();
+        if let Some(outcome) = lobby.finished() {
+            if outcome.players == 0 {
+                std::process::exit(0);
+            }
+            (self.lobby_done)(outcome);
+            self.lobby = None;
+            if let Some(f) = self.start_game.take() {
+                f();
+            }
+            return;
+        }
+        let mut g = PRESENTER.lock().unwrap();
+        let Some(p) = g.as_mut() else { return };
+        let size = p.window.inner_size();
+        if size.width == 0 || size.height == 0 {
+            return;
+        }
+        if (size.width, size.height) != (p.config.width, p.config.height) {
+            p.config.width = size.width;
+            p.config.height = size.height;
+            p.surface.configure(p.renderer.device(), &p.config);
+        }
+        if let Ok(tex) = p.surface.get_current_texture() {
+            p.renderer.present_text_only(&tex.texture, (size.width, size.height), &text);
+            tex.present();
+        }
+    }
+
     /// Bring the window to the mode and size in the settings (they can be changed by the options page at any time).
     fn apply_window(&mut self) {
         let Some(w) = self.window.clone() else { return };
@@ -451,8 +499,10 @@ impl ApplicationHandler for App {
         self.window = Some(window.clone());
         let mailbox = if caps_adapter.present_modes.contains(&wgpu::PresentMode::Mailbox) { wgpu::PresentMode::Mailbox } else { wgpu::PresentMode::AutoNoVsync };
         *PRESENTER.lock().unwrap() = Some(Presenter { window, surface, config, renderer, mailbox, monitor_hz: None, presents: 0 });
-        if let Some(f) = self.start_game.take() {
-            f();
+        if self.lobby.is_none() {
+            if let Some(f) = self.start_game.take() {
+                f();
+            }
         }
         el.set_control_flow(ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(8)));
     }
@@ -463,6 +513,26 @@ impl ApplicationHandler for App {
                 std::process::exit(0);
             }
             WindowEvent::KeyboardInput { event, .. } => {
+                if let Some(lobby) = self.lobby.as_mut() {
+                    // (the lobby of a network game takes the keys)
+                    if event.state == ElementState::Pressed {
+                        use crate::lobby::Key;
+                        let key = match event.physical_key {
+                            PhysicalKey::Code(KeyCode::ArrowUp) => Some(Key::Up),
+                            PhysicalKey::Code(KeyCode::ArrowDown) => Some(Key::Down),
+                            PhysicalKey::Code(KeyCode::ArrowLeft) => Some(Key::Left),
+                            PhysicalKey::Code(KeyCode::ArrowRight) => Some(Key::Right),
+                            PhysicalKey::Code(KeyCode::Enter) | PhysicalKey::Code(KeyCode::NumpadEnter) => Some(Key::Enter),
+                            PhysicalKey::Code(KeyCode::Escape) => Some(Key::Back),
+                            PhysicalKey::Code(KeyCode::Backspace) => Some(Key::Backspace),
+                            _ => event.text.as_ref().and_then(|t| t.chars().next()).map(Key::Char),
+                        };
+                        if let Some(k) = key {
+                            lobby.key(k);
+                        }
+                    }
+                    return;
+                }
                 if let PhysicalKey::Code(code) = event.physical_key {
                     match event.state {
                         ElementState::Pressed => {
@@ -574,6 +644,11 @@ impl ApplicationHandler for App {
     }
 
     fn about_to_wait(&mut self, el: &ActiveEventLoop) {
+        if self.lobby.is_some() {
+            self.run_lobby();
+            el.set_control_flow(ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(16)));
+            return;
+        }
         self.update_mouse_capture();
         self.update_pads();
         // the setting can also be changed by the game's own options page
@@ -594,7 +669,7 @@ fn pollster_adapter_caps(instance: &wgpu::Instance, surface: &wgpu::Surface) -> 
 
 /// Open the window and run the event loop on the calling (main) thread.  `start_game` is invoked once the window and
 /// swap chain exist.  Never returns.
-pub fn run(start_game: impl FnOnce() + Send + 'static) -> ! {
+pub fn run(lobby: Option<crate::lobby::Lobby>, lobby_done: impl FnMut(crate::lobby::Outcome) + 'static, start_game: impl FnOnce() + Send + 'static) -> ! {
     let event_loop = EventLoop::new().expect("cannot create event loop");
     let pads = match crate::gamepads::Pads::new() {
         Ok(p) => Some(p),
@@ -603,7 +678,7 @@ pub fn run(start_game: impl FnOnce() + Send + 'static) -> ! {
             None
         }
     };
-    let mut app = App { window: None, start_game: Some(Box::new(start_game)), keys: HashSet::new(), kbm: KbMouse::new(), grabbed: false, focused: true, pads, applied: None, applied_at: Instant::now() };
+    let mut app = App { window: None, start_game: Some(Box::new(start_game)), keys: HashSet::new(), kbm: KbMouse::new(), grabbed: false, focused: true, pads, lobby, lobby_done: Box::new(lobby_done), lobby_buttons: 0, applied: None, applied_at: Instant::now() };
     event_loop.run_app(&mut app).expect("event loop failed");
     std::process::exit(0);
 }

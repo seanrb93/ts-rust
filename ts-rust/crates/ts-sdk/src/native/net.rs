@@ -28,8 +28,10 @@ const TIMEOUT: Duration = Duration::from_secs(30);
 pub struct Config {
     /// this machine's player (0 to `peers.len() - 1`)
     pub local: usize,
-    /// the address of every player's machine (this machine's own is where it listens)
+    /// the address of every player's machine (the others use these to send to this machine too: this machine's own is where they find it)
     pub peers: Vec<SocketAddr>,
+    /// where this machine listens
+    pub bind: SocketAddr,
     /// the random seed of the game, the same on every machine
     pub seed: i32,
     /// ticks between a pad being read and being used
@@ -67,7 +69,7 @@ pub fn start(cfg: Config) -> Result<(), String> {
     if !(2..=4).contains(&n) || cfg.local >= n {
         return Err(format!("{} players and this one number {}: a network game has 2 to 4 players", n, cfg.local));
     }
-    let sock = UdpSocket::bind(cfg.peers[cfg.local]).map_err(|e| format!("cannot listen on {}: {e}", cfg.peers[cfg.local]))?;
+    let sock = UdpSocket::bind(cfg.bind).map_err(|e| format!("cannot listen on {}: {e}", cfg.bind))?;
     sock.set_nonblocking(true).map_err(|e| e.to_string())?;
     let mut pads = vec![BTreeMap::new(); n];
     // (the first ticks have nothing to wait for: nobody has pressed anything yet)
@@ -175,7 +177,7 @@ impl Session {
             return;
         }
         let who = b[4] as usize;
-        if who >= self.n() || who == self.local || self.peers[who].ip() != from.ip() {
+        if who >= self.n() || who == self.local {
             return;
         }
         self.heard[who] = true;
