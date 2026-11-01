@@ -393,6 +393,7 @@ pub fn load(overrides: &[(String, String)]) {
     }
     ts_sdk::set_view(c.aspect.unwrap_or(4.0 / 3.0), c.fov);
     ts_sdk::set_logic_hz(c.logic_hz(None));
+    ts_sdk::set_display_hz(c.display_hz(None));
     ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
     ts_game::set_mm_unlimited(c.mapmaker_unlimited);
     apply_sound_mix(&c);
@@ -480,6 +481,15 @@ impl Config {
             } else {
                 self.framerate as f32
             }
+        }
+    }
+
+    /// The rate of the pictures in a network game (the game itself runs at 60 there): `framerate`, or the monitor's refresh rate when that is 0.
+    pub fn display_hz(&self, monitor_hz: Option<f32>) -> f32 {
+        if self.framerate == 0 {
+            monitor_hz.unwrap_or(60.0).max(60.0)
+        } else {
+            (self.framerate as f32).max(60.0)
         }
     }
 

@@ -548,9 +548,10 @@ struct Stats {
     rollbacks: u32,
     replayed: u32,
     gap_max: f64,
+    subs: u32,
 }
 
-static STATS: Mutex<Stats> = Mutex::new(Stats { last: None, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0 });
+static STATS: Mutex<Stats> = Mutex::new(Stats { last: None, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0, subs: 0 });
 
 fn note_frame(now: Instant) {
     let mut st = STATS.lock().unwrap();
@@ -573,7 +574,7 @@ fn note_wait(wait: Duration, tick: u32) {
     }
     if tick % 300 == 0 && st.frames > 0 {
         let line = format!(
-            "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms, {} rollbacks ({} ticks played again), the longest silence from the others {:.0} ms
+            "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms, {} rollbacks ({} ticks played again), the longest silence from the others {:.0} ms, {:.1} extra pictures a tick
 ",
             st.frame_total / st.frames as f64,
             st.frame_max,
@@ -583,13 +584,14 @@ fn note_wait(wait: Duration, tick: u32) {
             st.frames,
             st.rollbacks,
             st.replayed,
-            st.gap_max
+            st.gap_max,
+            st.subs as f64 / st.frames.max(1) as f64
         );
         use std::io::Write;
         if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(crate::save_root().join("net-stats.txt")) {
             let _ = f.write_all(line.as_bytes());
         }
-        *st = Stats { last: st.last, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0 };
+        *st = Stats { last: st.last, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0, subs: 0 };
     }
 }
 
@@ -636,6 +638,9 @@ pub fn replay_tick(t: u32) {
 /// The game is about to start a sound (a command for the sound chip); true when it is to be done: the first time in a tick, or when a tick played again has a sound
 /// that the first time did not have.
 pub fn sound_new(key: [u32; 4]) -> bool {
+    if muted() {
+        return false;
+    }
     if !rollback() {
         return true;
     }
@@ -658,6 +663,17 @@ pub fn sound_new(key: [u32; 4]) -> bool {
     }
     *so.seen.entry(tick).or_default().entry(key).or_insert(0) += 1;
     true
+}
+
+static MUTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// A picture in between the ticks is being made: it starts no sounds.
+pub fn set_muted(on: bool) {
+    MUTED.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn muted() -> bool {
+    MUTED.load(std::sync::atomic::Ordering::Relaxed)
 }
 
 /// The players whose pad becomes nothing pressed with this tick (they left: bit `p`).
@@ -783,6 +799,11 @@ pub fn wait_heard(limit: Duration) -> bool {
         }
         std::thread::sleep(Duration::from_micros(300));
     }
+}
+
+/// The pictures made between this tick and the next (a measure for the stats).
+pub fn note_subframes(n: u32) {
+    STATS.lock().unwrap().subs += n;
 }
 
 /// The ticks that were played again (a measure for the stats): how many times the game went back and how many ticks that made.

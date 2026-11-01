@@ -70,11 +70,33 @@ pub fn set_paced_by_present(on: bool) {
     PACED_BY_PRESENT.store(on, std::sync::atomic::Ordering::Relaxed);
 }
 
+static DISPLAY_HZ: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0x4270_0000); // 60.0
+
+/// The rate the pictures are wanted at in a network game, whose game runs at 60 whatever this is (the pictures in between are made from the game's state: see `netlink_sub_frames`).
+pub fn set_display_hz(hz: f32) {
+    DISPLAY_HZ.store(hz.clamp(60.0, 1000.0).to_bits(), std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn display_hz() -> f32 {
+    f32::from_bits(DISPLAY_HZ.load(std::sync::atomic::Ordering::Relaxed))
+}
+
+/// When the next tick of the 60 Hz clock is due (the time `wait_vsync` waits for).
+pub fn next_vsync() -> Instant {
+    let g = VSYNC.lock().unwrap();
+    g.map_or_else(Instant::now, |l| l + Duration::from_secs_f64(1.0 / VBLANK_HZ))
+}
+
+/// The presentation of the pictures is what paces the game (vsync): there is no need to wait for the time of the next picture.
+pub fn paced_by_present() -> bool {
+    PACED_BY_PRESENT.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 pub fn logic_hz() -> f32 {
     f32::from_bits(LOGIC_HZ.load(std::sync::atomic::Ordering::Relaxed))
 }
 
-fn sleep_until(target: Instant) {
+pub fn sleep_until(target: Instant) {
     // Windows sleeps in ~15 ms steps: sleep most of the wait, then spin the rest for an exact deadline.
     let coarse = Duration::from_micros(2500);
     if let Some(d) = target.checked_duration_since(Instant::now()) {

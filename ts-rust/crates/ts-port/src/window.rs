@@ -166,6 +166,7 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
     }
     p.presents = p.presents.wrapping_add(1);
     ts_sdk::set_logic_hz(cfg.logic_hz(p.monitor_hz));
+    ts_sdk::set_display_hz(cfg.display_hz(p.monitor_hz));
     ts_sdk::set_paced_by_present(cfg.vsync);
     p.renderer.settings = cfg.render_settings();
     p.renderer.update_last = update_last;

@@ -211,9 +211,77 @@ struct Rollback {
 #[cfg(feature = "extensions")]
 static ROLLBACK: std::sync::Mutex<Rollback> = std::sync::Mutex::new(Rollback { started: false, tick: 0, verified: 0, used: std::collections::BTreeMap::new(), pending: std::collections::BTreeMap::new() });
 
+/// Between a tick's picture and the time of the next tick (a network game with rollback at more than 60 pictures a second): as many pictures as fit.  Each is the game's
+/// frame for the part of a tick that has passed since the tick, played from the state the tick left and then undone with the journal, so that only the tick changes the game.
+/// What moves smoothly is moved; what happens at a tick (the whole ticks) is not.  The pictures start no sounds.
+#[cfg(feature = "extensions")]
+pub fn netlink_sub_frames() {
+    use std::time::{Duration, Instant};
+    static COST: std::sync::Mutex<f64> = std::sync::Mutex::new(0.004);
+    if !ts_sdk::net::rollback() || std::env::var_os("TS_NOSUBFRAMES").is_some() {
+        return;
+    }
+    let hz = ts_sdk::display_hz() as f64;
+    if hz < 61.0 || !in_level() || lw(g::gamepaused) != 0 || lw(lw(g::front) + 20) != 0 || !ROLLBACK.lock().unwrap().started {
+        return;
+    }
+    let tick = 1.0 / 60.0;
+    let real = Instant::now();
+    let boundary = ts_sdk::next_vsync();
+    // (the pictures a tick gets: `hz / 60` on average, so the whole numbers on either side of it in turn)
+    static OWED: std::sync::Mutex<f64> = std::sync::Mutex::new(0.0);
+    let extra = {
+        let mut o = OWED.lock().unwrap();
+        *o += hz / 60.0 - 1.0;
+        let n = o.floor().max(0.0);
+        *o -= n;
+        n as u32
+    };
+    if extra == 0 {
+        return;
+    }
+    let spacing = Duration::from_secs_f64(tick / (extra as f64 + 1.0));
+    let mut shown = real;
+    let mut count = 0u32;
+    let check = std::env::var_os("TS_SUBCHECK").is_some();
+    while count < extra {
+        let cost = Duration::from_secs_f64(*COST.lock().unwrap());
+        let start = (shown + spacing).max(Instant::now());
+        if start + cost >= boundary {
+            break;
+        }
+        if !ts_sdk::paced_by_present() {
+            ts_sdk::sleep_until(start);
+        }
+        let f = (Instant::now() - real).as_secs_f64() / tick;
+        let began = Instant::now();
+        let before = if check { state_sum() } else { 0 };
+        ts_rt::journal::begin_tick();
+        ts_sdk::net::set_muted(true);
+        sub_frame(f.clamp(0.02, 0.98) as f32);
+        ts_sdk::net::set_muted(false);
+        // (what is being drawn must be finished before the memory is put back)
+        ts_sdk::present_sync();
+        ts_rt::journal::undo(1);
+        if check && state_sum() != before {
+            eprintln!("[sub] the picture between ticks changed the game's state");
+        }
+        shown = Instant::now();
+        count += 1;
+        let took = (shown - began).as_secs_f64();
+        let mut c = COST.lock().unwrap();
+        *c = *c * 0.8 + took * 0.2;
+    }
+    ts_sdk::net::note_subframes(count);
+}
+
 /// Before the sound commands of a frame are sent: the ones a tick played again has already sent are taken out.
 #[cfg(feature = "extensions")]
 pub fn netlink_sound_filter() {
+    if ts_sdk::net::muted() {
+        sw(g::soundbatchlen, 0);
+        return;
+    }
     if !ts_sdk::net::rollback() {
         return;
     }

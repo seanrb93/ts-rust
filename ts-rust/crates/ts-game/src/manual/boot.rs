@@ -262,6 +262,40 @@ pub fn sim_frame() {
     sw(g::cpudone, 1);
 }
 
+/// A picture in between the ticks is being made (`present_frame` does not wait for the clock then).
+static SUBFRAME: AtomicBool = AtomicBool::new(false);
+
+/// One picture in between two ticks of a network game: the frame as the main loop makes it but standing for the part `f` of a tick (no whole tick: only what moves
+/// smoothly moves), shown.  The caller puts the game's memory back as it was.
+pub fn sub_frame(f: f32) {
+    // (the buttons newly pressed or let go belong to the tick: they are not pressed again in a picture between ticks)
+    for p in 0..lw(g::lvnumplayers).min(4) {
+        let record = g::controllers + (8 + p) * 384;
+        sw(record + 292, 0);
+        sw(record + 296, 0);
+    }
+    sw(g::tickframesi, 0);
+    sw(g::updateframesi, 0);
+    swc1(g::tickframesf, f);
+    swc1(g::updateframesf, f);
+    let info = g::dbinfo;
+    let number = lw(g::framenum);
+    sw(g::ucodetris, 0);
+    sw(g::bgtris, 0);
+    sw(g::bgcurtris, 0);
+    sw(lw(g::curcpudmabuf) * 12 + info, 1);
+    sw(lw(g::curcpudmabuf) * 12 + (info + 4), number);
+    sw(lw(g::curcpudmabuf) * 12 + (info + 8), 0);
+    bossMainLoop();
+    timeTickEnd();
+    if lw(g::lvfirstframe_130) == 0 {
+        sw(lw(g::curcpudmabuf) * 12 + info, 0);
+    }
+    SUBFRAME.store(true, Ordering::Relaxed);
+    present_frame();
+    SUBFRAME.store(false, Ordering::Relaxed);
+}
+
 pub fn present_frame() {
     ts_sdk::present_sync();
     // (what is not in the original's code is behind `extensions`: without it the game's state is changed only by the game)
@@ -464,6 +498,9 @@ pub fn present_frame() {
     if std::env::var_os("TS_WINLOG").is_some() && ts_sdk::frame_count() % 20 == 0 {
         eprintln!("[win] f{} state {} win {} {} {} {} {} {} {} {} pl {}", ts_sdk::frame_count(), lw(g::gamestate), lw(g::window), lw(g::window + 4), lw(g::window + 8), lw(g::window + 12), lw(g::window + 16), lw(g::window + 20), lw(g::window + 32), lw(g::window + 36), lw(g::lvnumplayers));
     }
+    if SUBFRAME.load(Ordering::Relaxed) {
+        return;
+    }
     let hz = ts_sdk::logic_hz();
     if hz > 60.5 && (hirate_ok() || menu_hirate()) {
         // A level (or the front end) at more than 60 frames per second: the next frame stands for 60/hz game ticks.
@@ -477,6 +514,9 @@ pub fn present_frame() {
         }
         VBL_ACC.store(acc.to_bits(), Ordering::Relaxed);
     } else {
+        // (a network game at more than 60 pictures a second: the time until the next tick is filled with pictures made from the game as it is)
+        #[cfg(feature = "extensions")]
+        netlink_sub_frames();
         // The vertical-blank interrupt drove the game clock; run it once per elapsed 60 Hz tick.
         let ticks = ts_sdk::wait_vsync();
         for _ in 0..(if ilinkIsILinkGame() != 0 { 1 } else { ticks }) {

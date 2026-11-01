@@ -71,6 +71,13 @@ that change all the time (about 225 times in 300 ticks the game went back, 7 tic
 
 Sounds: each tick keeps what sound commands it sent the first time (`net::sound_new`); a tick played again sends only the ones that are new, so that a shot or a hit that was only learned of in the replay is heard once, and nothing is heard twice.  The shells of the guns (cartridges) are placed in the view of the player on this machine (`netlink_view_player_or`), not in that of whoever was current when the gun was ticked.  `net-stats.txt` also gives the longest time without a packet from the others.
 
+Pictures between the ticks: the game's ticks are 60 a second on every machine, but each machine shows pictures at its own rate (`framerate` in `ts-rust.ini`; 0 is the monitor's rate).  After a tick's
+picture the machine makes more (`netlink_sub_frames`, called from `present_frame` in the time before the next tick): for each, the journal marks the memory, the game plays a frame that
+stands for the part of a tick that has passed (the way `high-framerate` frames do: what moves smoothly moves, nothing that happens on a whole tick happens), the picture is shown, and
+the journal puts the memory back as it was.  So the game is changed only by the ticks, and a machine can show 60, 144 or 240 pictures a second whatever the others do; the pictures
+start no sounds.  The picture's shape, field of view and quality are the machine's own too (`camTick` keeps the original's for what happens in the game).  `TS_NOSUBFRAMES=1` turns it off,
+`TS_SUBCHECK=1` checks that a picture between ticks leaves the checksum as it was.  Not done: the mouse's turning is still applied on the tick, so your own view is turned 60 times a second.
+
 What is seen: a guess that was wrong shows for a moment (a shot that did not happen, a step the other way) and is put right when the pad comes; the input delay can be low (2 ticks by
 default) because the game does not wait.  Not done: the character's animation and the sounds of a wrong guess are not hidden; a level that ends while a tick is a guess.
 
