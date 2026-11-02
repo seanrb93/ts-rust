@@ -328,6 +328,8 @@ pub fn lvEnd() {
 /// Preload for the players: the sky prop if the level has one, each player's character (the challenge's, the chosen one of the sign-on, or 0 for the forced game kinds), and the
 /// four weapon props 427 to 430 (@ 0x27f4d8).
 pub fn playerPreload() {
+    // (a network game: the characters the lobby set are the ones whose models and voices are preloaded)
+    netlink_preload_players_or();
     let sky = lvGetSkyPropNum();
     if sky >= 0 {
         propAddPreLoad(sky);

@@ -413,7 +413,11 @@ pub fn netlink_boundary() {
     if let Some((id, at)) = std::env::var("TS_SNDTEST").ok().and_then(|v| v.split_once(',').map(|(a, b)| (a.parse::<i32>().unwrap_or(0), b.parse::<u32>().unwrap_or(0)))) {
         if k == at {
             let me = lw(g::players) + ts_sdk::net::local_player() * 1820;
-            if std::env::var_os("TS_SNDTEST_OTHER").is_some() {
+            if std::env::var_os("TS_SNDTEST_DELAY").is_some() {
+                // (a voice, which the game loads when it is wanted and plays some ticks later)
+                let slot = soundDelayStartEx(id, me + 152, 20, 0);
+                eprintln!("[sndtest] delayed start of {id}: slot {slot}");
+            } else if std::env::var_os("TS_SNDTEST_OTHER").is_some() {
                 // (at the other player's character)
                 let other = lw(g::players) + (1 - ts_sdk::net::local_player()) * 1820;
                 let prop = lw(other + 384);
@@ -523,6 +527,13 @@ pub fn netlink_bots() {
 /// The characters of the game: (number, name), those with a name in the menus.
 pub fn netlink_characters() -> Vec<(i32, String)> {
     let mut v = Vec::new();
+    if std::env::var_os("TS_CHRDUMP").is_some() {
+        for chr in 0..12 {
+            let words: Vec<i32> = (0..11).map(|k| lw(CHRS_TABLE + 44 * chr + 4 * k)).collect();
+            eprintln!("[chr] {chr} {:?}", words);
+            eprintln!("[chr] {chr} flinch sound {}", lw(g::flinchsfx + 4 * chr));
+        }
+    }
     for chr in 0..128 {
         let id = lhu(CHRS_TABLE + 44 * chr);
         if id == 0 {

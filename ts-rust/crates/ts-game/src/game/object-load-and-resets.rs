@@ -347,6 +347,7 @@ pub fn specialfxNew(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
 pub fn enemyPreload() {
     let frame = Frame::new(96);
     let sp = frame.sp();
+    netlink_preload_bots_or();
     let parms = g::curgameparms;
     if ((lw(parms + 72) - 6) as u32) >= 2 {
         if lw(g::numactivechars) > 0 {

@@ -707,6 +707,22 @@ pub fn netlink_view_player_or(current: i32) -> i32 {
     current
 }
 
+/// Before the characters of the players are preloaded: the lobby's characters are given to the players (their voices are in the files the level loads).
+#[inline]
+pub fn netlink_preload_players_or() {
+    #[cfg(feature = "extensions")]
+    for i in 0..lw(g::lvnumplayers) {
+        netlink_player_char(i);
+    }
+}
+
+/// Before the characters of the bots are preloaded: the bots the lobby set.
+#[inline]
+pub fn netlink_preload_bots_or() {
+    #[cfg(feature = "extensions")]
+    netlink_bots();
+}
+
 /// Is the game a network game (the `ilink` of the console game)?
 #[inline]
 pub fn netlink_active_or() -> i32 {

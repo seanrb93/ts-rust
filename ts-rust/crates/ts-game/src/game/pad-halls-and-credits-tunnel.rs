@@ -458,6 +458,9 @@ pub fn soundTick() {
         'request: {
             let request = offset + 0x1fb1870;
             let state = lw(request);
+            if state != 0 && std::env::var_os("TS_SNDSTATE").is_some() {
+                eprintln!("[sndstate] f{} slot {} state {} sound {} left {} trans {} data {}", ts_sdk::frame_count(), offset >> 5, state, lw(request + 4), lw(request + 24), lw(g::transinprogress), lw(lw(request + 4) * 36 + g::sounds + 24));
+            }
             if (state as u32) < (7 as u32) {
                 match state {
                     0 => {}
