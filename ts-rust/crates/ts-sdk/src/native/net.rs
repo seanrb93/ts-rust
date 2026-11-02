@@ -73,11 +73,13 @@ pub struct Setup {
     pub block: Vec<i32>,
     /// the game variables the host set (address, value): the other machines set them the same
     pub gvs: Vec<(i32, i32)>,
+    /// the Map Maker map of the match (8192 bytes as the game keeps it), empty for the game's own levels
+    pub map: Vec<u8>,
 }
 
 impl Default for Setup {
     fn default() -> Setup {
-        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new(), delay: 2, block: Vec::new(), gvs: Vec::new() }
+        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new(), delay: 2, block: Vec::new(), gvs: Vec::new(), map: Vec::new() }
     }
 }
 

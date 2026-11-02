@@ -87,8 +87,81 @@ pub fn netsetup_mode_name(kind: i32) -> String {
     netsetup_text(lh(kind * 12 + g::gamemodedata))
 }
 
+/// The Map Maker's level (its number in the game).
+pub const MAPMAKER: i32 = 100;
+/// A map as the game keeps it in memory, and its place.
+const MAP_BYTES: i32 = 0x2000;
+
+/// Is a map in the game's buffer for maps (the one that the Map Maker or the arcade page loaded)?
+pub fn netsetup_map_ready() -> bool {
+    let buffer = lw(g::mmtempbuffer);
+    buffer != 0 && lw(buffer) == 0x1324626 && lw(buffer + 4) == 114
+}
+
+/// The map in the buffer, as bytes.
+pub fn netsetup_map_bytes() -> Vec<u8> {
+    let buffer = lw(g::mmtempbuffer);
+    (0..MAP_BYTES).map(|i| lbu(buffer + i) as u8).collect()
+}
+
+/// A map that came from another machine is put in the buffer (checked as the game checks a map it loads).
+pub fn netsetup_map_install(bytes: &[u8]) -> bool {
+    let buffer = lw(g::mmtempbuffer);
+    if buffer == 0 || bytes.len() != MAP_BYTES as usize {
+        return false;
+    }
+    for (i, b) in bytes.iter().enumerate() {
+        sb(buffer + i as i32, *b as i32);
+    }
+    netsetup_map_ready() && crcCheck(buffer, MAP_BYTES - 4, lw(buffer + MAP_BYTES - 4)) != 0
+}
+
+/// The name of the map in the buffer (a map's own name is not kept in it, so the name of the file it was chosen from is what the lobby remembers; this is for a test aid).
+pub fn netsetup_map_dump() {
+    if std::env::var_os("TS_NETDUMP2").is_none() || !netsetup_map_ready() {
+        return;
+    }
+    let b = netsetup_map_bytes();
+    eprintln!("[setup] map ready: first words {:x?}, last {:x?}", (0..8).map(|i| lw(lw(g::mmtempbuffer) + 4 * i)).collect::<Vec<_>>(), &b[b.len() - 8..]);
+    let names: Vec<String> = b.split(|&c| c == 0).filter(|s| s.len() >= 3 && s.iter().all(|c| c.is_ascii_graphic() || *c == b' ')).map(|s| String::from_utf8_lossy(s).to_string()).collect();
+    eprintln!("[setup] map strings {:?}", names);
+}
+
+/// A machine that got the map from the host has the arcade state the host's pages left (the level, the mode, the map's set-up and tileset, the teams and team starts the map
+/// allows), which the level reads as it is set up.
+pub fn netsetup_prepare_map(mode: i32) {
+    sw(STATE + 36, 18);
+    sw(STATE + 40, MAPMAKER);
+    sw(STATE + 48, mode);
+    let info = mmfileGetInfo(lw(g::mmtempbuffer));
+    if info != 0 {
+        sw(g::setup_tileset, lw(info));
+        sw(g::gv_tileset_354b00, lhu(info + 8));
+    }
+    allow_teams();
+}
+
+/// The map page has loaded a map for the arcade page (a flag the arcade page's tick takes): what the page does with it is done here too.
+pub fn netsetup_map_loaded_flag() -> bool {
+    if lw(STATE + 4) & 128 == 0 {
+        return false;
+    }
+    sw(STATE + 4, lw(STATE + 4) & -129);
+    if netsetup_map_ready() {
+        let info = mmfileGetInfo(lw(g::mmtempbuffer));
+        if info != 0 {
+            sw(g::gv_tileset_354b00, lhu(info + 8));
+        }
+    }
+    allow_teams();
+    true
+}
+
 /// The name of a level by its number.
 pub fn netsetup_level_name(id: i32) -> String {
+    if id == MAPMAKER {
+        return "Map Maker".into();
+    }
     let language = lw(g::cur_language);
     let mut entry = LVINFO;
     for _ in 0..200 {
@@ -111,7 +184,7 @@ pub fn netsetup_levels() -> Vec<(i32, String, i32)> {
     let mut v = Vec::new();
     for i in 0..count {
         let id = lw(list + 4 * i);
-        if id == 100 || id <= 0 || levelAvail(id) == 0 {
+        if id <= 0 || levelAvail(id) == 0 {
             continue;
         }
         v.push((id, netsetup_level_name(id), i));
@@ -144,6 +217,14 @@ pub fn netsetup_level_id() -> i32 {
 
 /// The modes the chosen level has for this number of players: (the kind of the mode, its name).
 pub fn netsetup_modes(players: i32) -> Vec<(i32, String)> {
+    // (a map's modes are in its own set-up, which the arcade page takes from the map each tick)
+    if lw(STATE + 40) == MAPMAKER && netsetup_map_ready() {
+        let info = mmfileGetInfo(lw(g::mmtempbuffer));
+        if info != 0 {
+            sw(g::setup_tileset, lw(info));
+            sw(g::gv_tileset_354b00, lhu(info + 8));
+        }
+    }
     let setup = lvGetARCADESetup(lw(STATE + 40));
     let mut v = Vec::new();
     if setup == 0 {
@@ -297,6 +378,12 @@ pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
     // the bots: the characters of the set, the first of them as many as the match has
     botsetInit(chrset_read());
     // (which bots play, and their teams, are what the Setup Bots page has them: they stay as they are)
+    // (a test aid: no bots)
+    if std::env::var_os("TS_NOBOTS").is_some() {
+        for i in 0..10 {
+            sw(0x1fc2a88 + 16 * i + 12, 0);
+        }
+    }
     // (the game stores what this machine has unlocked while it makes the parameters; the machines of a match must not differ in it, so it is given back)
     let kept: Vec<(i32, i32)> = (0..4).map(|i| 0x3affa0 + 4 * i).chain((0..8).map(|i| 0x1fc33b0 + 4 * i)).map(|a| (a, lw(a))).collect();
     if std::env::var_os("TS_NETLOG").is_some() {

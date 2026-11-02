@@ -1013,9 +1013,7 @@ fn navigate(page: i32, n: usize) {
                     if wanted != 0 {
                         joyClearAll(player);
                         soundStart(140, 0);
-                        NET_SUB.store(true, Ordering::Relaxed);
-                        frontPageSet(0, if wanted == 1 { g::weapons_page } else { g::chrsets_page });
-                        pageIn(page);
+                        open_game_page(page, wanted);
                         return;
                     }
                 }
@@ -1032,8 +1030,7 @@ fn navigate(page: i32, n: usize) {
                         let wanted = NET_PAGE_WANTED.swap(0, Ordering::Relaxed);
                         if wanted != 0 {
                             NET_SUB.store(true, Ordering::Relaxed);
-                            frontPageSet(0, if wanted == 1 { g::weapons_page } else { g::chrsets_page });
-                            pageIn(page);
+                            open_game_page(page, wanted);
                             return;
                         }
                         if p.net_title() != before {
@@ -1618,7 +1615,22 @@ static NET_SEEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::ne
 
 /// One of the game's own pages is open over the Network Game page (the lobby stays as it is while it is).
 static NET_SUB: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-/// The lobby asks for the weapon page (1) or the bot set page (2).
+/// Open one of the game's own pages over the Network Game page: the weapon page (1), the bot set page (2) or the page of the maps (3).
+fn open_game_page(page: i32, which: i32) {
+    NET_SUB.store(true, Ordering::Relaxed);
+    if which == 3 {
+        // (the page of the maps is opened as the arcade page opens it: on top of the pages there are, after the directory is read afresh)
+        mmfileDirReset();
+        frontPageSet(lw(lw(g::front) + 20), g::arcade_mmload_page);
+        sb(0x3aff78, 0);
+        return;
+    }
+    let target = if which == 1 { g::weapons_page } else { g::chrsets_page };
+    frontPageSet(0, target);
+    pageIn(page);
+}
+
+/// The lobby asks for the weapon page (1), the bot set page (2) or the maps (3).
 static NET_PAGE_WANTED: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
 
 pub fn netsetup_open_page(kind: i32) {

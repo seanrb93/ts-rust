@@ -88,6 +88,15 @@ fn where_everybody() -> String {
             s += &format!(" p{} c{} ({:.1} {:.1} {:.1})", i, lhu(lw(prop + 352) + 4), lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));
         }
     }
+    // (the bots, in more digits: a test aid shows where two machines first part)
+    let players = lw(g::lvnumplayers);
+    for i in 0..lw(g::numactivechars).min(10) {
+        let chr = lw(g::chrinfo) + (players + i) * 0x1210;
+        let prop = lw(chr + 3020);
+        if prop != 0 {
+            s += &format!(" b{} ({:.3} {:.3} {:.3})", i, lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));
+        }
+    }
     s
 }
 
@@ -289,6 +298,11 @@ pub fn netlink_sub_frames() {
         ts_sdk::net::note_subframes_wanted(0, true, false);
         return;
     }
+    // (a Map Maker level is played in whole ticks: the pictures between ticks played it differently on machines that drew different numbers of them, which no one has found the
+    // reason of yet)
+    if lw(g::lvlevelnum) == 100 {
+        return;
+    }
     let tick = 1.0 / 60.0;
     let real = Instant::now();
     let boundary = ts_sdk::next_vsync();
@@ -423,6 +437,13 @@ pub fn netlink_start_match(level: &str, players: usize) {
     let at = 0x240_0000 + 0xe400;
     for i in (0..112).step_by(4) {
         sw(at + i, 0);
+    }
+    if !setup.map.is_empty() {
+        // (a Map Maker map: the same bytes on every machine, in the game's buffer for maps)
+        netsetup_map_install(&setup.map);
+        if setup.block.len() == 28 {
+            netsetup_prepare_map(setup.block[18]);
+        }
     }
     if setup.block.len() == 28 {
         // (the parameters as the game's pages made them on the host, and the variables they were made from)
@@ -655,6 +676,27 @@ pub fn netlink_boundary() {
     // the checksum of the state after the last tick
     if k >= 1 && (k - 1) % ts_sdk::net::SUM_EVERY == 0 {
         let sum = state_sum();
+        if std::env::var("TS_NETDUMP3").ok().and_then(|v| v.parse::<u32>().ok()) == Some(k - 1) {
+            // test aid: a checksum of every 256 bytes of the game's memory, to find where two machines differ (and the words of those places with TS_NETDUMP3_WORDS)
+            let words = std::env::var_os("TS_NETDUMP3_WORDS").is_some();
+            for page in 0..(0x200_0000 / 256) {
+                let at = page * 256;
+                let mut h: u32 = 0x811c_9dc5;
+                for w in 0..64 {
+                    h = (h ^ lw(at + 4 * w) as u32).wrapping_mul(0x0100_0193);
+                }
+                if !words {
+                    eprintln!("[pg] {at:08x} {h:08x}");
+                }
+                let from = std::env::var("TS_NETDUMP3_FROM").ok().and_then(|v| i32::from_str_radix(&v, 16).ok()).unwrap_or(0);
+                let to = std::env::var("TS_NETDUMP3_TO").ok().and_then(|v| i32::from_str_radix(&v, 16).ok()).unwrap_or(0x200_0000);
+                if words && at >= from && at < to {
+                    for w in 0..64 {
+                        eprintln!("[pw] {:08x} {:08x}", at + 4 * w, lw(at + 4 * w));
+                    }
+                }
+            }
+        }
         if std::env::var("TS_NETDUMP").ok().and_then(|v| v.parse::<u32>().ok()) == Some(k - 1) {
             // test aid: the words of the state that the checksum covers, at this tick, to find which differ between machines
             for i in 0..lw(g::lvnumplayers) {

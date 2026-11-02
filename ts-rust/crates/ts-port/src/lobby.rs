@@ -16,6 +16,12 @@ const T_CHAR: u8 = 4;
 const T_REJECT: u8 = 5;
 /// a host's announcement on the local network, sent to the broadcast address
 const T_BEACON: u8 = 6;
+/// a piece of the Map Maker map the host sends to a machine that does not have it, and that machine's word that it has it
+const T_MAP: u8 = 7;
+const T_MAPOK: u8 = 8;
+/// a map as the game keeps it: 8 pieces of 1024 bytes
+const MAP_PIECES: usize = 8;
+const PIECE: usize = 1024;
 /// the port the announcements go to (a joining machine listens on it; it is not the host's own port, so a host and a joiner can share a PC)
 const BEACON_PORT: u16 = 7778;
 /// the port a host listens on
@@ -165,6 +171,26 @@ pub struct Lobby {
     /// the mods that are on here (their titles), and the host's (a client has them from the roster or from the host's refusal)
     mods: Vec<String>,
     host_mods: Vec<String>,
+    /// the name of the level shown (the host's choice; a client has it from the roster)
+    level_name: String,
+    /// a Map Maker map: the host's own (read from the game's buffer for maps) or the one a client has put together, its checksum, and what a client is still to get
+    map: Vec<u8>,
+    map_crc: u32,
+    map_wanted: Option<u32>,
+    map_pieces: Vec<Option<Vec<u8>>>,
+    /// host: the machines that have said they have the map
+    map_have: std::collections::HashSet<SocketAddr>,
+    /// host: a line for the page (the map is missing, the map is being sent)
+    notice: String,
+}
+
+/// A checksum of a map's bytes (the same on every machine).
+fn map_sum(b: &[u8]) -> u32 {
+    let mut h: u32 = 0x811c_9dc5;
+    for x in b {
+        h = (h ^ *x as u32).wrapping_mul(0x0100_0193);
+    }
+    h
 }
 
 /// A list of mods as a line of text.
@@ -192,9 +218,9 @@ fn put_mods(b: &mut Vec<u8>, mods: &[String]) {
 }
 
 /// The names of mods from a message at `at`.
-fn get_mods(b: &[u8], mut at: usize) -> Vec<String> {
+fn get_mods(b: &[u8], mut at: usize) -> (Vec<String>, usize) {
     let mut v = Vec::new();
-    let Some(&n) = b.get(at) else { return v };
+    let Some(&n) = b.get(at) else { return (v, at) };
     at += 1;
     for _ in 0..n {
         let Some(&len) = b.get(at) else { break };
@@ -202,13 +228,14 @@ fn get_mods(b: &[u8], mut at: usize) -> Vec<String> {
         v.push(String::from_utf8_lossy(m).to_string());
         at += 1 + len as usize;
     }
-    v
+    (v, at)
 }
 
 /// What a row of the host's page is.
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum HRow {
     Level,
+    Map,
     Mode,
     Gv(usize),
     Weapons,
@@ -296,6 +323,13 @@ impl Lobby {
             block: Vec::new(),
             mods: Vec::new(),
             host_mods: Vec::new(),
+            level_name: String::new(),
+            map: Vec::new(),
+            map_crc: 0,
+            map_wanted: None,
+            map_pieces: Vec::new(),
+            map_have: std::collections::HashSet::new(),
+            notice: String::new(),
             beacon: None,
             last_beacon: Instant::now() - Duration::from_secs(5),
             found: Vec::new(),
@@ -553,6 +587,7 @@ impl Lobby {
         s.bots = (0..self.bots).map(|b| chr(8 + 3 * b)).collect();
         s.block = self.block.clone();
         s.gvs = self.gvs.clone();
+        s.map = if self.map.len() == MAP_PIECES * PIECE && (self.map_wanted.is_some() || self.is_map_level()) { self.map.clone() } else { Vec::new() };
         s
     }
 
@@ -563,7 +598,7 @@ impl Lobby {
         b.push(to_index as u8);
         b.push((1 + self.others.len()) as u8);
         b.extend_from_slice(&self.seed.to_le_bytes());
-        let name = self.levels.get(self.level).cloned().unwrap_or_default();
+        let name = if self.level_name.is_empty() { self.levels.get(self.level).cloned().unwrap_or_default() } else { self.level_name.clone() };
         b.push(name.len().min(60) as u8);
         b.extend_from_slice(&name.as_bytes()[..name.len().min(60)]);
         // the players' addresses: the host (player 0) is known to the clients, the others as the host sees them
@@ -612,7 +647,55 @@ impl Lobby {
         }
         // the host's mods
         put_mods(&mut b, &self.mods);
+        // the map, when the level is the Map Maker's
+        if self.is_map_level() && !self.map.is_empty() {
+            b.push(1);
+            b.extend_from_slice(&self.map_crc.to_le_bytes());
+        } else {
+            b.push(0);
+        }
         b
+    }
+
+    /// Is the level that is chosen the Map Maker's?
+    fn is_map_level(&self) -> bool {
+        self.screen == Screen::Host && !self.alevels.is_empty() && ts_game::netsetup_level_id() == ts_game::MAPMAKER
+    }
+
+    /// A piece of the map for a machine that does not have it (the pieces are sent over and over until it says it has them all).
+    fn send_map(&self, to: SocketAddr) {
+        let Some(s) = &self.sock else { return };
+        for (i, piece) in self.map.chunks(PIECE).enumerate() {
+            let mut b = MAGIC.to_le_bytes().to_vec();
+            b.push(T_MAP);
+            b.extend_from_slice(&self.map_crc.to_le_bytes());
+            b.push(i as u8);
+            b.push(MAP_PIECES as u8);
+            b.extend_from_slice(piece);
+            let _ = s.send_to(&b, to);
+        }
+    }
+
+    /// The map is read from the game again (after the player chose one), and the machines that had the old one are asked to get the new.
+    fn read_map(&mut self) {
+        if !self.is_map_level() {
+            self.map.clear();
+            return;
+        }
+        if ts_game::netsetup_map_loaded_flag() {
+            self.notice.clear();
+        }
+        if ts_game::netsetup_map_ready() {
+            let bytes = ts_game::netsetup_map_bytes();
+            let crc = map_sum(&bytes);
+            if crc != self.map_crc || self.map.is_empty() {
+                self.map = bytes;
+                self.map_crc = crc;
+                self.map_have.clear();
+            }
+        } else {
+            self.map.clear();
+        }
     }
 
     /// The titles of the mods that are on here are given to the lobby (it tells the others, and shows the host's).
@@ -630,6 +713,9 @@ impl Lobby {
             return;
         }
         self.amodes = ts_game::netsetup_modes(2);
+        if std::env::var_os("TS_NETDUMP2").is_some() {
+            eprintln!("[lobby] level {} modes {:?} map ready {}", ts_game::netsetup_level_id(), self.amodes, ts_game::netsetup_map_ready());
+        }
         if !self.amodes.iter().any(|m| m.0 == ts_game::netsetup_mode()) {
             if let Some(m) = self.amodes.first() {
                 ts_game::netsetup_select_mode(m.0);
@@ -647,7 +733,9 @@ impl Lobby {
         self.setup.weapons = Some(if w == 0 || w >= 10 { (0, ts_game::netsetup_weapon_pack()) } else { (w, [0; 5]) });
         if let Some(i) = self.alevels.iter().position(|l| l.0 == ts_game::netsetup_level_id()) {
             self.level = self.levels.iter().position(|n| *n == self.alevels[i].1).unwrap_or(self.level);
+            self.level_name = self.alevels[i].1.clone();
         }
+        self.read_map();
     }
 
     /// The layout of the host's page: what each row is, and the row.
@@ -659,6 +747,10 @@ impl Lobby {
         let at = self.alevels.iter().position(|l| l.0 == ts_game::netsetup_level_id()).unwrap_or(0);
         v.push((HRow::Level, value("Level", self.alevels.iter().map(|l| l.1.clone()).collect(), at)));
         let m = self.amodes.iter().position(|m| m.0 == ts_game::netsetup_mode()).unwrap_or(0);
+        if ts_game::netsetup_level_id() == ts_game::MAPMAKER {
+            let text = if ts_game::netsetup_map_ready() { "Map: chosen (change it)" } else { "Choose a Map" };
+            v.push((HRow::Map, action(text)));
+        }
         v.push((HRow::Mode, value("Game Mode", self.amodes.iter().map(|m| m.1.clone()).collect(), m)));
         for (i, r) in self.gvrows.iter().enumerate() {
             v.push((HRow::Gv(i), value(&r.label, r.choices.iter().map(|c| c.text.clone()).collect(), r.index)));
@@ -677,6 +769,7 @@ impl Lobby {
             HRow::Text,
             info(match self.starting {
                 Some(_) => "Starting ...".to_string(),
+                None if !self.notice.is_empty() => self.notice.clone(),
                 None if n == 1 => format!("Waiting for players on {}:{PORT}", local_ip_hint()),
                 None => format!("{n} players here"),
             }),
@@ -687,6 +780,18 @@ impl Lobby {
         }
         v.push((HRow::Text, info(format!("Mods: {}", mods_text(&self.mods)))));
         v
+    }
+
+    /// Why the game cannot start yet: a Map Maker level needs its map here and on every machine.
+    fn cannot_start(&self) -> Option<String> {
+        if !self.is_map_level() {
+            return None;
+        }
+        if self.map.is_empty() {
+            return Some("Choose a map first".into());
+        }
+        let waiting = self.others.iter().filter(|a| !self.map_have.contains(a)).count();
+        (waiting > 0).then(|| format!("Sending the map to {waiting} player{}", if waiting == 1 { "" } else { "s" }))
     }
 
     /// The parameters of the match are made (by the game's own start function) for the players that are here.
@@ -762,7 +867,7 @@ impl Lobby {
                 self.refresh_setup(false);
             }
         }
-        let mut buf = [0u8; 1024];
+        let mut buf = [0u8; 2048];
         let mut got: Vec<(Vec<u8>, SocketAddr)> = Vec::new();
         if let Some(s) = &self.sock {
             while let Ok((n, from)) = s.recv_from(&mut buf) {
@@ -796,6 +901,9 @@ impl Lobby {
                             }
                         }
                         T_LEAVE => self.others.retain(|a| *a != from),
+                        T_MAPOK if b.len() >= 9 && u32::from_le_bytes([b[5], b[6], b[7], b[8]]) == self.map_crc => {
+                            self.map_have.insert(from);
+                        }
                         T_CHAR if b.len() >= 6 => {
                             if let Some(i) = self.others.iter().position(|a| *a == from) {
                                 self.picks[i + 1] = b[5] as usize % self.chars.len().max(1);
@@ -809,6 +917,13 @@ impl Lobby {
                     if let Some(s) = &self.sock {
                         for (i, a) in self.others.iter().enumerate() {
                             let _ = s.send_to(&self.roster_packet(i + 1, self.starting.is_some()), a);
+                        }
+                    }
+                    if self.is_map_level() && !self.map.is_empty() {
+                        for a in self.others.clone() {
+                            if !self.map_have.contains(&a) {
+                                self.send_map(a);
+                            }
                         }
                     }
                 }
@@ -843,9 +958,30 @@ impl Lobby {
                 for (b, from) in &got {
                     if b.len() >= 5 && u32::from_le_bytes([b[0], b[1], b[2], b[3]]) == MAGIC && b[4] == T_REJECT && from.ip() == host.ip() {
                         self.sock = None;
-                        let theirs = get_mods(b, 5);
+                        let theirs = get_mods(b, 5).0;
                         self.status = format!("The host has other game files or mods. Host mods: {}. Yours: {}", mods_text(&theirs), mods_text(&self.mods));
                         return;
+                    }
+                }
+                for (b, from) in &got {
+                    if b.len() > 10 && u32::from_le_bytes([b[0], b[1], b[2], b[3]]) == MAGIC && b[4] == T_MAP && from.ip() == host.ip() {
+                        let crc = u32::from_le_bytes([b[5], b[6], b[7], b[8]]);
+                        let (i, total) = (b[9] as usize, b[10] as usize);
+                        if self.map_wanted == Some(crc) && total == MAP_PIECES && i < MAP_PIECES && b.len() == 11 + PIECE {
+                            if self.map_pieces.len() != MAP_PIECES {
+                                self.map_pieces = vec![None; MAP_PIECES];
+                            }
+                            self.map_pieces[i] = Some(b[11..].to_vec());
+                            if self.map_pieces.iter().all(|p| p.is_some()) {
+                                let all: Vec<u8> = self.map_pieces.iter().flatten().flatten().copied().collect();
+                                if map_sum(&all) == crc {
+                                    self.map = all;
+                                    self.map_crc = crc;
+                                } else {
+                                    self.map_pieces = vec![None; MAP_PIECES];
+                                }
+                            }
+                        }
                     }
                 }
                 for (b, from) in got {
@@ -862,6 +998,7 @@ impl Lobby {
                     if let Some(i) = self.levels.iter().position(|l| *l == level) {
                         self.level = i;
                     }
+                    self.level_name = level;
                     let mut at = 13 + len;
                     let mut roster = Vec::new();
                     for i in 0..self.n_players {
@@ -905,7 +1042,23 @@ impl Lobby {
                                 }
                                 let had = block.len() == 28;
                                 self.block = if had { block } else { Vec::new() };
-                                self.host_mods = get_mods(&b, p + 1 + if had { 112 } else { 0 });
+                                let (mods, end) = get_mods(&b, p + 1 + if had { 112 } else { 0 });
+                                self.host_mods = mods;
+                                // the map of the match, when it is a Map Maker map: its checksum
+                                if b.get(end) == Some(&1) {
+                                    if let Some(c) = b.get(end + 1..end + 5) {
+                                        let crc = u32::from_le_bytes([c[0], c[1], c[2], c[3]]);
+                                        if self.map_wanted != Some(crc) {
+                                            self.map_wanted = Some(crc);
+                                            self.map_pieces = vec![None; MAP_PIECES];
+                                            if self.map_crc != crc {
+                                                self.map.clear();
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    self.map_wanted = None;
+                                }
                             }
                         }
                     }
@@ -970,6 +1123,13 @@ impl Lobby {
                     b.extend_from_slice(self.my_name.as_bytes());
                     if let Some(s) = &self.sock {
                         let _ = s.send_to(&b, host);
+                        // (the map is here)
+                        if self.map_wanted.is_some() && self.map_wanted == Some(self.map_crc) && self.map.len() == MAP_PIECES * PIECE {
+                            let mut m = MAGIC.to_le_bytes().to_vec();
+                            m.push(T_MAPOK);
+                            m.extend_from_slice(&self.map_crc.to_le_bytes());
+                            let _ = s.send_to(&m, host);
+                        }
                     }
                 }
                 self.status = if self.roster.is_empty() {
@@ -1098,7 +1258,11 @@ impl Lobby {
             View::Joined => {
                 let mut v = vec![info(if self.roster.is_empty() { format!("Asking {} ...", self.host.map_or(String::new(), |h| h.to_string())) } else { format!("Joined as player {} of {}", self.my_index + 1, self.n_players) })];
                 if !self.roster.is_empty() {
-                    v.push(info(format!("Level: {}", self.levels.get(self.level).map_or("?", |l| l.as_str()))));
+                    v.push(info(format!("Level: {}", if self.level_name.is_empty() { self.levels.get(self.level).map_or("?", |l| l.as_str()) } else { self.level_name.as_str() })));
+                    if self.map_wanted.is_some() {
+                        let got = self.map_pieces.iter().filter(|p| p.is_some()).count();
+                        v.push(info(if self.map.len() == MAP_PIECES * PIECE { "Map: received".to_string() } else { format!("Map: receiving {got} of {MAP_PIECES}") }));
+                    }
                     if self.gvs.is_empty() {
                         v.push(info(format!("Mode: {}   Time: {}   Score: {}", self.mode_name(), self.time_text(), self.setup.limit)));
                         v.push(info(format!("Bots: {}   Friendly fire: {}", self.bots, if self.setup.friendly { "Yes" } else { "No" })));
@@ -1227,10 +1391,16 @@ impl Lobby {
                 _ => {}
             },
             View::Host => {
+                if matches!(self.host_layout().get(row).map(|r| r.0), Some(HRow::Map)) {
+                    return ts_game::netsetup_open_page(3);
+                }
                 if self.starting.is_none() {
                     if self.others.is_empty() {
                         self.status = "Nobody has joined yet".into();
+                    } else if let Some(why) = self.cannot_start() {
+                        self.notice = why;
                     } else {
+                        self.notice.clear();
                         self.make_block();
                         self.seed = now_seed();
                         self.starting = Some(Instant::now());
