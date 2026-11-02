@@ -21,6 +21,10 @@ fn note(what: &str) {
 
 pub fn open() {
     note("open");
+    // (a test aid: the front end has the number of players of a local game, as if 2up, 3up or 4up was chosen before)
+    if let Some(n) = std::env::var("TS_FRONTPLAYERS").ok().and_then(|v| v.parse::<i32>().ok()) {
+        ts_rt::sw(0x3aff20, n);
+    }
     ts_game::netsetup_dump();
     *LOBBY.lock().unwrap() = Some(new_lobby());
 }
