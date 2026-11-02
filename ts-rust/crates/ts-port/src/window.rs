@@ -534,6 +534,14 @@ impl ApplicationHandler for App {
                     }
                     return;
                 }
+                // (the Network Game page of the game takes typed characters: the address of a host)
+                if event.state == ElementState::Pressed && ts_game::av_net_active() {
+                    if event.physical_key == PhysicalKey::Code(KeyCode::Delete) {
+                        ts_game::av_net_delete();
+                    } else if let Some(c) = event.text.as_ref().and_then(|t| t.chars().next()) {
+                        ts_game::av_net_char(c);
+                    }
+                }
                 if let PhysicalKey::Code(code) = event.physical_key {
                     match event.state {
                         ElementState::Pressed => {

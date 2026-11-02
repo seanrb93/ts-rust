@@ -19,12 +19,17 @@ machine.
 
 ## The lobby
 
-Choose Network Game on the front end's Select Game Type page (the program starts again at the lobby), or start the game with `--lobby`.  The lobby is a plain text screen (keyboard: arrows, Enter, Esc, and the digits and dots of an address; pad: the D-pad,
-X and circle):
+Network Game is an item of the front end's Select Game Type page (below Mods).  It opens pages of the game's own kind (`avmenu.rs`, `netmenu.rs`; the rows come from `lobby.rs`):
 
-* **Host a game** listens on UDP port 7777 and shows the address to give out.  Left and Right choose the level; the players that join are listed;
-  Enter starts the game for everybody (2 to 4 players).
-* **Join a game** asks for the host's address (`192.168.1.20`, or with a port), sends JOIN and waits for the host to start.
+* **Host a game**: the page Host Game has the settings (level, mode, time limit, score limit, bots, friendly fire, weapons, input delay) and, on its second page, your character, the players that have joined, and Start Game.
+  The game listens on UDP port 7777 and shows the address to give out; a host also announces itself to the local network.
+* **Join a game**: the page Join Game lists the games found on the network (X joins one); to join a host on another network type its address with the keyboard (digits, `.` and `:`; Delete erases) and choose Connect.
+  Once joined, the page shows the host's settings and the players; your character can be chosen there.
+* The name of a player is the name of the user on the computer (12 letters at most).
+
+The triangle button steps back (from a hosted or joined game to the first page, then out of the page).  When the host starts, each machine starts the level from the front end at once (`netlink_start_match`):
+every machine gets the level, the number of the player, the others' addresses and the random seed; the players get profiles of their own, and the game goes back to being a game of one machine when the level is left.
+`--lobby` is still there, for tests: a plain text screen before the game starts (`TS_LOBBY_AUTO` and the others below belong to it).
 
 When the host starts, every machine gets the level, the number of the player, the others' addresses and the random seed, and starts the game at once.
 The host also chooses the weapon set (one of its own custom sets, or a preset); the five weapons of a custom set go to the other machines with the rest of the match, so the sets saved on each machine do not matter.  The bot sets are not needed: the bots' characters are sent.

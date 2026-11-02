@@ -203,6 +203,16 @@ pub fn neutral() -> [u8; PAD_BYTES] {
     b
 }
 
+/// The network game is over: the session is closed (its socket too) and the game is a game of this machine again.
+pub fn stop() {
+    *SESSION.lock().unwrap() = None;
+    *SETUP.lock().unwrap() = None;
+    *SOUNDS.lock().unwrap() = None;
+    set_rollback(false);
+    set_replaying(false);
+    set_muted(false);
+}
+
 pub fn active() -> bool {
     SESSION.lock().unwrap().is_some()
 }

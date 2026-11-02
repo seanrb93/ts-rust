@@ -18,6 +18,19 @@ pub struct AvRow {
     pub index: usize,
 }
 
+/// What a row of the Network Game page is: a value to choose, something to do, or a line of text.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum NetKind {
+    Value,
+    Action,
+    Info,
+}
+
+pub struct NetRow {
+    pub row: AvRow,
+    pub kind: NetKind,
+}
+
 pub trait AvOptions: Send + Sync {
     /// the rows of the Video Options page (the labels and value names are only read when the page ticks)
     fn rows(&self) -> Vec<AvRow>;
@@ -52,6 +65,27 @@ pub trait AvOptions: Send + Sync {
         0
     }
     fn set_level_music(&self, _choice: i32) {}
+    /// The Network Game pages (hosting and joining a game): the page was opened / left, the network is looked at once a tick, the rows of the page that is shown, a value
+    /// chosen, an action chosen, the triangle button (true: the page stepped back by itself), the title and the line at the bottom, a character or the Delete key typed
+    fn net_open(&self) {}
+    fn net_close(&self) {}
+    fn net_tick(&self) {}
+    fn net_rows(&self) -> Vec<NetRow> {
+        Vec::new()
+    }
+    fn net_set(&self, _row: usize, _index: usize) {}
+    fn net_action(&self, _row: usize) {}
+    fn net_back(&self) -> bool {
+        false
+    }
+    fn net_title(&self) -> String {
+        "Network Game".into()
+    }
+    fn net_hint(&self, _editing: bool) -> String {
+        String::new()
+    }
+    fn net_char(&self, _c: char) {}
+    fn net_delete(&self) {}
 }
 
 static PROVIDER: OnceLock<Box<dyn AvOptions>> = OnceLock::new();
@@ -114,6 +148,8 @@ enum Mode {
     Custom,
     /// the mods that are installed, each On or Off
     Mods,
+    /// hosting or joining a network game
+    Net,
 }
 
 /// "pages" that the items of the game type page open (`av_front_page` swaps each for a copy of the audio / video page's description at
@@ -135,6 +171,9 @@ const CUSTOM_FRONT_AT: i32 = BASE + 0x6240;
 const CUSTOM_PAGE: i32 = BASE + 0x6250;
 const MODS_PAGE: i32 = BASE + 0x65a0;
 const MODS_FRONT_AT: i32 = BASE + 0x65b0;
+/// the Network Game page: the item of the game type page and the description it is opened with
+const NET_PAGE: i32 = BASE + 0x6550;
+const NET_FRONT_AT: i32 = BASE + 0xf000;
 
 static MODE: AtomicU8 = AtomicU8::new(1);
 
@@ -145,6 +184,7 @@ fn mode() -> Mode {
         3 => Mode::Controls,
         4 => Mode::Custom,
         5 => Mode::Mods,
+        6 => Mode::Net,
         _ => Mode::Video,
     }
 }
@@ -159,6 +199,7 @@ fn set_mode(page: i32) -> bool {
         CONTROLS_FRONT_AT | CONTROLS_PAUSE_AT => Mode::Controls,
         CUSTOM_FRONT_AT | CUSTOM_PAUSE_AT => Mode::Custom,
         MODS_FRONT_AT => Mode::Mods,
+        NET_FRONT_AT => Mode::Net,
         _ => return false,
     };
     MODE.store(m as u8, Ordering::Relaxed);
@@ -250,6 +291,8 @@ const SPLIT_ONE: Layout = Layout { pitch: 18, columns: &[(-19, 160, 256)], heade
 const FRONT_CUSTOM: Layout = Layout { pitch: 15, columns: &[(-49, 250, 390)], header: (0x40, 0x20), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 24, paged: true };
 /// the Mods page: a mod on each row, on pages of eight (up to four pages)
 const FRONT_MODS: Layout = Layout { pitch: 15, columns: &[(-19, 440, 600)], header: (0x40, 0x20), rows: &[(0, 0, 0), (8, 0, 0), (16, 0, 0), (24, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: true };
+/// the Network Game pages: eight rows on a page, up to three pages
+const FRONT_NET: Layout = Layout { pitch: 15, columns: &[(-19, 440, 600)], header: (0x40, 0x20), rows: &[(0, 0, 0), (8, 0, 0), (16, 0, 0)], hint_slot: 0, hint_dy: 7, dy: 30, paged: true };
 const PAUSE_CUSTOM: Layout = Layout { pitch: 13, columns: &[(-49, 250, 390)], header: (0x40, 0x39), rows: &[(0, 0, 0), (9, 0, 0)], hint_slot: 11, hint_dy: 7, dy: 12, paged: true };
 const SPLIT_CUSTOM: Layout = Layout { pitch: 18, columns: &[(-49, 160, 256)], header: (0x40, 0x39), rows: &[(0, 0, 0), (5, 0, 0), (10, 0, 0), (15, 0, 0)], hint_slot: 7, hint_dy: 7, dy: 14, paged: true };
 /// the Audio Options: the game's own items on the first page, the volumes of the kinds of effects on the second (the rows of the second
@@ -292,6 +335,9 @@ fn layout() -> &'static Layout {
     }
     if mode() == Mode::Mods {
         return &FRONT_MODS;
+    }
+    if mode() == Mode::Net {
+        return &FRONT_NET;
     }
     if mode() == Mode::Controls {
         return if !in_game() {
@@ -411,6 +457,9 @@ enum Src {
     Mod(usize),
     /// a line of the Mods page that only says something (no mods are installed)
     Info,
+    /// a value of the Network Game page, and what is done by choosing a row of it
+    Net(usize),
+    NetAct(usize),
 }
 
 /// The rows as they were given last time (the values, to see what the player changed, and what each stands for).
@@ -424,6 +473,7 @@ fn apply(src: Src, value: usize) {
         (Src::Port(r), Some(p)) => p.set_control(r, value),
         (Src::Sound(r), Some(p)) => p.set_audio(r, value),
         (Src::Mod(r), Some(p)) => p.set_mod(r, value),
+        (Src::Net(r), Some(p)) => p.net_set(r, value),
         (Src::Prof(r), _) => prof_set(r, value),
         (Src::Custom(k), _) => custom_set(k, value),
         _ => {}
@@ -679,6 +729,20 @@ fn rows_now() -> Vec<(AvRow, Src)> {
                 rows.into_iter().take(32).enumerate().map(|(i, r)| (r, Src::Mod(i))).collect()
             }
         }
+        (Mode::Net, Some(p)) => p
+            .net_rows()
+            .into_iter()
+            .take(24)
+            .enumerate()
+            .map(|(i, r)| {
+                let src = match r.kind {
+                    NetKind::Value => Src::Net(i),
+                    NetKind::Action => Src::NetAct(i),
+                    NetKind::Info => Src::Info,
+                };
+                (r.row, src)
+            })
+            .collect(),
         (Mode::Audio, Some(p)) => p.audio_rows().into_iter().enumerate().map(|(i, r)| (r, Src::Sound(i))).collect(),
         _ => Vec::new(),
     }
@@ -691,6 +755,12 @@ pub fn av_menu(page: i32) -> i32 {
     }
     if PROVIDER.get().is_none() {
         return g::audiovideo_menu;
+    }
+    if mode() == Mode::Net {
+        NET_SEEN.store(ts_sdk::frame_count() as u64, Ordering::Relaxed);
+        if let Some(p) = PROVIDER.get() {
+            p.net_tick();
+        }
     }
     let mut prev = PREV.lock().unwrap();
     // (the pages show different rows: what was remembered of the page before is dropped)
@@ -820,7 +890,11 @@ pub fn av_menu(page: i32) -> i32 {
     let mut at = hint_at;
     let on_action = cursor as i32 >= FIRST_ID && matches!(srcs.get((cursor as i32 - FIRST_ID) as usize), Some(Src::Page(_)));
     let on_custom = mode() == Mode::Controls && editing() == FIRST_ID && lw(GV_AT) == 0;
-    let hint = if mode() == Mode::Mods {
+    let hint = if mode() == Mode::Net {
+        let pages = if layout().pages() > 1 && n > 8 { format!("   Left/Right: Page {}/{}", page_shown() + 1, ((n + 7) / 8).max(1)) } else { String::new() };
+        let text = format!("{}{}", PROVIDER.get().map_or(String::new(), |p| p.net_hint(editing() != 0)), if editing() == 0 { pages } else { String::new() });
+        put_str(&mut at, &text)
+    } else if mode() == Mode::Mods {
         let pages = if layout().pages() > 1 && n > 8 { format!("   Left/Right: Page {}/{}", page_shown() + 1, ((n + 7) / 8).max(1)) } else { String::new() };
         let text = match entries.first().map(|e| e.1) {
             Some(Src::Info) => "Put mods in the mods folder next to the game".to_string(),
@@ -907,6 +981,40 @@ fn navigate(page: i32, n: usize) {
         sw(front + 12, flags & -61);
     };
     let order = Ordering::Relaxed;
+    if mode() == Mode::Net && editing() == 0 {
+        if let Some(p) = PROVIDER.get() {
+            if pressed & 16 != 0 && p.net_back() {
+                // (a step back inside the pages: the page itself stays)
+                joyClearAll(player);
+                soundStart(141, 0);
+                PAGE.store(0, order);
+                sh(page + 4, FIRST_ID as _);
+                return;
+            }
+            if pressed & 64 != 0 && id >= FIRST_ID {
+                let src = PREV.lock().unwrap().1.get((id - FIRST_ID) as usize).copied();
+                match src {
+                    Some(Src::NetAct(i)) => {
+                        let before = p.net_title();
+                        p.net_action(i);
+                        soundStart(140, 0);
+                        joyClearAll(player);
+                        if p.net_title() != before {
+                            // (another page of the lobby: the cursor starts at its top)
+                            PAGE.store(0, order);
+                            sh(page + 4, FIRST_ID as _);
+                        }
+                        return;
+                    }
+                    Some(Src::Info) => {
+                        joyClearAll(player);
+                        return;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
     if editing() != 0 && editing() != id {
         EDIT.store(0, order);
     }
@@ -999,8 +1107,6 @@ static PAUSE_FONT: Mutex<Option<(u64, i32)>> = Mutex::new(None);
 
 /// "page" that an Exit Game item opens: selecting it ends the program (`frontPageSet` / `inPage` check for it)
 const EXIT_PAGE: i32 = BASE + 0x6500;
-/// "page" that the Network Game item opens: selecting it starts the program again at the lobby
-const NETWORK_PAGE: i32 = BASE + 0x6580;
 const GAMEMODE_AT: i32 = BASE + 0x6600;
 const EXIT_TEXT_AT: i32 = BASE + 0x6a00;
 
@@ -1080,30 +1186,23 @@ fn confirming() -> bool {
     CONFIRM.load(std::sync::atomic::Ordering::Relaxed)
 }
 
-/// Network Game: this program ends and starts again with the lobby (where the game is hosted or joined, and which starts the game).
-fn open_lobby() {
-    #[cfg(not(target_os = "android"))]
-    if let Ok(exe) = std::env::current_exe() {
-        let _ = std::process::Command::new(exe).arg("--lobby").spawn();
-    }
-    std::process::exit(0);
-}
-
 /// Front end, `frontPageSet`: the page about to be opened.
 pub fn av_front_page(page: i32) -> i32 {
     if page == EXIT_NOW_PAGE {
         std::process::exit(0);
     }
-    if page == NETWORK_PAGE {
-        open_lobby();
-    }
-    for (marker, at, first) in [(AUDIO_PAGE, AUDIO_FRONT_AT, 1), (VIDEO_PAGE, VIDEO_FRONT_AT, FIRST_ID), (GAME_PAGE, GAME_FRONT_AT, FIRST_ID), (CONTROLS_PAGE, CONTROLS_FRONT_AT, FIRST_ID), (CUSTOM_PAGE, CUSTOM_FRONT_AT, FIRST_ID), (MODS_PAGE, MODS_FRONT_AT, FIRST_ID)] {
+    for (marker, at, first) in [(NET_PAGE, NET_FRONT_AT, FIRST_ID), (AUDIO_PAGE, AUDIO_FRONT_AT, 1), (VIDEO_PAGE, VIDEO_FRONT_AT, FIRST_ID), (GAME_PAGE, GAME_FRONT_AT, FIRST_ID), (CONTROLS_PAGE, CONTROLS_FRONT_AT, FIRST_ID), (CUSTOM_PAGE, CUSTOM_FRONT_AT, FIRST_ID), (MODS_PAGE, MODS_FRONT_AT, FIRST_ID)] {
         if page == marker {
             EDIT.store(0, Ordering::Relaxed);
             PAGE.store(0, Ordering::Relaxed);
             copy(at, g::audiovideo_page, 16);
             sw(at + 8, first); // the cursor starts on the first row
             set_mode(at);
+            if at == NET_FRONT_AT {
+                if let Some(p) = PROVIDER.get() {
+                    p.net_open();
+                }
+            }
             return at;
         }
     }
@@ -1146,6 +1245,10 @@ pub fn av_title(_page: i32, title: i32) -> i32 {
             Mode::Controls => "Controls",
             Mode::Custom => "Custom Controls",
             Mode::Mods => "Mods",
+            Mode::Net => {
+                let title = PROVIDER.get().map_or("Network Game".to_string(), |p| p.net_title());
+                return put_str(&mut at, &title);
+            }
         };
         return put_str(&mut at, name);
     }
@@ -1309,7 +1412,7 @@ pub fn av_gamemode_menu() -> i32 {
     let label = put_str(&mut at, "Audio Options");
     sw(item(last), label);
     sw(item(last) + 12, AUDIO_PAGE);
-    let new_items = [(10, "Controls", CONTROLS_PAGE), (11, "Video Options", VIDEO_PAGE), (12, "Game Options", GAME_PAGE), (13, "Mods", MODS_PAGE), (14, "Network Game", NETWORK_PAGE), (9, "Exit Game", EXIT_PAGE)];
+    let new_items = [(10, "Controls", CONTROLS_PAGE), (11, "Video Options", VIDEO_PAGE), (12, "Game Options", GAME_PAGE), (13, "Mods", MODS_PAGE), (14, "Network Game", NET_PAGE), (9, "Exit Game", EXIT_PAGE)];
     for (k, &(id, text, page)) in new_items.iter().enumerate() {
         let it = item(n + k as i32);
         copy(it, item(last), 32);
@@ -1444,8 +1547,33 @@ pub fn av_arcade_levels() -> i32 {
     ARCADE_LEVELS_AT
 }
 
+/// The frame of the last tick of the Network Game page (the window sends it the keys typed while it is open).
+static NET_SEEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+pub fn av_net_active() -> bool {
+    let now = ts_sdk::frame_count() as u64;
+    now.saturating_sub(NET_SEEN.load(Ordering::Relaxed)) < 6 && NET_SEEN.load(Ordering::Relaxed) != 0 && mode() == Mode::Net
+}
+
+pub fn av_net_char(c: char) {
+    if let Some(p) = PROVIDER.get() {
+        p.net_char(c);
+    }
+}
+
+pub fn av_net_delete() {
+    if let Some(p) = PROVIDER.get() {
+        p.net_delete();
+    }
+}
+
 /// A page is left (`pageOut`, `outPage`): from the Custom controls page one goes back to the Controls page.
 pub fn av_page_out() {
+    if mode() == Mode::Net {
+        if let Some(p) = PROVIDER.get() {
+            p.net_close();
+        }
+    }
     if mode() == Mode::Custom {
         MODE.store(Mode::Controls as u8, Ordering::Relaxed);
         EDIT.store(0, Ordering::Relaxed);

@@ -38,6 +38,51 @@ pub struct Outcome {
     pub setup: ts_sdk::net::Setup,
 }
 
+/// What the lobby is showing, for the game's own menu pages.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum View {
+    /// Host a game / Join a game
+    Main,
+    /// the host's settings and the players
+    Host,
+    /// looking for a game to join (the list and the address)
+    Find,
+    /// joined: waiting for the host to start
+    Joined,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum UiKind {
+    /// a value to choose with the arrows
+    Value,
+    /// something that is done when it is chosen
+    Action,
+    /// a line of text
+    Info,
+}
+
+/// A row of a menu page of the lobby.
+#[derive(Clone, Debug)]
+pub struct UiRow {
+    pub label: String,
+    pub kind: UiKind,
+    pub values: Vec<String>,
+    pub index: usize,
+}
+
+fn info(label: impl Into<String>) -> UiRow {
+    UiRow { label: label.into(), kind: UiKind::Info, values: vec![String::new()], index: 0 }
+}
+
+fn action(label: impl Into<String>) -> UiRow {
+    UiRow { label: label.into(), kind: UiKind::Action, values: vec![String::new()], index: 0 }
+}
+
+fn value(label: &str, values: Vec<String>, index: usize) -> UiRow {
+    let index = index.min(values.len().saturating_sub(1));
+    UiRow { label: label.into(), kind: UiKind::Value, values, index }
+}
+
 /// A key or a button of the lobby.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Key {
@@ -739,6 +784,237 @@ impl Lobby {
         if matches!(self.auto, Some(Auto::Join)) && self.screen == Screen::Main {
             self.begin_join();
         }
+    }
+
+    // ---- the game's own menu pages -------------------------------------------------------------------------------------------------
+
+    pub fn view(&self) -> View {
+        match self.screen {
+            Screen::Main => View::Main,
+            Screen::Host => View::Host,
+            Screen::Join if self.sock.is_none() => View::Find,
+            Screen::Join => View::Joined,
+        }
+    }
+
+    /// The title of the page.
+    pub fn title(&self) -> &'static str {
+        match self.view() {
+            View::Main => "Network Game",
+            View::Host => "Host Game",
+            View::Find => "Join Game",
+            View::Joined => "Joined Game",
+        }
+    }
+
+    /// The line at the bottom of the page.
+    pub fn hint(&self, editing: bool) -> String {
+        match self.view() {
+            View::Main => "^2 Select".into(),
+            View::Host => if editing { "^2 OK   Left/Right: Change".into() } else { "^2 Edit / Select".into() },
+            View::Find => "^2 Select   Type the address, Delete erases".into(),
+            View::Joined => if editing { "^2 OK   Left/Right: Change".into() } else { "^2 Edit".into() },
+        }
+    }
+
+    /// The names of the characters of the game (for a row of values).
+    fn char_names(&self) -> Vec<String> {
+        if self.chars.is_empty() {
+            vec!["?".into()]
+        } else {
+            self.chars.iter().map(|c| c.1.clone()).collect()
+        }
+    }
+
+    fn mode_name(&self) -> &'static str {
+        MODES.iter().find(|m| m.0 == self.setup.mode).map_or("?", |m| m.1)
+    }
+
+    fn time_text(&self) -> String {
+        if self.setup.time == 0 {
+            "No limit".into()
+        } else {
+            format!("{} min", self.setup.time)
+        }
+    }
+
+    /// The rows of the page for what the lobby is showing.
+    pub fn rows(&self) -> Vec<UiRow> {
+        match self.view() {
+            View::Main => vec![action("Host a game"), action("Join a game"), info(format!("Your name: {}", self.my_name))],
+            View::Host => {
+                let mut v = vec![
+                    value("Level", self.levels.clone(), self.level),
+                    value("Mode", MODES.iter().map(|m| m.1.to_string()).collect(), MODES.iter().position(|m| m.0 == self.setup.mode).unwrap_or(0)),
+                    value("Time Limit", (0..=60).map(|t| if t == 0 { "No limit".to_string() } else { format!("{t} min") }).collect(), self.setup.time.clamp(0, 60) as usize),
+                    value("Score Limit", (1..=100).map(|n| n.to_string()).collect(), (self.setup.limit.clamp(1, 100) - 1) as usize),
+                    value("Bots", (0..=6).map(|n| n.to_string()).collect(), self.bots),
+                    value("Friendly Fire", vec!["Yes".into(), "No".into()], if self.setup.friendly { 0 } else { 1 }),
+                    value("Weapons", (0..self.wsets.len().max(1)).map(|i| self.wset_name(i)).collect(), self.wset),
+                    value("Input Delay", (2..=24).map(|d| format!("{d} ticks, {} ms", d * 1000 / 60)).collect(), (self.setup.delay.clamp(2, 24) - 2) as usize),
+                    value("Your Character", self.char_names(), self.picks[0]),
+                ];
+                let n = 1 + self.others.len();
+                v.push(info(match self.starting {
+                    Some(_) => "Starting ...".to_string(),
+                    None if n == 1 => format!("Waiting for players on {}:{PORT}", local_ip_hint()),
+                    None => format!("{n} players here"),
+                }));
+                let names = self.host_names();
+                for (i, name) in names.iter().enumerate() {
+                    let chr = self.chars.get(self.picks[i]).map_or("?", |c| c.1.as_str());
+                    v.push(info(format!("Player {}: {}   {}", i + 1, name, chr)));
+                }
+                v.push(action("Start Game"));
+                v
+            }
+            View::Find => {
+                // (the games first, one row each, so that the cursor stays on a game while others turn up; then the address and the button that connects to it)
+                let mut v = Vec::new();
+                if self.found.is_empty() {
+                    v.push(info("Looking for games on this network ..."));
+                }
+                for f in &self.found {
+                    let other = if f.2 == self.compat { "" } else { "   (other files or mods)" };
+                    v.push(action(format!("{}   {} player{}   {}{}", f.0.ip(), f.3, if f.3 == 1 { "" } else { "s" }, f.4, other)));
+                }
+                v.push(info(format!("Address: {}_", self.addr_text)));
+                v.push(action("Connect to the address"));
+                if !self.status.is_empty() {
+                    v.push(info(self.status.clone()));
+                }
+                v
+            }
+            View::Joined => {
+                let mut v = vec![info(if self.roster.is_empty() { format!("Asking {} ...", self.host.map_or(String::new(), |h| h.to_string())) } else { format!("Joined as player {} of {}", self.my_index + 1, self.n_players) })];
+                if !self.roster.is_empty() {
+                    v.push(info(format!("Level: {}", self.levels.get(self.level).map_or("?", |l| l.as_str()))));
+                    v.push(info(format!("Mode: {}   Time: {}   Score: {}", self.mode_name(), self.time_text(), self.setup.limit)));
+                    v.push(info(format!("Bots: {}   Friendly fire: {}", self.bots, if self.setup.friendly { "Yes" } else { "No" })));
+                    let weapons = match self.setup.weapons {
+                        Some((0, _)) => "Custom".to_string(),
+                        Some((n, _)) => format!("Preset {n}"),
+                        None => "?".to_string(),
+                    };
+                    v.push(info(format!("Weapons: {}   Input delay: {} ticks", weapons, self.setup.delay)));
+                    for (i, name) in self.roster_names.iter().enumerate() {
+                        let chr = self.chars.get(self.picks[i.min(MAX_PLAYERS - 1)]).map_or("?", |c| c.1.as_str());
+                        v.push(info(format!("Player {}: {}   {}", i + 1, name, chr)));
+                    }
+                    v.push(value("Your Character", self.char_names(), self.picks[self.my_index.min(MAX_PLAYERS - 1)]));
+                }
+                if !self.status.is_empty() {
+                    v.push(info(self.status.clone()));
+                }
+                v
+            }
+        }
+    }
+
+    /// The player chose the value `idx` of the value row `row`.
+    pub fn set_row(&mut self, row: usize, idx: usize) {
+        match self.view() {
+            View::Host => match row {
+                0 => self.level = idx.min(self.levels.len().saturating_sub(1)),
+                1 => self.setup.mode = MODES[idx.min(MODES.len() - 1)].0,
+                2 => self.setup.time = idx as i32,
+                3 => self.setup.limit = idx as i32 + 1,
+                4 => self.bots = idx.min(6),
+                5 => self.setup.friendly = idx == 0,
+                6 => {
+                    self.wset = idx.min(self.wsets.len().saturating_sub(1));
+                    self.apply_wset();
+                }
+                7 => self.setup.delay = idx as u32 + 2,
+                8 => self.picks[0] = idx.min(self.chars.len().saturating_sub(1)),
+                _ => {}
+            },
+            View::Joined => {
+                // (the character row is the last value row)
+                let me = self.my_index.min(MAX_PLAYERS - 1);
+                let d = idx as i32 - self.picks[me] as i32;
+                self.change_char(d);
+            }
+            _ => {}
+        }
+    }
+
+    /// The player chose the action row `row`.
+    pub fn act(&mut self, row: usize) {
+        match self.view() {
+            View::Main => match row {
+                0 => self.begin_host(),
+                1 => {
+                    self.screen = Screen::Join;
+                    self.sock = None;
+                    self.host = None;
+                    self.beacon = None;
+                    self.found.clear();
+                    self.found_sel = 0;
+                    self.status.clear();
+                }
+                _ => {}
+            },
+            View::Host => {
+                // (the only action is Start)
+                if self.starting.is_none() {
+                    if self.others.is_empty() {
+                        self.status = "Nobody has joined yet".into();
+                    } else {
+                        self.seed = now_seed();
+                        self.starting = Some(Instant::now());
+                    }
+                }
+            }
+            View::Find => {
+                let n = self.found.len();
+                // (the rows: the games, or one line when there are none; the address; the button)
+                if row < n {
+                    if let Some(f) = self.found.get(row) {
+                        self.addr_text = f.0.to_string();
+                        self.begin_join();
+                    }
+                } else if row == n.max(1) + 1 && !self.addr_text.trim().is_empty() {
+                    self.begin_join();
+                }
+            }
+            View::Joined => {}
+        }
+    }
+
+    /// The triangle button: a step back inside the lobby; false when the lobby is at its first page (the page of the game closes then).
+    pub fn back(&mut self) -> bool {
+        match self.view() {
+            View::Main => false,
+            View::Host | View::Joined => {
+                self.leave();
+                true
+            }
+            View::Find => {
+                self.beacon = None;
+                self.screen = Screen::Main;
+                self.status.clear();
+                true
+            }
+        }
+    }
+
+    /// A character typed (the address of the host).
+    pub fn type_char(&mut self, c: char) {
+        if self.view() == View::Find && (c.is_ascii_digit() || c == '.' || c == ':') && self.addr_text.len() < 24 {
+            self.addr_text.push(c);
+        }
+    }
+
+    pub fn backspace(&mut self) {
+        if self.view() == View::Find {
+            self.addr_text.pop();
+        }
+    }
+
+    /// The lobby has nothing open that needs closing again (the sockets are closed when it is dropped).
+    pub fn is_idle(&self) -> bool {
+        self.view() == View::Main
     }
 
     /// The text of the screen.

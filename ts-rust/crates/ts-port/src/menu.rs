@@ -229,6 +229,50 @@ impl ts_game::AvOptions for PortAv {
         }
     }
 
+    fn net_open(&self) {
+        crate::netmenu::open();
+    }
+
+    fn net_close(&self) {
+        crate::netmenu::close();
+    }
+
+    fn net_tick(&self) {
+        crate::netmenu::tick();
+    }
+
+    fn net_rows(&self) -> Vec<ts_game::NetRow> {
+        crate::netmenu::rows()
+    }
+
+    fn net_set(&self, row: usize, index: usize) {
+        crate::netmenu::set(row, index);
+    }
+
+    fn net_action(&self, row: usize) {
+        crate::netmenu::action(row);
+    }
+
+    fn net_back(&self) -> bool {
+        crate::netmenu::back()
+    }
+
+    fn net_title(&self) -> String {
+        crate::netmenu::title()
+    }
+
+    fn net_hint(&self, editing: bool) -> String {
+        crate::netmenu::hint(editing)
+    }
+
+    fn net_char(&self, c: char) {
+        crate::netmenu::typed(c);
+    }
+
+    fn net_delete(&self) {
+        crate::netmenu::delete();
+    }
+
     fn set_mapmaker_unlimited(&self, on: bool) {
         config::update(|c| c.mapmaker_unlimited = on);
         config::get().save();

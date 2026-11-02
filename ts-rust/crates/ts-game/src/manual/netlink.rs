@@ -365,6 +365,55 @@ pub fn netlink_sound_filter() {
     sw(g::soundbatchlen, keep);
 }
 
+/// The sign-on profiles that the players had before a network game from the front end's pages (given back when it is over).
+#[cfg(feature = "extensions")]
+static PROFILES: std::sync::Mutex<Option<[i32; 4]>> = std::sync::Mutex::new(None);
+/// A network level has been played since the game was started (the game stops being a network game when it is left).
+#[cfg(feature = "extensions")]
+static RAN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Start the network match of the lobby from the front end's pages: the players get profiles of their own (named as the lobby says), the level is started with the players'
+/// number and the mode; the session (`ts_sdk::net::start`) and the match's setup (`set_setup`) have been made.  The game is a game of the machine again when the level is left.
+#[cfg(feature = "extensions")]
+pub fn netlink_start_match(level: &str, players: usize) {
+    let Some(setup) = ts_sdk::net::setup() else { return };
+    let before = [signonGet(0), signonGet(1), signonGet(2), signonGet(3)];
+    *PROFILES.lock().unwrap() = Some(before);
+    let names = if setup.names.is_empty() { (1..=players).map(|i| format!("Player {i}")).collect() } else { setup.names.clone() };
+    for (player, n) in names.iter().take(4).enumerate() {
+        let text = ts_sdk::malloc(16);
+        for (i, b) in n.bytes().take(12).chain(std::iter::once(0)).enumerate() {
+            sb(text + i as i32, b as i32);
+        }
+        let own = signonNew(text);
+        if own >= 0 {
+            signonSet(player as i32, own);
+        }
+    }
+    let name = ts_sdk::malloc(level.len() as i32 + 1);
+    for (i, b) in level.bytes().chain(std::iter::once(0)).enumerate() {
+        sb(name + i as i32, b as i32);
+    }
+    let number = lvGetNumFromName(name);
+    // (the block of the game's parameters as `main_` makes it for a level started with a number of players)
+    let at = 0x240_0000 + 0xe400;
+    for i in (0..112).step_by(4) {
+        sw(at + i, 0);
+    }
+    sw(at, players as i32);
+    sw(at + 4, players as i32);
+    sw(at + 64, number);
+    sw(at + 72, setup.mode);
+    sw(at + 76, 1);
+    sw(at + 80, 2);
+    // (the machines have been in the front end for different times: what the game counts or draws from is made the same, as at the start of the program)
+    newrndseed(0);
+    sw(g::tickframenum, 0);
+    sw(g::gameframe, 0);
+    gameDeferedReset(at);
+    sw(0x1fc11f8, 6);
+}
+
 /// A level is being played (not its first frames, nor the screens after it).
 #[cfg(feature = "extensions")]
 fn in_level() -> bool {
@@ -448,6 +497,17 @@ pub fn netlink_boundary() {
             rb.started = false;
             rb.used.clear();
             rb.pending.clear();
+            RAN.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        // (the match is over when the level is left: the game is not a network game any more, and the players have their own profiles back)
+        if RAN.load(std::sync::atomic::Ordering::Relaxed) && !matches!(lw(g::gamestate), 3 | 4) {
+            RAN.store(false, std::sync::atomic::Ordering::Relaxed);
+            ts_sdk::net::stop();
+            if let Some(before) = PROFILES.lock().unwrap().take() {
+                for (p, id) in before.iter().enumerate() {
+                    signonSet(p as i32, *id);
+                }
+            }
         }
         return;
     }
@@ -661,7 +721,8 @@ pub fn netlink_local_players(all: i32) -> i32 {
 
 /// The number of the player on this machine.
 pub fn netlink_start_player() -> i32 {
-    if ts_sdk::net::active() {
+    // (only in a level: the front end and the loading before it have their players' records of the first player only)
+    if ts_sdk::net::active() && matches!(lw(g::gamestate), 3 | 4) {
         ts_sdk::net::local_player()
     } else {
         0
