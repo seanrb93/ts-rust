@@ -1128,11 +1128,11 @@ pub fn level_instances() -> i32 {
 }
 
 /// The room `room` is `index` rooms deep in the list of the rooms at the distance `distance` (`bgGfx`): a byte for each room of the game's
-/// level of 200 rooms, a halfword for each of the port's 480.
+/// level of 200 rooms, a halfword for each of the port's 480 (at BASE + 0x11_0000, after the tables of the players).
 #[inline]
 pub fn room_slot_write(index: i32, distance: i32, room: i32) {
     #[cfg(feature = "extended-tables")]
-    sh((index << 1) + distance * 1024 + 0x2500000, room);
+    sh((index << 1) + distance * 1024 + 0x2510000, room);
     #[cfg(not(feature = "extended-tables"))]
     sb(index + distance * 200 + 0x1fc4a78, room);
 }
@@ -1142,7 +1142,7 @@ pub fn room_slot_write(index: i32, distance: i32, room: i32) {
 pub fn room_slot_read(distance: i32, index: i32) -> i32 {
     #[cfg(feature = "extended-tables")]
     {
-        lhu(distance * 1024 + (index << 1) + 0x2500000)
+        lhu(distance * 1024 + (index << 1) + 0x2510000)
     }
     #[cfg(not(feature = "extended-tables"))]
     {
