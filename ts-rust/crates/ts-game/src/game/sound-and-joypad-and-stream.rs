@@ -92,7 +92,11 @@ pub fn soundStartRange(a0: i32, a1: i32, a2: i32, f12: f32) -> i32 {
         ONCE.call_once(|| {
             for i in 0..(0xaadc / 36) {
                 let rec = i * 36 + g::sounds;
-                eprintln!("[sndname] {i} {} data {}", cstr(lw(rec + 4)), lw(rec + 24));
+                eprintln!("[sndname] {i} {} data {} flags {:#x}", cstr(lw(rec + 4)), lw(rec + 24), lhu(rec + 22));
+            }
+            for k in 0..20 {
+                let id = lw(g::deathSound + 4 * k);
+                eprintln!("[deathsound] slot {k} sound {id} time {}", lwc1(g::deathSoundTime + 4 * k));
             }
         });
     }

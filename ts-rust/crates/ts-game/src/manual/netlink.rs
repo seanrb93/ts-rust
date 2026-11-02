@@ -413,7 +413,15 @@ pub fn netlink_boundary() {
     if let Some((id, at)) = std::env::var("TS_SNDTEST").ok().and_then(|v| v.split_once(',').map(|(a, b)| (a.parse::<i32>().unwrap_or(0), b.parse::<u32>().unwrap_or(0)))) {
         if k == at {
             let me = lw(g::players) + ts_sdk::net::local_player() * 1820;
-            soundStart(id, me + 152);
+            if std::env::var_os("TS_SNDTEST_OTHER").is_some() {
+                // (at the other player's character)
+                let other = lw(g::players) + (1 - ts_sdk::net::local_player()) * 1820;
+                let prop = lw(other + 384);
+                eprintln!("[sndtest] listener {:.1} {:.1} {:.1} source {:.1} {:.1} {:.1}", lwc1(me + 152), lwc1(me + 156), lwc1(me + 160), lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));
+                soundStart(id, prop + 48);
+            } else {
+                soundStart(id, me + 152);
+            }
         }
     }
     // (what is stored from here is the record of this tick: going back to it undoes the pads written below too)
