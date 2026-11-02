@@ -1497,7 +1497,7 @@ pub fn av_gamemode_menu() -> i32 {
     for (i, &id) in [10, 6, 11, 12, 13, 9].iter().enumerate() {
         if let Some(k) = find(id) {
             let (col, row) = (i as i32 / 3, i as i32 % 3);
-            let y = first_y + 1 + pitch * 4 + 16 * row;
+            let y = first_y + 3 + pitch * 4 + 16 * row;
             let x = left_x + 210 * col;
             sw(item(k) + 4, (y << 16) | x);
         }
