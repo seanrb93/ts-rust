@@ -386,6 +386,9 @@ pub fn netlink_reseed() {
 /// The sign-on profiles that the players had before a network game from the front end's pages (given back when it is over).
 #[cfg(feature = "extensions")]
 static PROFILES: std::sync::Mutex<Option<[i32; 4]>> = std::sync::Mutex::new(None);
+/// The profiles made for the players of a network game from the front end's pages (their records go when it is over).
+#[cfg(feature = "extensions")]
+static TEMPS: std::sync::Mutex<Vec<i32>> = std::sync::Mutex::new(Vec::new());
 /// A network level has been played since the game was started (the game stops being a network game when it is left).
 #[cfg(feature = "extensions")]
 static RAN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
@@ -398,6 +401,7 @@ pub fn netlink_start_match(level: &str, players: usize) {
     let before = [signonGet(0), signonGet(1), signonGet(2), signonGet(3)];
     *PROFILES.lock().unwrap() = Some(before);
     let names = if setup.names.is_empty() { (1..=players).map(|i| format!("Player {i}")).collect() } else { setup.names.clone() };
+    let mut temps = Vec::new();
     for (player, n) in names.iter().take(4).enumerate() {
         let text = ts_sdk::malloc(16);
         for (i, b) in n.bytes().take(12).chain(std::iter::once(0)).enumerate() {
@@ -406,8 +410,10 @@ pub fn netlink_start_match(level: &str, players: usize) {
         let own = signonNew(text);
         if own >= 0 {
             signonSet(player as i32, own);
+            temps.push(own);
         }
     }
+    *TEMPS.lock().unwrap() = temps;
     let name = ts_sdk::malloc(level.len() as i32 + 1);
     for (i, b) in level.bytes().chain(std::iter::once(0)).enumerate() {
         sb(name + i as i32, b as i32);
@@ -443,6 +449,23 @@ pub fn netlink_start_match(level: &str, players: usize) {
     RESEED.store(true, std::sync::atomic::Ordering::Relaxed);
     gameDeferedReset(at);
     sw(0x1fc11f8, 6);
+}
+
+/// The statistics of the temporary profile `mine` are added to those of the profile `real` with the game's own combination (the counts added, the best times kept); the lives
+/// that follow the combined part (+1616 on) stay as they were.
+#[cfg(feature = "extensions")]
+fn netlink_keep_stats(real: i32, mine: i32) {
+    let (a, b) = (signonGet(0), signonGet(1));
+    signonSet(0, real);
+    signonSet(1, mine);
+    statsCombine(2);
+    let array = lw(g::signonarray);
+    if std::env::var_os("TS_NETLOG").is_some() {
+        eprintln!("[net] statistics: before {:?}, this match {:?}, after {:?}", (0..6).map(|i| lw(array + real * 2936 + 132 + 4 * i)).collect::<Vec<_>>(), (0..6).map(|i| lw(array + mine * 2936 + 132 + 4 * i)).collect::<Vec<_>>(), (0..6).map(|i| lw(0x1fbc168 + 4 * i)).collect::<Vec<_>>());
+    }
+    memcpy(array + real * 2936 + 132, 0x1fbc168, 1616);
+    signonSet(0, a);
+    signonSet(1, b);
 }
 
 /// A level is being played (not its first frames, nor the screens after it).
@@ -522,6 +545,12 @@ pub fn netlink_boundary() {
         return;
     }
     let mut rb = ROLLBACK.lock().unwrap();
+    if std::env::var_os("TS_NETLOG").is_some() {
+        static CALLS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        if CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % 300 == 0 {
+            eprintln!("[net] boundary: gamestate {} firstframe {} tick {} started {} ran {}", lw(g::gamestate), lw(g::lvfirstframe_130), rb.tick, rb.started, RAN.load(std::sync::atomic::Ordering::Relaxed));
+        }
+    }
     if !in_level() {
         if rb.started {
             ts_rt::journal::disable();
@@ -530,13 +559,38 @@ pub fn netlink_boundary() {
             rb.pending.clear();
             RAN.store(true, std::sync::atomic::Ordering::Relaxed);
         }
+        // (the screen after the level: the machines do not exchange pads any more, and each player's own pad is the one that player's buttons read, so that each can go on)
+        if RAN.load(std::sync::atomic::Ordering::Relaxed) && lw(g::gamestate) == 4 {
+            let me = ts_sdk::net::local_player() as usize;
+            let mut pads = vec![ts_sdk::net::neutral(); ts_sdk::net::num_players() as usize];
+            if let Some(p) = pads.get_mut(me) {
+                *p = local_pad();
+            }
+            apply_pads(&pads, 0);
+        }
         // (the match is over when the level is left: the game is not a network game any more, and the players have their own profiles back)
         if RAN.load(std::sync::atomic::Ordering::Relaxed) && !matches!(lw(g::gamestate), 3 | 4) {
             RAN.store(false, std::sync::atomic::Ordering::Relaxed);
+            let local = ts_sdk::net::local_player();
             ts_sdk::net::stop();
+            let temps = std::mem::take(&mut *TEMPS.lock().unwrap());
             if let Some(before) = PROFILES.lock().unwrap().take() {
+                // (the statistics this machine's player made are added to the profile that was signed in: the players played with profiles of their own, which have the game's
+                // starting preferences on every machine, so the preferences of the real profile were never in the play)
+                let real = before[0];
+                if let Some(&mine) = temps.get(local as usize) {
+                    if real >= 0 && real != mine {
+                        netlink_keep_stats(real, mine);
+                    }
+                }
                 for (p, id) in before.iter().enumerate() {
                     signonSet(p as i32, *id);
+                }
+                // (and the profiles that were made go, the last first: the ones before them keep their numbers)
+                let mut temps = temps;
+                temps.sort_unstable();
+                for id in temps.into_iter().rev() {
+                    signonDelete(id);
                 }
             }
         }

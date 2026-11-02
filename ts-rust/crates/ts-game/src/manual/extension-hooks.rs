@@ -755,7 +755,8 @@ pub fn netlink_unpause_or() -> bool {
 pub fn netlink_no_menu_or(player: i32) -> bool {
     #[cfg(feature = "extensions")]
     {
-        netlink_active() && lhu(player * 92 + 0x1fb3248) & 1 == 0
+        // (and at the end of a level only this machine's player's menu counts: the other machines' players are not heard from any more)
+        netlink_active() && (lhu(player * 92 + 0x1fb3248) & 1 == 0 || (lw(g::gamestate) == 4 && player != ts_sdk::net::local_player()))
     }
     #[cfg(not(feature = "extensions"))]
     {
