@@ -110,6 +110,16 @@ pub fn hint(editing: bool) -> String {
     LOBBY.lock().unwrap().as_ref().map_or(String::new(), |l| l.hint(editing))
 }
 
+pub fn square_label(row: usize) -> String {
+    LOBBY.lock().unwrap().as_ref().map_or(String::new(), |l| l.square_label(row))
+}
+
+pub fn square(row: usize) {
+    if let Some(l) = LOBBY.lock().unwrap().as_mut() {
+        l.square(row);
+    }
+}
+
 pub fn typed(c: char) {
     if let Some(l) = LOBBY.lock().unwrap().as_mut() {
         l.type_char(c);

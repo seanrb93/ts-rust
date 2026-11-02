@@ -84,6 +84,11 @@ pub trait AvOptions: Send + Sync {
     fn net_hint(&self, _editing: bool) -> String {
         String::new()
     }
+    /// What the square button does on this row (empty: nothing), and doing it.
+    fn net_square_label(&self, _row: usize) -> String {
+        String::new()
+    }
+    fn net_square(&self, _row: usize) {}
     fn net_char(&self, _c: char) {}
     fn net_delete(&self) {}
 }
@@ -894,7 +899,14 @@ pub fn av_menu(page: i32) -> i32 {
     let on_custom = mode() == Mode::Controls && editing() == FIRST_ID && lw(GV_AT) == 0;
     let hint = if mode() == Mode::Net {
         let pages = if layout().pages() > 1 && n > 8 { format!("   Left/Right: Page {}/{}", page_shown() + 1, ((n + 7) / 8).max(1)) } else { String::new() };
-        let text = format!("{}{}", PROVIDER.get().map_or(String::new(), |p| p.net_hint(editing() != 0)), if editing() == 0 { pages } else { String::new() });
+        let square = match (editing(), PROVIDER.get(), srcs.get((cursor as i32 - FIRST_ID).max(0) as usize)) {
+            (0, Some(p), Some(Src::Net(i))) if cursor as i32 >= FIRST_ID => {
+                let l = p.net_square_label(*i);
+                if l.is_empty() { l } else { format!("   ^4 {l}") }
+            }
+            _ => String::new(),
+        };
+        let text = format!("{}{}{}", PROVIDER.get().map_or(String::new(), |p| p.net_hint(editing() != 0)), square.as_str(), if editing() == 0 && square.is_empty() { pages } else { String::new() });
         put_str(&mut at, &text)
     } else if mode() == Mode::Mods {
         let pages = if layout().pages() > 1 && n > 8 { format!("   Left/Right: Page {}/{}", page_shown() + 1, ((n + 7) / 8).max(1)) } else { String::new() };
@@ -992,6 +1004,21 @@ fn navigate(page: i32, n: usize) {
                 PAGE.store(0, order);
                 sh(page + 4, FIRST_ID as _);
                 return;
+            }
+            if pressed & 128 != 0 && id >= FIRST_ID {
+                // (square: what the row offers besides editing it, such as the game's page for the weapons of a custom set)
+                if let Some(Src::Net(i)) = PREV.lock().unwrap().1.get((id - FIRST_ID) as usize).copied() {
+                    p.net_square(i);
+                    let wanted = NET_PAGE_WANTED.swap(0, Ordering::Relaxed);
+                    if wanted != 0 {
+                        joyClearAll(player);
+                        soundStart(140, 0);
+                        NET_SUB.store(true, Ordering::Relaxed);
+                        frontPageSet(0, if wanted == 1 { g::weapons_page } else { g::chrsets_page });
+                        pageIn(page);
+                        return;
+                    }
+                }
             }
             if pressed & 64 != 0 && id >= FIRST_ID {
                 let src = PREV.lock().unwrap().1.get((id - FIRST_ID) as usize).copied();

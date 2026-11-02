@@ -171,9 +171,7 @@ enum HRow {
     Mode,
     Gv(usize),
     Weapons,
-    EditWeapons,
     BotSet,
-    EditBots,
     Bots,
     Character,
     Text,
@@ -617,16 +615,9 @@ impl Lobby {
         }
         if let Some(r) = &self.wrow {
             v.push((HRow::Weapons, value("Weapon Set", r.choices.iter().map(|c| c.text.clone()).collect(), r.index)));
-            let cur = r.choices.get(r.index).map_or(1, |c| c.value);
-            if cur == 0 || cur >= 10 {
-                v.push((HRow::EditWeapons, action("Choose the Weapons of this Set")));
-            }
         }
         if let Some(r) = &self.brow {
             v.push((HRow::BotSet, value("Bot Set", r.choices.iter().map(|c| c.text.clone()).collect(), r.index)));
-            if r.choices.get(r.index).map_or(0, |c| c.value) >= 8 {
-                v.push((HRow::EditBots, action("Choose the Bots of this Set")));
-            }
         }
         v.push((HRow::Bots, value("Bots", (0..=6).map(|n| n.to_string()).collect(), self.bots.min(6))));
         v.push((HRow::Character, value("Your Character", self.char_names(), self.picks[0])));
@@ -1145,6 +1136,26 @@ impl Lobby {
         }
     }
 
+    /// What the square button does on the host's row `row`: a custom weapon set or bot set has a page of the game where its weapons or bots are chosen.
+    pub fn square_label(&self, row: usize) -> String {
+        if self.view() != View::Host || self.starting.is_some() {
+            return String::new();
+        }
+        match self.host_layout().get(row).map(|r| r.0) {
+            Some(HRow::Weapons) if self.wrow.as_ref().and_then(|r| r.choices.get(r.index)).map_or(false, |c| c.value == 0 || c.value >= 10) => "Choose Weapons".into(),
+            Some(HRow::BotSet) if self.brow.as_ref().and_then(|r| r.choices.get(r.index)).map_or(false, |c| c.value >= 8) => "Choose Bots".into(),
+            _ => String::new(),
+        }
+    }
+
+    pub fn square(&mut self, row: usize) {
+        match self.square_label(row).as_str() {
+            "Choose Weapons" => ts_game::netsetup_open_page(1),
+            "Choose Bots" => ts_game::netsetup_open_page(2),
+            _ => {}
+        }
+    }
+
     /// The player chose the action row `row`.
     pub fn act(&mut self, row: usize) {
         match self.view() {
@@ -1162,12 +1173,6 @@ impl Lobby {
                 _ => {}
             },
             View::Host => {
-                let layout = self.host_layout();
-                match layout.get(row).map(|r| r.0) {
-                    Some(HRow::EditWeapons) => return ts_game::netsetup_open_page(1),
-                    Some(HRow::EditBots) => return ts_game::netsetup_open_page(2),
-                    _ => {}
-                }
                 if self.starting.is_none() {
                     if self.others.is_empty() {
                         self.status = "Nobody has joined yet".into();

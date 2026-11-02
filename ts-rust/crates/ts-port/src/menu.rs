@@ -265,6 +265,14 @@ impl ts_game::AvOptions for PortAv {
         crate::netmenu::hint(editing)
     }
 
+    fn net_square_label(&self, row: usize) -> String {
+        crate::netmenu::square_label(row)
+    }
+
+    fn net_square(&self, row: usize) {
+        crate::netmenu::square(row);
+    }
+
     fn net_char(&self, c: char) {
         crate::netmenu::typed(c);
     }
