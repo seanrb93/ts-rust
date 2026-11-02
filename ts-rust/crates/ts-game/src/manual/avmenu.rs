@@ -1485,23 +1485,19 @@ pub fn av_gamemode_menu() -> i32 {
             sw(item(k) + 16, (fix((nav >> 16) & 0xffff) << 16) | fix(nav & 0xffff));
         }
     }
-    // The big items (STORY, ARCADE, NETWORK, CHALLENGE) are moved up a little to make room, and the small ones sit in two columns of three, the last row a little above
-    // the back / select line.
+    // Every item sits the same distance from the next: the four big ones, then the small ones in two columns of three (the rows go on at the same distance).
     let find = |id: i32| (0..total).find(|&k| id_of(k) == id);
-    let y_of = |id: i32| find(id).map_or(0, |k| lhu(item(k) + 6) as i32);
-    let (y1, y2, y3) = (y_of(1), y_of(2), y_of(3));
-    let up = 14;
-    for (id, y) in [(1, y1 - up), (2, y2 - up), (14, y3 - up), (3, y3 + (y3 - y2) - up)] {
+    let (first_y, pitch) = (28_i32, 20);
+    for (row, &id) in [1, 2, 14, 3].iter().enumerate() {
         if let Some(k) = find(id) {
-            sw(item(k) + 4, ((y as u32) << 16 | lhu(item(k) + 4) as u32) as i32);
+            sw(item(k) + 4, ((first_y + pitch * row as i32) << 16) | lhu(item(k) + 4) as i32);
         }
     }
-    let (exit_y, pitch) = (0x9f_i32, 14);
     let left_x = find(10).map_or(0, |k| lhu(item(k) + 4) as i32);
     for (i, &id) in [10, 6, 11, 12, 13, 9].iter().enumerate() {
         if let Some(k) = find(id) {
             let (col, row) = (i as i32 / 3, i as i32 % 3);
-            let y = exit_y - pitch * (2 - row);
+            let y = first_y + pitch * (4 + row);
             let x = left_x + 210 * col;
             sw(item(k) + 4, (y << 16) | x);
         }
