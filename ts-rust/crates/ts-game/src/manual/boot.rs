@@ -361,6 +361,10 @@ pub fn present_frame() {
         let v: Vec<String> = (0..4).map(|p| { let b = 0x1fb3240 + 92 * p; format!("{}:{:#x}/{}/{:#x}", p, lhu(b + 8), lhu(b + 2), lhu(b + 4)) }).collect();
         eprintln!("[ig] f{} {} front20 {}", ts_sdk::frame_count(), v.join(" "), lw(lw(g::front) + 20));
     }
+    // test aid: TS_GUN=1 sets "Always start with gun" to Yes (outside levels)
+    if std::env::var_os("TS_GUN").is_some() && lw(g::gamestate) != 3 {
+        sw(g::gv_spawngun, 1);
+    }
     // test aid: TS_NOGUN=1 sets "Always start with gun" to No (outside levels)
     if std::env::var_os("TS_NOGUN").is_some() && lw(g::gamestate) != 3 {
         sw(g::gv_spawngun, 0);

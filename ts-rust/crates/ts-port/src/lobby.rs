@@ -177,6 +177,9 @@ impl Lobby {
             auto: None,
         };
         l.apply_wset();
+        if std::env::var_os("TS_LEVELS").is_some() {
+            eprintln!("[lobby] levels: {:?}", l.levels);
+        }
         // the test aid
         if let Ok(a) = std::env::var("TS_LOBBY_AUTO") {
             let parts: Vec<&str> = a.split(',').collect();
@@ -194,6 +197,14 @@ impl Lobby {
                             Some(("limit", v)) => l.setup.limit = v.parse().unwrap_or(20),
                             Some(("bots", v)) => l.bots = v.parse().unwrap_or(0),
                             Some(("char", v)) => l.picks[0] = v.parse().unwrap_or(0),
+                            Some(("weapons", v)) => {
+                                // (the weapon set by its number: 1 to 9 a preset)
+                                let n = v.parse::<i32>().unwrap_or(0);
+                                if let Some(i) = l.wsets.iter().position(|w| w.0 == n) {
+                                    l.wset = i;
+                                    l.apply_wset();
+                                }
+                            }
                             _ => {}
                         }
                     }
