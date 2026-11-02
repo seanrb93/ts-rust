@@ -222,7 +222,11 @@ pub fn netlink_sub_frames() {
         return;
     }
     let hz = ts_sdk::display_hz() as f64;
-    if hz < 61.0 || !in_level() || lw(g::gamepaused) != 0 || lw(lw(g::front) + 20) != 0 || !ROLLBACK.lock().unwrap().started {
+    if hz < 61.0 {
+        return;
+    }
+    if !in_level() || lw(g::gamepaused) != 0 || lw(lw(g::front) + 20) != 0 || !ROLLBACK.lock().unwrap().started {
+        ts_sdk::net::note_subframes_wanted(0, true, false);
         return;
     }
     let tick = 1.0 / 60.0;
@@ -273,6 +277,7 @@ pub fn netlink_sub_frames() {
         *c = *c * 0.8 + took * 0.2;
     }
     ts_sdk::net::note_subframes(count);
+    ts_sdk::net::note_subframes_wanted(extra, false, count < extra);
 }
 
 /// Before the sound commands of a frame are sent: the ones a tick played again has already sent are taken out.
@@ -404,6 +409,13 @@ pub fn netlink_boundary() {
     }
     let k = rb.tick;
     ts_sdk::net::set_tick(k);
+    // test aid: TS_SNDTEST=<sound>,<tick> starts that sound at the player on this machine at that tick
+    if let Some((id, at)) = std::env::var("TS_SNDTEST").ok().and_then(|v| v.split_once(',').map(|(a, b)| (a.parse::<i32>().unwrap_or(0), b.parse::<u32>().unwrap_or(0)))) {
+        if k == at {
+            let me = lw(g::players) + ts_sdk::net::local_player() * 1820;
+            soundStart(id, me + 152);
+        }
+    }
     // (what is stored from here is the record of this tick: going back to it undoes the pads written below too)
     ts_rt::journal::begin_tick();
     loop {

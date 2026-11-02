@@ -85,7 +85,16 @@ pub fn soundStartRange(a0: i32, a1: i32, a2: i32, f12: f32) -> i32 {
     let frame = Frame::new(96);
     let sp = frame.sp();
     if std::env::var_os("TS_SNDLOG").is_some() {
-        eprintln!("[snd] f{} sound {a0}", ts_sdk::frame_count());
+        eprintln!("[snd] f{} sound {a0} data {} play {} muted {}", ts_sdk::frame_count(), lw(a0 * 36 + g::sounds + 24), lw(g::gv_playsound), ts_sdk::net::muted());
+    }
+    if std::env::var("TS_SNDLOG").map_or(false, |v| v == "names") {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| {
+            for i in 0..(0xaadc / 36) {
+                let rec = i * 36 + g::sounds;
+                eprintln!("[sndname] {i} {} data {}", cstr(lw(rec + 4)), lw(rec + 24));
+            }
+        });
     }
     let sound = a0 * 36 + g::sounds;
     if lw(g::gv_playsound) == 0 {

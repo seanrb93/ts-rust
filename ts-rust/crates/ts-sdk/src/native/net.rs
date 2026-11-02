@@ -549,9 +549,17 @@ struct Stats {
     replayed: u32,
     gap_max: f64,
     subs: u32,
+    /// the pictures wanted between the ticks, and the ticks that had none for the state of the game (a pause, a menu) or for the time
+    wanted: u32,
+    skipped_state: u32,
+    skipped_time: u32,
+    /// the commands for the sound chip: started in a tick, started in a tick played again (new), left out in one (already started)
+    snd_live: u32,
+    snd_new: u32,
+    snd_skipped: u32,
 }
 
-static STATS: Mutex<Stats> = Mutex::new(Stats { last: None, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0, subs: 0 });
+static STATS: Mutex<Stats> = Mutex::new(Stats { last: None, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0, subs: 0, wanted: 0, skipped_state: 0, skipped_time: 0, snd_live: 0, snd_new: 0, snd_skipped: 0 });
 
 fn note_frame(now: Instant) {
     let mut st = STATS.lock().unwrap();
@@ -574,7 +582,7 @@ fn note_wait(wait: Duration, tick: u32) {
     }
     if tick % 300 == 0 && st.frames > 0 {
         let line = format!(
-            "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms, {} rollbacks ({} ticks played again), the longest silence from the others {:.0} ms, {:.1} extra pictures a tick
+            "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms, {} rollbacks ({} ticks played again), the longest silence from the others {:.0} ms, {:.1} extra pictures a tick ({} wanted, {} ticks without for the state of the game, {} for lack of time), sound commands: {} in ticks, {} new and {} left out in ticks played again
 ",
             st.frame_total / st.frames as f64,
             st.frame_max,
@@ -585,13 +593,19 @@ fn note_wait(wait: Duration, tick: u32) {
             st.rollbacks,
             st.replayed,
             st.gap_max,
-            st.subs as f64 / st.frames.max(1) as f64
+            st.subs as f64 / st.frames.max(1) as f64,
+            st.wanted,
+            st.skipped_state,
+            st.skipped_time,
+            st.snd_live,
+            st.snd_new,
+            st.snd_skipped
         );
         use std::io::Write;
         if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(crate::save_root().join("net-stats.txt")) {
             let _ = f.write_all(line.as_bytes());
         }
-        *st = Stats { last: st.last, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0, subs: 0 };
+        *st = Stats { last: st.last, frames: 0, frame_total: 0.0, frame_max: 0.0, wait_total: 0.0, wait_max: 0.0, waited: 0, rollbacks: 0, replayed: 0, gap_max: 0.0, subs: 0, wanted: 0, skipped_state: 0, skipped_time: 0, snd_live: 0, snd_new: 0, snd_skipped: 0 };
     }
 }
 
@@ -648,6 +662,7 @@ pub fn sound_new(key: [u32; 4]) -> bool {
     let mut g = SOUNDS.lock().unwrap();
     let so = g.get_or_insert_with(|| Sounds { seen: std::collections::BTreeMap::new(), used: std::collections::HashMap::new() });
     if !replaying() {
+        STATS.lock().unwrap().snd_live += 1;
         *so.seen.entry(tick).or_default().entry(key).or_insert(0) += 1;
         while so.seen.len() > 96 {
             let first = *so.seen.keys().next().unwrap();
@@ -659,8 +674,10 @@ pub fn sound_new(key: [u32; 4]) -> bool {
     let used = so.used.entry(key).or_insert(0);
     *used += 1;
     if *used <= before {
+        STATS.lock().unwrap().snd_skipped += 1;
         return false;
     }
+    STATS.lock().unwrap().snd_new += 1;
     *so.seen.entry(tick).or_default().entry(key).or_insert(0) += 1;
     true
 }
@@ -804,6 +821,14 @@ pub fn wait_heard(limit: Duration) -> bool {
 /// The pictures made between this tick and the next (a measure for the stats).
 pub fn note_subframes(n: u32) {
     STATS.lock().unwrap().subs += n;
+}
+
+/// A tick's pictures in between: how many were wanted, and why there were none (`state`: a pause or a menu; or the time ran out).
+pub fn note_subframes_wanted(wanted: u32, state_skip: bool, time_skip: bool) {
+    let mut st = STATS.lock().unwrap();
+    st.wanted += wanted;
+    st.skipped_state += state_skip as u32;
+    st.skipped_time += time_skip as u32;
 }
 
 /// The ticks that were played again (a measure for the stats): how many times the game went back and how many ticks that made.
