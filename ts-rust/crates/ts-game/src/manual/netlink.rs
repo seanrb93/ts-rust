@@ -661,6 +661,9 @@ pub fn netlink_boundary() {
         // (the match is over when the level is left: the game is not a network game any more, and the players have their own profiles back)
         if RAN.load(std::sync::atomic::Ordering::Relaxed) && !matches!(lw(g::gamestate), 3 | 4) {
             RAN.store(false, std::sync::atomic::Ordering::Relaxed);
+            if std::env::var_os("TS_NETLOG").is_some() {
+                eprintln!("[net] match over: gamestate {} front end players {}", lw(g::gamestate), lw(0x3aff20));
+            }
             let local = ts_sdk::net::local_player();
             ts_sdk::net::stop();
             let temps = std::mem::take(&mut *TEMPS.lock().unwrap());
@@ -708,6 +711,10 @@ pub fn netlink_boundary() {
         if let Some(a) = std::env::var("TS_WATCHADDR").ok().and_then(|v| u32::from_str_radix(&v, 16).ok()) {
             ts_rt::watch::set(a);
         }
+    }
+    // (a test aid: the front end's number of players is shown while a match is played)
+    if std::env::var_os("TS_NETLOG").is_some() && k == 60 {
+        eprintln!("[net] front end players {} match players {}", lw(0x3aff20), lw(g::lvnumplayers));
     }
     if std::env::var_os("TS_VIEWLOG").is_some() && k == 60 {
         for p in 0..lw(g::lvnumplayers) {
