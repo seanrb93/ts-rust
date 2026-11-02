@@ -448,7 +448,7 @@ pub fn netlink_reseed() {
 
 /// The sign-on profiles that the players had before a network game from the front end's pages (given back when it is over).
 #[cfg(feature = "extensions")]
-static PROFILES: std::sync::Mutex<Option<[i32; 8]>> = std::sync::Mutex::new(None);
+static PROFILES: std::sync::Mutex<Option<[i32; 10]>> = std::sync::Mutex::new(None);
 /// The profiles made for the players of a network game from the front end's pages (their records go when it is over).
 #[cfg(feature = "extensions")]
 static TEMPS: std::sync::Mutex<Vec<i32>> = std::sync::Mutex::new(Vec::new());
@@ -466,7 +466,7 @@ pub fn netlink_start_match(level: &str, players: usize) {
     if std::env::var_os("TS_NOSND").is_some() {
         sw(g::gv_playsound, 0);
     }
-    let before: [i32; 8] = std::array::from_fn(|i| signonGet(i as i32));
+    let before: [i32; 10] = std::array::from_fn(|i| signonGet(i as i32));
     *PROFILES.lock().unwrap() = Some(before);
     let names = if setup.names.is_empty() { (1..=players).map(|i| format!("Player {i}")).collect() } else { setup.names.clone() };
     let mut temps = Vec::new();
@@ -890,6 +890,10 @@ pub fn netlink_bots() {
     sw(parms + 8, n as i32);
     for (i, b) in s.bots.iter().take(n).enumerate() {
         sb(parms + 21 + players + i as i32, *b);
+    }
+    // (the game wrote all six places of bots before this, and with ten players they reach the teams of the players, at +35: they are made again from the teams the match has)
+    for i in 0..players.min(MAX_MATCH_PLAYERS) {
+        sb(parms + 35 + i, lw(TEAMS + 4 * i) + 1);
     }
 }
 

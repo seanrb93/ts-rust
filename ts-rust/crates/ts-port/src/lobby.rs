@@ -26,7 +26,7 @@ const PIECE: usize = 1024;
 const BEACON_PORT: u16 = 7778;
 /// the port a host listens on
 pub const PORT: u16 = 7777;
-const MAX_PLAYERS: usize = 8;
+const MAX_PLAYERS: usize = 10;
 /// the rows of the host's screen: the level, the mode, the time limit, the score limit, the bots, friendly fire and the character
 const HOST_ROWS: usize = 9;
 /// the modes the lobby offers: (number, name)
@@ -584,7 +584,8 @@ impl Lobby {
         s.chars = (0..players).map(|p| chr(self.picks.get(p).copied().unwrap_or(0))).collect();
         s.names = if self.screen == Screen::Host { self.host_names() } else { self.roster_names.clone() };
         // (the bots are characters the players are not: the next ones of the list)
-        s.bots = (0..self.bots).map(|b| chr(8 + 3 * b)).collect();
+        // (the statistics of a match have 14 places, for the players and the bots together)
+        s.bots = (0..self.bots.min(14usize.saturating_sub(players))).map(|b| chr(8 + 3 * b)).collect();
         s.block = self.block.clone();
         s.gvs = self.gvs.clone();
         s.map = if self.map.len() == MAP_PIECES * PIECE && (self.map_wanted.is_some() || self.is_map_level()) { self.map.clone() } else { Vec::new() };

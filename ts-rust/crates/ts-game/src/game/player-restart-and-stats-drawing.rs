@@ -100,13 +100,13 @@ pub fn playerRestart() {
                                 sw(record + 24, next);
                                 sw(record + 20, lw((player << 2) + g::charcolours));
                             } else {
-                                let team = lbu(parms + player + 35);
+                                let team = player_team(player);
                                 sw(record + 24, team);
                                 sw(record + 20, lw((team << 3) + (g::storydata + 64) + 4));
                             }
                         }
                         1 | 3 | 4 => {
-                            let team = lbu(player + (g::curgameparms + 35));
+                            let team = player_team(player);
                             sw(record + 24, team);
                             sw(record + 20, lw((team << 3) + (g::storydata + 64) + 4));
                         }
@@ -129,6 +129,9 @@ pub fn playerRestart() {
                     let y = lwc1(chr_now + 56);
                     let x = ps2float::add(lwc1(chr_now + 52), lwc1(0x3acfdc));
                     let w = lwc1(chr_now + 48);
+                    if std::env::var_os("TS_BADLOG").is_some() {
+                        eprintln!("[restart] player {player} team {team} flag_prop {flag_prop} parms35.. {:?}", (0..16).map(|k| lbu(g::curgameparms + 35 + k)).collect::<Vec<_>>());
+                    }
                     let prop = propNew(flag_prop, w, x, y, 0.0_f32);
                     let mask = match player {
                         1 => Some(-0x2010000),
@@ -901,4 +904,14 @@ pub fn decalNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) {
     found = decal_side(sp, [0.0_f32, -0.5_f32, 0.0_f32], 220, found, false);
     found = decal_side(sp, [0.0_f32, 0.0_f32, 0.5_f32], 224, found, false);
     decal_side(sp, [0.0_f32, 0.0_f32, -0.5_f32], 228, found, true);
+}
+
+/// The team of a player of a team game: the byte of the game's parameters, except in a network game of many players, where the bots' places there reach it (the match's own
+/// teams are the players taking turns, as the lobby makes them: the first team is 1).
+fn player_team(player: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    if ts_sdk::net::active() {
+        return 1 + (player & 1);
+    }
+    lbu(g::curgameparms + 35 + player)
 }
