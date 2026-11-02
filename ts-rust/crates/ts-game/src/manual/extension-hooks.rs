@@ -396,7 +396,7 @@ pub fn gt_y(y: i32) -> i32 {
 pub fn gt_item_far(item: i32) -> bool {
     #[cfg(feature = "extensions")]
     {
-        item >= 7 && !(9..=13).contains(&item)
+        item >= 7 && !(9..=14).contains(&item)
     }
     #[cfg(not(feature = "extensions"))]
     {

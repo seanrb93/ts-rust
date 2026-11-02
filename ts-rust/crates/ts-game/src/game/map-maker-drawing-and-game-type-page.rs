@@ -315,7 +315,8 @@ pub fn gametype_pageTick(a0: i32) {
     }
     let item = lhu(a0 + 4);
     sw(g::i0300 + 224, text);
-    if item == 2 {
+    // (14 is the port's NETWORK item, made from ARCADE's)
+    if item == 2 || item == 14 {
         sw(0x1fc1214, 3);
     } else if item >= 3 {
         if item == 3 {

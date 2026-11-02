@@ -1496,7 +1496,7 @@ pub fn av_gamemode_menu() -> i32 {
             sw(item(k) + 4, ((y as u32) << 16 | lhu(item(k) + 4) as u32) as i32);
         }
     }
-    let (exit_y, pitch) = (0x9c_i32, 14);
+    let (exit_y, pitch) = (0x9f_i32, 14);
     let left_x = find(10).map_or(0, |k| lhu(item(k) + 4) as i32);
     for (i, &id) in [10, 6, 11, 12, 13, 9].iter().enumerate() {
         if let Some(k) = find(id) {
@@ -1513,6 +1513,23 @@ pub fn av_gamemode_menu() -> i32 {
         let down = order[(i + 1) % order.len()];
         let before = order[(i + order.len() - 1) % order.len()];
         sw(item(k) + 16, (down << 16) | before);
+        // (left and right go between the two columns of the small items, side by side in the same row; the big items have none)
+        let side = |a: i32, b: i32| (a, b);
+        let (left, right) = match id {
+            10 => side(0, 12),
+            6 => side(0, 13),
+            11 => side(0, 9),
+            12 => side(10, 0),
+            13 => side(6, 0),
+            9 => side(11, 0),
+            _ => side(0, 0),
+        };
+        sw(item(k) + 20, (right << 16) | left);
+    }
+    if std::env::var_os("TS_MENUDUMP").is_some() && ts_sdk::frame_count() % 300 == 0 {
+        for k in 0..total {
+            eprintln!("[menu] {k}: {:x?}", (0..8).map(|w| lw(item(k) + 4 * w)).collect::<Vec<_>>());
+        }
     }
     GAMEMODE_AT
 }
