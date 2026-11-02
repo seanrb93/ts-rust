@@ -1049,7 +1049,9 @@ impl Lobby {
                         v.push(info(format!("Game Mode: {}", ts_game::netsetup_mode_name(self.setup.mode))));
                         for &(gv, val) in &self.gvs {
                             let (label, text) = ts_game::netsetup_gv_describe(gv, val);
-                            v.push(info(format!("{label}: {text}")));
+                            if label != "?" {
+                                v.push(info(format!("{label}: {text}")));
+                            }
                         }
                         v.push(info(format!("Bots: {}", self.bots)));
                     }

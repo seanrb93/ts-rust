@@ -426,7 +426,7 @@ pub fn netlink_start_match(level: &str, players: usize) {
     }
     if setup.block.len() == 28 {
         // (the parameters as the game's pages made them on the host, and the variables they were made from)
-        netsetup_apply(&setup.gvs);
+        netsetup_apply(&setup.gvs, setup.block[18]);
         for (i, w) in setup.block.iter().enumerate() {
             sw(at + 4 * i as i32, *w);
         }

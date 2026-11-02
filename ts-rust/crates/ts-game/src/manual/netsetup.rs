@@ -297,6 +297,10 @@ pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
         signonSet(i as i32, *id);
     }
     let mut block = CAPTURED.lock().unwrap().take()?;
+    // (the records of the mode's options, which the level reads, are made from the variables as they are made on the other machines)
+    if (1..=6).contains(&block[18]) {
+        storeGameModeOptions(block[18]);
+    }
     // (the players of the block are all of them)
     block[0] = players;
     block[1] = players;
@@ -333,26 +337,29 @@ pub fn netsetup_gv_describe(gv: i32, value: i32) -> (String, String) {
     (label, text)
 }
 
-/// The game variables of the chosen mode, the weapon set and the bot set with their values: what every machine sets before it starts the match.
-pub fn netsetup_gv_values() -> Vec<(i32, i32)> {
-    let mut v: Vec<(i32, i32)> = netsetup_mode_rows().iter().map(|r| (r.gv, lw(r.gv))).collect();
-    v.push((g::gv_weaponset, lw(g::gv_weaponset)));
-    v.push((g::gv_chrset, lw(g::gv_chrset)));
-    v
+/// Every game variable the level's setup reads (the page's rows, and the ones a mode has no row for): all of them are the host's on every machine.
+fn all_gvs() -> [i32; 14] {
+    [
+        g::gv_timelimit, g::gv_scorelimit, g::gv_killlimit, g::gv_scoremethod, g::gv_teamplay, g::gv_useteamstarts, g::gv_friendfire, g::gv_bagshoot, g::gv_dispradar,
+        g::gv_oneshotkill, g::gv_handicaps, g::gv_spawngun, g::gv_weaponset, g::gv_chrset,
+    ]
 }
 
-/// The values the host chose are set in this machine's variables (before the parameters are used).
-pub fn netsetup_apply(values: &[(i32, i32)]) {
+/// The game variables with their values: what every machine sets before it starts the match.
+pub fn netsetup_gv_values() -> Vec<(i32, i32)> {
+    all_gvs().into_iter().map(|gv| (gv, lw(gv))).collect()
+}
+
+/// The values the host chose are set in this machine's variables (before the parameters are used), and the records of the mode's options the level reads are made from them.
+pub fn netsetup_apply(values: &[(i32, i32)], mode: i32) {
     for &(gv, value) in values {
         // (only the variables of the pages: an address from the network is not written to blindly)
-        let known = gv == g::gv_weaponset
-            || gv == g::gv_chrset
-            || [(g::bagtag_menuitems, 8), (g::ctf_menuitems, 6), (g::deathmatch_menuitems, 10), (g::knockout_menuitems, 6)]
-                .into_iter()
-                .any(|(t, n)| (0..n).any(|i| lw(t + 32 * i + 12) == gv));
-        if known {
+        if all_gvs().contains(&gv) {
             sw(gv, value);
         }
+    }
+    if (1..=6).contains(&mode) {
+        storeGameModeOptions(mode);
     }
 }
 
