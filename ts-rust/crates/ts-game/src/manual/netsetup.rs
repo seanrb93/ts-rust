@@ -124,6 +124,13 @@ pub fn netsetup_select_level(index: i32) {
     let list = av_arcade_levels_or(g::arcadelevels);
     sw(STATE + 36, index);
     sw(STATE + 40, lw(list + 4 * index));
+    allow_teams();
+}
+
+/// The teams and the team starts a level can be played with (the arcade page works them out when a level is chosen; the pages of the bots warn "Team not set in map" without).
+fn allow_teams() {
+    memset(STATE + 60, 1, 4);
+    checkAllowedTeams();
 }
 
 /// The place in the arcade list of the level now chosen.
@@ -158,6 +165,7 @@ pub fn netsetup_modes(players: i32) -> Vec<(i32, String)> {
 
 pub fn netsetup_select_mode(kind: i32) {
     sw(STATE + 48, kind);
+    allow_teams();
 }
 
 pub fn netsetup_mode() -> i32 {
@@ -248,6 +256,7 @@ pub fn netsetup_begin() {
             netsetup_select_mode(m.0);
         }
     }
+    allow_teams();
     BOTS.store(0, Ordering::Relaxed);
 }
 
