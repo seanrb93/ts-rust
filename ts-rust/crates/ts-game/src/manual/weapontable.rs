@@ -248,8 +248,9 @@ pub fn weapon_table_init() {}
 
 // ---- what a character owns -----------------------------------------------------------------------------------------------------
 
-/// the added combinations a character owns (bit k: the combination `GAME_COMBOS + k`), by the character's address
-static OWNED: Mutex<Option<HashMap<i32, u64>>> = Mutex::new(None);
+/// the added combinations a character owns (bit k: the combination `GAME_COMBOS + k`), by the character's address: a table in the game's memory, so that going back some ticks
+/// puts it back too
+const OWNED_AT: i32 = 0x240_0000 + 0xc400;
 
 /// Does the character `chr` own the combination (non zero)?  (`chr + 488 + 4 * combo` for the game's own.)
 pub fn own_get(chr: i32, combo: i32) -> i32 {
@@ -257,7 +258,7 @@ pub fn own_get(chr: i32, combo: i32) -> i32 {
         return lw(chr + 488 + 4 * combo);
     }
     let bit = (combo - GAME_COMBOS).clamp(0, 63);
-    OWNED.lock().unwrap().as_ref().and_then(|m| m.get(&chr)).map_or(0, |bits| (bits >> bit & 1) as i32)
+    mm_get(OWNED_AT, chr).map_or(0, |bits| (bits >> bit & 1) as i32)
 }
 
 pub fn own_set(chr: i32, combo: i32) {
@@ -269,19 +270,17 @@ pub fn own_set(chr: i32, combo: i32) {
     if std::env::var_os("TS_COMBOLOG").is_some() {
         eprintln!("[combo] f{} chr {:#x} picks up {} (the pair of {:?})", ts_sdk::frame_count(), chr, combo, single_of(combo));
     }
-    *OWNED.lock().unwrap().get_or_insert_with(HashMap::new).entry(chr).or_insert(0) |= 1 << bit;
+    mm_set(OWNED_AT, chr, mm_get(OWNED_AT, chr).unwrap_or(0) | 1 << bit);
 }
 
 /// A game starts: nobody owns an added pair.
 pub fn own_clear_all() {
-    *OWNED.lock().unwrap() = None;
+    mm_clear(OWNED_AT);
 }
 
 /// The character has no guns (`chrClearGuns`).
 pub fn own_clear(chr: i32) {
-    if let Some(m) = OWNED.lock().unwrap().as_mut() {
-        m.remove(&chr);
-    }
+    mm_remove(OWNED_AT, chr);
 }
 
 /// The number that the statistics count a combination under: a pair counts with its single weapon.

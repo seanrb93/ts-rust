@@ -96,7 +96,8 @@ pub fn dual_combo(_place: i32, combo: i32) -> i32 {
 /// A game starts (`gameReset`).
 pub fn dual_reset() {
     own_clear_all();
-    PUNCHES.lock().unwrap().clear();
+    mm_clear(PUNCHES_AT);
+    mm_clear(NEXT_PUNCH_AT);
 }
 
 // ---- the left fist ------------------------------------------------------------------------------------------------------------
@@ -105,24 +106,21 @@ pub fn dual_reset() {
 // animation for the left arm, so every second swipe is drawn mirrored left to right: the display list gets a LABEL write around the
 // puppet's picture (`propGfxRoom`), which the graphics code takes as "mirror what follows".  The hit test is the game's own.
 
-/// (puppet prop, the next swipe is the left fist's)
-static PUNCHES: Mutex<Vec<(i32, bool)>> = Mutex::new(Vec::new());
+/// (puppet prop, the next swipe is the left fist's): a table in the game's memory (see `memmap.rs`)
+const PUNCHES_AT: i32 = 0x240_0000 + 0xc800;
 
 /// The puppet `prop` starts a swipe (`gunUpdate`): the swipes take turns.
 pub fn punch_swing(prop: i32) {
     if !ts_sdk::dual_all() {
         return;
     }
-    let mut p = PUNCHES.lock().unwrap();
-    match p.iter_mut().find(|e| e.0 == prop) {
-        Some(e) => e.1 = !e.1,
-        None => p.push((prop, false)),
-    }
+    let left = mm_get(PUNCHES_AT, prop).map_or(false, |v| v != 0);
+    mm_set(PUNCHES_AT, prop, if mm_get(PUNCHES_AT, prop).is_some() { !left as u64 } else { 0 });
 }
 
 /// Is the picture of this prop mirrored (`propGfxRoom`)?
 pub fn punch_mirrored(prop: i32) -> bool {
-    ts_sdk::dual_all() && PUNCHES.lock().unwrap().iter().any(|e| e.0 == prop && e.1)
+    ts_sdk::dual_all() && mm_get(PUNCHES_AT, prop).map_or(false, |v| v != 0)
 }
 
 const SCRATCH: i32 = 0x240_0000 + 0xc000;
@@ -164,7 +162,8 @@ pub fn punch_mirror_points(prop: i32, chr: i32, p1: i32, p2: i32) {
 
 const HIT_AT: i32 = 0x240_0000 + 0xc100;
 /// time (in frames of 60 Hz) a bot has to wait for its next punch, per bot
-static NEXT_PUNCH: Mutex<Vec<(i32, f32)>> = Mutex::new(Vec::new());
+/// (a table in the game's memory, see `memmap.rs`; the value is the time as the bits of a float)
+const NEXT_PUNCH_AT: i32 = 0x240_0000 + 0xcc00;
 
 pub fn bot_punch(prop: i32) {
     let chr = lw(prop + 352);
@@ -198,21 +197,14 @@ pub fn bot_punch(prop: i32) {
     let d = [lwc1(target + 48) - lwc1(prop + 48), lwc1(target + 52) - lwc1(prop + 52), lwc1(target + 56) - lwc1(prop + 56)];
     let dist2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
     let dt = lwc1(g::updateframesf);
-    let mut wait = NEXT_PUNCH.lock().unwrap();
-    let slot = match wait.iter().position(|e| e.0 == prop) {
-        Some(i) => i,
-        None => {
-            wait.push((prop, 0.0));
-            wait.len() - 1
-        }
-    };
-    wait[slot].1 = (wait[slot].1 - dt).max(0.0);
+    let left = f32::from_bits(mm_get(NEXT_PUNCH_AT, prop).unwrap_or(0) as u32);
+    let left = (left - dt).max(0.0);
+    mm_set(NEXT_PUNCH_AT, prop, left.to_bits() as u64);
     // (close, and on the same floor)
-    if dist2 > 6.25 || d[1].abs() > 1.5 || wait[slot].1 > 0.0 {
+    if dist2 > 6.25 || d[1].abs() > 1.5 || left > 0.0 {
         return;
     }
-    wait[slot].1 = 45.0;
-    drop(wait);
+    mm_set(NEXT_PUNCH_AT, prop, 45.0f32.to_bits() as u64);
     if std::env::var_os("TS_PUNCHLOG").is_some() {
         eprintln!("[punch] f{} bot ({:.1} {:.1} {:.1}) target ({:.1} {:.1} {:.1}) dist {:.2} state {:#x} yaw {:.0}", ts_sdk::frame_count(), lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), lwc1(target + 48), lwc1(target + 52), lwc1(target + 56), dist2.sqrt(), lw(chr + 2716), lwc1(prop + 80));
     }

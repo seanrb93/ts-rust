@@ -130,6 +130,7 @@ pub fn disc_read(lsn: u32, count: u32, dst: i32) -> bool {
 
 /// `sceCdRead(lsn, sectors, buf, mode*)`: performed synchronously.
 pub fn sceCdRead(args: &[i64]) -> i32 {
+    super::note("sceCdRead");
     disc_read(args[0] as u32, args[1] as u32, args[2] as i32) as i32
 }
 pub fn sceCdSync(_args: &[i64]) -> i32 {
@@ -229,6 +230,7 @@ fn c_string(mut at: i32) -> String {
 
 /// `sceOpen(name, flags)`: a descriptor, or -1 when the file does not exist.
 pub fn sceOpen(args: &[i64]) -> i32 {
+    super::note("sceOpen");
     let name = c_string(args[0] as i32);
     let flags = args.get(1).copied().unwrap_or(1) as i32;
     let plain = name.trim_start_matches("host0:").trim_start_matches("cdrom0:");
@@ -259,6 +261,7 @@ pub fn sceOpen(args: &[i64]) -> i32 {
 
 /// `sceLseek(fd, offset, whence)`: the new position (0 set, 1 current, 2 end).
 pub fn sceLseek(args: &[i64]) -> i32 {
+    super::note("sceLseek");
     let (fd, off, whence) = (args[0] as i32, args[1] as i32 as i64, args.get(2).copied().unwrap_or(0) as i32);
     let mut t = OPEN_FILES.lock().unwrap();
     let Some(Some(f)) = t.get_mut((fd - 3).max(0) as usize).filter(|_| fd >= 3) else { return -1 };
@@ -272,6 +275,7 @@ pub fn sceLseek(args: &[i64]) -> i32 {
 }
 
 pub fn sceClose(args: &[i64]) -> i32 {
+    super::note("sceClose");
     let fd = args[0] as i32;
     let mut t = OPEN_FILES.lock().unwrap();
     match t.get_mut((fd - 3).max(0) as usize).filter(|_| fd >= 3) {

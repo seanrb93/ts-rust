@@ -9,6 +9,7 @@ static SEMAS: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new()); // (count, max_co
 
 /// `CreateSema(param*)`; param = { count, max_count, init_count, ... } as written by the game.
 pub fn CreateSema(a0: i32) -> i32 {
+    super::note("CreateSema");
     let p = a0;
     let init = lw(p + 8);
     let max = lw(p + 4);
@@ -23,6 +24,7 @@ fn with_sema<R>(id: i64, f: impl FnOnce(&mut (i32, i32)) -> R) -> Option<R> {
 }
 
 pub fn SignalSema(a0: i32) -> i32 {
+    super::note("SignalSema");
     with_sema(a0 as i64, |s| {
         if s.0 < s.1.max(1) {
             s.0 += 1;
@@ -31,9 +33,11 @@ pub fn SignalSema(a0: i32) -> i32 {
     a0
 }
 pub fn iSignalSema(a0: i32) -> i32 {
+    super::note("iSignalSema");
     SignalSema(a0)
 }
 pub fn WaitSema(a0: i32) -> i32 {
+    super::note("WaitSema");
     let ok = with_sema(a0 as i64, |s| {
         if s.0 > 0 {
             s.0 -= 1;
@@ -48,6 +52,7 @@ pub fn WaitSema(a0: i32) -> i32 {
     a0
 }
 pub fn iPollSema(a0: i32) -> i32 {
+    super::note("iPollSema");
     with_sema(a0 as i64, |s| {
         if s.0 > 0 {
             s.0 -= 1;

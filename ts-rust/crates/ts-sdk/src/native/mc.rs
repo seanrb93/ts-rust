@@ -123,6 +123,7 @@ pub fn sceMcGetInfo(args: &[i64]) -> i32 {
 
 /// sceMcOpen(port, slot, name, flags) -> result = file descriptor
 pub fn sceMcOpen(args: &[i64]) -> i32 {
+    super::note("sceMcOpen");
     let (port, slot, name, flags) = (args[0] as i32, args[1] as i32, cstr(args[2] as i32), args[3] as i32);
     if std::env::var_os("TS_MCLOG").is_some() {
         eprintln!("[mc] open {name} flags {flags:#x}");
@@ -188,6 +189,7 @@ pub fn sceMcSeek(args: &[i64]) -> i32 {
 
 /// sceMcRead(fd, buf, size) -> result = bytes read
 pub fn sceMcRead(args: &[i64]) -> i32 {
+    super::note("sceMcRead");
     let (fd, buf, size) = (args[0] as usize, args[1] as i32, args[2] as usize);
     with(|mc| {
         let r = match mc.files.get_mut(fd).and_then(|s| s.as_mut()) {
@@ -210,6 +212,7 @@ pub fn sceMcRead(args: &[i64]) -> i32 {
 
 /// sceMcWrite(fd, buf, size) -> result = bytes written
 pub fn sceMcWrite(args: &[i64]) -> i32 {
+    super::note("sceMcWrite");
     let (fd, buf, size) = (args[0] as usize, args[1] as i32, args[2] as usize);
     if std::env::var_os("TS_MCLOG").is_some() {
         eprintln!("[mc] write fd {fd} size {size}");
@@ -407,6 +410,7 @@ pub fn sceMcGetDir(args: &[i64]) -> i32 {
 
 /// sceMcSync(mode, *cmd, *result): 1 = finished (outputs written), -1 = nothing pending
 pub fn sceMcSync(args: &[i64]) -> i32 {
+    super::note("sceMcSync");
     let (cmd, res) = (args[1] as i32, args[2] as i32);
     with(|mc| match mc.pending.take() {
         Some((c, r)) => {

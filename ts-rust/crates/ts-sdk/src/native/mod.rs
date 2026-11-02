@@ -32,3 +32,11 @@ pub use sif::*;
 pub use softfloat::*;
 pub use printf::*;
 pub use vu0::*;
+
+/// A test aid (`TS_NATIVELOG=1`): a native service the game called while a picture between ticks was being made.
+pub(crate) fn note(name: &str) {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    if *ON.get_or_init(|| std::env::var_os("TS_NATIVELOG").is_some()) && net::muted() {
+        eprintln!("[native] {name}");
+    }
+}

@@ -28,6 +28,7 @@ pub fn sceSifBindRpc(args: &[i64]) -> i32 {
 /// `sceSifCallRpc(client, rpc, mode, send, ssize, recv, rsize, end_func, end_param)`
 /// The music stream server is implemented natively by `ts-audio`; every other server just returns zeros.
 pub fn sceSifCallRpc(args: &[i64]) -> i32 {
+    super::note("sceSifCallRpc");
     use ts_audio::MusicCmd;
     let client = args[0] as i32;
     let cmd = args[1] as u32;
@@ -100,6 +101,7 @@ pub fn sceSdRemoteInit(_args: &[i64]) -> i32 {
 
 /// `sceSdTransToIOP(ee_addr, iop_addr, size, mode)`: SIF DMA from game memory to IOP RAM.
 pub fn sceSdTransToIOP(args: &[i64]) -> i32 {
+    super::note("sceSdTransToIOP");
     let (ee, iop, size) = (args[0] as i32, args[1] as u32, args[2] as usize);
     ts_audio::iop_write(iop, host_slice(ee, size));
     0
@@ -107,6 +109,7 @@ pub fn sceSdTransToIOP(args: &[i64]) -> i32 {
 
 /// `sceSdRemote(sync, rpc, ...)`: libsd calls, served by the native SPU2-style mixer.
 pub fn sceSdRemote(args: &[i64]) -> i32 {
+    super::note("sceSdRemote");
     let a = |i: usize| args.get(i).copied().unwrap_or(0) as u32;
     // (a tick played again after a rollback starts only the sounds that the first time did not: see `net::sound_new`)
     if matches!(a(1), 0x8010 | 0x8030 | 0x8050 | 0x8070) && !crate::net::sound_new([a(1), a(2), a(3), a(4)]) {

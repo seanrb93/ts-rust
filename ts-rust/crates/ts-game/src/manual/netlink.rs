@@ -285,10 +285,15 @@ static ROLLBACK: std::sync::Mutex<Rollback> = std::sync::Mutex::new(Rollback { s
 /// What moves smoothly is moved; what happens at a tick (the whole ticks) is not.  The pictures start no sounds.
 #[cfg(feature = "extensions")]
 /// A checksum of every 256 bytes of the game's memory (a test aid).
+fn block_address(i: usize) -> usize {
+    if i < 0x400_0000 / 256 { i * 256 } else { 0xfe0_0000 + (i - 0x400_0000 / 256) * 256 }
+}
+
 fn memory_blocks() -> Vec<u32> {
-    (0..(0x400_0000 / 256))
+    // (the first 64 MB and the last 2 MB, where the stack is)
+    (0..(0x400_0000 / 256)).chain((0xfe0_0000 / 256)..(0x1000_0000 / 256))
         .map(|page| {
-            let at = page * 256;
+            let at = if page < 0x400_0000 / 256 { page * 256 } else { page * 256 };
             let mut h: u32 = 0x811c_9dc5;
             for w in 0..64 {
                 h = (h ^ lw(at + 4 * w) as u32).wrapping_mul(0x0100_0193);
@@ -312,11 +317,6 @@ pub fn netlink_sub_frames() {
         ts_sdk::net::note_subframes_wanted(0, true, false);
         return;
     }
-    // (a Map Maker level is played in whole ticks: the pictures between ticks played it differently on machines that drew different numbers of them, which no one has found the
-    // reason of yet)
-    if lw(g::lvlevelnum) == 100 && std::env::var_os("TS_MAPSUB").is_none() {
-        return;
-    }
     // (a test aid, TS_SUBFORCE=<every n ticks>: a picture between ticks at the boundary of every nth tick whatever the time, so that two machines can be made to differ in
     // them, and with TS_SUBCHECK=2 what the picture changed that was not put back is told)
     if let Some(n) = std::env::var("TS_SUBFORCE").ok().and_then(|v| v.parse::<u32>().ok()) {
@@ -331,7 +331,7 @@ pub fn netlink_sub_frames() {
             ts_rt::journal::undo(1);
             if let Some(b) = blocks {
                 let after = memory_blocks();
-                let diff: Vec<String> = (0..b.len()).filter(|&i| b[i] != after[i]).take(24).map(|i| format!("{:x}", i * 256)).collect();
+                let diff: Vec<String> = (0..b.len()).filter(|&i| b[i] != after[i]).take(24).map(|i| format!("{:x}", block_address(i))).collect();
                 if !diff.is_empty() {
                     eprintln!("[sub] not put back: {} blocks, the first at {:?}", (0..b.len()).filter(|&i| b[i] != after[i]).count(), diff);
                 }
@@ -386,7 +386,7 @@ pub fn netlink_sub_frames() {
         }
         if let Some(b) = blocks {
             let after = memory_blocks();
-            let diff: Vec<String> = (0..b.len()).filter(|&i| b[i] != after[i]).take(24).map(|i| format!("{:x}", i * 256)).collect();
+            let diff: Vec<String> = (0..b.len()).filter(|&i| b[i] != after[i]).take(24).map(|i| format!("{:x}", block_address(i))).collect();
             if !diff.is_empty() {
                 eprintln!("[sub] not put back: {} blocks, the first at {:?}", (0..b.len()).filter(|&i| b[i] != after[i]).count(), diff);
             }
@@ -702,6 +702,18 @@ pub fn netlink_boundary() {
     }
     // (what is stored from here is the record of this tick: going back to it undoes the pads written below too)
     ts_rt::journal::begin_tick();
+    // (a test aid, TS_REPLAYCHECK=1: the tick before is played again from the memory before it, and what differs from the first time is told, which finds what the game reads
+    // that is not in its memory)
+    if std::env::var_os("TS_REPLAYCHECK").is_some() && k >= 40 && k % 25 == 0 && ts_rt::journal::depth() >= 3 {
+        let a = memory_blocks();
+        let before: Vec<i32> = (0..(0x8000 / 4)).map(|i| lw(0x32c000 + 4 * i)).collect();
+        go_back(&mut rb, k - 1, k);
+        let b = memory_blocks();
+        let changed: Vec<String> = (0..before.len()).filter(|&i| lw(0x32c000 + 4 * i as i32) != before[i]).take(24).map(|i| format!("{:x}: {:x}->{:x}", 0x32c000 + 4 * i, before[i], lw(0x32c000 + 4 * i as i32))).collect();
+        eprintln!("[replay] words of 32c000..334000 that changed: {changed:?}");
+        let diff: Vec<String> = (0..a.len()).filter(|&i| a[i] != b[i]).take(30).map(|i| format!("{:x}", block_address(i))).collect();
+        eprintln!("[replay] tick {} played again: {} blocks differ{}", k - 1, (0..a.len()).filter(|&i| a[i] != b[i]).count(), if diff.is_empty() { String::new() } else { format!(", the first at {diff:?}") });
+    }
     loop {
         if !ts_sdk::net::poll(waited_from.elapsed()) {
             ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
@@ -730,7 +742,7 @@ pub fn netlink_boundary() {
         if std::env::var("TS_NETDUMP3").ok().and_then(|v| v.parse::<u32>().ok()) == Some(k - 1) {
             // test aid: a checksum of every 256 bytes of the game's memory, to find where two machines differ (and the words of those places with TS_NETDUMP3_WORDS)
             let words = std::env::var_os("TS_NETDUMP3_WORDS").is_some();
-            for page in 0..(0x200_0000 / 256) {
+            for page in 0..(0x1000_0000 / 256) {
                 let at = page * 256;
                 let mut h: u32 = 0x811c_9dc5;
                 for w in 0..64 {
