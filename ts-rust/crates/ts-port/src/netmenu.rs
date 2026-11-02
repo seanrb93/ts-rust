@@ -27,6 +27,11 @@ pub fn open() {
     }
     ts_game::netsetup_dump();
     *LOBBY.lock().unwrap() = Some(new_lobby());
+    // (a test aid: limits of kills and of score, so that a match ends soon)
+    if let Some(n) = std::env::var("TS_KILLLIMIT").ok().and_then(|v| v.parse::<i32>().ok()) {
+        ts_game::netsetup_gv_set(ts_game::g::gv_killlimit, n);
+        ts_game::netsetup_gv_set(ts_game::g::gv_scorelimit, n);
+    }
 }
 
 pub fn close() {
