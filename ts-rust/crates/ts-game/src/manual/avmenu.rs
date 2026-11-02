@@ -1490,7 +1490,7 @@ pub fn av_gamemode_menu() -> i32 {
     let (first_y, pitch) = (28_i32, 20);
     for (row, &id) in [1, 2, 14, 3].iter().enumerate() {
         if let Some(k) = find(id) {
-            sw(item(k) + 4, ((first_y + pitch * row as i32) << 16) | lhu(item(k) + 4) as i32);
+            sw(item(k) + 4, ((first_y - 3 + pitch * row as i32) << 16) | lhu(item(k) + 4) as i32);
         }
     }
     let left_x = find(10).map_or(0, |k| lhu(item(k) + 4) as i32);
