@@ -1450,12 +1450,19 @@ pub fn av_gamemode_menu() -> i32 {
     sw(item(last), label);
     sw(item(last) + 12, AUDIO_PAGE);
     let new_items = [(10, "Controls", CONTROLS_PAGE), (11, "Video Options", VIDEO_PAGE), (12, "Game Options", GAME_PAGE), (13, "Mods", MODS_PAGE), (14, "Network Game", NET_PAGE), (9, "Exit Game", EXIT_PAGE)];
+    // (NETWORK is one of the big items, made from ARCADE's)
+    let arcade = (0..n).find(|&k| id_of(k) == 2).unwrap_or(1);
     for (k, &(id, text, page)) in new_items.iter().enumerate() {
         let it = item(n + k as i32);
-        copy(it, item(last), 32);
-        let label = put_str(&mut at, text);
+        let label = put_str(&mut at, if id == 14 { "NETWORK" } else { text });
+        if id == 14 {
+            copy(it, item(arcade), 32);
+            sw(it + 8, (lhu(it + 10) << 16) | id);
+        } else {
+            copy(it, item(last), 32);
+            sw(it + 8, ((if id == 9 { 1 } else { flags }) << 16) | id);
+        }
         sw(it, label);
-        sw(it + 8, ((if id == 9 { 1 } else { flags }) << 16) | id);
         sw(it + 12, page);
     }
     // View Credits and View Statistics are on the Game Options page: their items leave the table
@@ -1478,26 +1485,35 @@ pub fn av_gamemode_menu() -> i32 {
             sw(item(k) + 16, (fix((nav >> 16) & 0xffff) << 16) | fix(nav & 0xffff));
         }
     }
-    // The small items sit one line apart, ending a little above the back / select line (Exit Game is the last one, the items
-    // above it are placed from there).
-    let (exit_y, pitch) = (0x9c_i32, 14);
-    let order = [10, 6, 11, 12, 13, 14, 9];
+    // The big items (STORY, ARCADE, NETWORK, CHALLENGE) are moved up a little to make room, and the small ones sit in two columns of three, the last row a little above
+    // the back / select line.
     let find = |id: i32| (0..total).find(|&k| id_of(k) == id);
-    for (row, &id) in order.iter().rev().enumerate() {
+    let y_of = |id: i32| find(id).map_or(0, |k| lhu(item(k) + 6) as i32);
+    let (y1, y2, y3) = (y_of(1), y_of(2), y_of(3));
+    let up = 14;
+    for (id, y) in [(1, y1 - up), (2, y2 - up), (14, y3 - up), (3, y3 + (y3 - y2) - up)] {
         if let Some(k) = find(id) {
-            let y = exit_y - pitch * row as i32;
-            sw(item(k) + 4, (y << 16) | lhu(item(k) + 4));
+            sw(item(k) + 4, ((y as u32) << 16 | lhu(item(k) + 4) as u32) as i32);
         }
     }
-    // the cursor goes down in the order of the items: the new items, Exit Game, then STORY again
+    let (exit_y, pitch) = (0x9c_i32, 14);
+    let left_x = find(10).map_or(0, |k| lhu(item(k) + 4) as i32);
+    for (i, &id) in [10, 6, 11, 12, 13, 9].iter().enumerate() {
+        if let Some(k) = find(id) {
+            let (col, row) = (i as i32 / 3, i as i32 % 3);
+            let y = exit_y - pitch * (2 - row);
+            let x = left_x + 210 * col;
+            sw(item(k) + 4, (y << 16) | x);
+        }
+    }
+    // the cursor goes down in the order of the items, and round to STORY again
+    let order = [1, 2, 14, 3, 10, 6, 11, 12, 13, 9];
     for (i, &id) in order.iter().enumerate() {
         let Some(k) = find(id) else { continue };
-        let down = order.get(i + 1).copied().unwrap_or(1);
-        let up = if i == 0 { above } else { order[i - 1] };
-        sw(item(k) + 16, (down << 16) | up);
+        let down = order[(i + 1) % order.len()];
+        let before = order[(i + order.len() - 1) % order.len()];
+        sw(item(k) + 16, (down << 16) | before);
     }
-    let first = (0..total).find(|&k| id_of(k) == 1).unwrap_or(0);
-    sw(item(first) + 16, (lhu(item(first) + 18) << 16) | 9);
     GAMEMODE_AT
 }
 
