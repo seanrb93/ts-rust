@@ -19,7 +19,7 @@ machine.
 
 ## The lobby
 
-Network Game is an item of the front end's Select Game Type page (below Mods).  It opens pages of the game's own kind (`avmenu.rs`, `netmenu.rs`; the rows come from `lobby.rs`):
+NETWORK is one of the big items of the front end's Select Game Type page (between ARCADE and CHALLENGE).  It opens pages of the game's own kind (`avmenu.rs`, `netmenu.rs`; the rows come from `lobby.rs`):
 
 * **Host a game**: the page Host Game is set up like a local arcade game (`netsetup.rs`): the levels are those of the arcade page that this machine has open (the Map Maker's level is not offered), the modes are those the chosen level has, and the rows of the mode's options (score limit, score method, time limit, teamplay and so on), the weapon set and the bot set are the game's own tables and variables, so they read and behave as in a local game.  With a custom weapon set or bot set chosen, the square button on that row (the hint line says so) opens the game's own Setup Weapons or Setup Bots page, and its triangle button comes back to Host Game.  After them come the number of bots, your character, Start Game, and the players that have joined.
   The game listens on UDP port 7777 and shows the address to give out; a host also announces itself to the local network.
