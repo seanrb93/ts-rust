@@ -1508,11 +1508,13 @@ pub fn av_gamemode_menu() -> i32 {
         }
     }
     // the cursor goes down in the order of the items, and round to STORY again
-    let order = [1, 2, 14, 3, 10, 6, 11, 12, 13, 9];
-    for (i, &id) in order.iter().enumerate() {
+    // (up and down: the big items in a column, then each column of small items on its own, up from the top of either to CHALLENGE and down from the bottom of either to STORY)
+    // (CHALLENGE is not on the page until it is open: the last of the big items is then NETWORK)
+    let last = if challengeModeAvail() != 0 { 3 } else { 14 };
+    let after_network = if last == 3 { 3 } else { 10 };
+    for (id, down, up) in [(1, 2, 9), (2, 14, 1), (14, after_network, 2), (3, 10, 14), (10, 6, last), (6, 11, 10), (11, 1, 6), (12, 13, last), (13, 9, 12), (9, 1, 13)] {
         let Some(k) = find(id) else { continue };
-        let down = order[(i + 1) % order.len()];
-        let before = order[(i + order.len() - 1) % order.len()];
+        let (down, before) = (down, up);
         sw(item(k) + 16, (down << 16) | before);
         // (left and right go between the two columns of the small items, side by side in the same row; the big items have none)
         let side = |a: i32, b: i32| (a, b);
