@@ -757,6 +757,8 @@ pub fn av_menu(page: i32) -> i32 {
         return g::audiovideo_menu;
     }
     if mode() == Mode::Net {
+        // (back from one of the game's own pages)
+        NET_SUB.store(false, Ordering::Relaxed);
         NET_SEEN.store(ts_sdk::frame_count() as u64, Ordering::Relaxed);
         if let Some(p) = PROVIDER.get() {
             p.net_tick();
@@ -999,6 +1001,14 @@ fn navigate(page: i32, n: usize) {
                         p.net_action(i);
                         soundStart(140, 0);
                         joyClearAll(player);
+                        // (a row that opens one of the game's own pages: the weapon page or the bot set page, and the page comes back here)
+                        let wanted = NET_PAGE_WANTED.swap(0, Ordering::Relaxed);
+                        if wanted != 0 {
+                            NET_SUB.store(true, Ordering::Relaxed);
+                            frontPageSet(0, if wanted == 1 { g::weapons_page } else { g::chrsets_page });
+                            pageIn(page);
+                            return;
+                        }
                         if p.net_title() != before {
                             // (another page of the lobby: the cursor starts at its top)
                             PAGE.store(0, order);
@@ -1550,6 +1560,15 @@ pub fn av_arcade_levels() -> i32 {
 /// The frame of the last tick of the Network Game page (the window sends it the keys typed while it is open).
 static NET_SEEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
+/// One of the game's own pages is open over the Network Game page (the lobby stays as it is while it is).
+static NET_SUB: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+/// The lobby asks for the weapon page (1) or the bot set page (2).
+static NET_PAGE_WANTED: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
+
+pub fn netsetup_open_page(kind: i32) {
+    NET_PAGE_WANTED.store(kind, Ordering::Relaxed);
+}
+
 pub fn av_net_active() -> bool {
     let now = ts_sdk::frame_count() as u64;
     now.saturating_sub(NET_SEEN.load(Ordering::Relaxed)) < 6 && NET_SEEN.load(Ordering::Relaxed) != 0 && mode() == Mode::Net
@@ -1569,7 +1588,7 @@ pub fn av_net_delete() {
 
 /// A page is left (`pageOut`, `outPage`): from the Custom controls page one goes back to the Controls page.
 pub fn av_page_out() {
-    if mode() == Mode::Net {
+    if mode() == Mode::Net && !NET_SUB.load(Ordering::Relaxed) {
         if let Some(p) = PROVIDER.get() {
             p.net_close();
         }

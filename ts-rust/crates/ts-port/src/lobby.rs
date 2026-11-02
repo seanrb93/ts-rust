@@ -171,7 +171,9 @@ enum HRow {
     Mode,
     Gv(usize),
     Weapons,
+    EditWeapons,
     BotSet,
+    EditBots,
     Bots,
     Character,
     Text,
@@ -615,9 +617,16 @@ impl Lobby {
         }
         if let Some(r) = &self.wrow {
             v.push((HRow::Weapons, value("Weapon Set", r.choices.iter().map(|c| c.text.clone()).collect(), r.index)));
+            let cur = r.choices.get(r.index).map_or(1, |c| c.value);
+            if cur == 0 || cur >= 10 {
+                v.push((HRow::EditWeapons, action("Choose the Weapons of this Set")));
+            }
         }
         if let Some(r) = &self.brow {
             v.push((HRow::BotSet, value("Bot Set", r.choices.iter().map(|c| c.text.clone()).collect(), r.index)));
+            if r.choices.get(r.index).map_or(0, |c| c.value) >= 8 {
+                v.push((HRow::EditBots, action("Choose the Bots of this Set")));
+            }
         }
         v.push((HRow::Bots, value("Bots", (0..=6).map(|n| n.to_string()).collect(), self.bots.min(6))));
         v.push((HRow::Character, value("Your Character", self.char_names(), self.picks[0])));
@@ -705,6 +714,13 @@ impl Lobby {
             return;
         }
         self.discover();
+        // (the weapons or the bots of a custom set may have been chosen on the game's own pages: the host's rows are read again now and then)
+        if self.screen == Screen::Host && !self.alevels.is_empty() && self.starting.is_none() {
+            static N: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+            if N.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % 20 == 0 {
+                self.refresh_setup(false);
+            }
+        }
         let mut buf = [0u8; 1024];
         let mut got: Vec<(Vec<u8>, SocketAddr)> = Vec::new();
         if let Some(s) = &self.sock {
@@ -1146,7 +1162,12 @@ impl Lobby {
                 _ => {}
             },
             View::Host => {
-                // (the only action is Start)
+                let layout = self.host_layout();
+                match layout.get(row).map(|r| r.0) {
+                    Some(HRow::EditWeapons) => return ts_game::netsetup_open_page(1),
+                    Some(HRow::EditBots) => return ts_game::netsetup_open_page(2),
+                    _ => {}
+                }
                 if self.starting.is_none() {
                     if self.others.is_empty() {
                         self.status = "Nobody has joined yet".into();
