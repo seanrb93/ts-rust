@@ -289,6 +289,7 @@ fn block_address(i: usize) -> usize {
     if i < 0x400_0000 / 256 { i * 256 } else { 0xfe0_0000 + (i - 0x400_0000 / 256) * 256 }
 }
 
+#[cfg(feature = "extensions")]
 fn memory_blocks() -> Vec<u32> {
     // (the first 64 MB and the last 2 MB, where the stack is)
     (0..(0x400_0000 / 256)).chain((0xfe0_0000 / 256)..(0x1000_0000 / 256))
@@ -303,6 +304,7 @@ fn memory_blocks() -> Vec<u32> {
         .collect()
 }
 
+#[cfg(feature = "extensions")]
 pub fn netlink_sub_frames() {
     use std::time::{Duration, Instant};
     static COST: std::sync::Mutex<f64> = std::sync::Mutex::new(0.004);
@@ -459,6 +461,7 @@ static RAN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(f
 #[cfg(feature = "extensions")]
 pub fn netlink_start_match(level: &str, players: usize) {
     let Some(setup) = ts_sdk::net::setup() else { return };
+    RETURN.store(true, std::sync::atomic::Ordering::Relaxed);
     // (a test aid: no sounds at all)
     if std::env::var_os("TS_NOSND").is_some() {
         sw(g::gv_playsound, 0);
@@ -538,6 +541,21 @@ fn netlink_keep_stats(real: i32, mine: i32) {
     memcpy(array + real * 2936 + 132, 0x1fbc168, 1616);
     signonSet(0, a);
     signonSet(1, b);
+}
+
+/// A network match was started from the front end's pages: when it is over the front end goes back to the Network Game page.
+#[cfg(feature = "extensions")]
+static RETURN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(feature = "extensions")]
+pub fn netlink_return_pending() -> bool {
+    RETURN.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// The front end is back: the Network Game page is to be opened (once).
+#[cfg(feature = "extensions")]
+pub fn netlink_return_take() -> bool {
+    RETURN.swap(false, std::sync::atomic::Ordering::Relaxed)
 }
 
 /// A level is being played (not its first frames, nor the screens after it).

@@ -750,6 +750,19 @@ pub fn netlink_unpause_or() -> bool {
     }
 }
 
+/// A network match was played and the front end has not gone back to the Network Game page yet.
+#[inline]
+pub fn netlink_return_pending_or() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_return_pending()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}
+
 /// A network game: the player has no in-game menu open, so the check for leaving the pause does not wait for it.
 #[inline]
 pub fn netlink_no_menu_or(player: i32) -> bool {

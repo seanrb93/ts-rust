@@ -710,7 +710,8 @@ pub fn frontmpgReset() {
                     break 'page;
                 }
                 2 | 3 | 4 | 6 => {
-                    if frontmpgNewGoodies() == 0 {
+                    // (after a network match the page of what was unlocked is not shown: the front end goes back to the Network Game page)
+                    if netlink_return_pending_or() || frontmpgNewGoodies() == 0 {
                         if (lw(0x1fc11fc) & 0x10000) != 0 {
                             if setStatsUpdatePage() != 0 {
                                 break 'page;

@@ -379,6 +379,8 @@ pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
         }
     }
     let kind = lhu(g::gametype_page + 8);
+    // (the front end's number of players is given back: the pages after the match go by it, and the profiles of players that are not here would be asked for)
+    let front_players = lw(0x3aff20);
     sw(0x3aff20, players);
     sh(g::gametype_page + 8, 2);
     // (the teams of a team game: the players take turns, as do the bots; both teams are in use)
@@ -410,6 +412,7 @@ pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
     }
     sw(STATE, front_state);
     sh(g::gametype_page + 8, kind);
+    sw(0x3aff20, front_players);
     for (i, id) in profiles.iter().enumerate() {
         signonSet(i as i32, *id);
     }

@@ -1196,6 +1196,14 @@ pub fn av_gametype_exit(page: i32) -> bool {
     if quit_answer() {
         return false;
     }
+    // (back from a network match: the Network Game page opens over the main menu)
+    #[cfg(feature = "extensions")]
+    if netlink_return_pending() {
+        netlink_return_take();
+        frontPageSet(0, NET_PAGE);
+        pageIn(page);
+        return true;
+    }
     let player = lw(lw(g::currentplayer));
     // (the item of Exit Game is number 9; X or Start choose it)
     if lhu(page + 4) != 9 || joyNewBut(player) & (64 | 2048) == 0 {
