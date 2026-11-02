@@ -53,6 +53,11 @@ fn state_sum() -> u32 {
     let players = lw(g::lvnumplayers);
     let from = lw(g::players);
     for i in 0..(players * 1820 / 4) {
+        // (the four words at 1760 are addresses of buffers the player was given when the level began; where the game's memory happens to give them differs between machines
+        // that were in other menus before, and nothing that is played depends on it)
+        if (1760..1776).contains(&(i * 4 % 1820)) {
+            continue;
+        }
         feed(lw(from + 4 * i) as u32);
     }
     let chars = lw(g::chrinfo);
@@ -365,6 +370,19 @@ pub fn netlink_sound_filter() {
     sw(g::soundbatchlen, keep);
 }
 
+/// The level of a network game from the front end is about to be set up: the random numbers and the counts of the game start as at the start of the program.
+#[cfg(feature = "extensions")]
+static RESEED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn netlink_reseed() {
+    #[cfg(feature = "extensions")]
+    if RESEED.swap(false, std::sync::atomic::Ordering::Relaxed) {
+        newrndseed(0);
+        sw(g::tickframenum, 0);
+        sw(g::gameframe, 0);
+    }
+}
+
 /// The sign-on profiles that the players had before a network game from the front end's pages (given back when it is over).
 #[cfg(feature = "extensions")]
 static PROFILES: std::sync::Mutex<Option<[i32; 4]>> = std::sync::Mutex::new(None);
@@ -400,16 +418,29 @@ pub fn netlink_start_match(level: &str, players: usize) {
     for i in (0..112).step_by(4) {
         sw(at + i, 0);
     }
+    if setup.block.len() == 28 {
+        // (the parameters as the game's pages made them on the host, and the variables they were made from)
+        netsetup_apply(&setup.gvs);
+        for (i, w) in setup.block.iter().enumerate() {
+            sw(at + 4 * i as i32, *w);
+        }
+        sw(at, players as i32);
+        sw(at + 4, players as i32);
+        RESEED.store(true, std::sync::atomic::Ordering::Relaxed);
+        gameDeferedReset(at);
+        sw(0x1fc11f8, 6);
+        return;
+    }
     sw(at, players as i32);
     sw(at + 4, players as i32);
     sw(at + 64, number);
     sw(at + 72, setup.mode);
     sw(at + 76, 1);
     sw(at + 80, 2);
-    // (the machines have been in the front end for different times: what the game counts or draws from is made the same, as at the start of the program)
-    newrndseed(0);
-    sw(g::tickframenum, 0);
-    sw(g::gameframe, 0);
+    // (the match's options are written into the game's records, which the level reads when it is set up; the random numbers and the counts the game draws from are made the
+    // same on every machine when the level begins to be set up, `netlink_reseed`: the machines have been in the front end for different times)
+    netlink_options();
+    RESEED.store(true, std::sync::atomic::Ordering::Relaxed);
     gameDeferedReset(at);
     sw(0x1fc11f8, 6);
 }
@@ -570,6 +601,27 @@ pub fn netlink_boundary() {
     // the checksum of the state after the last tick
     if k >= 1 && (k - 1) % ts_sdk::net::SUM_EVERY == 0 {
         let sum = state_sum();
+        if std::env::var("TS_NETDUMP").ok().and_then(|v| v.parse::<u32>().ok()) == Some(k - 1) {
+            // test aid: the words of the state that the checksum covers, at this tick, to find which differ between machines
+            for i in 0..lw(g::lvnumplayers) {
+                for w in 0..455 {
+                    eprintln!("[dump] P{i} +{} {:08x}", w * 4, lw(lw(g::players) + i * 1820 + w * 4));
+                }
+            }
+            eprintln!("[dump] R seed {:016x} count {} frame {}", ld(g::newrndseedval), lw(g::rndcount), lw(g::gameframe));
+            let count = lw(g::lvnumplayers) + lw(g::numactivechars);
+            for i in 0..count {
+                for w in 0..(0x1210 / 4) {
+                    eprintln!("[dump] C{i} +{} {:08x}", w * 4, lw(lw(g::chrinfo) + i * 0x1210 + w * 4));
+                }
+            }
+            for w in 0..(14 * 1368 / 4) {
+                eprintln!("[dump] M +{} {:08x}", w * 4, lw(g::matchstats + 4 * w));
+            }
+            for w in 0..28 {
+                eprintln!("[dump] G +{} {:08x}", w * 4, lw(g::curgameparms + 4 * w));
+            }
+        }
         rb.pending.insert(k - 1, sum);
     }
     let certain = ts_sdk::net::confirmed();
@@ -601,6 +653,9 @@ pub fn netlink_boundary() {
 /// The options of the match the lobby set (called where the mods' presets are written, after the game made the records of the options).
 pub fn netlink_options() {
     let Some(s) = ts_sdk::net::setup() else { return };
+    if !s.block.is_empty() {
+        return;
+    }
     let rec = 0x1fc2c98 + (s.mode << 5);
     sw(rec + 12, s.time);
     match s.mode {
@@ -614,6 +669,9 @@ pub fn netlink_options() {
 /// The mode and the bots of the match the lobby set (called when the game's parameters have been given their starts).
 pub fn netlink_parms() {
     let Some(s) = ts_sdk::net::setup() else { return };
+    if !s.block.is_empty() {
+        return;
+    }
     sw(g::curgameparms + 72, s.mode);
 }
 
@@ -630,6 +688,9 @@ pub fn netlink_player_char(player: i32) {
 /// The bots the lobby set (at the start of the bots' restart).
 pub fn netlink_bots() {
     let Some(s) = ts_sdk::net::setup() else { return };
+    if !s.block.is_empty() {
+        return;
+    }
     let parms = g::curgameparms;
     let players = lw(g::lvnumplayers).max(1);
     let n = s.bots.len().min(10);

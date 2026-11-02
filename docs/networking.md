@@ -21,11 +21,11 @@ machine.
 
 Network Game is an item of the front end's Select Game Type page (below Mods).  It opens pages of the game's own kind (`avmenu.rs`, `netmenu.rs`; the rows come from `lobby.rs`):
 
-* **Host a game**: the page Host Game has the settings (level, mode, time limit, score limit, bots, friendly fire, weapons, input delay) and, on its second page, your character, the players that have joined, and Start Game.
+* **Host a game**: the page Host Game is set up like a local arcade game (`netsetup.rs`): the levels are those of the arcade page that this machine has open (the Map Maker's level is not offered), the modes are those the chosen level has, and the rows of the mode's options (score limit, score method, time limit, teamplay and so on), the weapon set and the bot set are the game's own tables and variables, so they read and behave as in a local game.  After them come the number of bots, your character, Start Game, and the players that have joined.
   The game listens on UDP port 7777 and shows the address to give out; a host also announces itself to the local network.
 * **Join a game**: the page Join Game lists the games found on the network (X joins one); to join a host on another network type its address with the keyboard (digits, `.` and `:`; Delete erases) and choose Connect.
   Once joined, the page shows the host's settings and the players; your character can be chosen there.
-* The name of a player is the name of the user on the computer (12 letters at most).
+* The name of a player is the name of the profile signed in on that machine (the computer's user name when there is none; 12 letters at most).
 
 The triangle button steps back (from a hosted or joined game to the first page, then out of the page).  When the host starts, each machine starts the level from the front end at once (`netlink_start_match`):
 every machine gets the level, the number of the player, the others' addresses and the random seed; the players get profiles of their own, and the game goes back to being a game of one machine when the level is left.
@@ -34,7 +34,9 @@ every machine gets the level, the number of the player, the others' addresses an
 When the host starts, every machine gets the level, the number of the player, the others' addresses and the random seed, and starts the game at once.
 The host also chooses the weapon set (one of its own custom sets, or a preset); the five weapons of a custom set go to the other machines with the rest of the match, so the sets saved on each machine do not matter.  The bot sets are not needed: the bots' characters are sent.
 
-The host also sets the input delay (2 to 24 ticks, 6 by default): the pad read on a machine is used that many ticks later, so a stall of the network shorter than that many ticks is not felt, and the controls lag by as much.  `saves/net-stats.txt` (below) shows how long the stalls are.
+The input delay is fixed (2 ticks); with rollback it is not a setting.  `saves/net-stats.txt` (below) shows how long the stalls are.
+
+The match is set up on the host by the game's own start function (`frontmpgStartGame`, whose block of 112 bytes is captured at `gameDeferedReset`), and that block goes to every machine in the roster with the values of the option variables; each machine sets the variables and starts the level with the block.  Level music is not part of it: it is a setting of each machine (the Options page).  The checksum leaves out the four buffer addresses of a player, which depend on what each machine had in memory before the level.
 
 A host announces its game once a second to the local network (UDP broadcast to port 7778, a different port from the game's 7777), and the Join screen lists the games it hears (address, players, level) so that one can be picked with Up/Down and Enter; typing an address still works for a host on another network.  The broadcast leaves by the network the PC uses first, and routers do not pass it on.  `TS_LOBBY_AUTO=find` joins the first game found.
 

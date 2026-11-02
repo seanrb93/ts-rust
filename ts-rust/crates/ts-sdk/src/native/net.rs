@@ -69,11 +69,15 @@ pub struct Setup {
     pub names: Vec<String>,
     /// ticks between a pad being read and being used: more hides longer stalls of the network and makes the controls lag
     pub delay: u32,
+    /// the parameters of the match as the game's own pages make them (28 words), when the host set the match up with them
+    pub block: Vec<i32>,
+    /// the game variables the host set (address, value): the other machines set them the same
+    pub gvs: Vec<(i32, i32)>,
 }
 
 impl Default for Setup {
     fn default() -> Setup {
-        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new(), delay: 2 }
+        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new(), delay: 2, block: Vec::new(), gvs: Vec::new() }
     }
 }
 

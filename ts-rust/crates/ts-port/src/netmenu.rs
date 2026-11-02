@@ -21,6 +21,7 @@ fn note(what: &str) {
 
 pub fn open() {
     note("open");
+    ts_game::netsetup_dump();
     *LOBBY.lock().unwrap() = Some(new_lobby());
 }
 
@@ -65,6 +66,7 @@ fn start(o: crate::lobby::Outcome) {
     note(&format!("setup {:?} level {} players {} local {} seed {}", o.setup, o.level, o.players, o.local, o.seed));
     ts_sdk::net::set_setup(o.setup.clone());
     ts_sdk::net::set_rollback(std::env::var_os("TS_LOCKSTEP").is_none());
+    #[cfg(feature = "extensions")]
     ts_game::netlink_start_match(&o.level, o.players);
 }
 

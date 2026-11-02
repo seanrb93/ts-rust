@@ -152,6 +152,30 @@ pub struct Lobby {
     found_sel: usize,
     /// (a test aid) the lobby answers itself: `host,<players>,<level>` or `join,<address>`
     auto: Option<Auto>,
+    /// the host's setup in the game's own terms (the pages of a local arcade game): the levels that are open (number, name, place in the arcade list), the modes of the
+    /// level, the rows of the mode's options, the weapon sets and the bot sets
+    alevels: Vec<(i32, String, i32)>,
+    amodes: Vec<(i32, String)>,
+    gvrows: Vec<ts_game::NetGvRow>,
+    wrow: Option<ts_game::NetGvRow>,
+    brow: Option<ts_game::NetGvRow>,
+    /// the game variables the host set (a client has them from the host), and the parameters of the match once the host has made them
+    gvs: Vec<(i32, i32)>,
+    block: Vec<i32>,
+}
+
+/// What a row of the host's page is.
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum HRow {
+    Level,
+    Mode,
+    Gv(usize),
+    Weapons,
+    BotSet,
+    Bots,
+    Character,
+    Text,
+    Start,
 }
 
 #[derive(Clone)]
@@ -173,12 +197,19 @@ fn clean_name(s: &str) -> String {
     }
 }
 
-/// The name this machine's player has: the user's name on the computer.
+/// The name this machine's player has: the name of the profile signed in to the game, or else the user's name on the computer.
 fn default_name() -> String {
+    if let Some(n) = ts_game::netsetup_profile_name() {
+        return clean_name(&n);
+    }
     clean_name(&std::env::var("USERNAME").or_else(|_| std::env::var("USER")).unwrap_or_default())
 }
 
 fn now_seed() -> i32 {
+    // (a test aid: the seed of the match)
+    if let Some(v) = std::env::var("TS_LOBBY_SEED").ok().and_then(|v| v.parse::<i32>().ok()) {
+        return v;
+    }
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(1, |d| (d.subsec_nanos() ^ d.as_secs() as u32) as i32 & 0x7fff_ffff)
 }
 
@@ -215,6 +246,13 @@ impl Lobby {
             // (a test aid: a machine that is not like the others)
             compat: compat ^ std::env::var("TS_LOBBY_COMPAT_XOR").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(0),
             picks: vec![0; MAX_PLAYERS],
+            alevels: Vec::new(),
+            amodes: Vec::new(),
+            gvrows: Vec::new(),
+            wrow: None,
+            brow: None,
+            gvs: Vec::new(),
+            block: Vec::new(),
             beacon: None,
             last_beacon: Instant::now() - Duration::from_secs(5),
             found: Vec::new(),
@@ -280,6 +318,7 @@ impl Lobby {
                 self.others.clear();
                 self.starting = None;
                 self.status = format!("Waiting for players on port {PORT}");
+                self.refresh_setup(true);
             }
             Err(e) => self.status = format!("Cannot listen on port {PORT}: {e}"),
         }
@@ -350,6 +389,7 @@ impl Lobby {
                 Key::Left if self.starting.is_none() => self.change(-1),
                 Key::Right if self.starting.is_none() => self.change(1),
                 Key::Enter if self.starting.is_none() && !self.others.is_empty() => {
+                    self.make_block();
                     self.seed = now_seed();
                     self.starting = Some(Instant::now());
                     self.status = "Starting ...".into();
@@ -413,7 +453,6 @@ impl Lobby {
                 self.wset = (self.wset as i32 + d).rem_euclid(n) as usize;
                 self.apply_wset();
             }
-            7 => self.setup.delay = step(self.setup.delay as i32, 2, 24) as u32,
             _ => self.change_char(d),
         }
     }
@@ -469,6 +508,8 @@ impl Lobby {
         s.names = if self.screen == Screen::Host { self.host_names() } else { self.roster_names.clone() };
         // (the bots are characters the players are not: the next ones of the list)
         s.bots = (0..self.bots).map(|b| chr(8 + 3 * b)).collect();
+        s.block = self.block.clone();
+        s.gvs = self.gvs.clone();
         s
     }
 
@@ -513,9 +554,101 @@ impl Lobby {
             b.push(n.len() as u8);
             b.extend_from_slice(n.as_bytes());
         }
-        // the input delay
-        b.push(self.setup.delay as u8);
+        // the game variables the host set, and the parameters of the match once they are made
+        let n = self.gvs.len().min(16);
+        b.push(n as u8);
+        for &(gv, value) in self.gvs.iter().take(n) {
+            b.extend_from_slice(&gv.to_le_bytes());
+            b.extend_from_slice(&value.to_le_bytes());
+        }
+        b.push((self.block.len() == 28) as u8);
+        if self.block.len() == 28 {
+            for w in &self.block {
+                b.extend_from_slice(&w.to_le_bytes());
+            }
+        }
         b
+    }
+
+    /// The host's choices as the game's pages have them are read again (after anything changed), and what the roster's older fields tell a client is kept in step.
+    fn refresh_setup(&mut self, begin: bool) {
+        if begin {
+            self.alevels = ts_game::netsetup_levels();
+            ts_game::netsetup_begin();
+        }
+        if self.alevels.is_empty() {
+            return;
+        }
+        self.amodes = ts_game::netsetup_modes(2);
+        if !self.amodes.iter().any(|m| m.0 == ts_game::netsetup_mode()) {
+            if let Some(m) = self.amodes.first() {
+                ts_game::netsetup_select_mode(m.0);
+            }
+        }
+        self.gvrows = ts_game::netsetup_mode_rows();
+        self.wrow = Some(ts_game::netsetup_weapon_row());
+        self.brow = Some(ts_game::netsetup_botset_row());
+        self.gvs = ts_game::netsetup_gv_values();
+        self.bots = ts_game::netsetup_bots() as usize;
+        self.setup.mode = ts_game::netsetup_mode();
+        // the weapon set: the custom ones are the host's own
+        let w = self.wrow.as_ref().and_then(|r| r.choices.get(r.index)).map_or(1, |c| c.value);
+        if let Some(i) = self.wsets.iter().position(|x| x.0 == w) {
+            self.wset = i;
+            self.apply_wset();
+        } else {
+            self.setup.weapons = None;
+        }
+        if let Some(i) = self.alevels.iter().position(|l| l.0 == ts_game::netsetup_level_id()) {
+            self.level = self.levels.iter().position(|n| *n == self.alevels[i].1).unwrap_or(self.level);
+        }
+    }
+
+    /// The layout of the host's page: what each row is, and the row.
+    fn host_layout(&self) -> Vec<(HRow, UiRow)> {
+        let mut v = Vec::new();
+        if self.alevels.is_empty() {
+            return v;
+        }
+        let at = self.alevels.iter().position(|l| l.0 == ts_game::netsetup_level_id()).unwrap_or(0);
+        v.push((HRow::Level, value("Level", self.alevels.iter().map(|l| l.1.clone()).collect(), at)));
+        let m = self.amodes.iter().position(|m| m.0 == ts_game::netsetup_mode()).unwrap_or(0);
+        v.push((HRow::Mode, value("Game Mode", self.amodes.iter().map(|m| m.1.clone()).collect(), m)));
+        for (i, r) in self.gvrows.iter().enumerate() {
+            v.push((HRow::Gv(i), value(&r.label, r.choices.iter().map(|c| c.text.clone()).collect(), r.index)));
+        }
+        if let Some(r) = &self.wrow {
+            v.push((HRow::Weapons, value("Weapon Set", r.choices.iter().map(|c| c.text.clone()).collect(), r.index)));
+        }
+        if let Some(r) = &self.brow {
+            v.push((HRow::BotSet, value("Bot Set", r.choices.iter().map(|c| c.text.clone()).collect(), r.index)));
+        }
+        v.push((HRow::Bots, value("Bots", (0..=6).map(|n| n.to_string()).collect(), self.bots.min(6))));
+        v.push((HRow::Character, value("Your Character", self.char_names(), self.picks[0])));
+        // (the button comes before the players, which come and go, so that the cursor stays on it)
+        v.push((HRow::Start, action("Start Game")));
+        let n = 1 + self.others.len();
+        v.push((
+            HRow::Text,
+            info(match self.starting {
+                Some(_) => "Starting ...".to_string(),
+                None if n == 1 => format!("Waiting for players on {}:{PORT}", local_ip_hint()),
+                None => format!("{n} players here"),
+            }),
+        ));
+        for (i, name) in self.host_names().iter().enumerate() {
+            let chr = self.chars.get(self.picks[i]).map_or("?", |c| c.1.as_str());
+            v.push((HRow::Text, info(format!("Player {}: {}   {}", i + 1, name, chr))));
+        }
+        v
+    }
+
+    /// The parameters of the match are made (by the game's own start function) for the players that are here.
+    fn make_block(&mut self) {
+        if self.alevels.is_empty() {
+            return;
+        }
+        self.block = ts_game::netsetup_block(1 + self.others.len() as i32).unwrap_or_default();
     }
 
     /// The hosts announce themselves on the local network once a second; a machine looking for a game listens and keeps the list.
@@ -576,7 +709,7 @@ impl Lobby {
             return;
         }
         self.discover();
-        let mut buf = [0u8; 512];
+        let mut buf = [0u8; 1024];
         let mut got: Vec<(Vec<u8>, SocketAddr)> = Vec::new();
         if let Some(s) = &self.sock {
             while let Ok((n, from)) = s.recv_from(&mut buf) {
@@ -697,8 +830,26 @@ impl Lobby {
                     }
                     if names.len() == self.n_players {
                         self.roster_names = names;
-                        if let Some(&d) = b.get(o) {
-                            self.setup.delay = (d as u32).clamp(2, 24);
+                        // the host's variables and, once it is starting, the parameters of the match
+                        if let Some(&n) = b.get(o) {
+                            let mut gvs = Vec::new();
+                            let mut p = o + 1;
+                            for _ in 0..n {
+                                let Some(e) = b.get(p..p + 8) else { break };
+                                gvs.push((i32::from_le_bytes([e[0], e[1], e[2], e[3]]), i32::from_le_bytes([e[4], e[5], e[6], e[7]])));
+                                p += 8;
+                            }
+                            if gvs.len() == n as usize {
+                                self.gvs = gvs;
+                                let mut block = Vec::new();
+                                if b.get(p) == Some(&1) {
+                                    for k in 0..28 {
+                                        let Some(e) = b.get(p + 1 + 4 * k..p + 5 + 4 * k) else { break };
+                                        block.push(i32::from_le_bytes([e[0], e[1], e[2], e[3]]));
+                                    }
+                                }
+                                self.block = if block.len() == 28 { block } else { Vec::new() };
+                            }
                         }
                     }
                     // the match the host set
@@ -843,6 +994,9 @@ impl Lobby {
         match self.view() {
             View::Main => vec![action("Host a game"), action("Join a game"), info(format!("Your name: {}", self.my_name))],
             View::Host => {
+                if !self.alevels.is_empty() {
+                    return self.host_layout().into_iter().map(|r| r.1).collect();
+                }
                 let mut v = vec![
                     value("Level", self.levels.clone(), self.level),
                     value("Mode", MODES.iter().map(|m| m.1.to_string()).collect(), MODES.iter().position(|m| m.0 == self.setup.mode).unwrap_or(0)),
@@ -851,7 +1005,6 @@ impl Lobby {
                     value("Bots", (0..=6).map(|n| n.to_string()).collect(), self.bots),
                     value("Friendly Fire", vec!["Yes".into(), "No".into()], if self.setup.friendly { 0 } else { 1 }),
                     value("Weapons", (0..self.wsets.len().max(1)).map(|i| self.wset_name(i)).collect(), self.wset),
-                    value("Input Delay", (2..=24).map(|d| format!("{d} ticks, {} ms", d * 1000 / 60)).collect(), (self.setup.delay.clamp(2, 24) - 2) as usize),
                     value("Your Character", self.char_names(), self.picks[0]),
                 ];
                 let n = 1 + self.others.len();
@@ -889,14 +1042,17 @@ impl Lobby {
                 let mut v = vec![info(if self.roster.is_empty() { format!("Asking {} ...", self.host.map_or(String::new(), |h| h.to_string())) } else { format!("Joined as player {} of {}", self.my_index + 1, self.n_players) })];
                 if !self.roster.is_empty() {
                     v.push(info(format!("Level: {}", self.levels.get(self.level).map_or("?", |l| l.as_str()))));
-                    v.push(info(format!("Mode: {}   Time: {}   Score: {}", self.mode_name(), self.time_text(), self.setup.limit)));
-                    v.push(info(format!("Bots: {}   Friendly fire: {}", self.bots, if self.setup.friendly { "Yes" } else { "No" })));
-                    let weapons = match self.setup.weapons {
-                        Some((0, _)) => "Custom".to_string(),
-                        Some((n, _)) => format!("Preset {n}"),
-                        None => "?".to_string(),
-                    };
-                    v.push(info(format!("Weapons: {}   Input delay: {} ticks", weapons, self.setup.delay)));
+                    if self.gvs.is_empty() {
+                        v.push(info(format!("Mode: {}   Time: {}   Score: {}", self.mode_name(), self.time_text(), self.setup.limit)));
+                        v.push(info(format!("Bots: {}   Friendly fire: {}", self.bots, if self.setup.friendly { "Yes" } else { "No" })));
+                    } else {
+                        v.push(info(format!("Game Mode: {}", ts_game::netsetup_mode_name(self.setup.mode))));
+                        for &(gv, val) in &self.gvs {
+                            let (label, text) = ts_game::netsetup_gv_describe(gv, val);
+                            v.push(info(format!("{label}: {text}")));
+                        }
+                        v.push(info(format!("Bots: {}", self.bots)));
+                    }
                     for (i, name) in self.roster_names.iter().enumerate() {
                         let chr = self.chars.get(self.picks[i.min(MAX_PLAYERS - 1)]).map_or("?", |c| c.1.as_str());
                         v.push(info(format!("Player {}: {}   {}", i + 1, name, chr)));
@@ -914,6 +1070,43 @@ impl Lobby {
     /// The player chose the value `idx` of the value row `row`.
     pub fn set_row(&mut self, row: usize, idx: usize) {
         match self.view() {
+            View::Host if !self.alevels.is_empty() => {
+                let layout = self.host_layout();
+                let Some(&(kind, _)) = layout.get(row) else { return };
+                match kind {
+                    HRow::Level => {
+                        if let Some(l) = self.alevels.get(idx) {
+                            ts_game::netsetup_select_level(l.2);
+                        }
+                    }
+                    HRow::Mode => {
+                        if let Some(m) = self.amodes.get(idx) {
+                            ts_game::netsetup_select_mode(m.0);
+                        }
+                    }
+                    HRow::Gv(i) => {
+                        if let Some(r) = self.gvrows.get(i) {
+                            if let Some(c) = r.choices.get(idx) {
+                                ts_game::netsetup_gv_set(r.gv, c.value);
+                            }
+                        }
+                    }
+                    HRow::Weapons => {
+                        if let Some(c) = self.wrow.as_ref().and_then(|r| r.choices.get(idx)) {
+                            ts_game::netsetup_weapon_set(c.value);
+                        }
+                    }
+                    HRow::BotSet => {
+                        if let Some(c) = self.brow.as_ref().and_then(|r| r.choices.get(idx)) {
+                            ts_game::netsetup_bot_set(c.value);
+                        }
+                    }
+                    HRow::Bots => ts_game::netsetup_set_bots(idx as i32),
+                    HRow::Character => self.picks[0] = idx.min(self.chars.len().saturating_sub(1)),
+                    _ => {}
+                }
+                self.refresh_setup(false);
+            }
             View::Host => match row {
                 0 => self.level = idx.min(self.levels.len().saturating_sub(1)),
                 1 => self.setup.mode = MODES[idx.min(MODES.len() - 1)].0,
@@ -925,8 +1118,7 @@ impl Lobby {
                     self.wset = idx.min(self.wsets.len().saturating_sub(1));
                     self.apply_wset();
                 }
-                7 => self.setup.delay = idx as u32 + 2,
-                8 => self.picks[0] = idx.min(self.chars.len().saturating_sub(1)),
+                7 => self.picks[0] = idx.min(self.chars.len().saturating_sub(1)),
                 _ => {}
             },
             View::Joined => {
@@ -961,6 +1153,7 @@ impl Lobby {
                     if self.others.is_empty() {
                         self.status = "Nobody has joined yet".into();
                     } else {
+                        self.make_block();
                         self.seed = now_seed();
                         self.starting = Some(Instant::now());
                     }

@@ -634,6 +634,10 @@ pub fn waterPropNew(a0: i32, f12: f32, f13: f32, f14: f32, f15: f32) {
 /// Keep the settings of the next game in 0x1fbc0e8 (112 bytes copied from `a0`) and go to the loading state: unless the level is the credits (104) now or then, the music
 /// ends and the state becomes 6; otherwise the level ends at once (@ 0x21e7a8).
 pub fn gameDeferedReset(a0: i32) {
+    // (a network game asking for the parameters the pages would start a game with: they are kept, and no game starts)
+    if netsetup_capture(a0) {
+        return;
+    }
     let mut to = 0x1fbc0e8;
     let mut from = a0;
     loop {

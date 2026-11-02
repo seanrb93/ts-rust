@@ -354,6 +354,7 @@ pub fn cpuMain() {
             profileReset();
             memReset();
             gameReset();
+            netlink_reseed();
             v1_1 = lw(g::lvlevelnum);
             if lw(g::firsttime_129) != 0 {
                 if v1_1 != 104 {
@@ -376,6 +377,7 @@ pub fn cpuMain() {
             profileRestart();
             memRestart();
             gameRestart();
+            netlink_reseed();
             lvRestartBefore();
             lvRestartAfter();
             lvLevelSetup();
