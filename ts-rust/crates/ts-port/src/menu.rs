@@ -80,6 +80,8 @@ static PENDING_RES: std::sync::Mutex<Option<(u32, u32)>> = std::sync::Mutex::new
 
 const ASPECT_NAMES: [&str; 5] = ["Auto", "4:3", "16:10", "16:9", "21:9"];
 const HUD_NAMES: [&str; 3] = ["Edges", "Centre", "Stretch"];
+/// the sizes of the HUD of a level (relative to the original's)
+const HUD_SCALES: [f32; 7] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
 fn msaa_options() -> Vec<u32> {
     let max = MAX_MSAA.load(Ordering::Relaxed);
@@ -144,6 +146,7 @@ impl ts_game::AvOptions for PortAv {
                 ts_render::Filter::Trilinear => 2,
             }),
             row("Anisotropic", names(&AF, |n| if *n <= 1 { "Off".into() } else { format!("{n}x") }), aniso_idx),
+            row("HUD Size", names(&HUD_SCALES, |h| format!("{}x", h)), nearest_idx_f32(&HUD_SCALES, c.hud_scale)),
         ]
     }
 
@@ -293,6 +296,7 @@ impl ts_game::AvOptions for PortAv {
                 c.filter = [Nearest, Bilinear, Trilinear][index.min(2)];
             }
             9 => c.aniso = AF[index.min(AF.len() - 1)],
+            10 => c.hud_scale = HUD_SCALES[index.min(HUD_SCALES.len() - 1)],
             _ => {}
         });
         config::get().save();

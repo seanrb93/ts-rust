@@ -49,6 +49,8 @@ pub struct Config {
     pub fov: f32,
     /// placement of HUD and menus in a picture wider than 4:3
     pub hud: ts_render::HudMode,
+    /// size of the HUD of a level (1 = the original's; with the placement "edges")
+    pub hud_scale: f32,
     /// frame rate of the game itself while a level is played: 60 = the original, higher = the game logic really runs at
     /// that rate, 0 = the refresh rate of the monitor
     pub framerate: u32,
@@ -92,6 +94,7 @@ impl Default for Config {
             aniso: 1,
             fov: 0.0,
             hud: ts_render::HudMode::Edges,
+            hud_scale: 1.0,
             framerate: 60,
             stick_deadzone: 0.0,
             stick_sensitivity: 1.33,
@@ -291,6 +294,7 @@ impl Config {
                     v => v.parse::<u32>().map_err(|_| bad())?.clamp(60, 1000),
                 }
             }
+            "hud_scale" => self.hud_scale = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.5, 2.0),
             "hud" => {
                 self.hud = match value.trim().to_ascii_lowercase().as_str() {
                     "edges" | "edge" => ts_render::HudMode::Edges,
@@ -347,7 +351,7 @@ impl Config {
         }
         #[cfg(feature = "extensions")]
         {
-            ts_render::Settings { render_scale: 1.0, internal_height: 0, sharp: self.upscale_sharp, msaa: self.msaa, filter: self.filter, aniso: self.aniso, aspect: self.aspect, hud: self.hud, native: false }
+            ts_render::Settings { render_scale: 1.0, internal_height: 0, sharp: self.upscale_sharp, msaa: self.msaa, filter: self.filter, aniso: self.aniso, aspect: self.aspect, hud: self.hud, hud_scale: self.hud_scale, native: false }
         }
     }
 }
@@ -485,7 +489,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 41] = [
+        let vals: [(&str, String); 42] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -494,6 +498,7 @@ impl Config {
             ("aspect", aspect_name(self.aspect)),
             ("fov", format!("{}", self.fov)),
             ("hud", hud_name(self.hud).into()),
+            ("hud_scale", format!("{}", self.hud_scale)),
             ("vsync", self.vsync.to_string()),
             ("framerate", if self.framerate == 0 { "display".to_string() } else { self.framerate.to_string() }),
             ("upscale_sharp", self.upscale_sharp.to_string()),

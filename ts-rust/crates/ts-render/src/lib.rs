@@ -70,6 +70,9 @@ pub struct Settings {
     pub aspect: Option<f32>,
     /// placement of the 2D elements in a picture wider than 4:3
     pub hud: HudMode,
+    /// size of the HUD of a level relative to the original's (1.0): each piece grows or shrinks about the screen corner (or the corner of its pane in a split
+    /// screen) that its placement has it stick to; with `HudMode::Edges` only
+    pub hud_scale: f32,
     /// internal resolution as a height in pixels (the width follows the picture's aspect ratio): 0 = the output area times `render_scale`
     pub internal_height: u32,
     /// scaling the internal image up to the window shows its pixels as they are (nearest) instead of smoothed
@@ -80,7 +83,7 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { render_scale: 1.0, msaa: 1, filter: Filter::Bilinear, aniso: 1, aspect: Some(4.0 / 3.0), hud: HudMode::Edges, internal_height: 0, sharp: false, native: false }
+        Settings { render_scale: 1.0, msaa: 1, filter: Filter::Bilinear, aniso: 1, aspect: Some(4.0 / 3.0), hud: HudMode::Edges, hud_scale: 1.0, internal_height: 0, sharp: false, native: false }
     }
 }
 
@@ -1253,7 +1256,9 @@ impl Renderer {
             // page stack says so (drawing heuristics mistook dark boxes of the map itself for panels)
             mm_modal = frame.page_open;
         }
-        if k > 1.001 && self.settings.hud != HudMode::Stretch {
+        // (a picture of 4:3 has its 2D art as the game drew it, unless the HUD of a level is given a size)
+        let hud_zoom = frame.in_game && self.settings.hud == HudMode::Edges && (self.settings.hud_scale - 1.0).abs() > 0.001;
+        if (k > 1.001 || hud_zoom) && self.settings.hud != HudMode::Stretch {
             let edges = (self.settings.hud == HudMode::Edges && frame.in_game) || (mm_grid && !mm_modal);
             let centre_all = mm_grid && mm_modal;
             if std::env::var_os("TS_DRAWDBG").is_some() {
@@ -1472,6 +1477,8 @@ impl Renderer {
                     let centre = move |x: f32| LOGICAL_W * 0.5 + (x - LOGICAL_W * 0.5) / k;
                     let left = move |x: f32| x / k;
                     let right = move |x: f32| LOGICAL_W - (LOGICAL_W - x) / k;
+                    // the screen side that the piece of the HUD sticks to (set by the placements that stick to one): the size of the HUD grows from there
+                    let mut anchor: Option<f32> = None;
                     if std::env::var_os("TS_MAPDBG").is_some() {
                         eprintln!("[map] draw {i} {:?}: x {lo:.0}..{hi:.0} y {ylo:.0}..{yhi:.0} edges {edges} centre_all {centre_all} viewport {viewport} members {} clamp {:#x} stq {} tex {:?} blend {:?}", d.topology, members.len(), st.clamp, st.use_stq, st.tex.map(|t| (t.tbp0, t.tw, t.th)), st.blend);
                     }
@@ -1502,8 +1509,10 @@ impl Renderer {
                             // (menus, big art, the aiming crosshair)
                             Box::new(move |x| c + (x - c) / k)
                         } else if mid < p0 + pw / 3.0 {
+                            anchor = Some(p0);
                             Box::new(move |x| p0 + (x - p0) / k)
                         } else if mid > p0 + pw * 2.0 / 3.0 {
+                            anchor = Some(p1);
                             Box::new(move |x| p1 - (p1 - x) / k)
                         } else {
                             Box::new(move |x| c + (x - c) / k)
@@ -1538,8 +1547,10 @@ impl Renderer {
                         Box::new(centre)
                     } else if edges {
                         if mid < LOGICAL_W / 3.0 {
+                            anchor = Some(0.0);
                             Box::new(left)
                         } else if mid > LOGICAL_W * 2.0 / 3.0 {
+                            anchor = Some(LOGICAL_W);
                             Box::new(right)
                         } else {
                             Box::new(centre)
@@ -1553,9 +1564,22 @@ impl Renderer {
                         // menus: one consistent placement keeps labels, bars, highlights and cursors together
                         Box::new(centre)
                     };
+                    // the size of the HUD of a level (the pieces that stick to a side, from the nearer of the top and the bottom of the picture or pane)
+                    let grow = match anchor {
+                        Some(ax) if frame.in_game && !frame.scores_open && !frame.menu_open && (self.settings.hud_scale - 1.0).abs() > 0.001 => {
+                            let (top, bottom) = if panes { (sc[1] as f32, (sc[3] + 1) as f32) } else { (0.0, LOGICAL_H) };
+                            let ay = if (ylo + yhi) * 0.5 < (top + bottom) * 0.5 { top } else { bottom };
+                            Some((ax, ay, self.settings.hud_scale.clamp(0.25, 4.0)))
+                        }
+                        _ => None,
+                    };
                     for t in members {
                         for v in &mut r[np * t..np * t + np] {
                             v.pos[0] = map(v.pos[0]);
+                            if let Some((ax, ay, f)) = grow {
+                                v.pos[0] = ax + (v.pos[0] - ax) * f;
+                                v.pos[1] = ay + (v.pos[1] - ay) * f;
+                            }
                         }
                     }
                 }
