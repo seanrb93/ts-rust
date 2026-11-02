@@ -38,6 +38,8 @@ The input delay is fixed (2 ticks); with rollback it is not a setting.  `saves/n
 
 The match is set up on the host by the game's own start function (`frontmpgStartGame`, whose block of 112 bytes is captured at `gameDeferedReset`), and that block goes to every machine in the roster with the values of the option variables; each machine sets the variables and starts the level with the block.  Level music is not part of it: it is a setting of each machine (the Options page).  The checksum leaves out the four buffer addresses of a player, which depend on what each machine had in memory before the level.
 
+The mods that are on are named on the pages: Host Game ends with a line "Mods: ...", Joined Game shows "Host mods: ...", and a machine whose mods or game files differ is refused with both lists in the message.
+
 A host announces its game once a second to the local network (UDP broadcast to port 7778, a different port from the game's 7777), and the Join screen lists the games it hears (address, players, level) so that one can be picked with Up/Down and Enter; typing an address still works for a host on another network.  The broadcast leaves by the network the PC uses first, and routers do not pass it on.  `TS_LOBBY_AUTO=find` joins the first game found.
 
 For tests without a window: `TS_LOBBY_AUTO=host,3,Prison` (starts when 3 players are there) and `TS_LOBBY_AUTO=join,127.0.0.1:7777`, with `--lobby --headless`.

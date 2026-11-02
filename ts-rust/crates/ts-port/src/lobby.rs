@@ -162,6 +162,47 @@ pub struct Lobby {
     /// the game variables the host set (a client has them from the host), and the parameters of the match once the host has made them
     gvs: Vec<(i32, i32)>,
     block: Vec<i32>,
+    /// the mods that are on here (their titles), and the host's (a client has them from the roster or from the host's refusal)
+    mods: Vec<String>,
+    host_mods: Vec<String>,
+}
+
+/// A list of mods as a line of text.
+fn mods_text(mods: &[String]) -> String {
+    if mods.is_empty() {
+        return "none".into();
+    }
+    let s = mods.join(", ");
+    if s.chars().count() > 42 {
+        format!("{}...", s.chars().take(39).collect::<String>())
+    } else {
+        s
+    }
+}
+
+/// The names of mods as they go in a message: a count, then each with its length (at most eight, twenty-four letters each).
+fn put_mods(b: &mut Vec<u8>, mods: &[String]) {
+    let n = mods.len().min(8);
+    b.push(n as u8);
+    for m in mods.iter().take(n) {
+        let m: String = m.chars().filter(|c| c.is_ascii() && !c.is_ascii_control()).take(24).collect();
+        b.push(m.len() as u8);
+        b.extend_from_slice(m.as_bytes());
+    }
+}
+
+/// The names of mods from a message at `at`.
+fn get_mods(b: &[u8], mut at: usize) -> Vec<String> {
+    let mut v = Vec::new();
+    let Some(&n) = b.get(at) else { return v };
+    at += 1;
+    for _ in 0..n {
+        let Some(&len) = b.get(at) else { break };
+        let Some(m) = b.get(at + 1..at + 1 + len as usize) else { break };
+        v.push(String::from_utf8_lossy(m).to_string());
+        at += 1 + len as usize;
+    }
+    v
 }
 
 /// What a row of the host's page is.
@@ -253,6 +294,8 @@ impl Lobby {
             brow: None,
             gvs: Vec::new(),
             block: Vec::new(),
+            mods: Vec::new(),
+            host_mods: Vec::new(),
             beacon: None,
             last_beacon: Instant::now() - Duration::from_secs(5),
             found: Vec::new(),
@@ -567,7 +610,14 @@ impl Lobby {
                 b.extend_from_slice(&w.to_le_bytes());
             }
         }
+        // the host's mods
+        put_mods(&mut b, &self.mods);
         b
+    }
+
+    /// The titles of the mods that are on here are given to the lobby (it tells the others, and shows the host's).
+    pub fn set_mods(&mut self, mods: Vec<String>) {
+        self.mods = mods;
     }
 
     /// The host's choices as the game's pages have them are read again (after anything changed), and what the roster's older fields tell a client is kept in step.
@@ -635,6 +685,7 @@ impl Lobby {
             let chr = self.chars.get(self.picks[i]).map_or("?", |c| c.1.as_str());
             v.push((HRow::Text, info(format!("Player {}: {}   {}", i + 1, name, chr))));
         }
+        v.push((HRow::Text, info(format!("Mods: {}", mods_text(&self.mods)))));
         v
     }
 
@@ -729,6 +780,7 @@ impl Lobby {
                             // (a machine with other game files or other mods would not stay in step)
                             let mut r = MAGIC.to_le_bytes().to_vec();
                             r.push(T_REJECT);
+                            put_mods(&mut r, &self.mods);
                             if let Some(s) = &self.sock {
                                 let _ = s.send_to(&r, from);
                             }
@@ -791,7 +843,8 @@ impl Lobby {
                 for (b, from) in &got {
                     if b.len() >= 5 && u32::from_le_bytes([b[0], b[1], b[2], b[3]]) == MAGIC && b[4] == T_REJECT && from.ip() == host.ip() {
                         self.sock = None;
-                        self.status = "The host has other game files or other mods than this machine (the mods that are on must be the same)".into();
+                        let theirs = get_mods(b, 5);
+                        self.status = format!("The host has other game files or mods. Host mods: {}. Yours: {}", mods_text(&theirs), mods_text(&self.mods));
                         return;
                     }
                 }
@@ -850,7 +903,9 @@ impl Lobby {
                                         block.push(i32::from_le_bytes([e[0], e[1], e[2], e[3]]));
                                     }
                                 }
-                                self.block = if block.len() == 28 { block } else { Vec::new() };
+                                let had = block.len() == 28;
+                                self.block = if had { block } else { Vec::new() };
+                                self.host_mods = get_mods(&b, p + 1 + if had { 112 } else { 0 });
                             }
                         }
                     }
@@ -1049,7 +1104,7 @@ impl Lobby {
                         v.push(info(format!("Bots: {}   Friendly fire: {}", self.bots, if self.setup.friendly { "Yes" } else { "No" })));
                     } else {
                         v.push(info(format!("Game Mode: {}", ts_game::netsetup_mode_name(self.setup.mode))));
-                        for &(gv, val) in &self.gvs {
+                        for &(gv, val) in self.gvs.iter().filter(|g| ts_game::netsetup_mode_has_gv(self.setup.mode, g.0)) {
                             let (label, text) = ts_game::netsetup_gv_describe(gv, val);
                             if label != "?" {
                                 v.push(info(format!("{label}: {text}")));
@@ -1061,6 +1116,7 @@ impl Lobby {
                         let chr = self.chars.get(self.picks[i.min(MAX_PLAYERS - 1)]).map_or("?", |c| c.1.as_str());
                         v.push(info(format!("Player {}: {}   {}", i + 1, name, chr)));
                     }
+                    v.push(info(format!("Host mods: {}", mods_text(&self.host_mods))));
                     v.push(value("Your Character", self.char_names(), self.picks[self.my_index.min(MAX_PLAYERS - 1)]));
                 }
                 if !self.status.is_empty() {

@@ -368,6 +368,21 @@ pub fn netsetup_gv_values() -> Vec<(i32, i32)> {
     all_gvs().into_iter().map(|gv| (gv, lw(gv))).collect()
 }
 
+/// Does a game mode have a row for the variable `gv` (the weapon set and the bot set are in every mode)?
+pub fn netsetup_mode_has_gv(mode: i32, gv: i32) -> bool {
+    if gv == g::gv_weaponset || gv == g::gv_chrset {
+        return true;
+    }
+    let (table, count) = match mode {
+        1 => (g::bagtag_menuitems, 8),
+        2 => (g::ctf_menuitems, 6),
+        3 => (g::deathmatch_menuitems, 10),
+        5 => (g::knockout_menuitems, 6),
+        _ => return false,
+    };
+    (0..count).any(|i| lw(table + 32 * i + 12) == gv)
+}
+
 /// The values the host chose are set in this machine's variables (before the parameters are used), and the records of the mode's options the level reads are made from them.
 pub fn netsetup_apply(values: &[(i32, i32)], mode: i32) {
     for &(gv, value) in values {

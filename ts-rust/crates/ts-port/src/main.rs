@@ -1000,7 +1000,10 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
 /// A number that is the same on machines that can play together: the build, the game's files and the mods that are on.
 /// A lobby for the game's Network Game pages (the levels and characters of the game, its weapon sets, and what the machines must have in common).
 pub(crate) fn new_lobby() -> lobby::Lobby {
-    lobby::Lobby::new(ts_game::netlink_level_names(), ts_game::netlink_characters(), compat_hash(&exe_dir()), ts_game::netlink_weapon_sets())
+    let mut l = lobby::Lobby::new(ts_game::netlink_level_names(), ts_game::netlink_characters(), compat_hash(&exe_dir()), ts_game::netlink_weapon_sets());
+    // (the mods that are on: the others are told, and a host's are shown to those who join)
+    l.set_mods(mods::list().into_iter().filter(|m| m.enabled && m.loaded).map(|m| m.title).collect());
+    l
 }
 
 fn compat_hash(game_dir: &std::path::Path) -> u32 {
