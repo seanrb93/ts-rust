@@ -723,6 +723,34 @@ pub fn netlink_preload_bots_or() {
     netlink_bots();
 }
 
+/// The player `a0` pauses the game: in a network game only that player's own menu opens, nothing stops for the others (true: done).
+#[inline]
+pub fn netlink_pause_or(a0: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_pause(a0)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = a0;
+        false
+    }
+}
+
+/// A network game: the player has no in-game menu open, so the check for leaving the pause does not wait for it.
+#[inline]
+pub fn netlink_no_menu_or(player: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_active() && lhu(player * 92 + 0x1fb3248) & 1 == 0
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = player;
+        false
+    }
+}
+
 /// Is the game a network game (the `ilink` of the console game)?
 #[inline]
 pub fn netlink_active_or() -> i32 {

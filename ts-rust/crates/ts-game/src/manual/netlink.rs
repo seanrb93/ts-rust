@@ -129,6 +129,28 @@ pub fn netlink_tick() {
     }
 }
 
+/// The player on this machine has an in-game (pause) menu open.
+pub fn netlink_local_menu_open() -> bool {
+    let me = ts_sdk::net::local_player();
+    lhu(me * 92 + 0x1fb3248) & 1 != 0
+}
+
+/// The player `a0` pauses: in a network game only that player's own in-game menu opens (the others carry on playing), and the game's own pause of the time is not used (see
+/// `timeGetPause`).  True when it was done here; false for a game that is not a network game.
+pub fn netlink_pause(a0: i32) -> bool {
+    if !ts_sdk::net::active() {
+        return false;
+    }
+    soundStart(222, 0);
+    sw(0x3afe78, a0);
+    if lhu(a0 * 92 + 0x1fb3248) & 1 == 0 {
+        ingamemenuStart(a0);
+    }
+    frontSet(a0);
+    timePause(1);
+    true
+}
+
 /// This machine's pad as it travels: the controller record, with the look sensitivity (the others have no way to know it) and the mouse's movement.
 fn local_pad() -> [u8; ts_sdk::net::PAD_BYTES] {
     let mut local = pad_bytes(g::controllers + LOCAL_PAD * 384);
@@ -149,7 +171,7 @@ fn local_pad() -> [u8; ts_sdk::net::PAD_BYTES] {
         local[16..18].copy_from_slice(&((dx * 8.0).round().clamp(-32000.0, 32000.0) as i16).to_le_bytes());
         local[18..20].copy_from_slice(&((dy * 8.0).round().clamp(-32000.0, 32000.0) as i16).to_le_bytes());
     }
-    if lw(g::gamepaused) != 0 {
+    if netlink_local_menu_open() {
         // (the game goes on while this player's pause menu is open, and the menu reads the same pad: its buttons go on, the sticks do not move the character)
         local[8..12].fill(128);
     }
@@ -225,7 +247,7 @@ pub fn netlink_sub_frames() {
     if hz < 61.0 {
         return;
     }
-    if !in_level() || lw(g::gamepaused) != 0 || lw(lw(g::front) + 20) != 0 || !ROLLBACK.lock().unwrap().started {
+    if !in_level() || netlink_local_menu_open() || !ROLLBACK.lock().unwrap().started {
         ts_sdk::net::note_subframes_wanted(0, true, false);
         return;
     }

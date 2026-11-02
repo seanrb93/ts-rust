@@ -12,7 +12,9 @@ const DEGREES: f32 = 0.12;
 
 /// A level is being played and nothing of the menus is on top of it.
 pub fn mouse_look_active() -> bool {
-    lw(g::gamestate) == 3 && lw(g::lvfirstframe_130) == 0 && lw(g::gamepaused) == 0 && lw(g::replaymode) == 0 && lw(lw(g::front) + 20) == 0 && lw(g::players) != 0
+    // (a network game: only this player's own menu stops the mouse; another player's pause does not)
+    let paused = if ts_sdk::net::active() { netlink_local_menu_open() } else { lw(g::gamepaused) != 0 || lw(lw(g::front) + 20) != 0 };
+    lw(g::gamestate) == 3 && lw(g::lvfirstframe_130) == 0 && !paused && lw(g::replaymode) == 0 && lw(g::players) != 0
 }
 
 /// A level is being played (a pause or a menu on top of it does not matter).

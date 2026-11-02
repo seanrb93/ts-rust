@@ -455,6 +455,10 @@ pub fn ingamemenuCheckUnpause() {
         if i >= players {
             break;
         }
+        if netlink_no_menu_or(i) {
+            i += 1;
+            continue;
+        }
         if state == 3 {
             if (lhu(i * 92 + 0x1fb3248) & 4) != 0 {
                 i += 1;
@@ -478,7 +482,7 @@ pub fn ingamemenuCheckUnpause() {
             let mut exited = 0;
             if players > 0 {
                 loop {
-                    if (lhu(player * 92 + 0x1fb3248) & 4) != 0 {
+                    if (lhu(player * 92 + 0x1fb3248) & 4) != 0 || netlink_no_menu_or(player) {
                         player += 1;
                     } else {
                         exited += 1;

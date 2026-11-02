@@ -306,6 +306,9 @@ pub fn soundStartLoopRange(a0: i32, a1: i32, f12: f32) -> i32 {
 /// Pause the game from the in-game menu of the player `a0`: the sound 222 plays, the player is recorded, the menu of each player that has none opens (the others are paused),
 /// the front end is set and the time is paused (@ 0x2129e0).
 pub fn ingamemenuPause(a0: i32) {
+    if netlink_pause_or(a0) {
+        return;
+    }
     let mut player = 0;
     soundStart(222, 0);
     let mut players = lw(g::lvnumplayers);
