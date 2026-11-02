@@ -118,13 +118,13 @@ pub fn gunGfx() {
     dlSetBlend(0);
     let zb = dlSetZB(1);
     let dither = dlSetDitherMatrix(1);
-    propGfxRoom(lw(lw(g::currentplayer)) + 201, 0);
+    propGfxRoom(gun_room(lw(lw(g::currentplayer))), 0);
     dlSetZB(3);
-    propGfxRoom(lw(lw(g::currentplayer)) + 201, 0);
+    propGfxRoom(gun_room(lw(lw(g::currentplayer))), 0);
     dlSetBlend(1);
     dlSetZB(2);
     dlSetDitherMatrix(2);
-    propGfxRoom(lw(lw(g::currentplayer)) + 201, 1);
+    propGfxRoom(gun_room(lw(lw(g::currentplayer))), 1);
     dlSetZB(zb);
     dlSetDitherMatrix(dither);
 }

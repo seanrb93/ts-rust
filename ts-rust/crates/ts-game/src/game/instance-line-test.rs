@@ -184,6 +184,9 @@ pub fn obInstLineTest(inst: i32, from: i32, dir: i32, segment: i32, hit: i32, no
                                                         let out_hit = lw(sp + 520);
                                                         let out_normal = lw(sp + 528);
                                                         let record = polygon * 12 + lw(boxes + 32);
+                                                        if (record as u32) > 0x1000_0000 && std::env::var_os("TS_BADLOG").is_some() {
+                                                            eprintln!("[bad] boxes {boxes:#x} +32 = {:#x} bone {bone_number} model {:#x} owner {:#x} gamefr {}", lw(boxes + 32), lw(sp + 480), lw(sp + 448), lw(g::gameframe));
+                                                        }
                                                         let vertices = lw(record + 8);
                                                         swc1(sp + 352, (lh(record + 2) as f32).pdiv(scale));
                                                         swc1(sp + 356, (lh(record + 4) as f32).pdiv(scale));

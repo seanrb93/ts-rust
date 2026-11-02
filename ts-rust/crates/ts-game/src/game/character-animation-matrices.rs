@@ -536,7 +536,7 @@ pub fn calMatrices(a0: i32) {
             if v1_9 < 201 {
                 v1_11 = lw(a0 + 4);
             } else {
-                if v1_9 < lw(g::lvnumplayers) + 201 {
+                if v1_9 < lw(g::lvnumplayers).min(4) + 201 {
                     let f23_1 = lwc1(0x3ac828);
                     let v1_10 = lw(a0);
                     let mut s3_3 = 0;

@@ -262,7 +262,7 @@ pub fn getPropViewportDrawFlags() -> i32 {
         1 => 0x1000000,
         2 => 0x3000000,
         3 => 0x7000000,
-        4 => 0xf000000,
+        n if n > 4 => 0xf000000,
         _ => 0,
     }
 }

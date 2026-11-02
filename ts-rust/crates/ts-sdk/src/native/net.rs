@@ -25,7 +25,13 @@ const MAX_PADS: u32 = 24;
 const TIMEOUT: Duration = Duration::from_secs(10);
 const FIRST_TIMEOUT: Duration = Duration::from_secs(90);
 /// how long a machine that has been heard from may stay silent, while this one waits for it, before it is given up
-const DROP_AFTER: Duration = Duration::from_secs(4);
+const DROP_AFTER_DEFAULT: Duration = Duration::from_secs(4);
+
+/// How long a machine may be silent before the others drop it (a test aid, `TS_NETDROP=<seconds>`, for tests of many machines on one PC).
+fn drop_after() -> Duration {
+    static D: std::sync::OnceLock<Duration> = std::sync::OnceLock::new();
+    *D.get_or_init(|| std::env::var("TS_NETDROP").ok().and_then(|v| v.parse::<u64>().ok()).map_or(DROP_AFTER_DEFAULT, Duration::from_secs))
+}
 /// how many of a given-up player's last pads each packet passes on, so the machines that are left all end up with the same ones
 const RELAY_PADS: usize = 16;
 /// how long before the packets are sent again when nothing new has come up
@@ -520,7 +526,7 @@ pub fn step(local_pad: [u8; PAD_BYTES]) -> Option<Vec<[u8; PAD_BYTES]>> {
             s.pump();
             let t = s.tick;
             for p in 0..s.n() {
-                if p != s.local && s.heard[p] && !s.suspect[p] && s.last[p].elapsed() > DROP_AFTER && started.elapsed() > DROP_AFTER {
+                if p != s.local && s.heard[p] && !s.suspect[p] && s.last[p].elapsed() > drop_after() && started.elapsed() > drop_after() {
                     s.give_up(p);
                 }
             }
@@ -747,7 +753,7 @@ pub fn poll(waiting: Duration) -> bool {
     let Some(s) = g.as_mut() else { return false };
     s.pump();
     for p in 0..s.n() {
-        if p != s.local && s.heard[p] && !s.suspect[p] && s.last[p].elapsed() > DROP_AFTER && waiting > DROP_AFTER {
+        if p != s.local && s.heard[p] && !s.suspect[p] && s.last[p].elapsed() > drop_after() && waiting > drop_after() {
             s.give_up(p);
         }
     }

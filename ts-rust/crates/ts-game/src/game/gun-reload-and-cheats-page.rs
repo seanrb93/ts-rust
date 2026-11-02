@@ -34,7 +34,7 @@ pub fn gunReload(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) {
                             let flags = lw(first + 16) | 0x40000000;
                             sw(a2 + 140, first);
                             sw(first + 16, flags);
-                            sw(first + 12, id + 201);
+                            sw(first + 12, gun_room(id));
                             let second = propNew(222, 0.0_f32, 0.0_f32, 0.0_f32, 0.0_f32);
                             let player = lw(g::currentplayer);
                             sw(second + 136, 2);
@@ -43,7 +43,7 @@ pub fn gunReload(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) {
                             let flags = lw(second + 16) | 0x40000000;
                             sw(a2 + 144, second);
                             sw(second + 16, flags);
-                            sw(second + 12, id + 201);
+                            sw(second + 12, gun_room(id));
                             updateShotgunReload(a2);
                             sw(a2 + 4, 0);
                         }

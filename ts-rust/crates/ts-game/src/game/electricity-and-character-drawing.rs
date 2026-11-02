@@ -609,6 +609,11 @@ pub fn bgLoad(a0: i32) {
     let table = memAlloc((count * 20 + 35) & -16, 1);
     let count = lw(g::bgNumRooms);
     sw(room_data + 12, table);
+    // (the players after the fourth have a table of their own too)
+    for p in 4..lw(g::lvnumplayers).min(MAX_MATCH_PLAYERS) {
+        let table = memAlloc((lw(g::bgNumRooms) * 20 + 35) & -16, 1);
+        sw(room_data + 4 * p, table);
+    }
     let table = memAlloc(((count << 2) + 19) & -16, 1);
     let count = lw(g::bgNumPortals);
     sw(0x3b0084, table);

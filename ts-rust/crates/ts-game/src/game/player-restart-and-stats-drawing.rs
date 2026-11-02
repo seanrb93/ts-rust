@@ -65,7 +65,7 @@ pub fn playerRestart() {
                 } else {
                     let prop = propNew(sky, 0.0_f32, 0.0_f32, 0.0_f32, 0.0_f32);
                     let flags = lw(prop + 16);
-                    let number = lw(p) + 205;
+                    let number = body_room(lw(p));
                     sw(p + 388, prop);
                     sw(prop + 12, number);
                     sw(prop + 16, flags | 0x40000000);

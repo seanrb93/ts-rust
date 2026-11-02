@@ -602,7 +602,7 @@ pub fn specialfxGroupsTick() {
 pub fn obInstGfx(a0: i32, a1: i32) {
     let flags = lw(lw(a0 + 244) + 16);
     let model = lw(a0);
-    if (0x1000000 << (lw(lw(g::currentplayer)) & 31) & flags) != 0 {
+    if !prop_hidden_from(lw(lw(g::currentplayer)), lw(a0 + 244)) {
         if (flags & 256) == 0 {
             let buffer = lw(model + 40);
             let mut blend = -1;

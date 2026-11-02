@@ -12,10 +12,10 @@ A=""; for f in 650 720 800 880 960; do A="$A --press $f:cross:3"; done; A="$A --
 H=""; for f in 1340 1360 1380 1400; do H="$H --press $f:down:3"; done
 D=""; for i in 0 1 2 3 4 5 6; do D="$D --press $((1540+i*15)):down:3"; done
 C="--press 1200:cross:3 --press 1320:down:3 --press 1340:cross:3 --press 1400:down:3 --press 1420:down:3 --press 1440:cross:3"
-TS_BT=1 TS_NETLOG=1 timeout 700 ./ts-rust-ct.exe --save-dir $S/svA --headless --frames $FR $A --press 1200:cross:3 --press 1320:cross:3 $H --press 1420:cross:3 --press 1440:right:3 --press 1460:cross:3 --press 1520:right:3 $D --press 3400:cross:3 --press 3700:cross:3 --screenshot $((FR-100)) $S/p5a.png > $S/h0.txt 2>&1 &
+TS_NETDUMP=0 TS_NETDROP=120 TS_BADLOG=1 TS_BT=1 TS_NETLOG=1 timeout 700 ./ts-rust-ct.exe --save-dir $S/svA --headless --frames $FR $A --press 1200:cross:3 --press 1320:cross:3 $H --press 1420:cross:3 --press 1440:right:3 --press 1460:cross:3 --press 1520:right:3 $D --press 3400:cross:3 --press 3700:cross:3 --screenshot $((FR-300)) $S/p5a1.png --screenshot $((FR-200)) $S/p5a2.png --screenshot $((FR-100)) $S/p5a.png > $S/h0.txt 2>&1 &
 sleep 2
 for n in B C D E F G H; do
-TS_LOBBY_ADDR=127.0.0.1 TS_BT=1 TS_NETLOG=1 timeout 700 ./ts-rust-ct.exe --save-dir $S/sv$n --headless --frames $FR $A $C --screenshot $((FR-100)) $S/p5$n.png > $S/c$n.txt 2>&1 &
+TS_LOBBY_ADDR=127.0.0.1 TS_NETDUMP=0 TS_NETDROP=120 TS_BADLOG=1 TS_BT=1 TS_NETLOG=1 timeout 700 ./ts-rust-ct.exe --save-dir $S/sv$n --headless --frames $FR $A $C --screenshot $((FR-100)) $S/p5$n.png > $S/c$n.txt 2>&1 &
 sleep 1
 done
 wait

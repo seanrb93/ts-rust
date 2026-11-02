@@ -242,7 +242,7 @@ pub fn gunCreatePlayerGun(a0: i32, a1: i32, a2: i32) {
     sw(view + 136, 2);
     sw(view + 140, 2);
     let model = lw(view + 32);
-    let room = lw(player) + 201;
+    let room = gun_room(lw(player));
     sw(view + 16, lw(view + 16) | 0x40000000);
     sw(view + 12, room);
     sw(a0 + 12, view);

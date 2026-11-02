@@ -325,7 +325,7 @@ pub fn bgGfx() {
     dlSetClip(lw(window), lw(g::window + 20), lw(g::window + 4), lw(g::window + 24));
     let current = lw(g::currentplayer);
     if lw(current + 388) != 0 {
-        propGfxRoom(lw(current) + 205, 0);
+        propGfxRoom(body_room(lw(current)), 0);
     }
     dlSetBlend(1);
     dlSetZB(2);

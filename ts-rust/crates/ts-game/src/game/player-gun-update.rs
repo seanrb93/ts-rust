@@ -104,10 +104,10 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
         let inst = lw(chr + 32);
         let flags = lw(chr + 16);
         let inst_flags = lhu(inst + 292);
-        sw(chr + 12, lw(player) + 201);
+        sw(chr + 12, gun_room(lw(player)));
         let number = lw(player);
         sh(inst + 292, inst_flags & 0x3fff);
-        sw(chr + 16, flags | 0x40000000 | 0x1000000 << (number & 31));
+        sw(chr + 16, flags | 0x40000000 | view_bit(number));
         obInstSetAnim(inst, 3, 1.0_f32);
         s1_11 = lw(g::currentplayer);
         f1_11 = lwc1(s5_1 + 76);
@@ -934,7 +934,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
                 let flags = lw(first + 16) | 0x40000000;
                 sw(a0 + 140, first);
                 sw(first + 16, flags);
-                sw(first + 12, number + 201);
+                sw(first + 12, gun_room(number));
                 let second = propNew(222, zero, zero, zero, zero);
                 let player = lw(g::currentplayer);
                 sw(second + 136, 2);
@@ -943,7 +943,7 @@ fn gun_state(a0: i32, a1: i32, sp: i32, s3_1: i32, s4_1: i32, s7_1: i32, state: 
                 let flags = lw(second + 16) | 0x40000000;
                 sw(a0 + 144, second);
                 sw(second + 16, flags);
-                sw(second + 12, number + 201);
+                sw(second + 12, gun_room(number));
             }
             updateShotgunReload(a0);
             Step::Prop(lw(a0 + 12))

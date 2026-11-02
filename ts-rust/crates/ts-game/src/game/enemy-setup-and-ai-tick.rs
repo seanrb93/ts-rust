@@ -593,7 +593,7 @@ pub fn aiTickBefore() {
                                 loop {
                                     let owner = lw((n << 2) + chr_table);
                                     if lw(player * 1820 + players + (k << 2) + 912) == lw(owner + 12) {
-                                        let mask = 0x1000000 << (player & 31);
+                                        let mask = view_bit(player);
                                         sw(owner + 16, lw(owner + 16) | mask);
                                         if aimed != 0 {
                                             sw(aimed + 16, lw(aimed + 16) | mask);
@@ -644,7 +644,7 @@ pub fn aiTickBefore() {
                             if lw(player * 0x1210 + chrinfo + 680) != lw(offset + table) {
                                 k += 1;
                             } else {
-                                let mask = 0x1000000 << (player & 31);
+                                let mask = view_bit(player);
                                 found_pad = k;
                                 let mind = lw(table + offset + 4) * 0x1210 + chrinfo;
                                 let prop = lw(mind + 3020);

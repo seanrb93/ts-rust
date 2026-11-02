@@ -24,4 +24,33 @@ pub const HUDPARMS: i32 = BASE + 0x10_0500;
 pub const HUDPARMS_BYTES: i32 = 352 * MAX_MATCH_PLAYERS;
 
 /// the target each player hit last (words; the game's were 4 at 0x1fe99b0)
-pub const PLAYER_HIT_AT: i32 = BASE + 0x10_3200;
+pub const PLAYER_HIT_AT: i32 = BASE + 0x10_6200;
+
+/// The rooms of a player's own props (the view of his gun, and his body): the game has numbers for four players, 201 to 204 and 205 to 208 (209 to 212 are for everybody), so the
+/// players after the fourth have numbers after them.
+pub fn gun_room(player: i32) -> i32 {
+    if player < 4 { 201 + player } else { 213 + 2 * (player - 4) }
+}
+
+/// The bit of a player in the flags of a prop (from bit 24, the viewers that may see it): the flags have room for four players (the bits after are other flags), so the players
+/// after the fourth have all four, and the drawing tells them apart (`prop_hidden_from`).
+pub fn view_bit(player: i32) -> i32 {
+    if player < 4 { 0x1000000 << player } else { 0xf000000 }
+}
+
+/// Whether the prop `prop` is not drawn for the player `player` (a record of the players): the flags say so for the first four players, and a player after the fourth does
+/// not see his own body when his camera is in his head.
+pub fn prop_hidden_from(player: i32, prop: i32) -> bool {
+    let flags = crate::lw(prop + 16);
+    if player < 4 {
+        return flags & view_bit(player) == 0;
+    }
+    if flags & 0xf000000 == 0 {
+        return true;
+    }
+    crate::lw(crate::lw(crate::dec::g::currentplayer) + 384) == prop && crate::camGetMode() != 2 && crate::lw(crate::dec::g::lvlevelnum) != 6
+}
+
+pub fn body_room(player: i32) -> i32 {
+    if player < 4 { 205 + player } else { 214 + 2 * (player - 4) }
+}

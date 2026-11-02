@@ -238,7 +238,11 @@ fn fill_border(x0: i32, y0: i32, x1: i32, y1: i32) {
 fn mark_camera_bit(index: i32) {
     let mode = camGetMode();
     let level = lw(g::lvlevelnum);
-    let bit = 0x1000000_i32 << (index & 31);
+    if index >= 4 {
+        // (the flags have no bit for him; the drawing hides his body)
+        return;
+    }
+    let bit = 0x1000000_i32 << index;
     let flags_at = lw(lw(g::currentplayer) + 384) + 16;
     if mode != 2 && level != 6 {
         sw(flags_at, lw(flags_at) & !bit);
@@ -307,7 +311,11 @@ pub fn bossMainLoop() {
                 mark_camera_bit(index);
             }
             index += 1;
+            #[cfg(any(feature = "watch", feature = "calltrace"))]
+            ts_rt::watch::set_player(index - 1);
             lvTickPlayer();
+            #[cfg(any(feature = "watch", feature = "calltrace"))]
+            ts_rt::watch::set_player(-1);
             if index >= lw(g::lvnumplayers) {
                 break;
             }

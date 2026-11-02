@@ -699,6 +699,16 @@ pub fn netlink_boundary() {
     }
     let k = rb.tick;
     ts_sdk::net::set_tick(k);
+    #[cfg(any(feature = "watch", feature = "calltrace"))]
+    if k == 200 && std::env::var_os("TS_WRITELOG").is_some() {
+        ts_rt::watch::dump_players();
+    }
+    #[cfg(any(feature = "watch", feature = "calltrace"))]
+    if k == 1 {
+        if let Some(a) = std::env::var("TS_WATCHADDR").ok().and_then(|v| u32::from_str_radix(&v, 16).ok()) {
+            ts_rt::watch::set(a);
+        }
+    }
     if std::env::var_os("TS_VIEWLOG").is_some() && k == 60 {
         for p in 0..lw(g::lvnumplayers) {
             let pl = lw(g::players) + p * 1820;
