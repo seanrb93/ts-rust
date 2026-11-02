@@ -193,6 +193,16 @@ pub fn netsetup_weapon_row() -> NetGvRow {
     row
 }
 
+/// The five weapons of the custom weapon set now chosen (the set is in the game's place for it once `weaponset_effective` has been asked).
+pub fn netsetup_weapon_pack() -> [i32; 5] {
+    let _ = weaponset_effective();
+    let mut a = [0; 5];
+    for (k, v) in a.iter_mut().enumerate() {
+        *v = lw(g::gunzpack + 4 * k as i32);
+    }
+    a
+}
+
 pub fn netsetup_weapon_set(value: i32) {
     sw(g::gv_weaponset, value);
     let _ = weaponset_effective();
@@ -284,6 +294,9 @@ pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
     }
     // (the game stores what this machine has unlocked while it makes the parameters; the machines of a match must not differ in it, so it is given back)
     let kept: Vec<(i32, i32)> = (0..4).map(|i| 0x3affa0 + 4 * i).chain((0..8).map(|i| 0x1fc33b0 + 4 * i)).map(|a| (a, lw(a))).collect();
+    if std::env::var_os("TS_NETLOG").is_some() {
+        eprintln!("[setup] bots {} chrset {} slots {:?} teams {:?}", BOTS.load(Ordering::Relaxed), chrset_read(), (0..10).map(|i| (lw(0x1fc2a88 + 16 * i), lw(0x1fc2a88 + 16 * i + 4), lw(0x1fc2a88 + 16 * i + 12))).collect::<Vec<_>>(), (0..6).map(|i| lbu(0x1fc1234 + i)).collect::<Vec<_>>());
+    }
     *CAPTURED.lock().unwrap() = None;
     CAPTURE.store(true, Ordering::Relaxed);
     frontmpgStartGame();

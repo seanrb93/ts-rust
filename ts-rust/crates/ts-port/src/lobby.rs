@@ -592,13 +592,9 @@ impl Lobby {
         self.bots = ts_game::netsetup_bots() as usize;
         self.setup.mode = ts_game::netsetup_mode();
         // the weapon set: the custom ones are the host's own
+        // (a custom set goes as its five weapons, as the host has them now; a preset as its number)
         let w = self.wrow.as_ref().and_then(|r| r.choices.get(r.index)).map_or(1, |c| c.value);
-        if let Some(i) = self.wsets.iter().position(|x| x.0 == w) {
-            self.wset = i;
-            self.apply_wset();
-        } else {
-            self.setup.weapons = None;
-        }
+        self.setup.weapons = Some(if w == 0 || w >= 10 { (0, ts_game::netsetup_weapon_pack()) } else { (w, [0; 5]) });
         if let Some(i) = self.alevels.iter().position(|l| l.0 == ts_game::netsetup_level_id()) {
             self.level = self.levels.iter().position(|n| *n == self.alevels[i].1).unwrap_or(self.level);
         }
