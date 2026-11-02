@@ -234,8 +234,9 @@ pub fn netsetup_bot_set(value: i32) {
 /// The number of bots of the match.
 static BOTS: AtomicI32 = AtomicI32::new(0);
 
+/// The bots that will play: those of the bot set that the Setup Bots page has ticked.
 pub fn netsetup_bots() -> i32 {
-    BOTS.load(Ordering::Relaxed)
+    (0..10).filter(|i| lw(0x1fc2a88 + 16 * i) >= 0 && lw(0x1fc2a88 + 16 * i + 12) != 0).count() as i32
 }
 
 pub fn netsetup_set_bots(n: i32) {
@@ -295,12 +296,7 @@ pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
     sb(0x1fc1234 + 1, 1);
     // the bots: the characters of the set, the first of them as many as the match has
     botsetInit(chrset_read());
-    for i in 0..10 {
-        let slot = 0x1fc2a88 + 16 * i;
-        sw(slot + 4, i & 1);
-        sw(slot + 8, 0);
-        sw(slot + 12, (i < BOTS.load(Ordering::Relaxed) as i32 && lw(slot) >= 0) as i32);
-    }
+    // (which bots play, and their teams, are what the Setup Bots page has them: they stay as they are)
     // (the game stores what this machine has unlocked while it makes the parameters; the machines of a match must not differ in it, so it is given back)
     let kept: Vec<(i32, i32)> = (0..4).map(|i| 0x3affa0 + 4 * i).chain((0..8).map(|i| 0x1fc33b0 + 4 * i)).map(|a| (a, lw(a))).collect();
     if std::env::var_os("TS_NETLOG").is_some() {

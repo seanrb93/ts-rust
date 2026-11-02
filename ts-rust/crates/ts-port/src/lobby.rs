@@ -619,7 +619,6 @@ impl Lobby {
         if let Some(r) = &self.brow {
             v.push((HRow::BotSet, value("Bot Set", r.choices.iter().map(|c| c.text.clone()).collect(), r.index)));
         }
-        v.push((HRow::Bots, value("Bots", (0..=6).map(|n| n.to_string()).collect(), self.bots.min(6))));
         v.push((HRow::Character, value("Your Character", self.char_names(), self.picks[0])));
         // (the button comes before the players, which come and go, so that the cursor stays on it)
         v.push((HRow::Start, action("Start Game")));
@@ -1106,7 +1105,6 @@ impl Lobby {
                             ts_game::netsetup_bot_set(c.value);
                         }
                     }
-                    HRow::Bots => ts_game::netsetup_set_bots(idx as i32),
                     HRow::Character => self.picks[0] = idx.min(self.chars.len().saturating_sub(1)),
                     _ => {}
                 }
