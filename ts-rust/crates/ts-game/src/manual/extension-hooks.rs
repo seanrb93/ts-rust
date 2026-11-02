@@ -737,6 +737,19 @@ pub fn netlink_pause_or(a0: i32) -> bool {
     }
 }
 
+/// The check for leaving the pause: in a network game each player's menu closes when that player has chosen to resume, whatever the others' menus do (true: done).
+#[inline]
+pub fn netlink_unpause_or() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_unpause()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}
+
 /// A network game: the player has no in-game menu open, so the check for leaving the pause does not wait for it.
 #[inline]
 pub fn netlink_no_menu_or(player: i32) -> bool {

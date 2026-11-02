@@ -151,6 +151,39 @@ pub fn netlink_pause(a0: i32) -> bool {
     true
 }
 
+/// In a network game the in-game menus of the players are their own: a player's menu is closed when that player has chosen to resume (the game marks it ready, flag 2), and
+/// the time runs again when no menu is open.  The original waits for every menu and closes them all together.  True when it was done here.
+pub fn netlink_unpause() -> bool {
+    if !ts_sdk::net::active() {
+        return false;
+    }
+    let wanted = lw(0x3afe78);
+    let state = lw(g::gamestate);
+    if wanted < 0 {
+        // (nobody has paused: the original goes on at the end of a level)
+        return state != 4;
+    }
+    if state != 3 {
+        return false;
+    }
+    let players = lw(g::lvnumplayers);
+    for p in 0..players {
+        let flags = lhu(p * 92 + 0x1fb3248);
+        if flags & 1 != 0 && flags & 4 == 0 && flags & 2 != 0 {
+            // (the game closes a menu in `ingamemenuExit` when nobody has the pause)
+            sw(0x3afe78, -1);
+            ingamemenuExit(p);
+            sw(0x3afe78, wanted);
+        }
+    }
+    let any = (0..players).any(|p| lhu(p * 92 + 0x1fb3248) & 1 != 0);
+    if !any {
+        sw(0x3afe78, -1);
+        timePause(0);
+    }
+    true
+}
+
 /// This machine's pad as it travels: the controller record, with the look sensitivity (the others have no way to know it) and the mouse's movement.
 fn local_pad() -> [u8; ts_sdk::net::PAD_BYTES] {
     let mut local = pad_bytes(g::controllers + LOCAL_PAD * 384);

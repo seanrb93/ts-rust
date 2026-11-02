@@ -442,6 +442,9 @@ pub fn emReset() {
 /// Check whether the game can leave the pause: when every player's menu has been left (or is in its closing state) the game quits from the end screen (state 4), or the
 /// menus that are open exit and the time runs again (@ 0x212b98).
 pub fn ingamemenuCheckUnpause() {
+    if netlink_unpause_or() {
+        return;
+    }
     let wanted = lw(0x3afe78);
     if wanted < 0 {
         if lw(g::gamestate) != 4 {
