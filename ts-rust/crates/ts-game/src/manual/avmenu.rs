@@ -1487,7 +1487,7 @@ pub fn av_gamemode_menu() -> i32 {
     }
     // Every item sits the same distance from the next: the four big ones, then the small ones in two columns of three (the rows go on at the same distance).
     let find = |id: i32| (0..total).find(|&k| id_of(k) == id);
-    let (first_y, pitch) = (28_i32, 20);
+    let (first_y, pitch) = (29_i32, 20);
     for (row, &id) in [1, 2, 14, 3].iter().enumerate() {
         if let Some(k) = find(id) {
             sw(item(k) + 4, ((first_y - 3 + pitch * row as i32) << 16) | lhu(item(k) + 4) as i32);
