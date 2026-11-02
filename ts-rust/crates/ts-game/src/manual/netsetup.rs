@@ -104,6 +104,12 @@ pub fn netsetup_map_bytes() -> Vec<u8> {
     (0..MAP_BYTES).map(|i| lbu(buffer + i) as u8).collect()
 }
 
+/// The name of a map, which is kept in the map itself (at byte 28, after the header of its first part).
+pub fn netsetup_map_name(bytes: &[u8]) -> String {
+    let name: String = bytes.iter().skip(28).take(24).take_while(|&&c| c != 0).filter(|c| c.is_ascii_graphic() || **c == b' ').map(|&c| c as char).collect();
+    if name.is_empty() { "unnamed".into() } else { name }
+}
+
 /// A map that came from another machine is put in the buffer (checked as the game checks a map it loads).
 pub fn netsetup_map_install(bytes: &[u8]) -> bool {
     let buffer = lw(g::mmtempbuffer);
@@ -125,6 +131,12 @@ pub fn netsetup_map_dump() {
     eprintln!("[setup] map ready: first words {:x?}, last {:x?}", (0..8).map(|i| lw(lw(g::mmtempbuffer) + 4 * i)).collect::<Vec<_>>(), &b[b.len() - 8..]);
     let names: Vec<String> = b.split(|&c| c == 0).filter(|s| s.len() >= 3 && s.iter().all(|c| c.is_ascii_graphic() || *c == b' ')).map(|s| String::from_utf8_lossy(s).to_string()).collect();
     eprintln!("[setup] map strings {:?}", names);
+    let dir = lw(g::mapdir1);
+    eprintln!("[setup] mapdir {:x} header {:x?} buffer crc {:x}", dir, (0..4).map(|i| lw(dir + 4 * i)).collect::<Vec<_>>(), lw(lw(g::mmtempbuffer) + MAP_BYTES - 4));
+    for m in 0..lw(dir + 8).clamp(0, 12) {
+        let e = dir + m * 40;
+        eprintln!("[setup] entry {m}: {:x?} name {}", (0..3).map(|i| lw(e + 4 * i)).collect::<Vec<_>>(), read_cstr(e + 12));
+    }
 }
 
 /// A machine that got the map from the host has the arcade state the host's pages left (the level, the mode, the map's set-up and tileset, the teams and team starts the map

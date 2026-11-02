@@ -286,13 +286,19 @@ pub fn sub_frame(f: f32) {
     sw(lw(g::curcpudmabuf) * 12 + info, 1);
     sw(lw(g::curcpudmabuf) * 12 + (info + 4), number);
     sw(lw(g::curcpudmabuf) * 12 + (info + 8), 0);
-    bossMainLoop();
-    timeTickEnd();
+    // (a test aid, TS_SUBX: 1 does not make the picture, 2 does not run the game, to find what the pictures between ticks change)
+    let x = std::env::var("TS_SUBX").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(0);
+    if x & 2 == 0 {
+        bossMainLoop();
+        timeTickEnd();
+    }
     if lw(g::lvfirstframe_130) == 0 {
         sw(lw(g::curcpudmabuf) * 12 + info, 0);
     }
     SUBFRAME.store(true, Ordering::Relaxed);
-    present_frame();
+    if x & 1 == 0 {
+        present_frame();
+    }
     SUBFRAME.store(false, Ordering::Relaxed);
 }
 

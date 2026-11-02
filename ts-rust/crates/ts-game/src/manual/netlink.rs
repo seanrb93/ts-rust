@@ -284,6 +284,20 @@ static ROLLBACK: std::sync::Mutex<Rollback> = std::sync::Mutex::new(Rollback { s
 /// frame for the part of a tick that has passed since the tick, played from the state the tick left and then undone with the journal, so that only the tick changes the game.
 /// What moves smoothly is moved; what happens at a tick (the whole ticks) is not.  The pictures start no sounds.
 #[cfg(feature = "extensions")]
+/// A checksum of every 256 bytes of the game's memory (a test aid).
+fn memory_blocks() -> Vec<u32> {
+    (0..(0x400_0000 / 256))
+        .map(|page| {
+            let at = page * 256;
+            let mut h: u32 = 0x811c_9dc5;
+            for w in 0..64 {
+                h = (h ^ lw(at + 4 * w) as u32).wrapping_mul(0x0100_0193);
+            }
+            h
+        })
+        .collect()
+}
+
 pub fn netlink_sub_frames() {
     use std::time::{Duration, Instant};
     static COST: std::sync::Mutex<f64> = std::sync::Mutex::new(0.004);
@@ -291,7 +305,7 @@ pub fn netlink_sub_frames() {
         return;
     }
     let hz = ts_sdk::display_hz() as f64;
-    if hz < 61.0 {
+    if hz < 61.0 && std::env::var_os("TS_SUBFORCE").is_none() {
         return;
     }
     if !in_level() || netlink_local_menu_open() || !ROLLBACK.lock().unwrap().started {
@@ -300,7 +314,29 @@ pub fn netlink_sub_frames() {
     }
     // (a Map Maker level is played in whole ticks: the pictures between ticks played it differently on machines that drew different numbers of them, which no one has found the
     // reason of yet)
-    if lw(g::lvlevelnum) == 100 {
+    if lw(g::lvlevelnum) == 100 && std::env::var_os("TS_MAPSUB").is_none() {
+        return;
+    }
+    // (a test aid, TS_SUBFORCE=<every n ticks>: a picture between ticks at the boundary of every nth tick whatever the time, so that two machines can be made to differ in
+    // them, and with TS_SUBCHECK=2 what the picture changed that was not put back is told)
+    if let Some(n) = std::env::var("TS_SUBFORCE").ok().and_then(|v| v.parse::<u32>().ok()) {
+        static TICKS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        if TICKS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % n.max(1) == 0 {
+            let blocks = if std::env::var("TS_SUBCHECK").map_or(false, |v| v == "2") { Some(memory_blocks()) } else { None };
+            ts_rt::journal::begin_tick();
+            ts_sdk::net::set_muted(true);
+            sub_frame(0.5);
+            ts_sdk::net::set_muted(false);
+            ts_sdk::present_sync();
+            ts_rt::journal::undo(1);
+            if let Some(b) = blocks {
+                let after = memory_blocks();
+                let diff: Vec<String> = (0..b.len()).filter(|&i| b[i] != after[i]).take(24).map(|i| format!("{:x}", i * 256)).collect();
+                if !diff.is_empty() {
+                    eprintln!("[sub] not put back: {} blocks, the first at {:?}", (0..b.len()).filter(|&i| b[i] != after[i]).count(), diff);
+                }
+            }
+        }
         return;
     }
     let tick = 1.0 / 60.0;
@@ -334,6 +370,9 @@ pub fn netlink_sub_frames() {
         let f = (Instant::now() - real).as_secs_f64() / tick;
         let began = Instant::now();
         let before = if check { state_sum() } else { 0 };
+        // (a test aid, TS_SUBCHECK=2: every 256 bytes of memory, to see what the picture changed that was not put back)
+        static SCANS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let blocks = if check && std::env::var("TS_SUBCHECK").map_or(false, |v| v == "2") && SCANS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % 2 == 1 { Some(memory_blocks()) } else { None };
         ts_rt::journal::begin_tick();
         ts_sdk::net::set_muted(true);
         sub_frame(f.clamp(0.02, 0.98) as f32);
@@ -341,8 +380,16 @@ pub fn netlink_sub_frames() {
         // (what is being drawn must be finished before the memory is put back)
         ts_sdk::present_sync();
         ts_rt::journal::undo(1);
+
         if check && state_sum() != before {
             eprintln!("[sub] the picture between ticks changed the game's state");
+        }
+        if let Some(b) = blocks {
+            let after = memory_blocks();
+            let diff: Vec<String> = (0..b.len()).filter(|&i| b[i] != after[i]).take(24).map(|i| format!("{:x}", i * 256)).collect();
+            if !diff.is_empty() {
+                eprintln!("[sub] not put back: {} blocks, the first at {:?}", (0..b.len()).filter(|&i| b[i] != after[i]).count(), diff);
+            }
         }
         shown = Instant::now();
         count += 1;
@@ -412,6 +459,10 @@ static RAN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(f
 #[cfg(feature = "extensions")]
 pub fn netlink_start_match(level: &str, players: usize) {
     let Some(setup) = ts_sdk::net::setup() else { return };
+    // (a test aid: no sounds at all)
+    if std::env::var_os("TS_NOSND").is_some() {
+        sw(g::gv_playsound, 0);
+    }
     let before = [signonGet(0), signonGet(1), signonGet(2), signonGet(3)];
     *PROFILES.lock().unwrap() = Some(before);
     let names = if setup.names.is_empty() { (1..=players).map(|i| format!("Player {i}")).collect() } else { setup.names.clone() };

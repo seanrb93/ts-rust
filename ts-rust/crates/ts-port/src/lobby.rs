@@ -715,6 +715,7 @@ impl Lobby {
         self.amodes = ts_game::netsetup_modes(2);
         if std::env::var_os("TS_NETDUMP2").is_some() {
             eprintln!("[lobby] level {} modes {:?} map ready {}", ts_game::netsetup_level_id(), self.amodes, ts_game::netsetup_map_ready());
+            ts_game::netsetup_map_dump();
         }
         if !self.amodes.iter().any(|m| m.0 == ts_game::netsetup_mode()) {
             if let Some(m) = self.amodes.first() {
@@ -748,7 +749,7 @@ impl Lobby {
         v.push((HRow::Level, value("Level", self.alevels.iter().map(|l| l.1.clone()).collect(), at)));
         let m = self.amodes.iter().position(|m| m.0 == ts_game::netsetup_mode()).unwrap_or(0);
         if ts_game::netsetup_level_id() == ts_game::MAPMAKER {
-            let text = if ts_game::netsetup_map_ready() { "Map: chosen (change it)" } else { "Choose a Map" };
+            let text = if ts_game::netsetup_map_ready() { format!("Map: {} (change it)", ts_game::netsetup_map_name(&self.map)) } else { "Choose a Map".to_string() };
             v.push((HRow::Map, action(text)));
         }
         v.push((HRow::Mode, value("Game Mode", self.amodes.iter().map(|m| m.1.clone()).collect(), m)));
@@ -1261,7 +1262,7 @@ impl Lobby {
                     v.push(info(format!("Level: {}", if self.level_name.is_empty() { self.levels.get(self.level).map_or("?", |l| l.as_str()) } else { self.level_name.as_str() })));
                     if self.map_wanted.is_some() {
                         let got = self.map_pieces.iter().filter(|p| p.is_some()).count();
-                        v.push(info(if self.map.len() == MAP_PIECES * PIECE { "Map: received".to_string() } else { format!("Map: receiving {got} of {MAP_PIECES}") }));
+                        v.push(info(if self.map.len() == MAP_PIECES * PIECE { format!("Map: {}", ts_game::netsetup_map_name(&self.map)) } else { format!("Map: receiving {got} of {MAP_PIECES}") }));
                     }
                     if self.gvs.is_empty() {
                         v.push(info(format!("Mode: {}   Time: {}   Score: {}", self.mode_name(), self.time_text(), self.setup.limit)));
