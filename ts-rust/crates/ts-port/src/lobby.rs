@@ -776,12 +776,20 @@ impl Lobby {
                 None => format!("{n} players here"),
             }),
         ));
-        for (i, name) in self.host_names().iter().enumerate() {
-            let chr = self.chars.get(self.picks[i]).map_or("?", |c| c.1.as_str());
-            v.push((HRow::Text, info(format!("Player {}: {}   {}", i + 1, name, chr))));
+        for line in self.player_lines(&self.host_names()) {
+            v.push((HRow::Text, info(line)));
         }
         v.push((HRow::Text, info(format!("Mods: {}", mods_text(&self.mods)))));
         v
+    }
+
+    /// The lines that list the players: one each with their characters, or two to a line with ten players' worth of names (a page has room for 24 rows).
+    fn player_lines(&self, names: &[String]) -> Vec<String> {
+        let chr = |i: usize| self.chars.get(self.picks[i.min(MAX_PLAYERS - 1)]).map_or("?", |c| c.1.as_str());
+        if names.len() <= 6 {
+            return names.iter().enumerate().map(|(i, n)| format!("Player {}: {}   {}", i + 1, n, chr(i))).collect();
+        }
+        names.chunks(2).enumerate().map(|(k, pair)| pair.iter().enumerate().map(|(j, n)| format!("{}: {} ({})", 2 * k + j + 1, n, chr(2 * k + j))).collect::<Vec<_>>().join("    ")).collect()
     }
 
     /// Why the game cannot start yet: a Map Maker level needs its map here and on every machine.
@@ -1260,7 +1268,7 @@ impl Lobby {
             View::Joined => {
                 let mut v = vec![info(if self.roster.is_empty() { format!("Asking {} ...", self.host.map_or(String::new(), |h| h.to_string())) } else { format!("Joined as player {} of {}", self.my_index + 1, self.n_players) })];
                 if !self.roster.is_empty() {
-                    // (your character first: a page has room for 24 rows, and up to eight players are listed)
+                    // (your character first: a page has room for 24 rows, and up to ten players are listed)
                     v.push(value("Your Character", self.char_names(), self.picks[self.my_index.min(MAX_PLAYERS - 1)]));
                     v.push(info(format!("Level: {}", if self.level_name.is_empty() { self.levels.get(self.level).map_or("?", |l| l.as_str()) } else { self.level_name.as_str() })));
                     if self.map_wanted.is_some() {
@@ -1280,9 +1288,8 @@ impl Lobby {
                         }
                         v.push(info(format!("Bots: {}", self.bots)));
                     }
-                    for (i, name) in self.roster_names.iter().enumerate() {
-                        let chr = self.chars.get(self.picks[i.min(MAX_PLAYERS - 1)]).map_or("?", |c| c.1.as_str());
-                        v.push(info(format!("Player {}: {}   {}", i + 1, name, chr)));
+                    for line in self.player_lines(&self.roster_names) {
+                        v.push(info(line));
                     }
                     v.push(info(format!("Host mods: {}", mods_text(&self.host_mods))));
                 }
