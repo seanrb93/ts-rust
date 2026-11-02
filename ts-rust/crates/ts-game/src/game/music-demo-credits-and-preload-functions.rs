@@ -220,7 +220,7 @@ pub fn particlePreload() {
 /// (@ 0x212010).
 pub fn scores_pageGfx() {
     let kind = lw(g::curgameparms + 72);
-    let menu = lw(lw(g::currentplayer)) * 92 + 0x1fb3240;
+    let menu = lw(lw(g::currentplayer)) * 92 + IGMENU;
     if kind != 4 {
         if kind != 6 {
             drawRankingsTable(lhu(menu + 4));

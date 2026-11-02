@@ -578,7 +578,7 @@ pub fn frontmpgStartGame() {
             'used: {
                 if players > 0 {
                     loop {
-                        let team = lw((j << 2) + 0x1fc2c88);
+                        let team = lw((j << 2) + TEAMS);
                         j += 1;
                         sw(sp + 32 + (team << 2), 1);
                         if j >= players {
@@ -619,7 +619,7 @@ pub fn frontmpgStartGame() {
             if count > 0 {
                 let mut flags = lw(params + 80);
                 loop {
-                    let value = if (flags & 1) == 0 { 0 } else { lbu((i << 2) + 0x1fc2c88) + 1 };
+                    let value = if (flags & 1) == 0 { 0 } else { lbu((i << 2) + TEAMS) + 1 };
                     sb(chrs + i, value);
                     let signon = signonGet(i);
                     let name_at = names + i;

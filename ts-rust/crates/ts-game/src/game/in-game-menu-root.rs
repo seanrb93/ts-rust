@@ -2,11 +2,11 @@
 
 use crate::*;
 
-/// Set the flags (+0 and +8, halfwords), the cursor (+4) and the number of rows (+6, 10) of the in-game menu of the player `player` (records of 92 bytes at 0x1fb3240) by the
+/// Set the flags (+0 and +8, halfwords), the cursor (+4) and the number of rows (+6, 10) of the in-game menu of the player `player` (records of 92 bytes at IGMENU) by the
 /// game state, the game mode (+72 of the game parameters), the parameter flags (+80) and the number of players (@ 0x212538).
 pub fn ingamemenuRoot(player: i32) {
     let state = lw(g::gamestate);
-    let menu = player * 92 + 0x1fb3240;
+    let menu = player * 92 + IGMENU;
     let old_flags = lhu(menu + 8);
     sh(menu, 64);
     sh(menu + 8, old_flags & 3);

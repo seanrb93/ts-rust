@@ -76,7 +76,7 @@ pub fn bulletFree(bullet: i32) {
 }
 
 /// Restart the in-game menu: the GUI, the menu colours (a background of 64 and a foreground of 0x64646480) and fonts (the small one when more than one player is local), and clear
-/// the 4 menus' records (368 bytes at 0x1fb3240) (@ 0x2124a8).
+/// the 4 menus' records (368 bytes at IGMENU) (@ 0x2124a8).
 pub fn ingamemenuRestart() {
     guiRestart();
     sw(g::menuitem_bgcol, 64);
@@ -85,7 +85,7 @@ pub fn ingamemenuRestart() {
     sw(g::menuitem_normalfont, if players >= 2 { 1 } else { 2 });
     ilinkGetNumLocalPlayers();
     sw(g::menuitem_bigfont, 2);
-    memset(0x1fb3240, 0, 368);
+    memset(IGMENU, 0, IGMENU_BYTES);
     sw(0x3afe78, -1);
 }
 

@@ -115,7 +115,7 @@ pub fn settingsNew(settings: i32) {
 
 /// @ 0x220930
 pub fn signonSet(n: i32, value: i32) {
-    sw((n << 2) + 0x1fbc158, value);
+    sw((n << 2) + SIGNONS, value);
 }
 
 /// @ 0x2049b8

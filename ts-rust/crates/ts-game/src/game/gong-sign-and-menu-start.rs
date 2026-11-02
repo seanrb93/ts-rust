@@ -61,12 +61,12 @@ pub fn ingamemenuExit(a0: i32) {
     'b1: {
         setRootPages(a0);
         if lw(0x3afe78) >= 0 {
-        } else if (lhu(a0 * 92 + 0x1fb3248) & 4) == 0 {
+        } else if (lhu(a0 * 92 + (IGMENU + 8)) & 4) == 0 {
             ingamemenuClear(a0);
             break 'b1;
         }
         soundStart(222, 0);
-        let menu = a0 * 92 + 0x1fb3240;
+        let menu = a0 * 92 + IGMENU;
         let state = lhu(menu + 8) ^ 2;
         sh(menu + 8, state);
         if (state & 2) != 0 {
@@ -214,7 +214,7 @@ pub fn gunDetonateRemoteMines(a0: i32) {
 /// Open the in-game menu of the player `a0`: the sound 222 plays if it was already open and paused, the state is reset, the root menu is made and the front end starts at the
 /// main page (@ 0x212930).
 pub fn ingamemenuStart(a0: i32) {
-    let menu = a0 * 92 + 0x1fb3240;
+    let menu = a0 * 92 + IGMENU;
     if (lhu(menu + 8) & 3) == 3 {
         soundStart(222, 0);
     }

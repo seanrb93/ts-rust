@@ -159,8 +159,8 @@ static SESSION: Mutex<Option<Session>> = Mutex::new(None);
 /// Start network play.  Panics are not wanted here: a failure is reported and the game stays a local one.
 pub fn start(cfg: Config) -> Result<(), String> {
     let n = cfg.peers.len();
-    if !(2..=4).contains(&n) || cfg.local >= n {
-        return Err(format!("{} players and this one number {}: a network game has 2 to 4 players", n, cfg.local));
+    if !(2..=8).contains(&n) || cfg.local >= n {
+        return Err(format!("{} players and this one number {}: a network game has 2 to 8 players", n, cfg.local));
     }
     let sock = UdpSocket::bind(cfg.bind).map_err(|e| format!("cannot listen on {}: {e}", cfg.bind))?;
     sock.set_nonblocking(true).map_err(|e| e.to_string())?;

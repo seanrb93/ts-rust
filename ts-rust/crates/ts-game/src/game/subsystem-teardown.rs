@@ -52,7 +52,7 @@ pub fn setcursound(n: i32) {
 
 /// @ 0x220a30
 pub fn signonGet(n: i32) -> i32 {
-    lw((n << 2) + 0x1fbc158)
+    lw((n << 2) + SIGNONS)
 }
 
 /// @ 0x2048f8

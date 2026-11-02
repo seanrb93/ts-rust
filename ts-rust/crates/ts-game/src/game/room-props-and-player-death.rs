@@ -315,7 +315,7 @@ pub fn ingamemenuPause(a0: i32) {
     sw(0x3afe78, a0);
     if players > 0 {
         loop {
-            let menu = player * 92 + 0x1fb3240;
+            let menu = player * 92 + IGMENU;
             if (lhu(menu + 8) & 1) != 0 {
                 player += 1;
             } else {

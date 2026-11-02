@@ -110,7 +110,7 @@ pub fn mmStartMessage(text: i32, action: i32, kind: i32) {
 /// Restart the HUD: clear its parameters (1408 bytes), find the texture numbers of the two HUD pictures (kept at 0x3b0198 and 0x3b0194), of the bag icon (0x3b019c; -1 when the
 /// number at 0x3b01a0 is below 0) and of the 15 pictures named in the table at 0x1feaf80 (the numbers go to 0x1feaf40); and give the three at +28 to +36 the number at +24 (@ 0x2b0890).
 pub fn hudRestart() {
-    memset(g::hudparms, 0, 1408);
+    memset(g::hudparms, 0, HUDPARMS_BYTES);
     let first = preloadGetTexName(0x3a9920);
     sw(0x3b0198, lw(first + 20));
     let second = preloadGetTexName(0x3a9940);

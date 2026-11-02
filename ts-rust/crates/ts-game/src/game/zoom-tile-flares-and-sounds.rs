@@ -546,7 +546,7 @@ pub fn enemyDie(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32) {
 /// Draw the in-game main menu page: the highlight, a darkening of the window while the menu is open, then (in the game states under 5) the pause text, or the top menu
 /// with the stats, rankings or awards page and the page's own draw functions (@ 0x2120b8).
 pub fn main_pageGfx(a0: i32) {
-    let menu = lw(lw(g::currentplayer)) * 92 + 0x1fb3240;
+    let menu = lw(lw(g::currentplayer)) * 92 + IGMENU;
     dlSetBlend(1);
     menuitemHighlight(a0);
     'b1: {

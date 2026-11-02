@@ -202,19 +202,18 @@ pub fn memReset() {
 /// select the first and restart (@ 0x22caa8).
 pub fn frontReset() {
     let mut def = g::frontdefs;
-    memset(def, 0, 176);
-    let mut buffer = 0x1fbd1d0;
-    let mut table = 0x1fc01d0;
+    memset(def, 0, 44 * MAX_MATCH_PLAYERS);
     let mut i = 0;
     loop {
+        // (the players after the fourth have a table and a buffer of the port's own)
+        let table = if i < 4 { 0x1fc01d0 + 64 * i } else { FRONT_TABLES_EXT + 64 * (i - 4) };
+        let buffer = if i < 4 { 0x1fbd1d0 + 3072 * i } else { FRONT_BUFFERS_EXT + 3072 * (i - 4) };
         sw(def, i);
         sw(def + 4, table);
         i += 1;
         sw(def + 8, buffer);
-        table += 64;
-        buffer += 3072;
         def += 44;
-        if i >= 4 {
+        if i >= MAX_MATCH_PLAYERS {
             break;
         }
     }

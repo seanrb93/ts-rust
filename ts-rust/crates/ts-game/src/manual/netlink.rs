@@ -146,7 +146,7 @@ pub fn netlink_tick() {
 /// The player on this machine has an in-game (pause) menu open.
 pub fn netlink_local_menu_open() -> bool {
     let me = ts_sdk::net::local_player();
-    lhu(me * 92 + 0x1fb3248) & 1 != 0
+    lhu(me * 92 + (IGMENU + 8)) & 1 != 0
 }
 
 /// The player `a0` pauses: in a network game only that player's own in-game menu opens (the others carry on playing), and the game's own pause of the time is not used (see
@@ -157,7 +157,7 @@ pub fn netlink_pause(a0: i32) -> bool {
     }
     soundStart(222, 0);
     sw(0x3afe78, a0);
-    if lhu(a0 * 92 + 0x1fb3248) & 1 == 0 {
+    if lhu(a0 * 92 + (IGMENU + 8)) & 1 == 0 {
         ingamemenuStart(a0);
     }
     frontSet(a0);
@@ -182,7 +182,7 @@ pub fn netlink_unpause() -> bool {
     }
     let players = lw(g::lvnumplayers);
     for p in 0..players {
-        let flags = lhu(p * 92 + 0x1fb3248);
+        let flags = lhu(p * 92 + (IGMENU + 8));
         if flags & 1 != 0 && flags & 4 == 0 && flags & 2 != 0 {
             // (the game closes a menu in `ingamemenuExit` when nobody has the pause)
             sw(0x3afe78, -1);
@@ -190,7 +190,7 @@ pub fn netlink_unpause() -> bool {
             sw(0x3afe78, wanted);
         }
     }
-    let any = (0..players).any(|p| lhu(p * 92 + 0x1fb3248) & 1 != 0);
+    let any = (0..players).any(|p| lhu(p * 92 + (IGMENU + 8)) & 1 != 0);
     if !any {
         sw(0x3afe78, -1);
         timePause(0);
@@ -448,7 +448,7 @@ pub fn netlink_reseed() {
 
 /// The sign-on profiles that the players had before a network game from the front end's pages (given back when it is over).
 #[cfg(feature = "extensions")]
-static PROFILES: std::sync::Mutex<Option<[i32; 4]>> = std::sync::Mutex::new(None);
+static PROFILES: std::sync::Mutex<Option<[i32; 8]>> = std::sync::Mutex::new(None);
 /// The profiles made for the players of a network game from the front end's pages (their records go when it is over).
 #[cfg(feature = "extensions")]
 static TEMPS: std::sync::Mutex<Vec<i32>> = std::sync::Mutex::new(Vec::new());
@@ -466,11 +466,11 @@ pub fn netlink_start_match(level: &str, players: usize) {
     if std::env::var_os("TS_NOSND").is_some() {
         sw(g::gv_playsound, 0);
     }
-    let before = [signonGet(0), signonGet(1), signonGet(2), signonGet(3)];
+    let before: [i32; 8] = std::array::from_fn(|i| signonGet(i as i32));
     *PROFILES.lock().unwrap() = Some(before);
     let names = if setup.names.is_empty() { (1..=players).map(|i| format!("Player {i}")).collect() } else { setup.names.clone() };
     let mut temps = Vec::new();
-    for (player, n) in names.iter().take(4).enumerate() {
+    for (player, n) in names.iter().take(MAX_MATCH_PLAYERS as usize).enumerate() {
         let text = ts_sdk::malloc(16);
         for (i, b) in n.bytes().take(12).chain(std::iter::once(0)).enumerate() {
             sb(text + i as i32, b as i32);
@@ -699,6 +699,12 @@ pub fn netlink_boundary() {
     }
     let k = rb.tick;
     ts_sdk::net::set_tick(k);
+    if std::env::var_os("TS_VIEWLOG").is_some() && k == 60 {
+        for p in 0..lw(g::lvnumplayers) {
+            let pl = lw(g::players) + p * 1820;
+            eprintln!("[view] player {p}: rect {:?} cam {:#x} prop {:#x} flags {:#x} local {} nlocal {}", (1..5).map(|i| lw(pl + 4 * i)).collect::<Vec<_>>(), lw(pl + 20), lw(pl + 384), lw(pl + 16), ts_sdk::net::local_player(), ilinkGetNumLocalPlayers());
+        }
+    }
     // test aid: TS_SNDTEST=<sound>,<tick> starts that sound at the player on this machine at that tick
     if let Some((id, at)) = std::env::var("TS_SNDTEST").ok().and_then(|v| v.split_once(',').map(|(a, b)| (a.parse::<i32>().unwrap_or(0), b.parse::<u32>().unwrap_or(0)))) {
         if k == at {

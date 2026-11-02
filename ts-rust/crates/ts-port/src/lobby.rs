@@ -26,7 +26,7 @@ const PIECE: usize = 1024;
 const BEACON_PORT: u16 = 7778;
 /// the port a host listens on
 pub const PORT: u16 = 7777;
-const MAX_PLAYERS: usize = 4;
+const MAX_PLAYERS: usize = 8;
 /// the rows of the host's screen: the level, the mode, the time limit, the score limit, the bots, friendly fire and the character
 const HOST_ROWS: usize = 9;
 /// the modes the lobby offers: (number, name)
@@ -1259,6 +1259,8 @@ impl Lobby {
             View::Joined => {
                 let mut v = vec![info(if self.roster.is_empty() { format!("Asking {} ...", self.host.map_or(String::new(), |h| h.to_string())) } else { format!("Joined as player {} of {}", self.my_index + 1, self.n_players) })];
                 if !self.roster.is_empty() {
+                    // (your character first: a page has room for 24 rows, and up to eight players are listed)
+                    v.push(value("Your Character", self.char_names(), self.picks[self.my_index.min(MAX_PLAYERS - 1)]));
                     v.push(info(format!("Level: {}", if self.level_name.is_empty() { self.levels.get(self.level).map_or("?", |l| l.as_str()) } else { self.level_name.as_str() })));
                     if self.map_wanted.is_some() {
                         let got = self.map_pieces.iter().filter(|p| p.is_some()).count();
@@ -1282,7 +1284,6 @@ impl Lobby {
                         v.push(info(format!("Player {}: {}   {}", i + 1, name, chr)));
                     }
                     v.push(info(format!("Host mods: {}", mods_text(&self.host_mods))));
-                    v.push(value("Your Character", self.char_names(), self.picks[self.my_index.min(MAX_PLAYERS - 1)]));
                 }
                 if !self.status.is_empty() {
                     v.push(info(self.status.clone()));

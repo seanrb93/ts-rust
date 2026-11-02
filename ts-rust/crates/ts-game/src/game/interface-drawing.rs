@@ -79,7 +79,7 @@ pub fn drawTeamPlayers(team: i32, x_ptr: i32, y: i32) {
     let mut i = 0;
     while i < count {
         let team_play = lw(g::gv_teamplay);
-        let in_team = team_play == 0 || lw((i << 2) + 0x1fc2c88) + 1 == team;
+        let in_team = team_play == 0 || lw((i << 2) + TEAMS) + 1 == team;
         if in_team && lbu(i + 0x3aff28) >= 4 {
             if y < 0 {
                 sw(x_ptr, lw(x_ptr) + 1);

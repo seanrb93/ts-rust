@@ -3,7 +3,7 @@
 use crate::*;
 
 /// Whether team `team` (1 to 5, the team numbers the menus use) can be chosen: in modes 4 and 6 only team 1; otherwise the team must be allowed, and there
-/// must be someone on another team, counting the 10 character slots at 0x1fc2a88 and the entries (0x3aff20 of them) at 0x1fc2c88 (@ 0x235608).
+/// must be someone on another team, counting the 10 character slots at 0x1fc2a88 and the entries (0x3aff20 of them) at TEAMS (@ 0x235608).
 pub fn selectableTeam(team: i32) -> i32 {
     let menu = 0x1fc11f8;
     let mode = lw(menu + 48);
@@ -27,7 +27,7 @@ pub fn selectableTeam(team: i32) -> i32 {
         }
     }
     for i in 0..entries.max(0) {
-        let v = lw((i << 2) + 0x1fc2c88);
+        let v = lw((i << 2) + TEAMS);
         if v < 0 {
             skipped += 1;
         } else if (v + 1 ^ team) != 0 {

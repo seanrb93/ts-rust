@@ -163,7 +163,7 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
         let _ = player;
         let inst = lw(lw(a0 + 12) + 32);
         let flags = lhu(inst + 292);
-        sw((lw(s1_13) << 2) + 0x1fe99b0, 0);
+        sw((lw(s1_13) << 2) + PLAYER_HIT_AT, 0);
         sw(a0 + 156, 1);
         punch_swing_hook(lw(a0 + 12));
         sh(inst + 292, flags | 0x8000);
@@ -218,7 +218,7 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
             if ps2float::mul(length, lwc1(0x3ad3c0)) < time {
                 if time < ps2float::mul(length, 0.5_f32) {
                     let found = propSwipeTest(s5_1, sp + 208, mind + 2920, sp + 224, sp + 240, 0);
-                    hit = if (found ^ lw((lw(lw(g::currentplayer)) << 2) + 0x1fe99b0)) != 0 { found } else { 0 };
+                    hit = if (found ^ lw((lw(lw(g::currentplayer)) << 2) + PLAYER_HIT_AT)) != 0 { found } else { 0 };
                 }
             }
         }
@@ -236,7 +236,7 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
                     let dz = ps2float::sub(tip_z, base_z);
                     let number = lw(lw(g::currentplayer));
                     swc1(sp + 260, dy);
-                    sw((number << 2) + 0x1fe99b0, hit);
+                    sw((number << 2) + PLAYER_HIT_AT, hit);
                     swc1(sp + 264, dz);
                     let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
                     let kind = lw(hit + 8);

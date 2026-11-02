@@ -101,7 +101,7 @@ pub fn endgame_pageTick(a0: i32) {
             inPage(lw(lw(g::currentplayer)), g::confirmendgame_page);
             return;
         }
-        let menu = 0x1fb3240;
+        let menu = IGMENU;
         let state = lhu(menu + 8);
         sw(0x3afe78, -1);
         sw(g::gamestate, 4);

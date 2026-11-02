@@ -269,7 +269,7 @@ static SUBFRAME: AtomicBool = AtomicBool::new(false);
 /// smoothly moves), shown.  The caller puts the game's memory back as it was.
 pub fn sub_frame(f: f32) {
     // (the buttons newly pressed or let go belong to the tick: they are not pressed again in a picture between ticks)
-    for p in 0..lw(g::lvnumplayers).min(4) {
+    for p in 0..lw(g::lvnumplayers).min(MAX_MATCH_PLAYERS) {
         let record = g::controllers + (8 + p) * 384;
         sw(record + 292, 0);
         sw(record + 296, 0);
@@ -364,7 +364,7 @@ pub fn present_frame() {
         }
     }
     if std::env::var_os("TS_INGAMELOG").is_some() && lw(g::gamestate) == 3 && ts_sdk::frame_count() % 20 == 0 {
-        let v: Vec<String> = (0..4).map(|p| { let b = 0x1fb3240 + 92 * p; format!("{}:{:#x}/{}/{:#x}", p, lhu(b + 8), lhu(b + 2), lhu(b + 4)) }).collect();
+        let v: Vec<String> = (0..4).map(|p| { let b = IGMENU + 92 * p; format!("{}:{:#x}/{}/{:#x}", p, lhu(b + 8), lhu(b + 2), lhu(b + 4)) }).collect();
         eprintln!("[ig] f{} {} front20 {}", ts_sdk::frame_count(), v.join(" "), lw(lw(g::front) + 20));
     }
     // test aid: TS_GUN=1 sets "Always start with gun" to Yes (outside levels)

@@ -181,7 +181,7 @@ pub fn bot_punch(prop: i32) {
         return;
     }
     let mut is_player = false;
-    for p in 0..lw(g::lvnumplayers).clamp(0, 4) {
+    for p in 0..lw(g::lvnumplayers).clamp(0, MAX_MATCH_PLAYERS) {
         let player = lw(g::players) + p * 1820;
         if lw(player + 384) == target {
             is_player = true;

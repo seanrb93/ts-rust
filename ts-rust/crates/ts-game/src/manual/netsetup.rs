@@ -372,8 +372,8 @@ pub fn netsetup_capture(block: i32) -> bool {
 pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
     let front_state = lw(STATE);
     // (the players that are not here yet have the first player's profile while the game reads them)
-    let profiles: Vec<i32> = (0..4).map(signonGet).collect();
-    for i in 1..4 {
+    let profiles: Vec<i32> = (0..MAX_MATCH_PLAYERS).map(signonGet).collect();
+    for i in 1..MAX_MATCH_PLAYERS {
         if i >= players || profiles[i as usize] < 0 {
             signonSet(i, profiles[0]);
         }
@@ -384,8 +384,8 @@ pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
     sw(0x3aff20, players);
     sh(g::gametype_page + 8, 2);
     // (the teams of a team game: the players take turns, as do the bots; both teams are in use)
-    for i in 0..4 {
-        sw(0x1fc2c88 + 4 * i, i & 1);
+    for i in 0..MAX_MATCH_PLAYERS {
+        sw(TEAMS + 4 * i, i & 1);
     }
     sb(0x1fc1234, 1);
     sb(0x1fc1234 + 1, 1);

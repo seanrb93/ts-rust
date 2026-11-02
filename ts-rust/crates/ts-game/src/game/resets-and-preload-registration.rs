@@ -102,9 +102,9 @@ pub fn mmSetTuneNum(tune: i32) {
     }
 }
 
-/// Set the root pages of the in-game menu of player `player` (records of 92 bytes at 0x1fb3240) and clear the rest of it (@ 0x212890).
+/// Set the root pages of the in-game menu of player `player` (records of 92 bytes at IGMENU) and clear the rest of it (@ 0x212890).
 pub fn setRootPages(player: i32) {
-    let menu = player * 92 + 0x1fb3240;
+    let menu = player * 92 + IGMENU;
     sw(menu + 28, g::story_page_32aaf0);
     sw(menu + 32, g::challenge_page_32aa50);
     sw(menu + 36, g::pause_page);

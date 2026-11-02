@@ -115,7 +115,7 @@ pub fn statsupdate_pageDraw(a0: i32) {
 /// Take the page out of the stack of pages of the menu `a0`: it is recorded at `a1`, the sound 142 plays and the depth drops (@ 0x20e1e8).
 pub fn outPage(a0: i32, a1: i32) {
     av_page_out_hook();
-    let menu = a0 * 92 + 0x1fb3240;
+    let menu = a0 * 92 + IGMENU;
     sw(menu + (lhu(menu + 4) << 2) + 52, a1);
     soundStart(142, 0);
     sh(menu + 2, lhu(menu + 2) - 1);
@@ -202,7 +202,7 @@ pub fn inPage(a0: i32, a1: i32) {
     if av_in_page_x(a0, a1) {
         return;
     }
-    let menu = a0 * 92 + 0x1fb3240;
+    let menu = a0 * 92 + IGMENU;
     sw(menu + (lhu(menu + 4) << 2) + 52, a1);
     soundStart(140, 0);
     sh(menu + 2, lhu(menu + 2) + 1);

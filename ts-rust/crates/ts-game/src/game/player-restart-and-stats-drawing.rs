@@ -455,7 +455,7 @@ pub fn chrplayer_pageTick(a0: i32) {
                                 'b7: {
                                     match state {
                                         0 => {
-                                            sw((lw(front) << 2) + 0x1fc2c88, -1);
+                                            sw((lw(front) << 2) + TEAMS, -1);
                                             let clear_player;
                                             if lw(front) != 0 {
                                                 clear_player = lw(front);
@@ -603,7 +603,7 @@ pub fn chrplayer_pageTick(a0: i32) {
                                                 let mut player_now = lw(front_now);
                                                 'b22: {
                                                     loop {
-                                                        base = 0x1fc2c88;
+                                                        base = TEAMS;
                                                         if selectableTeam(lw((player_now << 2) + base) + 1) != 0 {
                                                             break;
                                                         }
@@ -670,7 +670,7 @@ pub fn chrplayer_pageTick(a0: i32) {
                                                     }
                                                     soundStart(140, 0);
                                                     let front_now = lw(g::front);
-                                                    sw(record + 80, lw((lw(front_now) << 2) + 0x1fc2c88));
+                                                    sw(record + 80, lw((lw(front_now) << 2) + TEAMS));
                                                     sb(lw(front_now) + 0x3aff28, 5);
                                                     cleared = lw(front_now);
                                                     break 'b6;
@@ -696,10 +696,10 @@ pub fn chrplayer_pageTick(a0: i32) {
                                         menu = g::chrselect_team_menu;
                                         sb(lw(now) + 0x3aff28, 4);
                                         sh(a0 + 4, 1);
-                                        sw((lw(now) << 2) + 0x1fc2c88, lw(record + 80));
+                                        sw((lw(now) << 2) + TEAMS, lw(record + 80));
                                         break 'b3;
                                     }
-                                    sw((lw(front_now) << 2) + 0x1fc2c88, only - 1);
+                                    sw((lw(front_now) << 2) + TEAMS, only - 1);
                                 }
                                 sb(lw(front_now) + 0x3aff28, 5);
                                 cleared = lw(front_now);

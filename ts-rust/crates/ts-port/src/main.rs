@@ -589,6 +589,8 @@ fn main() {
     }
     std::panic::set_hook(Box::new(|info| {
         eprintln!("[port] PANIC: {info}");
+        #[cfg(feature = "calltrace")]
+        ts_rt::calltrace::dump_now();
         if std::env::var_os("TS_BT").is_some() {
             eprintln!("{}", std::backtrace::Backtrace::force_capture());
         }

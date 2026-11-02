@@ -177,7 +177,7 @@ pub fn bossIsNextParm() -> i32 {
 pub fn ingamemenuClear(n: i32) {
     sw(frontGet(n) + 20, 0);
     sw(frontGet(n) + 12, 0);
-    let menu = n * 92 + 0x1fb3240;
+    let menu = n * 92 + IGMENU;
     sh(menu + 8, lhu(menu + 8) & 0xfffc);
 }
 
@@ -331,7 +331,7 @@ pub fn windowMake() {
 
 /// Clear two words of each of the four front end definitions (@ 0x22ce78).
 pub fn frontEnd() {
-    for i in 0..4 {
+    for i in 0..MAX_MATCH_PLAYERS {
         let def = g::frontdefs + 20 + 44 * i;
         sw(def + 4, 0);
         sw(def, 0);
@@ -340,7 +340,7 @@ pub fn frontEnd() {
 
 /// Same as `frontEnd` (@ 0x22ca70).
 pub fn frontRestart() {
-    for i in 0..4 {
+    for i in 0..MAX_MATCH_PLAYERS {
         let def = g::frontdefs + 24 + 44 * i;
         sw(def - 4, 0);
         sw(def, 0);

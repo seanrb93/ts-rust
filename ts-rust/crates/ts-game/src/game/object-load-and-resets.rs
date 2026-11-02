@@ -228,7 +228,7 @@ pub fn soundReset() {
 /// +0 (wrapping over ten) and clear a direction flag of the front end; a change plays the sound 140 (@ 0x20dc48).
 pub fn topmenuTick() {
     let player = lw(lw(g::currentplayer));
-    let menu = player * 92 + 0x1fb3240;
+    let menu = player * 92 + IGMENU;
     let mut selected = lhu(menu + 4);
     sh(menu + 10, lhu(menu + 10) + lhu(g::tickframesi));
     let pressed = joyNewBut(player);
@@ -463,12 +463,12 @@ pub fn ingamemenuCheckUnpause() {
             continue;
         }
         if state == 3 {
-            if (lhu(i * 92 + 0x1fb3248) & 4) != 0 {
+            if (lhu(i * 92 + (IGMENU + 8)) & 4) != 0 {
                 i += 1;
                 continue;
             }
         }
-        if (lhu(i * 92 + 0x1fb3248) & 2) == 0 {
+        if (lhu(i * 92 + (IGMENU + 8)) & 2) == 0 {
             break;
         }
         i += 1;
@@ -485,7 +485,7 @@ pub fn ingamemenuCheckUnpause() {
             let mut exited = 0;
             if players > 0 {
                 loop {
-                    if (lhu(player * 92 + 0x1fb3248) & 4) != 0 || netlink_no_menu_or(player) {
+                    if (lhu(player * 92 + (IGMENU + 8)) & 4) != 0 || netlink_no_menu_or(player) {
                         player += 1;
                     } else {
                         exited += 1;

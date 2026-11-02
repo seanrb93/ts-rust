@@ -267,11 +267,11 @@ pub fn particleGlassTick(group: i32) {
     }
 }
 
-/// Draw the top menu (the pause menu's heading of the current player's record of 92 bytes at 0x1fb3240): the title of the page, with the player's number put in the place of
+/// Draw the top menu (the pause menu's heading of the current player's record of 92 bytes at IGMENU): the title of the page, with the player's number put in the place of
 /// the "#" of the text, in the middle at the top with an outline; for a page with nothing under it, arrows to the page before and after (flashing); else the page's second
 /// line (the texts at +0x1054 to +0x105c of the language) under it (@ 0x20dd58).
 pub fn topmenuGfx(menu: i32) {
-    let record = lw(lw(g::currentplayer)) * 92 + 0x1fb3240;
+    let record = lw(lw(g::currentplayer)) * 92 + IGMENU;
     let players = ilinkGetNumLocalPlayers();
     let old = textSelect(((players < 2) as i32) ^ 1);
     let page = lhu(record + 4);

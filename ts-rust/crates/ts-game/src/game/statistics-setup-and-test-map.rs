@@ -591,7 +591,7 @@ pub fn bgProcessGlasshits(a0: i32, a1: i32, a2: i32, f12: f32) {
 /// The tick of the in-game main menu page of the current player: a page queued for it is made the current one, the page changes are followed, the top menu or the page's own
 /// tick runs, and a button leaves the menu (2320 in the paused state, 2048 when the flag 8 says so) (@ 0x2122c0).
 pub fn main_pageTick_2122c0(a0: i32) {
-    let menu = lw(lw(g::currentplayer)) * 92 + 0x1fb3240;
+    let menu = lw(lw(g::currentplayer)) * 92 + IGMENU;
     if lw(g::gamestate) < 5 {
         let offset = lhu(menu + 4) << 2;
         let slot = menu + 52 + offset;

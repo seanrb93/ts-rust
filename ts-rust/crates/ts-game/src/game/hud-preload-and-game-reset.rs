@@ -820,7 +820,7 @@ pub fn chrplayer_pageDraw(a0: i32) {
     } else if state >= 4 {
         if state == 4 {
             if lw(a0 + 12) != 0 {
-                let name = lw((lh((lw((player << 2) + 0x1fc2c88) << 3) + g::teamdata) << 2) + lw((lw(g::cur_language) << 2) + g::languages));
+                let name = lw((lh((lw((player << 2) + TEAMS) << 3) + g::teamdata) << 2) + lw((lw(g::cur_language) << 2) + g::languages));
                 let blink = if (lw(g::tickframenum) & 32) != 0 { 0x7f7f7f80 } else { 0x40787880 };
                 let select = textSelect(2);
                 let found = frontGetBox(a0, 1);
@@ -830,7 +830,7 @@ pub fn chrplayer_pageDraw(a0: i32) {
                 let left = lw(window + 8) - (180 >> (shift & 31));
                 let bar_bottom = if (lbu(g::fontflags) & 1) == 0 { row + lw(lw(g::curfont) + 12) } else { row + (lw(lw(g::curfont) + 12) >> 1) };
                 let right = left + (360 >> (shift & 31));
-                let team_colour = lw((lw((lw(lw(g::front)) << 2) + 0x1fc2c88) << 3) + (g::teamdata + 4));
+                let team_colour = lw((lw((lw(lw(g::front)) << 2) + TEAMS) << 3) + (g::teamdata + 4));
                 guiHGradient(left, row - 1, right, bar_bottom, team_colour, 128, 0);
                 let item = lhu(a0 + 4) ^ 1;
                 let fg = if item == 0 { blink } else { lw(g::menuitem_fgcol) };

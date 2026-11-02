@@ -133,13 +133,13 @@ pub fn main_(mut a0: i32, mut a1: i32) {
             sb(name + i as i32, *b as i32);
         }
         let profile = signonNew(name);
-        for player in 0..4 {
+        for player in 0..MAX_MATCH_PLAYERS {
             signonSet(player, profile);
         }
         // a network game: each player has a profile of their own (the lobby's names), so that each has their own character
         if ts_sdk::net::active() {
             let names = ts_sdk::net::setup().map(|s| s.names).filter(|n| !n.is_empty()).unwrap_or_else(|| (1..=ts_sdk::net::num_players()).map(|i| format!("Player {i}")).collect());
-            for (player, n) in names.iter().take(4).enumerate() {
+            for (player, n) in names.iter().take(MAX_MATCH_PLAYERS as usize).enumerate() {
                 let text = ts_sdk::malloc(16);
                 for (i, b) in n.bytes().take(12).chain(std::iter::once(0)).enumerate() {
                     sb(text + i as i32, b as i32);

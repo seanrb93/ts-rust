@@ -40,8 +40,8 @@ pub fn signonMake() {
     for index in 0..144 {
         signonDelete(index);
     }
-    for player in 0..4 {
-        sw(0x1fbc158 + player * 4, -1);
+    for player in 0..MAX_MATCH_PLAYERS {
+        sw(SIGNONS + player * 4, -1);
     }
     sw(0x3aff04, 0);
 }
