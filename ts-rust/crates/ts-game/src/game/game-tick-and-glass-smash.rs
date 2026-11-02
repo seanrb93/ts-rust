@@ -18,7 +18,11 @@ pub fn statsupdate_pageTick() {
                         break 'b1;
                     }
                 } else {
-                    let state = save_prompt_state(lw(0x3aff38));
+                    let mut state = save_prompt_state(lw(0x3aff38));
+                    // (after a network match the statistics are saved without asking)
+                    if netlink_return_pending_or() {
+                        state = 2;
+                    }
                     if state != 0 {
                         splitMessageClear(lw(0x3aff38));
                     }
