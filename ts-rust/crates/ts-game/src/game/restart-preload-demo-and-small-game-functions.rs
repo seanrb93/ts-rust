@@ -5,14 +5,40 @@ use crate::*;
 /// Load the textures of the second pass of the preload: the list of records (texture, two arguments and the next) from the head at 0x3afee4 (@ 0x21c908).
 pub fn preloadPass2Exec() {
     let mut record = lw(0x3afee4);
+    let mut seen = 0;
     if record != 0 {
         loop {
-            emLoadTextureNum(lw(record), lw(record + 4), lw(record + 8));
+            let number = lw(record);
+            // (a record that is not one of the list's own, or whose texture number is not one of the table's, is skipped and written down: the list is made of records of
+            // 16 bytes from the table of the second pass, and reading a number that is not a texture's takes the game to an address that is not mapped)
+            let table = preload_pass2_table();
+            let own = record >= table && ((record - table) & 15) == 0 && ((record - table) >> 4) < lw(0x3afedc);
+            if !own || !(0..texnum_count()).contains(&number) {
+                preload_note(record, own, seen);
+                if !own {
+                    break;
+                }
+            } else {
+                emLoadTextureNum(number, lw(record + 4), lw(record + 8));
+            }
+            seen += 1;
             record = lw(record + 12);
-            if record == 0 {
+            if record == 0 || seen > 100_000 {
                 break;
             }
         }
+    }
+}
+
+/// Write down a record of the second preload pass that cannot be used (to `ts-rust-preload.txt` beside the program).
+fn preload_note(record: i32, own: bool, index: i32) {
+    use std::io::Write;
+    let words: Vec<i32> = (0..4).map(|k| lw(record + 4 * k)).collect();
+    let line = format!("record {index} at {record:#x} own {own}: words {words:?}; the table is {:#x} with {} records, the level is {}
+", preload_pass2_table(), lw(0x3afedc), lw(g::lvlevelnum));
+    eprintln!("[preload] skipped {line}");
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("ts-rust-preload.txt") {
+        let _ = f.write_all(line.as_bytes());
     }
 }
 
