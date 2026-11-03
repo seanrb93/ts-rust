@@ -22,6 +22,9 @@ TEX_BASE = 9400
 # The weapons: the file of the gun as it is seen in the first person, the part of it that is the body (the part the hands are put on: it does not move on its own), the kind
 # ('one' a hand on the grip, 'two' a hand on the grip and one under the front) and, where the first try is not right, the places (x, y, z in the gun's own space) of the hands:
 # 'grip' and 'fore', and 'fore_part' when the front hand rides on another part (the sliding forend of a pump gun).  The first try is made from the box of the body.
+# where the elbow of each arm is from its hand, in the space of the gun (x right, y up, z forward): the arms come into the view from the bottom of the screen
+GRIP_FROM = (0.5, -0.55, -0.65)
+FORE_FROM = (-0.5, -0.45, -0.7)
 GRIP_ROT = (-90, 0, 90)      # the hand of the grip: the palm is upright, the thumb up, as a hand holds a grip
 FORE_ROT = (-90, 0, 180)     # the hand under the front: the palm up, under the gun, the fingers forward
 WEAPONS = {
@@ -30,7 +33,7 @@ WEAPONS = {
     'mauser': dict(file='ob/gun10/gun10.raw', part='part0', kind='one', grip=(-0.02, -0.11, 0.05)),
     'colt': dict(file='ob/gun24/gun24.raw', part='part0', kind='one', grip=(-0.03, -0.12, -0.04)),
     'uzi': dict(file='ob/gun22/gun22.raw', part='part0', kind='one', grip=(-0.02, -0.09, -0.04)),
-    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.02, -0.10, -0.05), fore=(0.01, -0.035, 0.36)),
+    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.02, -0.10, -0.05), fore=(-0.01, -0.02, 0.36)),
     'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(-0.02, -0.06, 0.0), fore=(0.01, -0.035, 0.27)),
     'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore=(0.01, -0.09, 0.33)),
     'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore=(0.01, -0.02, 0.3), fore_part='part2'),
@@ -56,12 +59,26 @@ def body_box(gun_obj, part):
     return pts.min(axis=0), pts.max(axis=0)
 
 
+def rotation_between(a, b):
+    """The rotation that turns the direction `a` to the direction `b` (Rodrigues), as a 3 by 3 matrix."""
+    a = np.array(a, dtype=float) / np.linalg.norm(a)
+    b = np.array(b, dtype=float) / np.linalg.norm(b)
+    v = np.cross(a, b)
+    c = float(np.dot(a, b))
+    if c > 0.9999999:
+        return np.eye(3)
+    if c < -0.9999999:
+        return -np.eye(3)
+    k = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+    return np.eye(3) + k + k @ k / (1.0 + c)
+
+
 def hands_for(spec, gun_obj):
     """The hands of a weapon as (part, parts of the character, rotation, scale, place): the hand of the grip and, for a two handed gun, the hand under the front."""
     # (the arms are the character's own, in the pose of its animation for a gun held in both hands: the part 20 is the hand of the grip, 12 the hand under the front)
-    hands = [(spec['part'], ['20', '19', '18', '17'], spec.get('grip_rot', (0, 0, 0)), 1.0, tuple(spec['grip']))]
+    hands = [(spec['part'], ['20', '19', '18', '17'], spec.get('grip_rot', (0, 0, 0)), 1.0, tuple(spec['grip']), spec.get('grip_from', GRIP_FROM), spec.get('grip_roll', 0))]
     if spec['kind'] == 'two':
-        hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], spec.get('fore_rot', (0, 0, 0)), 1.0, tuple(spec['fore'])))
+        hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], spec.get('fore_rot', (0, 0, 0)), 1.0, tuple(spec['fore']), spec.get('fore_from', FORE_FROM), spec.get('fore_roll', 180)))
     return hands
 
 
@@ -195,10 +212,21 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                 corner.append('%d/%s/%s' % (remap_v[vi], remap_t[ti] if ti is not None else '', remap_n[ni] if ni is not None else ''))
             faces.append('f ' + ' '.join(corner))
         out += lines + faces
-        for hand_part, sources, rot, scale, place in hands:
+        for hand_part, sources, rot, scale, place, *arm_from in hands:
             if hand_part != part:
                 continue
             R = rotation(*rot) * scale
+            if arm_from and arm_from[0] is not None:
+                # the arm is turned about its hand so that the elbow is where `arm_from` says
+                hand = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[0], []) for vi, _ in f})].mean(axis=0)
+                elbow = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[-1], []) for vi, _ in f})].mean(axis=0)
+                R = rotation_between(elbow - hand, arm_from[0]) @ R
+                if len(arm_from) > 1 and arm_from[1]:
+                    # (the roll of the hand about the arm, degrees)
+                    t = math.radians(arm_from[1])
+                    ax = np.array(arm_from[0], dtype=float) / np.linalg.norm(arm_from[0])
+                    k = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
+                    R = (np.eye(3) + math.sin(t) * k + (1 - math.cos(t)) * (k @ k)) @ R
             out.append('usemtl ' + os.environ.get('HAND_MAT', 'skin'))
             hand_faces = []
             first, middle = True, None
@@ -282,14 +310,30 @@ def character_files(pak):
     return out
 
 
+def character_poses(pak, character):
+    """The matrices of the joints of a character in the pose of the animation for a gun in both hands and in its standing pose (the one its model is skinned from): the files the port writes
+    for `TS_DUMPARM` when the game is run with that character and that animation (kept in `poses/` after the first time; the game is `ts-rust.exe` in the folder of the pack)."""
+    folder = os.path.join(HERE, 'poses', 'characters')
+    os.makedirs(folder, exist_ok=True)
+    out = []
+    game = os.path.dirname(os.path.dirname(os.path.abspath(pak)))
+    for animation, tag in ((478, 'two'), (3, 'rest')):
+        path = os.path.join(folder, 'c%02d-%s.txt' % (character, tag))
+        if not os.path.exists(path):
+            env = dict(os.environ, TS_PLAYERCHR=str(character), TS_DUMPARM=path, TS_HANDANIM=str(animation), TS_GIVE='100:3', TS_EQUIP='1')
+            subprocess.run([os.path.join(game, 'ts-rust.exe'), '--level', 'Prison', '--players', '1', '--frames', '270', '--headless'], cwd=game, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=300)
+        out.append(path)
+    return out
+
+
 def bake_character(pak, mod, character, chr_file, skin_number, names, work):
     """The first person models of `names` with the arms of `character` on them: written as `gunN.raw` for the first character (the models every character shares), as `gunN_cNN.raw` for the others."""
     global CHR_UVS
     import obedit
-    poses = os.path.join(HERE, 'poses')
-    env = dict(os.environ, REST_MATRICES=os.path.join(poses, 'rest.txt'))
+    two, rest = character_poses(pak, character)
+    env = dict(os.environ, REST_MATRICES=rest)
     obj = os.path.join(work, 'character%02d.obj' % character)
-    subprocess.check_call([sys.executable, os.path.join(HERE, 'pose-character.py'), pak, chr_file, os.path.join(poses, 'two-handed.txt'), obj], env=env, stdout=subprocess.DEVNULL)
+    subprocess.check_call([sys.executable, os.path.join(HERE, 'pose-character.py'), pak, chr_file, two, obj], env=env, stdout=subprocess.DEVNULL)
     cv, cc, CHR_UVS, cp = load_obj(obj)
     d, es = pakls_entries(pak)
     for name in names:
