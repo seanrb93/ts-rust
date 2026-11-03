@@ -133,6 +133,8 @@ fov = 0
 # HUD and menus in a widescreen picture: edges (original proportions, in-game HUD sticks to the screen edges),
 # center (original proportions, centred) or stretch (the original layout stretched with the picture)
 hud = edges
+# size of the HUD, its text and the text of the menus: 0.5 to 2 (1 = the game's own size; the UI Size row of the video options)
+hud_scale = 1
 # wait for the monitor refresh before showing each frame (stops tearing)
 vsync = false
 
@@ -554,15 +556,25 @@ impl Config {
             }),
         ];
         let mut out = String::new();
+        let mut written: Vec<&str> = Vec::new();
         for line in TEMPLATE.lines() {
             let key = line.split('=').next().unwrap_or("").trim();
             let hit = if line.starts_with('#') || !line.contains('=') { None } else { vals.iter().find(|(k, _)| *k == key) };
             match hit {
-                Some((k, v)) => out.push_str(&format!("{k} = {v}\n")),
+                Some((k, v)) => {
+                    written.push(k);
+                    out.push_str(&format!("{k} = {v}\n"))
+                }
                 None => {
                     out.push_str(line);
                     out.push('\n');
                 }
+            }
+        }
+        // (a setting that the template has no line for is kept too: it would be lost at the next start)
+        for (k, v) in &vals {
+            if !written.contains(k) {
+                out.push_str(&format!("{k} = {v}\n"));
             }
         }
         std::fs::write(ini_path(), out).ok();
