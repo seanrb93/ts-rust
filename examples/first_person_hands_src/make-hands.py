@@ -28,13 +28,13 @@ FORE_FROM = (-0.5, -0.45, -0.7)
 GRIP_ROT = (-90, 0, 90)      # the hand of the grip: the palm is upright, the thumb up, as a hand holds a grip
 FORE_ROT = (-90, 0, 180)     # the hand under the front: the palm up, under the gun, the fingers forward
 WEAPONS = {
-    'pistol': dict(file='ob/gun1/gun1.raw', part='part3', kind='one', grip=(-0.022, -0.04, -0.04)),
-    'raygun': dict(file='ob/gun5/gun5.raw', part='part0', kind='one'),
-    'scifi_handgun': dict(file='ob/gun8/gun8.raw', part='part0', kind='one', grip=(-0.02, -0.06, -0.06)),
-    'mauser': dict(file='ob/gun10/gun10.raw', part='part0', kind='one', grip=(-0.02, -0.11, 0.05)),
-    'colt': dict(file='ob/gun24/gun24.raw', part='part0', kind='one', grip=(-0.03, -0.12, -0.04)),
-    'uzi': dict(file='ob/gun22/gun22.raw', part='part0', kind='one', grip=(-0.02, -0.09, -0.04)),
-    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.02, -0.10, -0.05), fore_abs=(0.03, 0.05, 0.27)),
+    'pistol': dict(grip_scale=0.6, file='ob/gun1/gun1.raw', part='part3', kind='one', grip=(-0.022, -0.04, -0.04)),
+    'raygun': dict(grip_scale=0.6, file='ob/gun5/gun5.raw', part='part0', kind='one'),
+    'scifi_handgun': dict(grip_scale=0.6, file='ob/gun8/gun8.raw', part='part0', kind='one', grip=(-0.02, -0.06, -0.06)),
+    'mauser': dict(grip_scale=0.6, file='ob/gun10/gun10.raw', part='part0', kind='one', grip=(-0.02, -0.11, 0.05)),
+    'colt': dict(grip_scale=0.6, file='ob/gun24/gun24.raw', part='part0', kind='one', grip=(-0.03, -0.12, -0.04)),
+    'uzi': dict(grip_scale=0.6, file='ob/gun22/gun22.raw', part='part0', kind='one', grip=(-0.02, -0.09, -0.04)),
+    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.06, -0.10, -0.05), fore_abs=(0.03, 0.05, 0.27)),
     'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(-0.02, -0.06, 0.0), fore=(0.01, -0.035, 0.27)),
     'sniper_rifle': dict(file='ob/gun4/gun4.raw', part='part0', kind='two'),
     'raygun_carbine': dict(file='ob/gun6/gun6.raw', part='part0', kind='two'),
@@ -95,7 +95,7 @@ def hands_for(spec, gun_obj):
     lo, hi = body_box(gun_obj, spec['part'])
     size = hi - lo
     grip = spec.get('grip') or (-0.02, lo[1] + (0.09 if spec['kind'] == 'one' else 0.1), lo[2] + 0.25 * size[2])
-    hands = [(spec['part'], ['20', '19', '18', '17'], (0, 0, 0), 1.0, (grip[0], grip[1] + 0.02, grip[2]), spec.get('grip_from', (0.3, -0.9, -0.3)), spec.get('grip_roll', 0))]
+    hands = [(spec['part'], ['20', '19', '18', '17'], (0, 0, 0), spec.get('grip_scale', 1.0), (grip[0], grip[1] + 0.02, grip[2]), spec.get('grip_from', (0.3, -0.9, -0.3)), spec.get('grip_roll', 0))]
     if spec['kind'] == 'two':
         fore = spec.get('fore_abs') or (hi[0] - 0.03, (lo[1] + hi[1]) / 2 + 0.05, lo[2] + 0.6 * size[2])
         hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], (0, 0, 0), 1.0, tuple(fore), spec.get('fore_from', (0.6, -0.6, -0.5)), spec.get('fore_roll', 0)))
