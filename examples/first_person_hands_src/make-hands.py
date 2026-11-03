@@ -18,30 +18,51 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.join(HERE, '..', '..', 'tools')
 TEX_BASE = 9400
 
-# For each weapon: the file, and its hands: (part of the gun that carries it, the part of the character that is added (12 the right hand, 11 and 10 the forearm and the elbow...),
-# rotation about x, y, z in degrees, scale, place (x, y, z) in the gun's own space).
+# The weapons: the file of the gun as it is seen in the first person, the part of it that is the body (the part the hands are put on: it does not move on its own), the kind
+# ('one' a hand on the grip, 'two' a hand on the grip and one under the front) and, where the first try is not right, the places (x, y, z in the gun's own space) of the hands:
+# 'grip' and 'fore', and 'fore_part' when the front hand rides on another part (the sliding forend of a pump gun).  The first try is made from the box of the body.
 WEAPONS = {
-    'pistol': {
-        'file': 'ob/gun1/gun1.raw',
-        'hands': [
-            ('part3', ['20', '19'], (-90, 0, 0), 1.0, (-0.022, -0.03, -0.045)),
-        ],
-    },
-    'm16': {
-        'file': 'ob/gun2/gun2.raw',
-        'hands': [
-            ('part0', ['20', '19'], (-90, 0, 0), 1.0, (-0.03, -0.14, -0.09)),
-            ('part0', ['20', '19'], (-90, 0, 90), 1.0, (0.0, -0.065, 0.17)),
-        ],
-    },
-    'shotgun': {
-        'file': 'ob/gun25/gun25.raw',
-        'hands': [
-            ('part0', ['20', '19'], (-90, 0, 0), 1.0, (-0.03, -0.07, -0.04)),
-            ('part2', ['20', '19'], (-90, 0, 90), 1.0, (0.0, 0.0, 0.22)),
-        ],
-    },
+    'pistol': dict(file='ob/gun1/gun1.raw', part='part3', kind='one', grip=(-0.022, -0.03, -0.045)),
+    'scifi_handgun': dict(file='ob/gun8/gun8.raw', part='part0', kind='one'),
+    'mauser': dict(file='ob/gun10/gun10.raw', part='part0', kind='one'),
+    'colt': dict(file='ob/gun24/gun24.raw', part='part0', kind='one'),
+    'uzi': dict(file='ob/gun22/gun22.raw', part='part0', kind='one'),
+    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.03, -0.14, -0.09), fore=(0.0, -0.065, 0.17)),
+    'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two'),
+    'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two'),
+    'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.03, -0.07, -0.04), fore=(0.0, 0.0, 0.22), fore_part='part2'),
+    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two'),
+    'minigun': dict(file='ob/gun11/gun11.raw', part='part0', kind='two'),
 }
+
+
+def body_box(gun_obj, part):
+    v, parts = [], {}
+    cur = None
+    for line in open(gun_obj):
+        w = line.split()
+        if not w:
+            continue
+        if w[0] == 'v':
+            v.append([float(x) for x in w[1:4]])
+        elif w[0] == 'o':
+            cur = w[1]
+        elif w[0] == 'f':
+            parts.setdefault(cur, []).extend(int(x.split('/')[0]) - 1 for x in w[1:])
+    pts = np.array(v)[np.unique(parts[part])]
+    return pts.min(axis=0), pts.max(axis=0)
+
+
+def hands_for(spec, gun_obj):
+    """The hands of a weapon as (part, parts of the character, rotation, scale, place): from `spec`, with the places that it does not give made from the box of the body."""
+    lo, hi = body_box(gun_obj, spec['part'])
+    size = hi - lo
+    grip = spec.get('grip') or (-0.025, lo[1] + 0.085, lo[2] + 0.26 * size[2] if spec['kind'] == 'one' else lo[2] + 0.22 * size[2])
+    hands = [(spec['part'], ['20', '19'], (-90, 0, 0), 1.0, tuple(grip))]
+    if spec['kind'] == 'two':
+        fore = spec.get('fore') or (0.0, lo[1] + 0.07, lo[2] + 0.62 * size[2])
+        hands.append((spec.get('fore_part', spec['part']), ['20', '19'], (-90, 0, 90), 1.0, tuple(fore)))
+    return hands
 
 
 def load_obj(path):
@@ -187,13 +208,14 @@ def main():
     cv, cc, _, cp = load_obj(os.path.join(work, 'chr01.obj'))
     for name in names:
         spec = WEAPONS[name]
+        base = os.path.join(work, name)
+        subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, spec['file'], '--obj', base + '.obj'], stdout=subprocess.DEVNULL)
+        spec = dict(spec, hands=hands_for(spec, base + '.obj'))
         if os.environ.get('HANDS_JSON'):
             import json
             spec = dict(spec, hands=[tuple(h) for h in json.loads(os.environ['HANDS_JSON'])])
-        base = os.path.join(work, name)
-        subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, spec['file'], '--obj', base + '.obj'], stdout=subprocess.DEVNULL)
         add_hands(base + '.obj', base + '_hands.obj', spec['hands'], cv, cc, cp)
-        subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obedit.py'), pak, spec['file'], mod, 'meshes', base + '_hands.obj', '--tex-base', str(TEX_BASE + 10 * list(WEAPONS).index(name))])
+        subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obedit.py'), pak, spec['file'], mod, 'meshes', base + '_hands.obj', '--tex-base', str(TEX_BASE)])
     open(os.path.join(mod, 'mod.ini'), 'w').write('enabled = true\n')
 
 
