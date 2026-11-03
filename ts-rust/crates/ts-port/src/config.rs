@@ -351,6 +351,8 @@ impl Config {
         }
         #[cfg(feature = "extensions")]
         {
+            // (the text of the menus is sized by the game's own text routines)
+            ts_game::set_text_scale((self.hud_scale * 1000.0).round() as i32);
             ts_render::Settings { render_scale: 1.0, internal_height: 0, sharp: self.upscale_sharp, msaa: self.msaa, filter: self.filter, aniso: self.aniso, aspect: self.aspect, hud: self.hud, hud_scale: self.hud_scale, native: false }
         }
     }

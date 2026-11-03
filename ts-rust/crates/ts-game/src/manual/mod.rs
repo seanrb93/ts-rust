@@ -31,10 +31,13 @@ pub mod texhook;
 #[path = "extension-hooks.rs"]
 pub mod extension_hooks;
 pub mod harness;
+#[path = "text-scale.rs"]
+pub mod text_scale;
 #[path = "mode-presets.rs"]
 pub mod mode_presets;
 
 pub use arcadeopts::*;
+pub use text_scale::*;
 pub use bigpool::*;
 pub use customlevels::*;
 pub use avmenu::*;

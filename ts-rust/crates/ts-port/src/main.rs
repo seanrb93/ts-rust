@@ -769,6 +769,8 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
     #[cfg(feature = "shadow")]
     ts_verify::shadow::install(&game_dir.join("SLUS_200.90"));
     config::load(&overrides);
+    #[cfg(feature = "extensions")]
+    ts_game::set_text_scale((config::get().hud_scale * 1000.0).round() as i32);
     ts_sdk::set_disc_root(&game_dir);
     ts_gfx::hd::set_loader(texmod::load_hd);
     icons::init();
