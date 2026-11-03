@@ -1612,7 +1612,7 @@ impl Renderer {
                         for (lo, hi, ylo, yhi, t) in order {
                             let same_row = |g: &(f32, f32, f32, f32, Vec<usize>)| {
                                 let overlap = g.3.min(yhi) - g.2.max(ylo);
-                                overlap > 0.5 * (g.3 - g.2).min(yhi - ylo).max(0.01) && lo <= g.1 + 14.0
+                                overlap > 0.5 * (g.3 - g.2).min(yhi - ylo).max(0.01) && lo <= g.1 + 20.0
                             };
                             match groups.iter_mut().find(|g| same_row(g)) {
                                 Some(g) => {
@@ -1625,7 +1625,19 @@ impl Renderer {
                             }
                         }
                         for (lo, hi, ylo, yhi, ts) in groups {
-                            let (cx, cy) = ((lo + hi) * 0.5, (ylo + yhi) * 0.5);
+                            let (mut cx, cy) = ((lo + hi) * 0.5, (ylo + yhi) * 0.5);
+                            // (bars and bands without a picture stay as they are)
+                            if st.tex.is_none() && hi - lo > 60.0 {
+                                continue;
+                            }
+                            // (the page's title sits at the left edge of its band: it keeps that edge)
+                            if !frame.in_game && cy < 40.0 && cx < LOGICAL_W * 0.34 {
+                                cx = lo;
+                            }
+                            // (the values at the right of a page are lined up on their right edge)
+                            if !frame.in_game && cy >= 40.0 && cx > LOGICAL_W * 0.55 && cx < LOGICAL_W * 0.9 {
+                                cx = hi;
+                            }
                             // (the logo in the corner keeps its size: its glow is a copy of the picture that is not scaled)
                             if !frame.in_game && cy < 40.0 && cx > LOGICAL_W * 0.66 {
                                 continue;
