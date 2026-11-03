@@ -67,6 +67,7 @@ pub struct Config {
     pub look_sensitivity: f32,
     /// the MapMaker has no limit of what a map holds
     pub mapmaker_unlimited: bool,
+    pub first_person_arms: bool,
     /// 0 controller, 1 keyboard and mouse
     pub input_method: u8,
     /// the keys of each button of the pad, as the names of the ini (see `keys::ACTIONS`)
@@ -103,6 +104,7 @@ impl Default for Config {
             show_fps: false,
             look_sensitivity: 1.0,
             mapmaker_unlimited: false,
+            first_person_arms: false,
             input_method: 1,
             keys: (0..14).map(crate::keys::default_keys).collect(),
             sound_mix: [100; 3],
@@ -196,6 +198,10 @@ level_music = own
 # the MapMaker has no limit of what a map holds (the FREE bar is not shown); also a row of the MapMaker's Options page
 mapmaker_unlimited = false
 
+# the arms of your character hold the gun in the first person (the character's own animation and gun model, with its skin and sleeve) for the guns that have a pose; the others
+# keep the gun of the first person.  An experiment: the pose of each gun is not tuned yet
+first_person_arms = false
+
 [graphics]
 # the console's own 640x448 picture (a build without the extensions) is scaled up to the window with sharp pixels (true) or smoothed (false); with the extensions the picture is drawn at the resolution of the window and nothing is scaled
 upscale_sharp = false
@@ -257,6 +263,7 @@ impl Config {
             "unlock_all" | "dual_wield_all" | "bots_punch" => {}
             "show_fps" => self.show_fps = parse_bool(value).ok_or_else(bad)?,
             "mapmaker_unlimited" => self.mapmaker_unlimited = parse_bool(value).ok_or_else(bad)?,
+            "first_person_arms" => self.first_person_arms = parse_bool(value).ok_or_else(bad)?,
             "look_sensitivity" => self.look_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.1, 5.0),
             "input_method" => {
                 self.input_method = match value.trim().to_ascii_lowercase().as_str() {
@@ -404,6 +411,8 @@ pub fn load(overrides: &[(String, String)]) {
     ts_sdk::set_display_hz(c.display_hz(None));
     ts_sdk::pad::set_look_sensitivity(c.look_sensitivity);
     ts_game::set_mm_unlimited(c.mapmaker_unlimited);
+    #[cfg(feature = "extensions")]
+    ts_game::set_first_person_arms(c.first_person_arms);
     apply_sound_mix(&c);
     apply_keys(&c);
     *CONFIG.lock().unwrap() = Some(c);
@@ -507,7 +516,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 42] = [
+        let vals: [(&str, String); 43] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -531,6 +540,7 @@ impl Config {
             ("show_fps", self.show_fps.to_string()),
             ("look_sensitivity", format!("{}", self.look_sensitivity)),
             ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),
+            ("first_person_arms", self.first_person_arms.to_string()),
             ("input_method", ["controller", "keyboard"][self.input_method.min(1) as usize].to_string()),
             ("key_cross", self.keys[0].join(", ")),
             ("key_circle", self.keys[1].join(", ")),

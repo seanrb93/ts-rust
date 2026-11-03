@@ -368,10 +368,6 @@ fn draw_part(a0: i32, part: i32, pass: i32, sp: i32) {
             draw = false;
         }
     }
-    #[cfg(feature = "extensions")]
-    if fullbody_hides_part(owner, part) {
-        draw = false;
-    }
     'drawn: {
         if draw {
             let entries;

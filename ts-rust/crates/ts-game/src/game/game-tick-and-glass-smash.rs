@@ -600,12 +600,6 @@ pub fn specialfxGroupsTick() {
 /// selected, the blend, dither and depth modes of the instance are set (and put back), and the parts are drawn once or, for a blended instance when `a1` is set, in two
 /// passes (@ 0x262a60).
 pub fn obInstGfx(a0: i32, a1: i32) {
-    #[cfg(feature = "extensions")]
-    fullbody_shift(a0, 1.0);
-    obInstGfx_inner(a0, a1);
-}
-
-fn obInstGfx_inner(a0: i32, a1: i32) {
     let flags = lw(lw(a0 + 244) + 16);
     let model = lw(a0);
     if !prop_hidden_from(lw(lw(g::currentplayer)), lw(a0 + 244)) {
