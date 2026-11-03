@@ -483,60 +483,25 @@ struct UiGroup {
     tris: Vec<usize>,
 }
 
-/// The size of the menus: each line grows about the edge of its column that the other lines of the page share (the left edge of a column of labels, the right
-/// edge of a column of values), about its centre when it shares none (as the game placed it), and about the left edge for the title of the page; a button
-/// icon in front of a centred label moves with the label's left edge, and bars and the logo in the corner keep their size.
+/// The size of the menus: each line grows about a point of its own box that depends only on where the line is on the screen (the left edge for a line at the
+/// left, the right edge at the right, the middle in the middle, smoothly in between), so the lines of a column that are lined up stay lined up and nothing jumps
+/// when the page changes (a selected line, an animation); a button icon in front of a label in the middle moves with the label's left edge, and bars and the logo
+/// in the corner keep their size.
 fn size_menu_groups(verts: &mut [GpuVertex], groups: &[UiGroup], f: f32, in_game: bool) {
     let n = groups.len();
-    // (a line of text is drawn several times, with its outline and shadow moved a little: the copies are one line and are lined up the same way)
-    let mut line = vec![0usize; n];
-    let mut lines: Vec<(f32, f32, f32, f32)> = Vec::new();
-    for (a, g) in groups.iter().enumerate() {
-        let (c, cy) = ((g.lo + g.hi) * 0.5, (g.ylo + g.yhi) * 0.5);
-        match lines.iter().position(|l| (l.0 - g.lo).abs() <= 4.0 && (l.1 - g.hi).abs() <= 4.0 && (l.3 - cy).abs() <= 4.0 && (l.2 - c).abs() <= 4.0) {
-            Some(k) => line[a] = k,
-            None => {
-                line[a] = lines.len();
-                lines.push((g.lo, g.hi, c, cy));
-            }
-        }
-    }
-    // 0: left edge, 1: right edge, 2: centre
-    let mut kind = vec![2u8; lines.len()];
-    let mut peerless_line = vec![false; lines.len()];
-    for (k, &(lo, hi, c, cy)) in lines.iter().enumerate() {
-        let (mut l, mut r, mut m) = (0, 0, 0);
-        for (j, &(lo2, hi2, c2, cy2)) in lines.iter().enumerate() {
-            if j == k || (cy2 - cy).abs() < 2.0 {
-                continue;
-            }
-            l += ((lo2 - lo).abs() < 3.0) as i32;
-            r += ((hi2 - hi).abs() < 3.0) as i32;
-            m += ((c2 - c).abs() < 3.0) as i32;
-        }
-        // (the page's title sits at the left edge of its band: it keeps that edge)
-        let title = !in_game && cy < 40.0 && c < LOGICAL_W * 0.34;
-        kind[k] = if title || (l > m && l >= r) { 0 } else if r > m && r > l { 1 } else { 2 };
-        peerless_line[k] = l + r + m == 0;
-    }
     let mut anchor = vec![0.0f32; n];
-    let mut centred = vec![false; n];
-    let mut peerless = vec![false; n];
+    let mut middle = vec![false; n];
     let mut shift = vec![0.0f32; n];
     for (a, g) in groups.iter().enumerate() {
-        let c = (g.lo + g.hi) * 0.5;
-        anchor[a] = match kind[line[a]] {
-            0 => g.lo,
-            1 => g.hi,
-            _ => c,
-        };
-        centred[a] = kind[line[a]] == 2;
-        peerless[a] = peerless_line[line[a]];
+        let x = (((g.lo + g.hi) * 0.5 / LOGICAL_W - 0.3) / 0.4).clamp(0.0, 1.0);
+        let t = x * x * (3.0 - 2.0 * x);
+        anchor[a] = g.lo + (g.hi - g.lo) * t;
+        middle[a] = t > 0.25 && t < 0.75;
         shift[a] = anchor[a] + (g.lo - anchor[a]) * f - g.lo;
     }
     if std::env::var_os("TS_UIDBG").is_some() {
         for (a, g) in groups.iter().enumerate() {
-            eprintln!("[ui] {a} first {} np {} tris {} x {:.1}..{:.1} y {:.1}..{:.1} bar {} anchor {:.1} centred {} peerless {}", g.first, g.np, g.tris.len(), g.lo, g.hi, g.ylo, g.yhi, g.bar, anchor[a], centred[a], peerless[a]);
+            eprintln!("[ui] {a} first {} np {} tris {} x {:.1}..{:.1} y {:.1}..{:.1} bar {} anchor {:.1} middle {}", g.first, g.np, g.tris.len(), g.lo, g.hi, g.ylo, g.yhi, g.bar, anchor[a], middle[a]);
         }
     }
     for (a, g) in groups.iter().enumerate() {
@@ -545,9 +510,9 @@ fn size_menu_groups(verts: &mut [GpuVertex], groups: &[UiGroup], f: f32, in_game
             continue;
         }
         let (mut ax, mut dx) = (anchor[a], 0.0);
-        if peerless[a] && g.hi - g.lo < 16.0 && g.yhi - g.ylo < 16.0 {
+        if g.hi - g.lo < 16.0 && g.yhi - g.ylo < 16.0 {
             let next = (0..n)
-                .filter(|&b| b != a && centred[b] && groups[b].lo >= g.hi - 0.5 && groups[b].lo - g.hi <= 30.0 && ((groups[b].ylo + groups[b].yhi) * 0.5 - cy).abs() < 6.0)
+                .filter(|&b| b != a && middle[b] && groups[b].hi - groups[b].lo >= 16.0 && groups[b].lo >= g.hi - 0.5 && groups[b].lo - g.hi <= 30.0 && ((groups[b].ylo + groups[b].yhi) * 0.5 - cy).abs() < 6.0)
                 .min_by(|&x, &y| groups[x].lo.partial_cmp(&groups[y].lo).unwrap_or(std::cmp::Ordering::Equal));
             if let Some(b) = next {
                 ax = (g.lo + g.hi) * 0.5;
@@ -1353,7 +1318,7 @@ impl Renderer {
         // (a picture of 4:3 has its 2D art as the game drew it, unless the HUD of a level is given a size)
         let sized = (self.settings.hud_scale - 1.0).abs() > 0.001;
         // the menus (the front end, the pause menu, the scoreboard) have the size too, about the middle of the picture
-        let ui_zoom = if sized && (!frame.in_game || frame.scores_open || frame.menu_open) { Some(self.settings.hud_scale.clamp(0.25, 4.0)) } else { None };
+        let ui_zoom = if sized && !mm_grid && (!frame.in_game || frame.scores_open || frame.menu_open) { Some(self.settings.hud_scale.clamp(0.25, 4.0)) } else { None };
         let hud_zoom = (frame.in_game && self.settings.hud == HudMode::Edges && sized) || ui_zoom.is_some();
         if (k > 1.001 || hud_zoom) && self.settings.hud != HudMode::Stretch {
             let edges = (self.settings.hud == HudMode::Edges && frame.in_game) || (mm_grid && !mm_modal);
