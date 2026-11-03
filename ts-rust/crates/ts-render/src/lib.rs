@@ -1257,7 +1257,10 @@ impl Renderer {
             mm_modal = frame.page_open;
         }
         // (a picture of 4:3 has its 2D art as the game drew it, unless the HUD of a level is given a size)
-        let hud_zoom = frame.in_game && self.settings.hud == HudMode::Edges && (self.settings.hud_scale - 1.0).abs() > 0.001;
+        let sized = (self.settings.hud_scale - 1.0).abs() > 0.001;
+        // the menus (the front end, the pause menu, the scoreboard) have the size too, about the middle of the picture
+        let ui_zoom = if sized && (!frame.in_game || frame.scores_open || frame.menu_open) { Some(self.settings.hud_scale.clamp(0.25, 4.0)) } else { None };
+        let hud_zoom = (frame.in_game && self.settings.hud == HudMode::Edges && sized) || ui_zoom.is_some();
         if (k > 1.001 || hud_zoom) && self.settings.hud != HudMode::Stretch {
             let edges = (self.settings.hud == HudMode::Edges && frame.in_game) || (mm_grid && !mm_modal);
             let centre_all = mm_grid && mm_modal;
@@ -1306,6 +1309,12 @@ impl Renderer {
                         for v in t.iter_mut() {
                             v.pos[0] = map(v.pos[0]);
                             v.st[0] = map(v.st[0]);
+                            if let Some(f) = ui_zoom {
+                                v.pos[0] = LOGICAL_W * 0.5 + (v.pos[0] - LOGICAL_W * 0.5) * f;
+                                v.pos[1] = LOGICAL_H * 0.5 + (v.pos[1] - LOGICAL_H * 0.5) * f;
+                                v.st[0] = LOGICAL_W * 0.5 + (v.st[0] - LOGICAL_W * 0.5) * f;
+                                v.st[1] = LOGICAL_H * 0.5 + (v.st[1] - LOGICAL_H * 0.5) * f;
+                            }
                         }
                         let (mut ulo, mut uhi) = ([f32::MAX; 2], [f32::MIN; 2]);
                         for v in t.iter() {
@@ -1587,6 +1596,9 @@ impl Renderer {
                             if let Some((ax, ay, f)) = grow {
                                 v.pos[0] = ax + (v.pos[0] - ax) * f;
                                 v.pos[1] = ay + (v.pos[1] - ay) * f;
+                            } else if let Some(f) = ui_zoom {
+                                v.pos[0] = LOGICAL_W * 0.5 + (v.pos[0] - LOGICAL_W * 0.5) * f;
+                                v.pos[1] = LOGICAL_H * 0.5 + (v.pos[1] - LOGICAL_H * 0.5) * f;
                             }
                         }
                     }
