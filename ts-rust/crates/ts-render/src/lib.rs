@@ -1479,6 +1479,8 @@ impl Renderer {
                     let right = move |x: f32| LOGICAL_W - (LOGICAL_W - x) / k;
                     // the screen side that the piece of the HUD sticks to (set by the placements that stick to one): the size of the HUD grows from there
                     let mut anchor: Option<f32> = None;
+                    // a piece that sits in the middle of the picture (the messages, the text lines): its size grows about its own centre
+                    let mut centre_zoom = false;
                     if std::env::var_os("TS_MAPDBG").is_some() {
                         eprintln!("[map] draw {i} {:?}: x {lo:.0}..{hi:.0} y {ylo:.0}..{yhi:.0} edges {edges} centre_all {centre_all} viewport {viewport} members {} clamp {:#x} stq {} tex {:?} blend {:?}", d.topology, members.len(), st.clamp, st.use_stq, st.tex.map(|t| (t.tbp0, t.tw, t.th)), st.blend);
                     }
@@ -1515,6 +1517,7 @@ impl Renderer {
                             anchor = Some(p1);
                             Box::new(move |x| p1 - (p1 - x) / k)
                         } else {
+                            centre_zoom = true;
                             Box::new(move |x| c + (x - c) / k)
                         }
                     } else if centre_all || (frame.in_game && self.settings.hud == HudMode::Center) {
@@ -1553,6 +1556,7 @@ impl Renderer {
                             anchor = Some(LOGICAL_W);
                             Box::new(right)
                         } else {
+                            centre_zoom = true;
                             Box::new(centre)
                         }
                     } else if lo <= 2.0 && hi - lo > 100.0 {
@@ -1570,6 +1574,9 @@ impl Renderer {
                             let (top, bottom) = if panes { (sc[1] as f32, (sc[3] + 1) as f32) } else { (0.0, LOGICAL_H) };
                             let ay = if (ylo + yhi) * 0.5 < (top + bottom) * 0.5 { top } else { bottom };
                             Some((ax, ay, self.settings.hud_scale.clamp(0.25, 4.0)))
+                        }
+                        None if centre_zoom && frame.in_game && !frame.scores_open && !frame.menu_open && (self.settings.hud_scale - 1.0).abs() > 0.001 => {
+                            Some((map(mid), (ylo + yhi) * 0.5, self.settings.hud_scale.clamp(0.25, 4.0)))
                         }
                         _ => None,
                     };
