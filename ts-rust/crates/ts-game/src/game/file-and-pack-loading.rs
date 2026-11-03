@@ -198,6 +198,17 @@ fn entry_has_name(entry: i32, name: i32) -> bool {
 
 /// Find the entry of the file named `a0` in the pack files, or 0 if it is in none. A name that starts with the text at 0x3ae550 is compared without its first 6 bytes. The entry found is kept, and its pack file becomes the one in use.
 pub fn packfileSeek(a0: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    if let Some(variant) = arms_variant_name(a0) {
+        let entry = packfileSeekPlain(variant);
+        if entry != 0 {
+            return entry;
+        }
+    }
+    packfileSeekPlain(a0)
+}
+
+fn packfileSeekPlain(a0: i32) -> i32 {
     let frame = Frame::new(80);
     let sp = frame.sp();
     let name = if strcmp(a0, 0x3ae550) >= 0 { a0 + 6 } else { a0 };

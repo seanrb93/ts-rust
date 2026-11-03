@@ -227,6 +227,100 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
     open(out_obj, 'w').write(chr(10).join(out) + chr(10))
 
 
+ARM_PARTS = (9, 10, 11, 12, 17, 18, 19, 20)
+
+
+def character_files(pak):
+    """The characters of the game whose model has the arms of the humanoid layout (the parts 9 to 12 and 17 to 20 of the same kinds and joints as the first character's): character
+    number -> (file in the pack, number of the texture the hand has).  The others (aliens, robots) have no arms of their own here and keep the first character's."""
+    import struct
+    sys.path.insert(0, TOOLS)
+    import pakls
+    import ps2elf
+    ram = ps2elf.data_image()
+    d, es = pakls.entries(pak)
+    by_name = {e[0]: e for e in es}
+    base = 0x35bb74 - 390 * 28  # (the table of props: 28 bytes each, the pistol's first person model is the prop 390)
+
+    def prop_file(n):
+        w = struct.unpack_from('<7I', ram, base + 28 * n)
+        return bytes(ram[w[0]:w[0] + 60]).split(bytes([0]))[0].decode('latin1').replace('host0:', '')
+
+    def layout(name):
+        n, o, sz = by_name[name]
+        f = d[o:o + sz]
+        tab = struct.unpack_from('<I', f, 4)[0]
+        cnt = struct.unpack_from('<I', f, tab)[0]
+        bones = tab - cnt * 80
+        parts = [(f[bones + 80 * i], f[bones + 80 * i + 1]) for i in range(cnt)] if cnt > 20 else None
+        if parts is None:
+            return None
+        # (the texture the hand part uses: the slot of its first chunk, and the table of the file)
+        hand = bones + 80 * 20
+        list_at = struct.unpack_from('<I', f, hand + 8)[0]
+        slot = struct.unpack_from('<i', f, list_at)[0]
+        numbers, at = [], struct.unpack_from('<I', f, 0)[0]
+        while struct.unpack_from('<i', f, at)[0] != -1:
+            numbers.append(struct.unpack_from('<i', f, at)[0])
+            at += 16
+        return tuple(parts[i] for i in ARM_PARTS), numbers[slot]
+
+    first = layout('ob/chrs/chr01.raw')
+    out = {}
+    for c in range(80):
+        model = struct.unpack_from('<i', ram, 0x3650e0 + 44 * c + 8)[0]
+        if not 0 <= model < 1100:
+            continue
+        name = prop_file(model)
+        if name in by_name and name.endswith('.raw') and '/chrs/' in name:
+            try:
+                got = layout(name)
+            except Exception:
+                continue
+            if got and got[0] == first[0]:
+                out[c] = (name, got[1])
+    return out
+
+
+def bake_character(pak, mod, character, chr_file, skin_number, names, work):
+    """The first person models of `names` with the arms of `character` on them: written as `gunN.raw` for the first character (the models every character shares), as `gunN_cNN.raw` for the others."""
+    global CHR_UVS
+    import obedit
+    poses = os.path.join(HERE, 'poses')
+    env = dict(os.environ, REST_MATRICES=os.path.join(poses, 'rest.txt'))
+    obj = os.path.join(work, 'character%02d.obj' % character)
+    subprocess.check_call([sys.executable, os.path.join(HERE, 'pose-character.py'), pak, chr_file, os.path.join(poses, 'two-handed.txt'), obj], env=env, stdout=subprocess.DEVNULL)
+    cv, cc, CHR_UVS, cp = load_obj(obj)
+    d, es = pakls_entries(pak)
+    for name in names:
+        spec = WEAPONS[name]
+        base = os.path.join(work, name)
+        if not os.path.exists(base + '.obj'):
+            subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, spec['file'], '--obj', base + '.obj'], stdout=subprocess.DEVNULL)
+        spec = dict(spec, hands=hands_for(spec, base + '.obj'))
+        if os.environ.get('HANDS_JSON'):
+            import json
+            spec = dict(spec, hands=[tuple(h) for h in json.loads(os.environ['HANDS_JSON'])])
+        add_hands(base + '.obj', base + '_hands%02d.obj' % character, spec['hands'], cv, cc, cp)
+        groups = {}
+        faces, _ = obedit.read_obj(base + '_hands%02d.obj' % character, groups)
+        n, o, sz = [e for e in es if e[0] == spec['file']][0]
+        data = d[o:o + sz]
+        for part_name, fs in groups.items():
+            if part_name and part_name.startswith('part') and part_name[4:].isdigit():
+                data, _count = obedit.mesh_part(data, fs, int(part_name[4:]), {'skin': skin_number})
+        out_name = spec['file'] if character == 0 else spec['file'].replace('.raw', '_c%02d.raw' % character)
+        out = os.path.join(mod, 'OB.PAK', out_name)
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        open(out, 'wb').write(data)
+
+
+def pakls_entries(pak):
+    sys.path.insert(0, TOOLS)
+    import pakls
+    return pakls.entries(pak)
+
+
 def main():
     if len(sys.argv) < 3:
         sys.exit(__doc__)
@@ -234,26 +328,20 @@ def main():
     names = sys.argv[3:] or list(WEAPONS)
     work = os.path.join(HERE, 'work')
     os.makedirs(work, exist_ok=True)
-    global CHR_UVS
-    character = int(os.environ.get('HANDS_CHARACTER', '0'))
-    chr_file = 'ob/chrs/chr%02d.raw' % (character + 1)
-    skin_from_character(pak, chr_file, os.path.join(work, 'skin.png'))
-    open(os.path.join(work, 'hands.mtl'), 'w').write('newmtl skin\nmap_Kd skin.png\n')
-    poses = os.path.join(HERE, 'poses')
-    env = dict(os.environ, REST_MATRICES=os.path.join(poses, 'rest.txt'))
-    subprocess.check_call([sys.executable, os.path.join(HERE, 'pose-character.py'), pak, chr_file, os.path.join(poses, 'two-handed.txt'), os.path.join(work, 'character.obj')], env=env, stdout=subprocess.DEVNULL)
-    cv, cc, CHR_UVS, cp = load_obj(os.path.join(work, 'character.obj'))
-    for name in names:
-        spec = WEAPONS[name]
-        base = os.path.join(work, name)
-        subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, spec['file'], '--obj', base + '.obj'], stdout=subprocess.DEVNULL)
-        spec = dict(spec, hands=hands_for(spec, base + '.obj'))
-        if os.environ.get('HANDS_JSON'):
-            import json
-            spec = dict(spec, hands=[tuple(h) for h in json.loads(os.environ['HANDS_JSON'])])
-        add_hands(base + '.obj', base + '_hands.obj', spec['hands'], cv, cc, cp)
-        subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obedit.py'), pak, spec['file'], mod, 'meshes', base + '_hands.obj', '--tex-base', str(TEX_BASE)])
-    open(os.path.join(mod, 'mod.ini'), 'w').write('enabled = true\n')
+    sys.path.insert(0, TOOLS)
+    chars = character_files(pak)
+    if os.environ.get('HANDS_CHARACTER'):
+        chars = {int(os.environ['HANDS_CHARACTER']): chars[int(os.environ['HANDS_CHARACTER'])]}
+    print(len(chars), 'characters with arms of their own:', sorted(chars))
+    # (the first character's arms are the models every character without arms of its own has)
+    for c in sorted(chars):
+        name, skin = chars[c]
+        bake_character(pak, mod, c, name, skin, names, work)
+    if 0 not in chars:
+        name, skin = character_files(pak)[0]
+        bake_character(pak, mod, 0, name, skin, names, work)
+    os.makedirs(mod, exist_ok=True)
+    open(os.path.join(mod, 'mod.ini'), 'w').write('enabled = true' + chr(10))
 
 
 main()

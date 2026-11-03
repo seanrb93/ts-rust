@@ -197,3 +197,46 @@ fn show(puppet: i32, number: i32, on: bool) {
     // (the flag 0x8000 of the model is what shows the arm: the fists set it for a swipe and take it off at rest)
     sh(inst + 292, if on { f | 0x8000 } else { f & 0x7fff });
 }
+
+/// The name of the first person model of a gun with the arms of the player's character on it, for a name of the file of a gun (`ob/gun2/gun2.raw`, with or without `host0:`): the
+/// same with `_c<number of the character>` before the extension (the files the hands mod makes for the characters that have arms of their own: `examples/first_person_hands_src`).
+/// None for another file.  The caller uses the file with this name when the packs have it and the original when they have not.
+pub fn arms_variant_name(name: i32) -> Option<i32> {
+    // ("ob/gun" and a number, "/gun", the same number and ".raw": not the guns of the characters)
+    let mut text = [0u8; 48];
+    for (i, b) in text.iter_mut().enumerate() {
+        *b = lbu(name + i as i32) as u8;
+        if *b == 0 {
+            break;
+        }
+    }
+    let end = text.iter().position(|&b| b == 0)?;
+    let s = std::str::from_utf8(&text[..end]).ok()?;
+    let s = s.strip_prefix("host0:").unwrap_or(s);
+    let rest = s.strip_prefix("ob/gun")?;
+    let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+    if digits.is_empty() || rest != format!("{digits}/gun{digits}.raw") {
+        return None;
+    }
+    let id = signonGet(0);
+    if id < 0 {
+        return None;
+    }
+    // (the test aid `TS_PLAYERCHR` sets the character later than the models are loaded: it is looked at here too)
+    let character = std::env::var("TS_PLAYERCHR").ok().and_then(|v| v.parse().ok()).unwrap_or_else(|| lw(lw(g::signonarray) + id * 2936 + 32 + 84));
+    if !(0..128).contains(&character) {
+        return None;
+    }
+    let prefix = if name_has_prefix(name) { "host0:" } else { "" };
+    let variant = format!("{prefix}ob/gun{digits}/gun{digits}_c{character:02}.raw");
+    let at = 0x240_0000 + 0x17_2a00;
+    for (i, b) in variant.bytes().enumerate() {
+        sb(at + i as i32, b as i32);
+    }
+    sb(at + variant.len() as i32, 0);
+    Some(at)
+}
+
+fn name_has_prefix(name: i32) -> bool {
+    (0..6).all(|i| lbu(name + i) as u8 == b"host0:"[i as usize])
+}
