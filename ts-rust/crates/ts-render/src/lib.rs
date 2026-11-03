@@ -469,6 +469,100 @@ fn blend_state(k: BlendKind) -> Option<wgpu::BlendState> {
     Some(wgpu::BlendState { color: rgb, alpha: comp(F::One, F::OneMinusSrcAlpha, O::Add) })
 }
 
+/// A line of text, an icon or a picture of a menu page (the pieces on one row, less than a word space apart): its box in the picture, and where its triangles are.
+struct UiGroup {
+    lo: f32,
+    hi: f32,
+    ylo: f32,
+    yhi: f32,
+    /// first vertex of the draw, and the number of vertices of a primitive
+    first: usize,
+    np: usize,
+    /// no texture: a bar or a band
+    bar: bool,
+    tris: Vec<usize>,
+}
+
+/// The size of the menus: each line grows about the edge of its column that the other lines of the page share (the left edge of a column of labels, the right
+/// edge of a column of values), about its centre when it shares none (as the game placed it), and about the left edge for the title of the page; a button
+/// icon in front of a centred label moves with the label's left edge, and bars and the logo in the corner keep their size.
+fn size_menu_groups(verts: &mut [GpuVertex], groups: &[UiGroup], f: f32, in_game: bool) {
+    let n = groups.len();
+    // (a line of text is drawn several times, with its outline and shadow moved a little: the copies are one line and are lined up the same way)
+    let mut line = vec![0usize; n];
+    let mut lines: Vec<(f32, f32, f32, f32)> = Vec::new();
+    for (a, g) in groups.iter().enumerate() {
+        let (c, cy) = ((g.lo + g.hi) * 0.5, (g.ylo + g.yhi) * 0.5);
+        match lines.iter().position(|l| (l.0 - g.lo).abs() <= 4.0 && (l.1 - g.hi).abs() <= 4.0 && (l.3 - cy).abs() <= 4.0 && (l.2 - c).abs() <= 4.0) {
+            Some(k) => line[a] = k,
+            None => {
+                line[a] = lines.len();
+                lines.push((g.lo, g.hi, c, cy));
+            }
+        }
+    }
+    // 0: left edge, 1: right edge, 2: centre
+    let mut kind = vec![2u8; lines.len()];
+    let mut peerless_line = vec![false; lines.len()];
+    for (k, &(lo, hi, c, cy)) in lines.iter().enumerate() {
+        let (mut l, mut r, mut m) = (0, 0, 0);
+        for (j, &(lo2, hi2, c2, cy2)) in lines.iter().enumerate() {
+            if j == k || (cy2 - cy).abs() < 2.0 {
+                continue;
+            }
+            l += ((lo2 - lo).abs() < 3.0) as i32;
+            r += ((hi2 - hi).abs() < 3.0) as i32;
+            m += ((c2 - c).abs() < 3.0) as i32;
+        }
+        // (the page's title sits at the left edge of its band: it keeps that edge)
+        let title = !in_game && cy < 40.0 && c < LOGICAL_W * 0.34;
+        kind[k] = if title || (l > m && l >= r) { 0 } else if r > m && r > l { 1 } else { 2 };
+        peerless_line[k] = l + r + m == 0;
+    }
+    let mut anchor = vec![0.0f32; n];
+    let mut centred = vec![false; n];
+    let mut peerless = vec![false; n];
+    let mut shift = vec![0.0f32; n];
+    for (a, g) in groups.iter().enumerate() {
+        let c = (g.lo + g.hi) * 0.5;
+        anchor[a] = match kind[line[a]] {
+            0 => g.lo,
+            1 => g.hi,
+            _ => c,
+        };
+        centred[a] = kind[line[a]] == 2;
+        peerless[a] = peerless_line[line[a]];
+        shift[a] = anchor[a] + (g.lo - anchor[a]) * f - g.lo;
+    }
+    if std::env::var_os("TS_UIDBG").is_some() {
+        for (a, g) in groups.iter().enumerate() {
+            eprintln!("[ui] {a} first {} np {} tris {} x {:.1}..{:.1} y {:.1}..{:.1} bar {} anchor {:.1} centred {} peerless {}", g.first, g.np, g.tris.len(), g.lo, g.hi, g.ylo, g.yhi, g.bar, anchor[a], centred[a], peerless[a]);
+        }
+    }
+    for (a, g) in groups.iter().enumerate() {
+        let cy = (g.ylo + g.yhi) * 0.5;
+        if (g.bar && g.hi - g.lo > 60.0) || (!in_game && cy < 40.0 && (g.lo + g.hi) * 0.5 > LOGICAL_W * 0.66) {
+            continue;
+        }
+        let (mut ax, mut dx) = (anchor[a], 0.0);
+        if peerless[a] && g.hi - g.lo < 16.0 && g.yhi - g.ylo < 16.0 {
+            let next = (0..n)
+                .filter(|&b| b != a && centred[b] && groups[b].lo >= g.hi - 0.5 && groups[b].lo - g.hi <= 30.0 && ((groups[b].ylo + groups[b].yhi) * 0.5 - cy).abs() < 6.0)
+                .min_by(|&x, &y| groups[x].lo.partial_cmp(&groups[y].lo).unwrap_or(std::cmp::Ordering::Equal));
+            if let Some(b) = next {
+                ax = (g.lo + g.hi) * 0.5;
+                dx = shift[b];
+            }
+        }
+        for &t in &g.tris {
+            for v in &mut verts[g.first + g.np * t..g.first + g.np * t + g.np] {
+                v.pos[0] = ax + (v.pos[0] - ax) * f + dx;
+                v.pos[1] = cy + (v.pos[1] - cy) * f;
+            }
+        }
+    }
+}
+
 impl Renderer {
     /// Create a renderer.  `surface` (if any) selects a compatible adapter.
     pub fn new(instance: &wgpu::Instance, surface: Option<&wgpu::Surface>, format: wgpu::TextureFormat) -> Renderer {
@@ -1278,6 +1372,7 @@ impl Renderer {
                     }
                 }
             }
+            let mut ui_pending: Vec<UiGroup> = Vec::new();
             for (i, d) in frame.draws.iter().enumerate() {
                 if menu_done[i] {
                     continue;
@@ -1593,8 +1688,9 @@ impl Renderer {
                             }
                         }
                     }
-                    // the menus: each line of text, icon or picture grows about its own centre (the layout of the page stays)
-                    if let (Some(f), None) = (ui_zoom, grow) {
+                    // the menus: each line of text, icon or picture grows about its own centre (the lines of the whole page are put
+                    // together after the draws, to find the columns they are lined up in)
+                    if ui_zoom.is_some() && grow.is_none() {
                         let mut order: Vec<(f32, f32, f32, f32, usize)> = members
                             .iter()
                             .map(|&t| {
@@ -1607,48 +1703,24 @@ impl Renderer {
                             })
                             .collect();
                         order.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
-                        // (xlo, xhi, ylo, yhi, members): the pieces on one row that are less than a word space apart
-                        let mut groups: Vec<(f32, f32, f32, f32, Vec<usize>)> = Vec::new();
+                        // the pieces on one row that are less than a word space apart
+                        let mut groups: Vec<UiGroup> = Vec::new();
                         for (lo, hi, ylo, yhi, t) in order {
-                            let same_row = |g: &(f32, f32, f32, f32, Vec<usize>)| {
-                                let overlap = g.3.min(yhi) - g.2.max(ylo);
-                                overlap > 0.5 * (g.3 - g.2).min(yhi - ylo).max(0.01) && lo <= g.1 + 20.0
+                            let same_row = |g: &UiGroup| {
+                                let o = g.yhi.min(yhi) - g.ylo.max(ylo);
+                                o > 0.5 * (g.yhi - g.ylo).min(yhi - ylo).max(0.01) && lo <= g.hi + 20.0
                             };
                             match groups.iter_mut().find(|g| same_row(g)) {
                                 Some(g) => {
-                                    g.1 = g.1.max(hi);
-                                    g.2 = g.2.min(ylo);
-                                    g.3 = g.3.max(yhi);
-                                    g.4.push(t);
+                                    g.hi = g.hi.max(hi);
+                                    g.ylo = g.ylo.min(ylo);
+                                    g.yhi = g.yhi.max(yhi);
+                                    g.tris.push(t);
                                 }
-                                None => groups.push((lo, hi, ylo, yhi, vec![t])),
+                                None => groups.push(UiGroup { lo, hi, ylo, yhi, first: d.first as usize, np, bar: st.tex.is_none(), tris: vec![t] }),
                             }
                         }
-                        for (lo, hi, ylo, yhi, ts) in groups {
-                            let (mut cx, cy) = ((lo + hi) * 0.5, (ylo + yhi) * 0.5);
-                            // (bars and bands without a picture stay as they are)
-                            if st.tex.is_none() && hi - lo > 60.0 {
-                                continue;
-                            }
-                            // (the page's title sits at the left edge of its band: it keeps that edge)
-                            if !frame.in_game && cy < 40.0 && cx < LOGICAL_W * 0.34 {
-                                cx = lo;
-                            }
-                            // (the values at the right of a page are lined up on their right edge)
-                            if !frame.in_game && cy >= 40.0 && cx > LOGICAL_W * 0.55 && cx < LOGICAL_W * 0.9 {
-                                cx = hi;
-                            }
-                            // (the logo in the corner keeps its size: its glow is a copy of the picture that is not scaled)
-                            if !frame.in_game && cy < 40.0 && cx > LOGICAL_W * 0.66 {
-                                continue;
-                            }
-                            for t in ts {
-                                for v in &mut r[np * t..np * t + np] {
-                                    v.pos[0] = cx + (v.pos[0] - cx) * f;
-                                    v.pos[1] = cy + (v.pos[1] - cy) * f;
-                                }
-                            }
-                        }
+                        ui_pending.extend(groups);
                     }
                 }
                 // an evenly spaced row of tall thin lines (the MapMaker grid) is repeated to the edges of the wider picture
@@ -1712,6 +1784,9 @@ impl Renderer {
                     let m = |x: f32| LOGICAL_W * 0.5 + (x - LOGICAL_W * 0.5) / k;
                     hud_scissor[i] = Some([m(sc[0] as f32).floor() as i32, sc[1], m(sc[2] as f32 + 1.0).ceil() as i32 - 1, sc[3]]);
                 }
+            }
+            if let Some(f) = ui_zoom {
+                size_menu_groups(&mut verts, &ui_pending, f, frame.in_game);
             }
         }
         let mut extra_vdraws: Vec<(usize, u32, u32, bool)> = Vec::new();
