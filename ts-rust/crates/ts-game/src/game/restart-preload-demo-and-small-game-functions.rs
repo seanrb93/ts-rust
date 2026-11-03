@@ -386,3 +386,46 @@ pub fn enemyAIMansionHandler1() {
         }
     }
 }
+
+/// A test aid for a list of textures (16 bytes each) that has no end: when the list is longer than the second pass has room for, write down where it is and what it starts and ends with (to
+/// `ts-rust-preload.txt`, once for each kind of list).  `end` is the first word that ends it (-1 for a model's list; for the level's, any negative number).
+pub fn preload_list_check(what: &str, name: i32, entry: i32, base: i32, list: i32, end: i32) {
+    use std::io::Write;
+    static DONE: [std::sync::atomic::AtomicBool; 2] = [std::sync::atomic::AtomicBool::new(false), std::sync::atomic::AtomicBool::new(false)];
+    let kind = (end != -1) as usize;
+    if DONE[kind].load(std::sync::atomic::Ordering::Relaxed) {
+        return;
+    }
+    let limit = preload_pass2_capacity();
+    let mut n = 0;
+    // (only inside the memory that is mapped)
+    if (list as u32) >= ts_rt::mem::RAM_SIZE.saturating_sub(16 * (limit as u32 + 2)) {
+        return;
+    }
+    while n <= limit {
+        let w = lw(list + 16 * n);
+        if (end == -1 && w == -1) || (end != -1 && w < 0) {
+            break;
+        }
+        n += 1;
+    }
+    if n <= limit {
+        return;
+    }
+    DONE[kind].store(true, std::sync::atomic::Ordering::Relaxed);
+    let words = |at: i32| -> Vec<i32> { (0..4).map(|k| lw(at + 4 * k)).collect() };
+    let line = format!(
+        "{what}: no end within {limit} entries; name/level {name:#x}, file entry {entry:#x} words {:?}, base {base:#x}, list {list:#x} first entries {:?} {:?} {:?}, counter {}, level {}
+",
+        (0..8).map(|k| lw(entry + 4 * k)).collect::<Vec<_>>(),
+        words(list),
+        words(list + 16),
+        words(list + 32),
+        lw(0x3afedc),
+        lw(g::lvlevelnum)
+    );
+    eprintln!("[preload] {line}");
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("ts-rust-preload.txt") {
+        let _ = f.write_all(line.as_bytes());
+    }
+}

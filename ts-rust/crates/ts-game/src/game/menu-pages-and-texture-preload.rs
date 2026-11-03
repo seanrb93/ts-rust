@@ -135,6 +135,7 @@ pub fn obPreloadTextures(name: i32) {
         let header = lw(base + 4) + base;
         if (lw(textures + 12) & 0x10000000) == 0 {
             let mut i = 0;
+            preload_list_check("the textures of a model", name, entry, base, textures, -1);
             if lw(textures) != -1 {
                 let mut at = textures;
                 loop {
@@ -168,6 +169,7 @@ pub fn bgPreloadTextures() {
         let textures = lw(base) + base;
         let first = lw(textures);
         sw(g::leveltextures, textures);
+        preload_list_check("the textures of the level", level, entry, base, textures, 0xffff_ffffu32 as i32);
         if first >= 0 {
             let mut at = textures;
             let mut i = 1;
