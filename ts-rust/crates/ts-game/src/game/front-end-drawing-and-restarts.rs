@@ -26,6 +26,8 @@ pub fn frontGfx() {
             if count > 0 {
                 loop {
                     let box_draw = lw(box_at + 12);
+                    #[cfg(feature = "extensions")]
+                    zone_note_box(box_at);
                     if box_draw != 0 {
                         call_indirect(box_draw, [box_at, front, 0, 0, 0, 0, 0, 0], [0.0; 8]);
                     }

@@ -14,7 +14,7 @@ const NONE: i64 = i64::MIN;
 static POINTER: AtomicI64 = AtomicI64::new(NONE);
 static OVER: AtomicU8 = AtomicU8::new(0);
 
-/// A place of the picture that can be clicked: its kind (`menu_pointer_over`'s numbers 4 to 10), its corners and, for the item of a menu, the item.
+/// A place of the picture that can be clicked: its kind (`menu_pointer_over`'s numbers 4 to 10, and 11 for the text of a box of a page, whose number is `item`), its corners and, for the item of a menu, the item.
 #[derive(Clone, Copy)]
 struct Zone {
     kind: u8,
@@ -44,11 +44,9 @@ pub fn menu_pointer_over() -> u8 {
 /// A page is about to be drawn: what was drawn before is what the pointer is compared with, and the drawing starts the list again.
 pub fn zones_begin() {
     let mut drawn = DRAWN.lock().unwrap();
-    if !drawn.is_empty() {
-        let mut shown = SHOWN.lock().unwrap();
-        shown.clear();
-        shown.extend(drawn.drain(..));
-    }
+    let mut shown = SHOWN.lock().unwrap();
+    shown.clear();
+    shown.extend(drawn.drain(..));
 }
 
 /// The game draws something that can be clicked (only while a page or a menu is up).
@@ -60,6 +58,25 @@ pub fn zone_note(kind: u8, x0: i32, y0: i32, x1: i32, y1: i32, item: i32) {
     if drawn.len() < 128 {
         drawn.push(Zone { kind, x0, y0, x1, y1, item });
     }
+}
+
+/// The box of a page is about to be drawn: the window that the page has now is where its items are, so the box is noted at its place on the screen (the page's
+/// window is not the same when the pointer is taken, at the start of the tick).
+pub fn zone_note_box(box_: i32) {
+    let (w, h, id, flags) = (lhu(box_ + 4) as i32, lhu(box_ + 6) as i32, lhu(box_ + 8) as i32, lhu(box_ + 10));
+    if w == 0 || h == 0 || flags & 1 != 0 {
+        return;
+    }
+    let (x, y) = (lw(g::window) + lhu(box_) as i32, lw(g::window + 20) + lhu(box_ + 2) as i32);
+    // (the prompts at the bottom are boxes too: Back has the number 0x8000, Select is the last box of the row)
+    let kind = if id == 0x8000 {
+        2
+    } else if id == 0 && y >= 200 {
+        3
+    } else {
+        11
+    };
+    zone_note(kind, x, y, x + w, y + h, id);
 }
 
 /// At the start of the tick of the front end or of the menu: take the pointer's new place.
@@ -78,15 +95,15 @@ pub fn menu_pointer_apply() {
     if let Some(z) = zone {
         match z.kind {
             4 | 5 if page != 0 => {
-                // (an arrow belongs to the row it is at)
-                let mut box_ = lw(page + 8);
-                for _ in 0..lw(page + 12) {
-                    if lhu(box_ + 10) & 1 == 0 && ((y - lhu(box_ + 2)) as u32) < lhu(box_ + 6) as u32 {
-                        sh(page + 4, lhu(box_ + 8));
-                        break;
-                    }
-                    box_ += 24;
+                // (an arrow belongs to the row of text it is level with)
+                let cy = (z.y0 + z.y1) / 2;
+                let row = SHOWN.lock().unwrap().iter().rev().find(|r| r.kind == 11 && cy >= r.y0 - 2 && cy < r.y1 + 2).copied();
+                if let Some(r) = row {
+                    sh(page + 4, r.item);
                 }
+            }
+            11 if page != 0 => {
+                sh(page + 4, z.item);
             }
             10 => {
                 let menu = lw(g::curmenu);
@@ -99,7 +116,7 @@ pub fn menu_pointer_apply() {
         if std::env::var_os("TS_BOXDBG").is_some() {
             eprintln!("[box] pointer {px},{py} zone {} x {}..{} y {}..{}", z.kind, z.x0, z.x1, z.y0, z.y1);
         }
-        OVER.store(z.kind, Ordering::Relaxed);
+        OVER.store(if z.kind == 11 { 1 } else { z.kind }, Ordering::Relaxed);
         return;
     }
     let mut hit = 0u8;
