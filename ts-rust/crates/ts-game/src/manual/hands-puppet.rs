@@ -168,21 +168,45 @@ pub fn hands_puppet_tick(a0: i32, a1: i32, mind: i32) {
     if keep_gun {
         return;
     }
-    if std::env::var_os("TS_FPATTACH").is_some() {
-        // the gun of the first person is held by the character's hand: it is attached to the bone of the right hand as the gun of a character is
+    if std::env::var_os("TS_FPALIGN").is_some() {
+        // the gun of the first person stays where the game puts it (in the view's own space) and the character is moved so that its hand is on the grip of the gun: where the hand
+        // is (the matrix of its bone, the character's place and turn, then the view) is worked out, and the character is moved by the difference to where the grip is
         let gun = lw(a0 + 12);
-        if gun != 0 && gun != puppet {
-            if lw(gun + 188) != puppet {
-                let bone = lw(lw(lw(puppet + 32) + 92) + 28);
-                propSetAttached(gun, lw(puppet + 32), bone, 1);
-                // (a prop of the kind of the guns of the characters is drawn with its holder's matrices, the kind of the first person gun is drawn in front of the view)
-                sw(gun + 8, 32);
-            }
-            sw(gun + 16, lw(gun + 16) | 0x40000000 | view_bit(number));
-            sw(gun + 12, gun_room(number));
-            if std::env::var_os("TS_HANDLOG").is_some() && lw(g::gameframe) % 60 == 0 {
-                eprintln!("[hands] gun prop {gun:#x} kind {} flags {:#x} room {} parent {:#x} bone {} pos ({:.2},{:.2},{:.2}) mtx {:#x}", lw(gun + 8), lw(gun + 16), lw(gun + 12), lw(gun + 188), lw(gun + 192), lwc1(gun + 48), lwc1(gun + 52), lwc1(gun + 56), lw(lw(gun + 32) + 4));
-            }
+        if gun == 0 || gun == puppet {
+            return;
+        }
+        let grip: Vec<f32> = std::env::var("TS_GRIP").map(|v| v.split(',').filter_map(|x| x.trim().parse().ok()).collect()).unwrap_or_default();
+        let grip = if grip.len() == 3 { [grip[0], grip[1], grip[2]] } else { [0.0, -0.04, -0.04] };
+        let bone = lw(lw(lw(puppet + 32) + 92) + 28);
+        let matrices = lw(lw(puppet + 32) + 4);
+        let model_hand = [lwc1(matrices + (bone << 6) + 48), lwc1(matrices + (bone << 6) + 52), lwc1(matrices + (bone << 6) + 56)];
+        let view = lw(player + 1772);
+        let place = |pos: [f32; 3]| -> [f32; 3] {
+            // (the character's own turn about its height, then its place, then the view)
+            swc1(SCRATCH + 64, model_hand[0]);
+            swc1(SCRATCH + 68, model_hand[1]);
+            swc1(SCRATCH + 72, model_hand[2]);
+            swc1(SCRATCH + 76, 1.0);
+            matrixTransRotY(SCRATCH + 128, pos[0], pos[1], pos[2], ps2float::mul(lwc1(puppet + 76), lwc1(0x3acd90)).pdiv(1.8e+02_f32));
+            matrixVecMulAligned(&[(SCRATCH + 128) as i64, (SCRATCH + 64) as i64]);
+            matrixVecMulAligned(&[view as i64, (SCRATCH + 64) as i64]);
+            [lwc1(SCRATCH + 64), lwc1(SCRATCH + 68), lwc1(SCRATCH + 72)]
+        };
+        let pos = [lwc1(puppet + 48), lwc1(puppet + 52), lwc1(puppet + 56)];
+        let hand = place(pos);
+        let flip = if std::env::var_os("TS_GRIPNOFLIP").is_some() { 1.0 } else { -1.0 };
+        let target = [lwc1(gun + 48) + flip * grip[0], lwc1(gun + 52) + grip[1], lwc1(gun + 56) + flip * grip[2]];
+        let d = [target[0] - hand[0], target[1] - hand[1], target[2] - hand[2]];
+        // (the difference in the view's axes, turned back to the world's: the view is a turn, so its transpose is its inverse)
+        let mut dw = [0.0f32; 3];
+        for r in 0..3 {
+            dw[r] = (0..3).map(|c| d[c] * lwc1(view + 16 * r as i32 + 4 * c as i32)).sum();
+        }
+        for k in 0..3 {
+            swc1(puppet + 48 + 4 * k as i32, pos[k] + dw[k]);
+        }
+        if std::env::var_os("TS_HANDLOG").is_some() && lw(g::gameframe) % 60 == 0 {
+            eprintln!("[hands] hand {:?} target {:?} moved {:?}", hand, target, dw);
         }
         return;
     }
