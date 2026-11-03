@@ -130,6 +130,8 @@ pub fn statistics_pageDraw(a0: i32) {
             let second = statsGetPlayer(player);
             let third = statsGetPlayer(player);
             StatsGetOverallLifestats(sp, first + 1616, second + 2012, third + 2408);
+            #[cfg(feature = "extensions")]
+            network_stats_add_to_overall(sp, player);
             stats = sp;
         }
     }

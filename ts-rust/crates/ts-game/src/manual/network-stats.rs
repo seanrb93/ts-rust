@@ -137,6 +137,11 @@ fn merge(dst: i32, src: i32) {
     }
 }
 
+/// The Network record of the player's profile is added to `dst`, the record that the page makes of the other three for Overall.
+pub fn network_stats_add_to_overall(dst: i32, player: i32) {
+    merge(dst, network_stats_for_page(player));
+}
+
 /// A network match is over: what the temporary profile `mine` made (its record of arcade games, which holds only this match) is added to the Network record of the profile
 /// `real` that was signed in.
 pub fn network_stats_add_match(real: i32, mine: i32) {
