@@ -49,8 +49,8 @@ WEAPONS = {
     'timed_mine': dict(file='ob/gun17/gun17.raw', part='part2', kind='one'),
     'weapon_17': dict(file='ob/gun18/gun18.raw', part='part0', kind='one'),
     'tnt': dict(file='ob/gun19/gun19.raw', part='part0', kind='one', grip=(-0.02, 0.08, 0.0)),
-    'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore=(0.01, -0.09, 0.33)),
-    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.05), fore=(0.01, -0.02, 0.3)),
+    'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore_abs=(0.06, 0.0, 0.3)),
+    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.05), fore_abs=(0.02, 0.04, 0.3)),
     'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two'),
     'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore=(0.01, -0.02, 0.3), fore_part='part2'),
     'brick': dict(file='ob/gun26/gun26.raw', part='part0', kind='one', grip=(0.0, -0.1, -0.12)),
@@ -103,6 +103,9 @@ def hands_for(spec, gun_obj):
 
 
 CHR_MATS = {}
+# the parts of the character that blend two joints (kind 1: a seam that has no joint of its own): their triangles are drawn between the joints of a pose, and in the rest pose of a model that has
+# them they are flat flaps, so they are left out
+SEAM_PARTS = set()
 
 
 def load_obj(path):
@@ -257,6 +260,8 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
             hand_faces = []
             first, middle = True, None
             for src in sources:
+                if int(src) in SEAM_PARTS:
+                    continue
                 used, uv_of = {}, {}
                 for f in chr_parts.get('part' + src, []):
                     for vi, ti in f:
@@ -277,6 +282,8 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                 nt += len(used)
                 last_mat = None
                 for fi, f in enumerate(chr_parts.get('part' + src, [])):
+                    if os.environ.get('HANDS_DROP_SLOTS') and (CHR_MATS.get('part' + src, [None] * (fi + 1))[fi] or '').split('_')[0].replace('slot', '') in os.environ['HANDS_DROP_SLOTS'].split(','):
+                        continue
                     # (each face has the texture of the slot the character's own model gives it: the sleeve and the skin are not one picture in every character)
                     mat = 'chr' + (CHR_MATS.get('part' + src, [None] * (fi + 1))[fi] or 'slot6').split('_')[0]
                     if mat != last_mat:
@@ -312,7 +319,8 @@ def character_files(pak):
         tab = struct.unpack_from('<I', f, 4)[0]
         cnt = struct.unpack_from('<I', f, tab)[0]
         bones = tab - cnt * 80
-        parts = [(f[bones + 80 * i], f[bones + 80 * i + 1]) for i in range(cnt)] if cnt > 20 else None
+        # (the kind of a part and its joint differ between the skeletons of the characters, the tree that the arms hang on does not: the parts they are made of are the same numbers)
+        parts = [tuple(f[bones + 80 * i + 2:bones + 80 * i + 6]) for i in range(cnt)] if cnt > 20 else None
         if parts is None:
             return None
         # (the texture the hand part uses: the slot of its first chunk, and the table of the file)
@@ -378,6 +386,22 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
     global CHR_UVS
     import obedit
     skin_numbers = character_texture_numbers(pak, chr_file)
+    import struct as _st
+    sys.path.insert(0, TOOLS)
+    import pakls as _pk
+    _d, _es = _pk.entries(pak)
+    _n, _o, _s = [e for e in _es if e[0] == chr_file][0]
+    _f = _d[_o:_o + _s]
+    _tab = _st.unpack_from('<I', _f, 4)[0]
+    _cnt = _st.unpack_from('<I', _f, _tab)[0]
+    SEAM_PARTS.clear()
+    import obdump as _ob
+    SEAM_PARTS.update(i for i in ARM_PARTS if _f[_tab - _cnt * 80 + 80 * i] == 1)
+    # (the pieces that are see-through, such as rags that hang from a sleeve, are drawn in a second pass that the model made here does not have: they would be white)
+    for i in ARM_PARTS:
+        see_through = _st.unpack_from('<I', _f, _tab - _cnt * 80 + 80 * i + 12)[0]
+        if _ob.ok(_f, see_through) and _ob.read_chunks(_f, see_through):
+            SEAM_PARTS.add(i)
     obj = os.path.join(work, 'character%02d.obj' % character)
     if os.environ.get('HANDS_STYLE', 'rest') == 'rest':
         subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, chr_file, '--obj', obj], stdout=subprocess.DEVNULL)
