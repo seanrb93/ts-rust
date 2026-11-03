@@ -35,11 +35,14 @@ pub mod harness;
 pub mod menu_mouse;
 #[path = "text-scale.rs"]
 pub mod text_scale;
+#[path = "network-stats.rs"]
+pub mod network_stats;
 #[path = "mode-presets.rs"]
 pub mod mode_presets;
 
 pub use arcadeopts::*;
 pub use text_scale::*;
+pub use network_stats::*;
 pub use menu_mouse::*;
 pub use bigpool::*;
 pub use customlevels::*;

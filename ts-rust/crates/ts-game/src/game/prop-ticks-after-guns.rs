@@ -114,6 +114,10 @@ pub fn statistics_pageDraw(a0: i32) {
                 stats = statsGetPlayer(player) + 2012;
             } else {
                 if kind != 3 {
+                    #[cfg(feature = "extensions")]
+                    if kind == 4 {
+                        stats = network_stats_for_page(player);
+                    }
                     break 'b1;
                 }
                 stats = statsGetPlayer(player) + 2408;
@@ -161,7 +165,8 @@ pub fn statistics_pageDraw(a0: i32) {
     let width = textWidth(name);
     sw(sp + 400, 570 - width);
     textPrint(lw(sp + 412), lw(sp + 416), name, colour);
-    statistics_pageDrawInfo(65, 570, colour, stats, kind, lw(sp + 408), player);
+    // (the Network record is shown as a player's: it has the hits of the guns)
+    statistics_pageDrawInfo(65, 570, colour, stats, if kind == 4 { 1 } else { kind }, lw(sp + 408), player);
 }
 
 /// The tick of the guns of the current player: the buttons change the gun combo (not while editing, dead or in the modes 6 and 7), the walk bob is worked out from the

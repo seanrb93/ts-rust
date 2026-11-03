@@ -33,6 +33,8 @@ pub fn frontTick() {
         frontMouseTick();
         #[cfg(feature = "extensions")]
         menu_pointer_apply();
+        #[cfg(feature = "extensions")]
+        network_stats_open_aid();
         count = lw(lw(g::front) + 20);
     }
     if count == 0 {

@@ -69,6 +69,8 @@ pub fn statistics_pageTick(a0: i32) {
     if in_range == 0 {
         sw(g::gv_statsplayer, 0);
     }
+    #[cfg(feature = "extensions")]
+    network_stats_page_tick();
     let menu = g::statistics_menu;
     sw(g::gv_statscat + 28, 570);
     sw(g::gv_statsplayer + 28, 570);

@@ -804,6 +804,10 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
     let save_dir = save_dir.unwrap_or_else(|| exe_dir().join("saves"));
     eprintln!("[port] save directory: {}", save_dir.display());
     ts_sdk::set_save_root(&save_dir);
+    #[cfg(feature = "extensions")]
+    ts_game::network_stats_init();
+    #[cfg(feature = "extensions")]
+    ts_game::network_stats_fake_aid();
 
     MAX.store(max_frames.unwrap_or(u64::MAX), std::sync::atomic::Ordering::Relaxed);
     ts_sdk::set_upload_hook(|u| {

@@ -530,6 +530,7 @@ pub fn netlink_start_match(level: &str, players: usize) {
 /// that follow the combined part (+1616 on) stay as they were.
 #[cfg(feature = "extensions")]
 fn netlink_keep_stats(real: i32, mine: i32) {
+    network_stats_add_match(real, mine);
     let (a, b) = (signonGet(0), signonGet(1));
     signonSet(0, real);
     signonSet(1, mine);
