@@ -1674,6 +1674,19 @@ pub fn preload_pass2_table() -> i32 {
     0x1fb7b40
 }
 
+/// How many records the table of the second preload pass holds.
+#[inline]
+pub fn preload_pass2_capacity() -> i32 {
+    #[cfg(feature = "extended-tables")]
+    {
+        8192
+    }
+    #[cfg(not(feature = "extended-tables"))]
+    {
+        1000
+    }
+}
+
 /// How many records the table of preload records holds.
 #[inline]
 pub fn preload_capacity() -> i32 {

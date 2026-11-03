@@ -13,7 +13,8 @@ pub fn preloadPass2Exec() {
             // 16 bytes from the table of the second pass, and reading a number that is not a texture's takes the game to an address that is not mapped)
             let table = preload_pass2_table();
             let own = record >= table && ((record - table) & 15) == 0 && ((record - table) >> 4) < lw(0x3afedc);
-            if !own || !(0..texnum_count()).contains(&number) {
+            // (a number may carry the flag of the top bit: the game's address of its place ignores it)
+            if !own || (number & 0x7fff_ffff) >= texnum_count() {
                 preload_note(record, own, seen);
                 if !own {
                     break;
@@ -27,6 +28,21 @@ pub fn preloadPass2Exec() {
                 break;
             }
         }
+    }
+}
+
+/// Write down that the second preload pass is full (once for each run of the program): the first record that did not fit.
+pub fn preload_overflow_note(a: i32, b: i32, c: i32) {
+    use std::io::Write;
+    static DONE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
+        return;
+    }
+    let line = format!("the second pass is full ({} records) in level {}: first record not kept: {a:#x} {b:#x} {c:#x}
+", preload_pass2_capacity(), lw(g::lvlevelnum));
+    eprintln!("[preload] {line}");
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open("ts-rust-preload.txt") {
+        let _ = f.write_all(line.as_bytes());
     }
 }
 
