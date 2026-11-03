@@ -45,6 +45,10 @@ pub fn guiDrawImage(image: i32, colour: i32, x: f32, y: f32) {
     let record = texture * 40 + lw(lw(g::thistexbuf) + 4);
     let height = lhu(record + 2);
     let width = lhu(record);
+    #[cfg(feature = "extensions")]
+    if image == 20 || image == 21 {
+        zone_note(if image == 20 { 4 } else { 5 }, x as i32 - 2, y as i32 - 2, x as i32 + width + 2, y as i32 + (height >> 1) + 2, 0);
+    }
     dlSelectTextureKick(texture);
     dlTextureRectangleFloat(0, 0, (width - 1) << 4, (height - 1) << 4, colour, x, y, ps2float::add(x, width as f32), ps2float::add(y, ps2float::mul(height as f32, 0.5)));
 }

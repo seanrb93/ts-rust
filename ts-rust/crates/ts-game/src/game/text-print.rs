@@ -37,6 +37,8 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
     sw(sp + 36, old_zb);
     dlSelectTextureKick(lw(lw(g::curfont) + 16));
     let mut ch = lbu(cursor);
+    // (the text after a button picture is what the button does: the mouse can click it)
+    let mut prompt: Option<(u8, i32, i32)> = None;
     let mut end_x_at = lw(sp + 16);
     if ch != 0 {
         loop {
@@ -167,6 +169,20 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
                     }
                 } else {
                     cursor += 1;
+                    #[cfg(feature = "extensions")]
+                    {
+                        let height = line_height;
+                        if let Some((kind, x0, y0)) = prompt.take() {
+                            zone_note(kind, x0, y0, x, y0 + height, 0);
+                        }
+                        prompt = match lbu(cursor) {
+                            49 => Some((8, x, y)),
+                            50 => Some((6, x, y)),
+                            51 => Some((7, x, y)),
+                            52 => Some((9, x, y)),
+                            _ => None,
+                        };
+                    }
                     let picture = lw(((lbu(cursor) - 49) << 2) + g::texnum_text_gfx);
                     let top = if lw(lw(g::curfont) + 12) < 13 { y } else { y + 2 };
                     let entry = picture * 40 + lw(lw(g::thistexbuf) + 4);
@@ -185,6 +201,10 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
                 }
                 cursor += 1;
             } else {
+                #[cfg(feature = "extensions")]
+                if let Some((kind, x0, y0)) = prompt.take() {
+                    zone_note(kind, x0, y0, x, y0 + line_height, 0);
+                }
                 cursor += 1;
                 x = lw(lw(sp + 16));
                 sw(sp + 28, lw(sp + 28) + sc(lw(lw(g::curfont) + 12) >> shift));
@@ -193,6 +213,10 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
             if ch == 0 {
                 break;
             }
+        }
+        #[cfg(feature = "extensions")]
+        if let Some((kind, x0, y0)) = prompt.take() {
+            zone_note(kind, x0, y0, x, y0 + line_height, 0);
         }
         end_x_at = lw(sp + 16);
     }

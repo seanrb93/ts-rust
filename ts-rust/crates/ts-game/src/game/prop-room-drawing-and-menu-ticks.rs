@@ -136,6 +136,8 @@ pub fn audiovideo_pageTick(a0: i32) {
 /// The tick of the current menu: the pad moves the focus (0x1000 up, 0x4000 down), the button 64 runs the focused item (a function, a sub menu or an end), and the button 2048
 /// ends the menu (@ 0x20ce18).
 pub fn menuTick() {
+    #[cfg(feature = "extensions")]
+    menu_pointer_apply();
     if lw(g::curmenu) != 0 {
         if (joyNewBut(lw(lw(g::currentplayer))) & 0x1000) != 0 {
             focusprev();

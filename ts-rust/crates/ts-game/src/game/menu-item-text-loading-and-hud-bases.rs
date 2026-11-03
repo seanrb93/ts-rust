@@ -42,6 +42,12 @@ pub fn menuitemGfx(item: i32) {
         0x557f557f
     };
     let text = menu_item_text(item);
+    #[cfg(feature = "extensions")]
+    {
+        let (x, y) = (lw(sp), lw(sp + 4));
+        let height = lw(lw(g::curfont) + 12) >> (lbu(g::fontflags) & 1);
+        zone_note(10, x, y, x + textWidth(text), y + height, item);
+    }
     textPrint(sp, sp | 4, text, colour);
 }
 

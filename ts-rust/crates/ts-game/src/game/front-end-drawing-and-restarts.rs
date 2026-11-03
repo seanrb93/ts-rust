@@ -6,6 +6,8 @@ use crate::*;
 /// page, then the draw function (+12) of each box (24 bytes each) and the definition's end function (+12); then, if the front end has a function at +40, call it with the box
 /// of the last page that is current (flag 1 at +12) or 0 (@ 0x22cd30).
 pub fn frontGfx() {
+    #[cfg(feature = "extensions")]
+    zones_begin();
     let mut front = lw(g::front);
     let mut i = 0;
     if lw(front + 20) > 0 {

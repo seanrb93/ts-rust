@@ -369,6 +369,8 @@ pub fn creditsSetQuad(record: i32, section_a: i32, section_b: i32, step: i32) {
 /// Draw the current menu: the cross hair of the player's cursor when it is set (+800), and then the box round the menu (its items measured with `menuitemCalcSize` to find the
 /// corners, the title text sized with `textSize`), with a double edge, the title and every item (`menuitemGfx`) (@ 0x20cff8).
 pub fn menuGfx() {
+    #[cfg(feature = "extensions")]
+    zones_begin();
     let frame = Frame::new(224);
     let sp = frame.sp();
     let player = lw(g::currentplayer);

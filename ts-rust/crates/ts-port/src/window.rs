@@ -620,8 +620,12 @@ impl ApplicationHandler for App {
                 #[cfg(feature = "extensions")]
                 if down && !live && focused && self.lobby.is_none() {
                     match (button, ts_game::menu_pointer_over()) {
-                        (MouseButton::Left, 1 | 3) => self.kbm.pulse(btn::CROSS),
-                        (MouseButton::Left, 2) | (MouseButton::Right, _) => self.kbm.pulse(btn::TRIANGLE),
+                        (MouseButton::Left, 1 | 3 | 6 | 10) => self.kbm.pulse(btn::CROSS),
+                        (MouseButton::Left, 2 | 7) | (MouseButton::Right, _) => self.kbm.pulse(btn::TRIANGLE),
+                        (MouseButton::Left, 4) => self.kbm.pulse(btn::LEFT),
+                        (MouseButton::Left, 5) => self.kbm.pulse(btn::RIGHT),
+                        (MouseButton::Left, 8) => self.kbm.pulse(btn::CIRCLE),
+                        (MouseButton::Left, 9) => self.kbm.pulse(btn::SQUARE),
                         // (the side buttons change the value of the row that is chosen)
                         (MouseButton::Back, _) => self.kbm.pulse(btn::LEFT),
                         (MouseButton::Forward, _) => self.kbm.pulse(btn::RIGHT),
