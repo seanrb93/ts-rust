@@ -39,6 +39,8 @@ pub mod text_scale;
 pub mod network_stats;
 #[path = "throw-lift.rs"]
 pub mod throw_lift;
+#[path = "hands-puppet.rs"]
+pub mod hands_puppet;
 #[path = "mode-presets.rs"]
 pub mod mode_presets;
 
@@ -46,6 +48,7 @@ pub use arcadeopts::*;
 pub use text_scale::*;
 pub use network_stats::*;
 pub use throw_lift::*;
+pub use hands_puppet::*;
 pub use menu_mouse::*;
 pub use bigpool::*;
 pub use customlevels::*;

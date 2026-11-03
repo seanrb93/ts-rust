@@ -95,6 +95,7 @@ pub fn dual_combo(_place: i32, combo: i32) -> i32 {
 
 /// A game starts (`gameReset`).
 pub fn dual_reset() {
+    hands_reset();
     own_clear_all();
     mm_clear(PUNCHES_AT);
     mm_clear(NEXT_PUNCH_AT);

@@ -519,6 +519,8 @@ pub fn gunUpdate(a0: i32, a1: i32) {
             }
         }
     }
+    #[cfg(feature = "extensions")]
+    hands_puppet_tick(a0, a1, s4_1);
 }
 
 /// What a state of the gun gives back: the gun prop to finish the update with, or that the update is over.
