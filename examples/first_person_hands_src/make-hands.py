@@ -80,7 +80,7 @@ def hands_for(spec, gun_obj):
         if spec['kind'] == 'two':
             # (the front hand is on the side of the gun that the view sees, the arm reaching in from the lower left: in the widescreen picture the grip and what is under the gun are off the screen)
             lo, hi = body_box(gun_obj, spec['fore_part'] if 'fore_part' in spec else spec['part'])
-            fore = (hi[0] + 0.03, spec['fore'][1] + 0.05, spec['fore'][2])
+            fore = (hi[0] - 0.03, spec['fore'][1] + 0.085, spec['fore'][2] + 0.06)
             hands = [h for h in hands]
             hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], (0, 0, 0), 1.0, fore, (0.6, -0.6, -0.5), 0))
         return hands
