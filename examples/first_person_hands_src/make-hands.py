@@ -33,7 +33,7 @@ WEAPONS = {
     'mauser': dict(file='ob/gun10/gun10.raw', part='part0', kind='one', grip=(-0.02, -0.11, 0.05)),
     'colt': dict(file='ob/gun24/gun24.raw', part='part0', kind='one', grip=(-0.03, -0.12, -0.04)),
     'uzi': dict(file='ob/gun22/gun22.raw', part='part0', kind='one', grip=(-0.02, -0.09, -0.04)),
-    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.02, -0.10, -0.05), fore=(-0.01, -0.02, 0.36)),
+    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.02, -0.10, -0.05), fore=(0.01, -0.035, 0.36)),
     'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(-0.02, -0.06, 0.0), fore=(0.01, -0.035, 0.27)),
     'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore=(0.01, -0.09, 0.33)),
     'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore=(0.01, -0.02, 0.3), fore_part='part2'),
@@ -74,6 +74,12 @@ def rotation_between(a, b):
 
 
 def hands_for(spec, gun_obj):
+    if os.environ.get('HANDS_STYLE', 'rest') == 'rest':
+        # (the hand of the character as its model has it, turned by hand to hold the gun: tidy, and the first version's look)
+        hands = [(spec['part'], ['20', '19'], spec.get('grip_rot', GRIP_ROT), 1.0, tuple(spec['grip']), None)]
+        if spec['kind'] == 'two':
+            hands.append((spec.get('fore_part', spec['part']), ['20', '19'], spec.get('fore_rot', FORE_ROT), 1.0, tuple(spec['fore']), None))
+        return hands
     """The hands of a weapon as (part, parts of the character, rotation, scale, place): the hand of the grip and, for a two handed gun, the hand under the front."""
     # (the arms are the character's own, in the pose of its animation for a gun held in both hands: the part 20 is the hand of the grip, 12 the hand under the front)
     hands = [(spec['part'], ['20', '19', '18', '17'], spec.get('grip_rot', (0, 0, 0)), 1.0, tuple(spec['grip']), spec.get('grip_from', GRIP_FROM), spec.get('grip_roll', 0))]
@@ -330,10 +336,13 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
     """The first person models of `names` with the arms of `character` on them: written as `gunN.raw` for the first character (the models every character shares), as `gunN_cNN.raw` for the others."""
     global CHR_UVS
     import obedit
-    two, rest = character_poses(pak, character)
-    env = dict(os.environ, REST_MATRICES=rest)
     obj = os.path.join(work, 'character%02d.obj' % character)
-    subprocess.check_call([sys.executable, os.path.join(HERE, 'pose-character.py'), pak, chr_file, two, obj], env=env, stdout=subprocess.DEVNULL)
+    if os.environ.get('HANDS_STYLE', 'rest') == 'rest':
+        subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, chr_file, '--obj', obj], stdout=subprocess.DEVNULL)
+    else:
+        two, rest = character_poses(pak, character)
+        env = dict(os.environ, REST_MATRICES=rest)
+        subprocess.check_call([sys.executable, os.path.join(HERE, 'pose-character.py'), pak, chr_file, two, obj], env=env, stdout=subprocess.DEVNULL)
     cv, cc, CHR_UVS, cp = load_obj(obj)
     d, es = pakls_entries(pak)
     for name in names:
