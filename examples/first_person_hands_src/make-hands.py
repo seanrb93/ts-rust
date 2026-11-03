@@ -29,16 +29,31 @@ GRIP_ROT = (-90, 0, 90)      # the hand of the grip: the palm is upright, the th
 FORE_ROT = (-90, 0, 180)     # the hand under the front: the palm up, under the gun, the fingers forward
 WEAPONS = {
     'pistol': dict(file='ob/gun1/gun1.raw', part='part3', kind='one', grip=(-0.022, -0.04, -0.04)),
+    'raygun': dict(file='ob/gun5/gun5.raw', part='part0', kind='one'),
     'scifi_handgun': dict(file='ob/gun8/gun8.raw', part='part0', kind='one', grip=(-0.02, -0.06, -0.06)),
     'mauser': dict(file='ob/gun10/gun10.raw', part='part0', kind='one', grip=(-0.02, -0.11, 0.05)),
     'colt': dict(file='ob/gun24/gun24.raw', part='part0', kind='one', grip=(-0.03, -0.12, -0.04)),
     'uzi': dict(file='ob/gun22/gun22.raw', part='part0', kind='one', grip=(-0.02, -0.09, -0.04)),
     'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.02, -0.10, -0.05), fore=(0.01, -0.035, 0.36)),
     'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(-0.02, -0.06, 0.0), fore=(0.01, -0.035, 0.27)),
-    'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore=(0.01, -0.09, 0.33)),
-    'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore=(0.01, -0.02, 0.3), fore_part='part2'),
-    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.05), fore=(0.01, -0.02, 0.3)),
+    'sniper_rifle': dict(file='ob/gun4/gun4.raw', part='part0', kind='two'),
+    'raygun_carbine': dict(file='ob/gun6/gun6.raw', part='part0', kind='two'),
+    'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two'),
+    'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two'),
     'minigun': dict(file='ob/gun11/gun11.raw', part='part0', kind='two', grip=(-0.02, -0.04, 0.08), fore=(0.01, -0.02, 0.3)),
+    'grenade_launcher': dict(file='ob/gun12/gun12.raw', part='part0', kind='two'),
+    'scifi_sniper_rifle': dict(file='ob/gun13/gun13.raw', part='part0', kind='two'),
+    'weapon_13': dict(file='ob/gun14/gun14.raw', part='part0', kind='two'),
+    'proximity_mine': dict(file='ob/gun15/gun15.raw', part='part1', kind='one'),
+    'remote_mine': dict(file='ob/gun16/gun16.raw', part='part0', kind='one'),
+    'timed_mine': dict(file='ob/gun17/gun17.raw', part='part2', kind='one'),
+    'weapon_17': dict(file='ob/gun18/gun18.raw', part='part0', kind='one'),
+    'tnt': dict(file='ob/gun19/gun19.raw', part='part0', kind='one', grip=(-0.02, 0.08, 0.0)),
+    'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore=(0.01, -0.09, 0.33)),
+    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.05), fore=(0.01, -0.02, 0.3)),
+    'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two'),
+    'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore=(0.01, -0.02, 0.3), fore_part='part2'),
+    'brick': dict(file='ob/gun26/gun26.raw', part='part0', kind='one', grip=(0.0, -0.1, -0.12)),
 }
 
 
@@ -74,6 +89,13 @@ def rotation_between(a, b):
 
 
 def hands_for(spec, gun_obj):
+    if 'grip' not in spec or ('fore' not in spec and spec['kind'] == 'two'):
+        # (a gun that has no places of its own: they come from the box of its body: the grip at the back and low, the front hand under the middle of the front half)
+        lo, hi = body_box(gun_obj, spec['part'])
+        size = hi - lo
+        spec = dict(spec)
+        spec.setdefault('grip', (-0.02, lo[1] + (0.09 if spec['kind'] == 'one' else 0.1), lo[2] + 0.25 * size[2]))
+        spec.setdefault('fore', (0.01, (lo[1] + hi[1]) / 2 - 0.03, lo[2] + 0.75 * size[2]))
     if os.environ.get('HANDS_STYLE', 'rest') == 'rest':
         # (the hand of the character as its model has it, turned by hand to hold the gun: tidy, and the first version's look)
         hands = [(spec['part'], ['20', '19'], spec.get('grip_rot', GRIP_ROT), 1.0, tuple(spec['grip']), None)]
