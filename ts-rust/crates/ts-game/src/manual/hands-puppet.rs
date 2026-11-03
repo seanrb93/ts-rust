@@ -7,7 +7,7 @@
 
 use crate::*;
 use std::sync::atomic::{AtomicI32, Ordering};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 /// The puppets of the players 0 to 3 (0: none yet).
 static PUPPETS: [AtomicI32; 4] = [AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0)];
@@ -28,6 +28,20 @@ fn animation() -> Option<i32> {
 
 /// At the end of the update of a gun (`gunUpdate`, the gun slot `a0` of the hand `a1`, `mind` the player's record): keep the puppet of the player's right hand.
 pub fn hands_puppet_tick(a0: i32, a1: i32, mind: i32) {
+    // (an experiment: the player's own body, which holds the gun in the hands of the character, is seen from the eyes, and the gun of the first person is hidden)
+    if std::env::var_os("TS_FULLBODY").is_some() {
+        let player = lw(g::currentplayer);
+        let number = lw(player);
+        if (0..4).contains(&number) && lw(a0) != 0 && (lw(a0) as u32) < 20 {
+            let body = lw(player + 384);
+            sw(body + 16, lw(body + 16) | view_bit(number));
+            let gun = lw(a0 + 12);
+            if gun != 0 && a1 == 0 {
+                sw(gun + 16, lw(gun + 16) & !view_bit(number));
+            }
+        }
+        return;
+    }
     let Some(anim) = animation() else { return };
     // (only when a gun is held: the state of a gun below 20 and not 0, which is the arm of the fists)
     let state = lw(a0);
@@ -90,10 +104,82 @@ pub fn hands_puppet_tick(a0: i32, a1: i32, mind: i32) {
     swc1(puppet + 48, lwc1(data + 140) + lwc1(SCRATCH + 64));
     swc1(puppet + 52, lwc1(data + 156) - lwc1(data + 104) + lwc1(SCRATCH + 68));
     swc1(puppet + 56, lwc1(data + 148) + lwc1(SCRATCH + 72));
+    // the character holds the gun of the player as the characters of the game do (`gunChrUpdate`): the model of the gun in the hand, from the combination the player has
+    if std::env::var_os("TS_HANDGUN").is_some() {
+        sw(puppet_mind + 260, lw(mind + 260));
+        gunChrUpdate(puppet, 0);
+        let held = lw(puppet_mind + 376 + 64);
+        if held != 0 {
+            sw(held + 16, lw(held + 16) | 0x40000000 | view_bit(number));
+            sw(held + 12, gun_room(number));
+        }
+        // (and the gun of the first person is not shown)
+        let fp = lw(a0 + 12);
+        if fp != 0 && fp != puppet {
+            sw(fp + 16, lw(fp + 16) & !view_bit(number));
+        }
+    }
     let inst = lw(puppet + 32);
     // (the flag 0x8000 of the model is what shows the arm: the fists set it for a swipe and take it off at rest)
     sh(inst + 292, lhu(inst + 292) | 0x8000);
     if curAnim(puppet, anim) == 0 {
         obInstSetAnim(inst, anim, 1.0);
     }
+}
+
+/// The parts of the player's own body that are not drawn when it is seen from the eyes (`TS_FULLBODY`; `TS_HIDEPARTS=22,21` to name others): the head, which the eyes are in.
+pub fn fullbody_hides_part(owner: i32, part: i32) -> bool {
+    static ON: OnceLock<Option<Vec<i32>>> = OnceLock::new();
+    let hidden = ON.get_or_init(|| {
+        std::env::var_os("TS_FULLBODY")?;
+        Some(std::env::var("TS_HIDEPARTS").map(|v| v.split(',').filter_map(|x| x.trim().parse().ok()).collect()).unwrap_or_else(|_| vec![22]))
+    });
+    let Some(list) = hidden else { return false };
+    let player = lw(g::currentplayer);
+    owner != 0 && owner == lw(player + 384) && list.contains(&part)
+}
+
+/// The player's own body is drawn moved by `TS_BODYOFF=<x>,<y>,<z>` (in the view's own axes) so that the arms and the gun it holds are in the view (`sign` 1 moves it, -1 puts it back).
+pub fn fullbody_shift(inst: i32, sign: f32) -> bool {
+    static OFF: OnceLock<Option<[f32; 3]>> = OnceLock::new();
+    let Some(off) = *OFF.get_or_init(|| {
+        std::env::var_os("TS_FULLBODY")?;
+        let v: Vec<f32> = std::env::var("TS_BODYOFF").ok()?.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+        (v.len() == 3).then(|| [v[0], v[1], v[2]])
+    }) else {
+        return false;
+    };
+    let player = lw(g::currentplayer);
+    let owner = lw(inst + 244);
+    if owner == 0 || owner != lw(player + 384) {
+        return false;
+    }
+    let matrices = match lw(player) {
+        1 => lw(inst + 12),
+        2 => lw(inst + 16),
+        3 => lw(inst + 20),
+        _ => lw(inst + 8),
+    };
+    if matrices == 0 {
+        return false;
+    }
+    // (the display list names the matrices and is run later: they are moved and left moved; they are made again for each picture, so a matrix that is already where it was moved to is left)
+    static DONE: Mutex<Vec<(i32, [f32; 3])>> = Mutex::new(Vec::new());
+    let now = [lwc1(matrices + 48), lwc1(matrices + 52), lwc1(matrices + 56)];
+    let mut done = DONE.lock().unwrap();
+    if let Some(e) = done.iter_mut().find(|e| e.0 == matrices) {
+        if (0..3).all(|k| (e.1[k] - now[k]).abs() < 1e-6) {
+            return true;
+        }
+        e.1 = [now[0] + off[0], now[1] + off[1], now[2] + off[2]];
+    } else {
+        done.push((matrices, [now[0] + off[0], now[1] + off[1], now[2] + off[2]]));
+    }
+    for joint in 0..40 {
+        let m = matrices + (joint << 6);
+        for k in 0..3 {
+            swc1(m + 48 + 4 * k, lwc1(m + 48 + 4 * k) + off[k as usize]);
+        }
+    }
+    true
 }
