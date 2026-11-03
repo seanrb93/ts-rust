@@ -168,10 +168,31 @@ pub fn hands_puppet_tick(a0: i32, a1: i32, mind: i32) {
     if keep_gun {
         return;
     }
+    if std::env::var_os("TS_FPATTACH").is_some() {
+        // the gun of the first person is held by the character's hand: it is attached to the bone of the right hand as the gun of a character is
+        let gun = lw(a0 + 12);
+        if gun != 0 && gun != puppet {
+            if lw(gun + 188) != puppet {
+                let bone = lw(lw(lw(puppet + 32) + 92) + 28);
+                propSetAttached(gun, lw(puppet + 32), bone, 1);
+                // (a prop of the kind of the guns of the characters is drawn with its holder's matrices, the kind of the first person gun is drawn in front of the view)
+                sw(gun + 8, 32);
+            }
+            sw(gun + 16, lw(gun + 16) | 0x40000000 | view_bit(number));
+            sw(gun + 12, gun_room(number));
+            if std::env::var_os("TS_HANDLOG").is_some() && lw(g::gameframe) % 60 == 0 {
+                eprintln!("[hands] gun prop {gun:#x} kind {} flags {:#x} room {} parent {:#x} bone {} pos ({:.2},{:.2},{:.2}) mtx {:#x}", lw(gun + 8), lw(gun + 16), lw(gun + 12), lw(gun + 188), lw(gun + 192), lwc1(gun + 48), lwc1(gun + 52), lwc1(gun + 56), lw(lw(gun + 32) + 4));
+            }
+        }
+        return;
+    }
     // the character holds the gun of the player (`gunChrUpdate`: the model of the gun, in the hand)
     sw(puppet_mind + 260, lw(mind + 260));
     gunChrUpdate(puppet, 0);
     let held = lw(puppet_mind + 376 + 64);
+    if held != 0 && std::env::var_os("TS_HANDLOG").is_some() && lw(g::gameframe) % 60 == 0 {
+        eprintln!("[hands] held prop {held:#x} kind {} flags {:#x} parent {:#x}", lw(held + 8), lw(held + 16), lw(held + 188));
+    }
     if held != 0 {
         sw(held + 16, lw(held + 16) | 0x40000000 | view_bit(number));
         sw(held + 12, gun_room(number));
