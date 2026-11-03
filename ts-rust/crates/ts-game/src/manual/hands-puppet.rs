@@ -21,6 +21,10 @@ pub fn set_first_person_arms(on: bool) {
     ENABLED.store(on, Ordering::Relaxed);
 }
 
+/// The first person gun that the character of each player holds (0: none).
+static GUNS_HELD: [AtomicI32; 4] = [AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0)];
+/// The gun (number in the table) that each player's character holds.
+static GRIPS: [AtomicI32; 4] = [AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0)];
 /// The characters (puppets) of the players 0 to 3 (0: none yet).
 static PUPPETS: [AtomicI32; 4] = [AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0)];
 /// Scratch space for the matrix of the heading and the place.
@@ -40,16 +44,33 @@ struct Pose {
     place: [f32; 3],
 }
 
-const TWO_HANDED: Pose = Pose { anim: 478, yaw: 0.0, place: [0.3, 0.3, 0.8] };
-const ONE_HANDED: Pose = Pose { anim: 36, yaw: -165.0, place: [0.35, 0.35, 0.9] };
+/// The pose every gun is held in: the character's own animation for a gun held in both hands, the place of the character (across, up, forward of the view; the hand that holds the gun
+/// is the one that is seen) and the angles (degrees, in the view's space) that the gun of the first person is turned to.
+const HELD: Pose = Pose { anim: 478, yaw: 0.0, place: [0.7, 0.5, 0.5] };
+const GUN_ANGLES: [f32; 3] = [-5.0, 155.0, -10.0];
 
-/// The pose of a gun (a number of the table of guns); None for the guns that keep their own view (mines, TNT, the brick, the unnamed ones).
+/// The grip of a gun, in the gun's own space: the point that is put in the hand.  None for the guns that keep their own view (mines, TNT, the brick, the unnamed ones).
+fn grip_of(gun: i32) -> Option<[f32; 3]> {
+    Some(match gun {
+        0 => [-0.022, -0.04, -0.04],
+        7 => [-0.02, -0.06, -0.06],
+        9 => [-0.02, -0.11, 0.05],
+        23 => [-0.03, -0.12, -0.04],
+        21 => [-0.02, -0.09, -0.04],
+        1 => [-0.02, -0.10, -0.05],
+        2 => [-0.02, -0.06, 0.0],
+        19 => [-0.02, -0.08, -0.06],
+        24 => [-0.02, -0.04, -0.03],
+        20 => [-0.02, -0.08, -0.05],
+        10 => [-0.02, -0.04, 0.08],
+        3 | 4 | 5 | 6 | 8 | 11 | 12 | 22 => [-0.02, -0.08, -0.03],
+        _ => return None,
+    })
+}
+
+/// The pose of a gun (a number of the table of guns).
 fn pose_of(gun: i32) -> Option<&'static Pose> {
-    match gun {
-        0 | 4 | 7 | 9 | 21 | 23 => Some(&ONE_HANDED),
-        1 | 2 | 3 | 5 | 6 | 8 | 10 | 11 | 12 | 19 | 20 | 22 | 24 => Some(&TWO_HANDED),
-        _ => None,
-    }
+    grip_of(gun).map(|_| &HELD)
 }
 
 fn env_number(name: &str) -> Option<f32> {
@@ -168,46 +189,11 @@ pub fn hands_puppet_tick(a0: i32, a1: i32, mind: i32) {
     if keep_gun {
         return;
     }
-    if std::env::var_os("TS_FPALIGN").is_some() {
-        // the gun of the first person stays where the game puts it (in the view's own space) and the character is moved so that its hand is on the grip of the gun: where the hand
-        // is (the matrix of its bone, the character's place and turn, then the view) is worked out, and the character is moved by the difference to where the grip is
+    if std::env::var_os("TS_GPA").is_none() {
+        // the gun of the first person is held by the hand of the character: its matrices are made again after the game made them (`hands_gun_matrices`)
         let gun = lw(a0 + 12);
-        if gun == 0 || gun == puppet {
-            return;
-        }
-        let grip: Vec<f32> = std::env::var("TS_GRIP").map(|v| v.split(',').filter_map(|x| x.trim().parse().ok()).collect()).unwrap_or_default();
-        let grip = if grip.len() == 3 { [grip[0], grip[1], grip[2]] } else { [0.0, -0.04, -0.04] };
-        let bone = lw(lw(lw(puppet + 32) + 92) + 28);
-        let matrices = lw(lw(puppet + 32) + 4);
-        let model_hand = [lwc1(matrices + (bone << 6) + 48), lwc1(matrices + (bone << 6) + 52), lwc1(matrices + (bone << 6) + 56)];
-        let view = lw(player + 1772);
-        let place = |pos: [f32; 3]| -> [f32; 3] {
-            // (the character's own turn about its height, then its place, then the view)
-            swc1(SCRATCH + 64, model_hand[0]);
-            swc1(SCRATCH + 68, model_hand[1]);
-            swc1(SCRATCH + 72, model_hand[2]);
-            swc1(SCRATCH + 76, 1.0);
-            matrixTransRotY(SCRATCH + 128, pos[0], pos[1], pos[2], ps2float::mul(lwc1(puppet + 76), lwc1(0x3acd90)).pdiv(1.8e+02_f32));
-            matrixVecMulAligned(&[(SCRATCH + 128) as i64, (SCRATCH + 64) as i64]);
-            matrixVecMulAligned(&[view as i64, (SCRATCH + 64) as i64]);
-            [lwc1(SCRATCH + 64), lwc1(SCRATCH + 68), lwc1(SCRATCH + 72)]
-        };
-        let pos = [lwc1(puppet + 48), lwc1(puppet + 52), lwc1(puppet + 56)];
-        let hand = place(pos);
-        let flip = if std::env::var_os("TS_GRIPNOFLIP").is_some() { 1.0 } else { -1.0 };
-        let target = [lwc1(gun + 48) + flip * grip[0], lwc1(gun + 52) + grip[1], lwc1(gun + 56) + flip * grip[2]];
-        let d = [target[0] - hand[0], target[1] - hand[1], target[2] - hand[2]];
-        // (the difference in the view's axes, turned back to the world's: the view is a turn, so its transpose is its inverse)
-        let mut dw = [0.0f32; 3];
-        for r in 0..3 {
-            dw[r] = (0..3).map(|c| d[c] * lwc1(view + 16 * r as i32 + 4 * c as i32)).sum();
-        }
-        for k in 0..3 {
-            swc1(puppet + 48 + 4 * k as i32, pos[k] + dw[k]);
-        }
-        if std::env::var_os("TS_HANDLOG").is_some() && lw(g::gameframe) % 60 == 0 {
-            eprintln!("[hands] hand {:?} target {:?} moved {:?}", hand, target, dw);
-        }
+        GUNS_HELD[number as usize].store(if gun != puppet { gun } else { 0 }, Ordering::Relaxed);
+        GRIPS[number as usize].store(right, Ordering::Relaxed);
         return;
     }
     // the character holds the gun of the player (`gunChrUpdate`: the model of the gun, in the hand)
@@ -284,4 +270,52 @@ pub fn arms_variant_name(name: i32) -> Option<i32> {
 
 fn name_has_prefix(name: i32) -> bool {
     (0..6).all(|i| lbu(name + i) as u8 == b"host0:"[i as usize])
+}
+
+fn env_list(name: &str, n: usize) -> Option<Vec<f32>> {
+    let v: Vec<f32> = std::env::var(name).ok()?.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+    (v.len() == n).then_some(v)
+}
+
+/// After `animMtxTick`: the matrices of the first person gun that a character holds are the matrices of the character's hand bone (made for the same view) times a turn and a place
+/// that put the grip of the gun in the hand, times the gun's own bone matrices.  `TS_GUNROT=<a>,<b>,<c>` (degrees), `TS_GUNPOS=<x>,<y>,<z>` and `TS_GRIP=<x>,<y>,<z>` (the grip, in the gun's own space) set them.
+pub fn hands_gun_matrices() {
+    for n in 0..4usize {
+        let gun = GUNS_HELD[n].load(Ordering::Relaxed);
+        let puppet = PUPPETS[n].load(Ordering::Relaxed);
+        if gun == 0 || puppet == 0 {
+            continue;
+        }
+        let (pi, gi) = (lw(puppet + 32), lw(gun + 32));
+        let parent_list = lw(pi + 8 + 4 * n as i32);
+        let gun_list = lw(gi + 8 + 4 * n as i32);
+        if parent_list == 0 || gun_list == 0 || lw(gi + 4) == 0 {
+            continue;
+        }
+        let bone = lw(lw(pi + 92) + 28);
+        let rot = env_list("TS_GUNROT", 3).unwrap_or(vec![0.0, 0.0, 0.0]);
+        let pos = env_list("TS_GUNPOS", 3).unwrap_or(vec![0.0, 0.0, 0.0]);
+        let grip = env_list("TS_GRIP", 3).unwrap_or_else(|| grip_of(GRIPS[n].load(Ordering::Relaxed)).map(|g| g.to_vec()).unwrap_or(vec![0.0, 0.0, 0.0]));
+        let radians = lwc1(0x3acd94);
+        let angle = |d: f32| ps2float::mul(d, radians).pdiv(1.8e+02_f32);
+        // (the matrices are made in the scratch space: the turn and place, the grip taken out of the hand, the hand's matrix, then each bone of the gun)
+        let f = SCRATCH + 256;
+        let g = SCRATCH + 320;
+        let h = SCRATCH + 384;
+        matrixTransRotZXY(f, pos[0], pos[1], pos[2], angle(rot[0]), angle(rot[1]), angle(rot[2]));
+        matrixTrans(g, -grip[0], -grip[1], -grip[2]);
+        sceVu0MulMatrix(f, f, g);
+        sceVu0MulMatrix(h, parent_list + (bone << 6), f);
+        {
+            let e = env_list("TS_GUNEULER", 3).unwrap_or(GUN_ANGLES.to_vec());
+            // the gun turned as the view's own gun is (angles in the view's space, the place of the hand only): the way the hand is turned does not matter
+            let m = parent_list + (bone << 6);
+            matrixTransRotZXY(f, lwc1(m + 48) + pos[0], lwc1(m + 52) + pos[1], lwc1(m + 56) + pos[2], angle(e[0]), angle(e[1]), angle(e[2]));
+            sceVu0MulMatrix(h, f, g);
+        }
+        let bones = lw(lw(gi) + 4);
+        for b in 0..bones {
+            sceVu0MulMatrix(gun_list + (b << 6), h, lw(gi + 4) + (b << 6));
+        }
+    }
 }

@@ -476,6 +476,8 @@ pub fn lvTickAfter() {
     if (level as u32) >= 5 {
         bgTick();
         animMtxTick();
+        #[cfg(feature = "extensions")]
+        hands_gun_matrices();
         roomlightTick();
         propTickAfter();
         chrgunTick();

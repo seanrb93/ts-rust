@@ -156,6 +156,7 @@ impl ts_game::AvOptions for PortAv {
         vec![
             ts_game::AvRow { label: "Debug Menu".into(), values: onoff(), index: c.debug_menu as usize },
             ts_game::AvRow { label: "FPS Counter".into(), values: onoff(), index: c.show_fps as usize },
+            ts_game::AvRow { label: "Character Arms".into(), values: onoff(), index: c.first_person_arms as usize },
         ]
     }
 
@@ -294,6 +295,11 @@ impl ts_game::AvOptions for PortAv {
             match row {
                 0 => c.debug_menu = index != 0,
                 1 => c.show_fps = index != 0,
+                2 => {
+                    c.first_person_arms = index != 0;
+                    #[cfg(feature = "extensions")]
+                    ts_game::set_first_person_arms(index != 0);
+                }
                 _ => {}
             }
         });
