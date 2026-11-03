@@ -31,6 +31,8 @@ static SHOTS: Mutex<Vec<(u64, String)>> = Mutex::new(Vec::new());
 pub(crate) static MARK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 /// Scripted pad input for headless testing: (first frame, frame count, buttons, sticks [rx, ry, lx, ly]).
 static PAD_SCRIPT: Mutex<Vec<(u64, u64, u16, [u8; 4], usize)>> = Mutex::new(Vec::new());
+/// Scripted pointer for headless testing of the menus' mouse: (frame, x, y) in the front end's picture of 640 by 224.
+static POINT_SCRIPT: Mutex<Vec<(u64, i32, i32)>> = Mutex::new(Vec::new());
 /// Test clock (`TS_TICKCLOCK=1`): while a level is running the "frame" numbers of `--press`, `--screenshot`, `--profile` and
 /// `--frames` count game ticks (starting at 1000000), so that runs at different frame rates line up.
 static CLOCK: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -661,6 +663,14 @@ fn main() {
                 }
                 window::SCRIPTED.store(true, std::sync::atomic::Ordering::Relaxed);
             }
+            // --point FRAME:X:Y: the mouse pointer is at that place of the picture (640 by 224) from that frame (a test of the menus' mouse)
+            "--point" => {
+                let spec = it.next().unwrap_or_default();
+                let v: Vec<i64> = spec.split(':').filter_map(|x| x.parse().ok()).collect();
+                if let [at, x, y] = v[..] {
+                    POINT_SCRIPT.lock().unwrap().push((at as u64, x as i32, y as i32));
+                }
+            }
             "--save-dir" => save_dir = it.next().map(Into::into),
             "--wav" => {
                 if let Some(p) = it.next() {
@@ -839,6 +849,12 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
             if clk >= b && STARTED.load(std::sync::atomic::Ordering::Relaxed) && PROFILE_END.swap(0, std::sync::atomic::Ordering::Relaxed) != 0 {
                 ts_rt::calltrace::profile(false);
                 ts_rt::calltrace::profile_dump(3000);
+            }
+        }
+        #[cfg(feature = "extensions")]
+        for &(at, x, y) in POINT_SCRIPT.lock().unwrap().iter() {
+            if clk == at {
+                ts_game::menu_pointer_set(x, y);
             }
         }
         {

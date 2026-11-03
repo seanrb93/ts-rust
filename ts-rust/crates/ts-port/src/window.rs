@@ -199,6 +199,23 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
     }
 }
 
+/// A point of the window (in pixels) as a point of the picture of 640 by 224 that the front end lays its pages out in: the picture fills the largest
+/// rectangle of the chosen aspect ratio in the middle of the window, and in a wider picture the menus keep their proportions in the middle of it.  None
+/// outside the picture.
+#[cfg(feature = "extensions")]
+fn pointer_in_picture(px: f32, py: f32, ww: f32, wh: f32) -> Option<(i32, i32)> {
+    let cfg = crate::config::get();
+    let aspect = cfg.aspect.unwrap_or(ww / wh).max(0.1);
+    let pw = ww.min(wh * aspect);
+    let ph = pw / aspect;
+    let (nx, ny) = ((px - (ww - pw) * 0.5) / pw, (py - (wh - ph) * 0.5) / ph);
+    if !(0.0..=1.0).contains(&nx) || !(0.0..=1.0).contains(&ny) {
+        return None;
+    }
+    let k = if cfg.hud == ts_render::HudMode::Stretch { 1.0 } else { (aspect / (4.0 / 3.0)).max(1.0) };
+    Some(((320.0 + (nx * 640.0 - 320.0) * k) as i32, (ny * 224.0) as i32))
+}
+
 /// The keyboard and the mouse as a DualShock 2 (port 0).  The buttons are those of the game's own default set-up: fire R2, alternate
 /// fire R1, aim L2, crouch L1, activate cross, manual reload triangle, zoom and weapon change on the directional buttons.
 struct KbMouse {
@@ -597,8 +614,20 @@ impl ApplicationHandler for App {
             WindowEvent::MouseInput { state, button, .. } => {
                 use winit::event::MouseButton;
                 let down = state == ElementState::Pressed;
-                // (only a level takes the mouse's buttons: in the menus a click does nothing)
-                let live = ts_game::mouse_look_active() && self.window.as_ref().map_or(false, |w| w.has_focus());
+                let focused = self.window.as_ref().map_or(false, |w| w.has_focus());
+                let live = ts_game::mouse_look_active() && focused;
+                // (in the menus a click on an item is the X button, a click of the right button is the triangle)
+                #[cfg(feature = "extensions")]
+                if down && !live && focused && self.lobby.is_none() {
+                    match (button, ts_game::menu_pointer_over()) {
+                        (MouseButton::Left, 1 | 3) => self.kbm.pulse(btn::CROSS),
+                        (MouseButton::Left, 2) | (MouseButton::Right, _) => self.kbm.pulse(btn::TRIANGLE),
+                        // (the side buttons change the value of the row that is chosen)
+                        (MouseButton::Back, _) => self.kbm.pulse(btn::LEFT),
+                        (MouseButton::Forward, _) => self.kbm.pulse(btn::RIGHT),
+                        _ => {}
+                    }
+                }
                 if live {
                     note_device(true);
                 }
@@ -615,12 +644,29 @@ impl ApplicationHandler for App {
                 }
                 self.update_pads();
             }
+            #[cfg(feature = "extensions")]
+            WindowEvent::CursorMoved { position, .. } => {
+                if !ts_game::mouse_look_active() && self.lobby.is_none() {
+                    if let Some(w) = self.window.as_ref() {
+                        let size = w.inner_size();
+                        if let Some((x, y)) = pointer_in_picture(position.x as f32, position.y as f32, size.width as f32, size.height as f32) {
+                            ts_game::menu_pointer_set(x, y);
+                        }
+                    }
+                }
+            }
             WindowEvent::MouseWheel { delta, .. } => {
                 use winit::event::MouseScrollDelta;
                 let up = match delta {
                     MouseScrollDelta::LineDelta(_, y) => y,
                     MouseScrollDelta::PixelDelta(p) => p.y as f32,
                 };
+                #[cfg(feature = "extensions")]
+                if up != 0.0 && !ts_game::mouse_look_active() && self.lobby.is_none() && self.window.as_ref().map_or(false, |w| w.has_focus()) {
+                    // (in the menus the wheel moves the choice)
+                    self.kbm.pulse(if up > 0.0 { btn::UP } else { btn::DOWN });
+                    self.update_pads();
+                }
                 if up != 0.0 && ts_game::mouse_look_active() {
                     // aiming with a weapon that zooms: zoom in and out; otherwise: the previous and the next weapon
                     let b = match (self.kbm.aiming && ts_game::weapon_zooms(), up > 0.0) {

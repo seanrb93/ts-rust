@@ -31,6 +31,8 @@ pub mod texhook;
 #[path = "extension-hooks.rs"]
 pub mod extension_hooks;
 pub mod harness;
+#[path = "menu-mouse.rs"]
+pub mod menu_mouse;
 #[path = "text-scale.rs"]
 pub mod text_scale;
 #[path = "mode-presets.rs"]
@@ -38,6 +40,7 @@ pub mod mode_presets;
 
 pub use arcadeopts::*;
 pub use text_scale::*;
+pub use menu_mouse::*;
 pub use bigpool::*;
 pub use customlevels::*;
 pub use avmenu::*;

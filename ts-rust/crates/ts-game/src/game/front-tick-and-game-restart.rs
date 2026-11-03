@@ -31,6 +31,8 @@ pub fn frontTick() {
         count = lw(front + 20);
     } else {
         frontMouseTick();
+        #[cfg(feature = "extensions")]
+        menu_pointer_apply();
         count = lw(lw(g::front) + 20);
     }
     if count == 0 {
