@@ -146,7 +146,7 @@ impl ts_game::AvOptions for PortAv {
                 ts_render::Filter::Trilinear => 2,
             }),
             row("Anisotropic", names(&AF, |n| if *n <= 1 { "Off".into() } else { format!("{n}x") }), aniso_idx),
-            row("UI Size", names(&HUD_SCALES, |h| format!("{}x", h)), nearest_idx_f32(&HUD_SCALES, c.hud_scale)),
+            row("HUD Size", names(&HUD_SCALES, |h| format!("{}x", h)), nearest_idx_f32(&HUD_SCALES, c.hud_scale)),
         ]
     }
 

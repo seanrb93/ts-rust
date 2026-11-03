@@ -469,65 +469,6 @@ fn blend_state(k: BlendKind) -> Option<wgpu::BlendState> {
     Some(wgpu::BlendState { color: rgb, alpha: comp(F::One, F::OneMinusSrcAlpha, O::Add) })
 }
 
-/// A line of text, an icon or a picture of a menu page (the pieces on one row, less than a word space apart): its box in the picture, and where its triangles are.
-struct UiGroup {
-    lo: f32,
-    hi: f32,
-    ylo: f32,
-    yhi: f32,
-    /// first vertex of the draw, and the number of vertices of a primitive
-    first: usize,
-    np: usize,
-    /// no texture: a bar or a band
-    bar: bool,
-    tris: Vec<usize>,
-}
-
-/// The size of the menus: each line grows about a point of its own box that depends only on where the line is on the screen (the left edge for a line at the
-/// left, the right edge at the right, the middle in the middle, smoothly in between), so the lines of a column that are lined up stay lined up and nothing jumps
-/// when the page changes (a selected line, an animation); a button icon in front of a label in the middle moves with the label's left edge, and bars and the logo
-/// in the corner keep their size.
-fn size_menu_groups(verts: &mut [GpuVertex], groups: &[UiGroup], f: f32, in_game: bool) {
-    let n = groups.len();
-    let mut anchor = vec![0.0f32; n];
-    let mut middle = vec![false; n];
-    let mut shift = vec![0.0f32; n];
-    for (a, g) in groups.iter().enumerate() {
-        let x = (((g.lo + g.hi) * 0.5 / LOGICAL_W - 0.3) / 0.4).clamp(0.0, 1.0);
-        let t = x * x * (3.0 - 2.0 * x);
-        anchor[a] = g.lo + (g.hi - g.lo) * t;
-        middle[a] = t > 0.25 && t < 0.75;
-        shift[a] = anchor[a] + (g.lo - anchor[a]) * f - g.lo;
-    }
-    if std::env::var_os("TS_UIDBG").is_some() {
-        for (a, g) in groups.iter().enumerate() {
-            eprintln!("[ui] {a} first {} np {} tris {} x {:.1}..{:.1} y {:.1}..{:.1} bar {} anchor {:.1} middle {}", g.first, g.np, g.tris.len(), g.lo, g.hi, g.ylo, g.yhi, g.bar, anchor[a], middle[a]);
-        }
-    }
-    for (a, g) in groups.iter().enumerate() {
-        let cy = (g.ylo + g.yhi) * 0.5;
-        if (g.bar && g.hi - g.lo > 60.0) || (!in_game && cy < 40.0 && (g.lo + g.hi) * 0.5 > LOGICAL_W * 0.66) {
-            continue;
-        }
-        let (mut ax, mut dx) = (anchor[a], 0.0);
-        if g.hi - g.lo < 16.0 && g.yhi - g.ylo < 16.0 {
-            let next = (0..n)
-                .filter(|&b| b != a && middle[b] && groups[b].hi - groups[b].lo >= 16.0 && groups[b].lo >= g.hi - 0.5 && groups[b].lo - g.hi <= 30.0 && ((groups[b].ylo + groups[b].yhi) * 0.5 - cy).abs() < 6.0)
-                .min_by(|&x, &y| groups[x].lo.partial_cmp(&groups[y].lo).unwrap_or(std::cmp::Ordering::Equal));
-            if let Some(b) = next {
-                ax = (g.lo + g.hi) * 0.5;
-                dx = shift[b];
-            }
-        }
-        for &t in &g.tris {
-            for v in &mut verts[g.first + g.np * t..g.first + g.np * t + g.np] {
-                v.pos[0] = ax + (v.pos[0] - ax) * f + dx;
-                v.pos[1] = cy + (v.pos[1] - cy) * f;
-            }
-        }
-    }
-}
-
 impl Renderer {
     /// Create a renderer.  `surface` (if any) selects a compatible adapter.
     pub fn new(instance: &wgpu::Instance, surface: Option<&wgpu::Surface>, format: wgpu::TextureFormat) -> Renderer {
@@ -1316,10 +1257,7 @@ impl Renderer {
             mm_modal = frame.page_open;
         }
         // (a picture of 4:3 has its 2D art as the game drew it, unless the HUD of a level is given a size)
-        let sized = (self.settings.hud_scale - 1.0).abs() > 0.001;
-        // the menus (the front end, the pause menu, the scoreboard) have the size too, about the middle of the picture
-        let ui_zoom = if sized && !mm_grid && (!frame.in_game || frame.scores_open || frame.menu_open) { Some(self.settings.hud_scale.clamp(0.25, 4.0)) } else { None };
-        let hud_zoom = (frame.in_game && self.settings.hud == HudMode::Edges && sized) || ui_zoom.is_some();
+        let hud_zoom = frame.in_game && self.settings.hud == HudMode::Edges && (self.settings.hud_scale - 1.0).abs() > 0.001;
         if (k > 1.001 || hud_zoom) && self.settings.hud != HudMode::Stretch {
             let edges = (self.settings.hud == HudMode::Edges && frame.in_game) || (mm_grid && !mm_modal);
             let centre_all = mm_grid && mm_modal;
@@ -1337,7 +1275,6 @@ impl Renderer {
                     }
                 }
             }
-            let mut ui_pending: Vec<UiGroup> = Vec::new();
             for (i, d) in frame.draws.iter().enumerate() {
                 if menu_done[i] {
                     continue;
@@ -1644,7 +1581,7 @@ impl Renderer {
                         }
                         _ => None,
                     };
-                    for &t in &members {
+                    for t in members {
                         for v in &mut r[np * t..np * t + np] {
                             v.pos[0] = map(v.pos[0]);
                             if let Some((ax, ay, f)) = grow {
@@ -1652,40 +1589,6 @@ impl Renderer {
                                 v.pos[1] = ay + (v.pos[1] - ay) * f;
                             }
                         }
-                    }
-                    // the menus: each line of text, icon or picture grows about its own centre (the lines of the whole page are put
-                    // together after the draws, to find the columns they are lined up in)
-                    if ui_zoom.is_some() && grow.is_none() {
-                        let mut order: Vec<(f32, f32, f32, f32, usize)> = members
-                            .iter()
-                            .map(|&t| {
-                                let c = &r[np * t..np * t + np];
-                                let lo = c.iter().map(|v| v.pos[0]).fold(f32::MAX, f32::min);
-                                let hi = c.iter().map(|v| v.pos[0]).fold(f32::MIN, f32::max);
-                                let ylo = c.iter().map(|v| v.pos[1]).fold(f32::MAX, f32::min);
-                                let yhi = c.iter().map(|v| v.pos[1]).fold(f32::MIN, f32::max);
-                                (lo, hi, ylo, yhi, t)
-                            })
-                            .collect();
-                        order.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
-                        // the pieces on one row that are less than a word space apart
-                        let mut groups: Vec<UiGroup> = Vec::new();
-                        for (lo, hi, ylo, yhi, t) in order {
-                            let same_row = |g: &UiGroup| {
-                                let o = g.yhi.min(yhi) - g.ylo.max(ylo);
-                                o > 0.5 * (g.yhi - g.ylo).min(yhi - ylo).max(0.01) && lo <= g.hi + 20.0
-                            };
-                            match groups.iter_mut().find(|g| same_row(g)) {
-                                Some(g) => {
-                                    g.hi = g.hi.max(hi);
-                                    g.ylo = g.ylo.min(ylo);
-                                    g.yhi = g.yhi.max(yhi);
-                                    g.tris.push(t);
-                                }
-                                None => groups.push(UiGroup { lo, hi, ylo, yhi, first: d.first as usize, np, bar: st.tex.is_none(), tris: vec![t] }),
-                            }
-                        }
-                        ui_pending.extend(groups);
                     }
                 }
                 // an evenly spaced row of tall thin lines (the MapMaker grid) is repeated to the edges of the wider picture
@@ -1749,9 +1652,6 @@ impl Renderer {
                     let m = |x: f32| LOGICAL_W * 0.5 + (x - LOGICAL_W * 0.5) / k;
                     hud_scissor[i] = Some([m(sc[0] as f32).floor() as i32, sc[1], m(sc[2] as f32 + 1.0).ceil() as i32 - 1, sc[3]]);
                 }
-            }
-            if let Some(f) = ui_zoom {
-                size_menu_groups(&mut verts, &ui_pending, f, frame.in_game);
             }
         }
         let mut extra_vdraws: Vec<(usize, u32, u32, bool)> = Vec::new();
