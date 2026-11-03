@@ -117,6 +117,29 @@ pub fn hands_puppet_tick(a0: i32, a1: i32, mind: i32) {
     if curAnim(puppet, pose.anim) == 0 {
         obInstSetAnim(inst, pose.anim, 1.0);
     }
+    // a test aid: `TS_DUMPARM=<file>` writes the matrices of the joints of the character at the frame 250 of the level (the pose of its animation), to make the arm of the pose a part of a gun's model
+    if let Ok(path) = std::env::var("TS_DUMPARM") {
+        if lw(g::gameframe) == 250 {
+            let matrices = lw(lw(puppet + 32) + 4);
+            let mut text = String::new();
+            for joint in 0..40 {
+                let m = matrices + (joint << 6);
+                text.push_str(&(0..16).map(|k| format!("{:.6}", lwc1(m + 4 * k))).collect::<Vec<_>>().join(" "));
+                text.push_str("\n");
+            }
+            // (and the matrices of the model itself, which are what the vertices of the file are in)
+            let rest = lw(lw(lw(puppet + 32)) + 4);
+            text.push_str("rest
+");
+            for joint in 0..40 {
+                let m = rest + (joint << 6);
+                text.push_str(&(0..16).map(|k| format!("{:.6}", lwc1(m + 4 * k))).collect::<Vec<_>>().join(" "));
+                text.push_str("
+");
+            }
+            let _ = std::fs::write(path, text);
+        }
+    }
     let yaw = env_number("TS_HANDYAW").unwrap_or(pose.yaw);
     swc1(puppet + 76, lwc1(body + 76) + yaw);
     swc1(puppet + 80, lwc1(body + 80) + yaw);
@@ -125,8 +148,14 @@ pub fn hands_puppet_tick(a0: i32, a1: i32, mind: i32) {
     swc1(puppet_mind + 2972, lwc1(player + 276));
     // where the character is: the place of the pose, turned by the way the player faces
     let by_hand: Vec<f32> = std::env::var("TS_HANDOFF").map(|v| v.split(',').filter_map(|x| x.trim().parse().ok()).collect()).unwrap_or_default();
+    let keep_gun = std::env::var_os("TS_KEEPGUN").is_some();
     for k in 0..3 {
-        let v = if by_hand.len() == 3 { by_hand[k] } else { pose.place[k] };
+        let mut v = if by_hand.len() == 3 { by_hand[k] } else { pose.place[k] };
+        if keep_gun {
+            // the gun of the first person stays and the arm is put on it: where the gun is held in the view (`view_x`, `view_y`, `view_z` of the gun) moves the arm with it
+            let reference = if matches!(right, 0 | 4 | 7 | 9 | 21 | 23) { [0.15_f32, -0.21, -0.39] } else { [0.31, -0.33, -0.55] };
+            v += (lwc1(GUNS_TABLE + 400 * right + 32 + 4 * k as i32) - reference[k]) * env_number("TS_HANDK").unwrap_or(1.0);
+        }
         swc1(SCRATCH + 64 + 4 * k as i32, v);
     }
     swc1(SCRATCH + 76, 0.0);
@@ -136,6 +165,9 @@ pub fn hands_puppet_tick(a0: i32, a1: i32, mind: i32) {
     swc1(puppet + 48, lwc1(data + 140) + lwc1(SCRATCH + 64));
     swc1(puppet + 52, lwc1(data + 156) - lwc1(data + 104) + lwc1(SCRATCH + 68));
     swc1(puppet + 56, lwc1(data + 148) + lwc1(SCRATCH + 72));
+    if keep_gun {
+        return;
+    }
     // the character holds the gun of the player (`gunChrUpdate`: the model of the gun, in the hand)
     sw(puppet_mind + 260, lw(mind + 260));
     gunChrUpdate(puppet, 0);

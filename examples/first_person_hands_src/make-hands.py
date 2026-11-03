@@ -58,9 +58,10 @@ def body_box(gun_obj, part):
 
 def hands_for(spec, gun_obj):
     """The hands of a weapon as (part, parts of the character, rotation, scale, place): the hand of the grip and, for a two handed gun, the hand under the front."""
-    hands = [(spec['part'], ['20', '19'], spec.get('grip_rot', GRIP_ROT), 1.0, tuple(spec['grip']))]
+    # (the arms are the character's own, in the pose of its animation for a gun held in both hands: the part 20 is the hand of the grip, 12 the hand under the front)
+    hands = [(spec['part'], ['20', '19', '18', '17'], spec.get('grip_rot', (0, 0, 0)), 1.0, tuple(spec['grip']))]
     if spec['kind'] == 'two':
-        hands.append((spec.get('fore_part', spec['part']), ['20', '19'], spec.get('fore_rot', FORE_ROT), 1.0, tuple(spec['fore'])))
+        hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], spec.get('fore_rot', (0, 0, 0)), 1.0, tuple(spec['fore'])))
     return hands
 
 
@@ -238,7 +239,9 @@ def main():
     chr_file = 'ob/chrs/chr%02d.raw' % (character + 1)
     skin_from_character(pak, chr_file, os.path.join(work, 'skin.png'))
     open(os.path.join(work, 'hands.mtl'), 'w').write('newmtl skin\nmap_Kd skin.png\n')
-    subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, chr_file, '--obj', os.path.join(work, 'character.obj')], stdout=subprocess.DEVNULL)
+    poses = os.path.join(HERE, 'poses')
+    env = dict(os.environ, REST_MATRICES=os.path.join(poses, 'rest.txt'))
+    subprocess.check_call([sys.executable, os.path.join(HERE, 'pose-character.py'), pak, chr_file, os.path.join(poses, 'two-handed.txt'), os.path.join(work, 'character.obj')], env=env, stdout=subprocess.DEVNULL)
     cv, cc, CHR_UVS, cp = load_obj(os.path.join(work, 'character.obj'))
     for name in names:
         spec = WEAPONS[name]
