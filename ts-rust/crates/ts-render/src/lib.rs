@@ -1309,12 +1309,6 @@ impl Renderer {
                         for v in t.iter_mut() {
                             v.pos[0] = map(v.pos[0]);
                             v.st[0] = map(v.st[0]);
-                            if let Some(f) = ui_zoom {
-                                v.pos[0] = LOGICAL_W * 0.5 + (v.pos[0] - LOGICAL_W * 0.5) * f;
-                                v.pos[1] = LOGICAL_H * 0.5 + (v.pos[1] - LOGICAL_H * 0.5) * f;
-                                v.st[0] = LOGICAL_W * 0.5 + (v.st[0] - LOGICAL_W * 0.5) * f;
-                                v.st[1] = LOGICAL_H * 0.5 + (v.st[1] - LOGICAL_H * 0.5) * f;
-                            }
                         }
                         let (mut ulo, mut uhi) = ([f32::MAX; 2], [f32::MIN; 2]);
                         for v in t.iter() {
@@ -1590,15 +1584,57 @@ impl Renderer {
                         }
                         _ => None,
                     };
-                    for t in members {
+                    for &t in &members {
                         for v in &mut r[np * t..np * t + np] {
                             v.pos[0] = map(v.pos[0]);
                             if let Some((ax, ay, f)) = grow {
                                 v.pos[0] = ax + (v.pos[0] - ax) * f;
                                 v.pos[1] = ay + (v.pos[1] - ay) * f;
-                            } else if let Some(f) = ui_zoom {
-                                v.pos[0] = LOGICAL_W * 0.5 + (v.pos[0] - LOGICAL_W * 0.5) * f;
-                                v.pos[1] = LOGICAL_H * 0.5 + (v.pos[1] - LOGICAL_H * 0.5) * f;
+                            }
+                        }
+                    }
+                    // the menus: each line of text, icon or picture grows about its own centre (the layout of the page stays)
+                    if let (Some(f), None) = (ui_zoom, grow) {
+                        let mut order: Vec<(f32, f32, f32, f32, usize)> = members
+                            .iter()
+                            .map(|&t| {
+                                let c = &r[np * t..np * t + np];
+                                let lo = c.iter().map(|v| v.pos[0]).fold(f32::MAX, f32::min);
+                                let hi = c.iter().map(|v| v.pos[0]).fold(f32::MIN, f32::max);
+                                let ylo = c.iter().map(|v| v.pos[1]).fold(f32::MAX, f32::min);
+                                let yhi = c.iter().map(|v| v.pos[1]).fold(f32::MIN, f32::max);
+                                (lo, hi, ylo, yhi, t)
+                            })
+                            .collect();
+                        order.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+                        // (xlo, xhi, ylo, yhi, members): the pieces on one row that are less than a word space apart
+                        let mut groups: Vec<(f32, f32, f32, f32, Vec<usize>)> = Vec::new();
+                        for (lo, hi, ylo, yhi, t) in order {
+                            let same_row = |g: &(f32, f32, f32, f32, Vec<usize>)| {
+                                let overlap = g.3.min(yhi) - g.2.max(ylo);
+                                overlap > 0.5 * (g.3 - g.2).min(yhi - ylo).max(0.01) && lo <= g.1 + 14.0
+                            };
+                            match groups.iter_mut().find(|g| same_row(g)) {
+                                Some(g) => {
+                                    g.1 = g.1.max(hi);
+                                    g.2 = g.2.min(ylo);
+                                    g.3 = g.3.max(yhi);
+                                    g.4.push(t);
+                                }
+                                None => groups.push((lo, hi, ylo, yhi, vec![t])),
+                            }
+                        }
+                        for (lo, hi, ylo, yhi, ts) in groups {
+                            let (cx, cy) = ((lo + hi) * 0.5, (ylo + yhi) * 0.5);
+                            // (the logo in the corner keeps its size: its glow is a copy of the picture that is not scaled)
+                            if !frame.in_game && cy < 40.0 && cx > LOGICAL_W * 0.66 {
+                                continue;
+                            }
+                            for t in ts {
+                                for v in &mut r[np * t..np * t + np] {
+                                    v.pos[0] = cx + (v.pos[0] - cx) * f;
+                                    v.pos[1] = cy + (v.pos[1] - cy) * f;
+                                }
                             }
                         }
                     }
