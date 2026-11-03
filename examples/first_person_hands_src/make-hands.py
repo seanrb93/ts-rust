@@ -78,7 +78,11 @@ def hands_for(spec, gun_obj):
         # (the hand of the character as its model has it, turned by hand to hold the gun: tidy, and the first version's look)
         hands = [(spec['part'], ['20', '19'], spec.get('grip_rot', GRIP_ROT), 1.0, tuple(spec['grip']), None)]
         if spec['kind'] == 'two':
-            hands.append((spec.get('fore_part', spec['part']), ['20', '19'], spec.get('fore_rot', FORE_ROT), 1.0, tuple(spec['fore']), None))
+            # (the front hand is on the side of the gun that the view sees, the arm reaching in from the lower left: in the widescreen picture the grip and what is under the gun are off the screen)
+            lo, hi = body_box(gun_obj, spec['fore_part'] if 'fore_part' in spec else spec['part'])
+            fore = (hi[0] + 0.03, spec['fore'][1] + 0.05, spec['fore'][2])
+            hands = [h for h in hands]
+            hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], (0, 0, 0), 1.0, fore, (0.6, -0.6, -0.5), 0))
         return hands
     """The hands of a weapon as (part, parts of the character, rotation, scale, place): the hand of the grip and, for a two handed gun, the hand under the front."""
     # (the arms are the character's own, in the pose of its animation for a gun held in both hands: the part 20 is the hand of the grip, 12 the hand under the front)
