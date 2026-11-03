@@ -129,7 +129,8 @@ pub fn splitpageInit(page: i32) {
 /// the model is marked as done (+36 of its second header) (@ 0x25ea78).
 pub fn obPreloadTextures(name: i32) {
     let entry = preloadGetOb(name);
-    if entry != 0 {
+    // (an entry whose file was not loaded has no data: its list of textures would be read from address 0)
+    if entry != 0 && lw(entry + 16) != 0 {
         let base = lw(entry + 16);
         let textures = lw(base) + base;
         let header = lw(base + 4) + base;
@@ -166,6 +167,10 @@ pub fn bgPreloadTextures() {
         sprintf(&[sp as i64, 0x3a2640, level as i64, level as i64]);
         let entry = preloadGetFile(sp);
         let base = lw(entry + 16);
+        if base == 0 {
+            // (the file of the level's textures was not loaded)
+            return;
+        }
         let textures = lw(base) + base;
         let first = lw(textures);
         sw(g::leveltextures, textures);
