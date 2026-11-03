@@ -1541,7 +1541,8 @@ impl Renderer {
                         // jump whenever it crosses one)
                         Box::new(centre)
                     } else if hi - lo > LOGICAL_W * 0.5 {
-                        // big art (scope overlays) stays centred
+                        // big art (scope overlays) stays centred; a line of text as wide as a long message is not art and follows the HUD's size
+                        centre_zoom = yhi - ylo < 60.0;
                         Box::new(centre)
                     } else if mm_grid && !mm_modal && (members.len() == 2 && st.tex.map_or(false, |t| t.tw <= 4 && t.th <= 4) || (st.tex.is_none() && yhi - ylo >= 12.0) || !((yhi < 62.0) || (yhi < 90.0 && (hi < 72.0 || lo > 440.0)) || (lo > 440.0 && ylo > 125.0))) {
                         // MapMaker map screen: everything that is not part of the screen's HUD (the placed tiles, the held
