@@ -34,12 +34,12 @@ WEAPONS = {
     'mauser': dict(file='ob/gun10/gun10.raw', part='part0', kind='one', grip=(-0.02, -0.11, 0.05)),
     'colt': dict(file='ob/gun24/gun24.raw', part='part0', kind='one', grip=(-0.03, -0.12, -0.04)),
     'uzi': dict(file='ob/gun22/gun22.raw', part='part0', kind='one', grip=(-0.02, -0.09, -0.04)),
-    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.02, -0.10, -0.05), fore=(0.01, -0.035, 0.36)),
+    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.02, -0.10, -0.05), fore_abs=(0.03, 0.05, 0.27)),
     'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(-0.02, -0.06, 0.0), fore=(0.01, -0.035, 0.27)),
     'sniper_rifle': dict(file='ob/gun4/gun4.raw', part='part0', kind='two'),
     'raygun_carbine': dict(file='ob/gun6/gun6.raw', part='part0', kind='two'),
-    'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two'),
-    'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two'),
+    'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two', fore_abs=(0.04, 0.04, 0.18)),
+    'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two', fore_abs=(0.14, 0.0, 0.12)),
     'minigun': dict(file='ob/gun11/gun11.raw', part='part0', kind='two', grip=(-0.02, -0.04, 0.08), fore=(0.01, -0.02, 0.3)),
     'grenade_launcher': dict(file='ob/gun12/gun12.raw', part='part0', kind='two'),
     'scifi_sniper_rifle': dict(file='ob/gun13/gun13.raw', part='part0', kind='two'),
@@ -89,34 +89,26 @@ def rotation_between(a, b):
 
 
 def hands_for(spec, gun_obj):
-    if 'grip' not in spec or ('fore' not in spec and spec['kind'] == 'two'):
-        # (a gun that has no places of its own: they come from the box of its body: the grip at the back and low, the front hand under the middle of the front half)
-        lo, hi = body_box(gun_obj, spec['part'])
-        size = hi - lo
-        spec = dict(spec)
-        spec.setdefault('grip', (-0.02, lo[1] + (0.09 if spec['kind'] == 'one' else 0.1), lo[2] + 0.25 * size[2]))
-        spec.setdefault('fore', (0.01, (lo[1] + hi[1]) / 2 - 0.03, lo[2] + 0.75 * size[2]))
-    if os.environ.get('HANDS_STYLE', 'rest') == 'rest':
-        # (the hand of the character as its model has it, turned by hand to hold the gun: tidy, and the first version's look)
-        hands = [(spec['part'], ['20', '19'], spec.get('grip_rot', GRIP_ROT), 1.0, tuple(spec['grip']), None)]
-        if spec['kind'] == 'two':
-            # (the front hand is on the side of the gun that the view sees, the arm reaching in from the lower left: in the widescreen picture the grip and what is under the gun are off the screen)
-            lo, hi = body_box(gun_obj, spec['fore_part'] if 'fore_part' in spec else spec['part'])
-            fore = (hi[0] - 0.03, spec['fore'][1] + 0.085, spec['fore'][2] + 0.06)
-            hands = [h for h in hands]
-            hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], (0, 0, 0), 1.0, fore, (0.6, -0.6, -0.5), 0))
-        return hands
-    """The hands of a weapon as (part, parts of the character, rotation, scale, place): the hand of the grip and, for a two handed gun, the hand under the front."""
-    # (the arms are the character's own, in the pose of its animation for a gun held in both hands: the part 20 is the hand of the grip, 12 the hand under the front)
-    hands = [(spec['part'], ['20', '19', '18', '17'], spec.get('grip_rot', (0, 0, 0)), 1.0, tuple(spec['grip']), spec.get('grip_from', GRIP_FROM), spec.get('grip_roll', 0))]
+    """The hands of a weapon as (part, parts of the character, rotation, scale, place, where the elbow is from the hand, roll): the right hand on the grip with its forearm coming up from
+    below the screen, and for a two handed gun the other hand on the side of the gun that the view sees, its arm coming in from the lower left.  The places that the table does not give are
+    made from the box of the gun's body."""
+    lo, hi = body_box(gun_obj, spec['part'])
+    size = hi - lo
+    grip = spec.get('grip') or (-0.02, lo[1] + (0.09 if spec['kind'] == 'one' else 0.1), lo[2] + 0.25 * size[2])
+    hands = [(spec['part'], ['20', '19', '18', '17'], (0, 0, 0), 1.0, (grip[0], grip[1] + 0.02, grip[2]), spec.get('grip_from', (0.3, -0.9, -0.3)), spec.get('grip_roll', 0))]
     if spec['kind'] == 'two':
-        hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], spec.get('fore_rot', (0, 0, 0)), 1.0, tuple(spec['fore']), spec.get('fore_from', FORE_FROM), spec.get('fore_roll', 180)))
+        fore = spec.get('fore_abs') or (hi[0] - 0.03, (lo[1] + hi[1]) / 2 + 0.05, lo[2] + 0.6 * size[2])
+        hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], (0, 0, 0), 1.0, tuple(fore), spec.get('fore_from', (0.6, -0.6, -0.5)), spec.get('fore_roll', 0)))
     return hands
+
+
+CHR_MATS = {}
 
 
 def load_obj(path):
     verts, colours, uvs, parts = [], [], [], {}
-    cur = None
+    cur, mat = None, None
+    CHR_MATS.clear()
     for line in open(path):
         w = line.split()
         if not w:
@@ -128,12 +120,15 @@ def load_obj(path):
             uvs.append([float(w[1]), float(w[2])])
         elif w[0] in ('o', 'g'):
             cur = w[1]
+        elif w[0] == 'usemtl':
+            mat = w[1]
         elif w[0] == 'f':
             corners = []
             for c in w[1:]:
                 i = c.split('/')
                 corners.append((int(i[0]) - 1, int(i[1]) - 1 if len(i) > 1 and i[1] else 0))
             parts.setdefault(cur, []).append(corners)
+            CHR_MATS.setdefault(cur, []).append(mat)
     return np.array(verts), np.array(colours), np.array(uvs), parts
 
 
@@ -259,7 +254,6 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                     ax = np.array(arm_from[0], dtype=float) / np.linalg.norm(arm_from[0])
                     k = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
                     R = (np.eye(3) + math.sin(t) * k + (1 - math.cos(t)) * (k @ k)) @ R
-            out.append('usemtl ' + os.environ.get('HAND_MAT', 'skin'))
             hand_faces = []
             first, middle = True, None
             for src in sources:
@@ -281,7 +275,13 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                     out.append('vt %.6f %.6f' % tuple(CHR_UVS[uv_of[vi]]))
                 nv += len(used)
                 nt += len(used)
-                for f in chr_parts.get('part' + src, []):
+                last_mat = None
+                for fi, f in enumerate(chr_parts.get('part' + src, [])):
+                    # (each face has the texture of the slot the character's own model gives it: the sleeve and the skin are not one picture in every character)
+                    mat = 'chr' + (CHR_MATS.get('part' + src, [None] * (fi + 1))[fi] or 'slot6').split('_')[0]
+                    if mat != last_mat:
+                        hand_faces.append('usemtl ' + mat)
+                        last_mat = mat
                     hand_faces.append('f ' + ' '.join('%d/%d' % (base + used[vi] + 1, base_t + used[vi] + 1) for vi, _ in f))
             out += hand_faces
     open(out_obj, 'w').write(chr(10).join(out) + chr(10))
@@ -358,10 +358,26 @@ def character_poses(pak, character):
     return out
 
 
+def character_texture_numbers(pak, chr_file):
+    """The numbers of the textures in a character's model (its table, by slot)."""
+    import struct
+    sys.path.insert(0, TOOLS)
+    import pakls
+    d, es = pakls.entries(pak)
+    n, o, sz = [e for e in es if e[0] == chr_file][0]
+    data = d[o:o + sz]
+    numbers, at = [], struct.unpack_from('<I', data, 0)[0]
+    while struct.unpack_from('<i', data, at)[0] != -1:
+        numbers.append(struct.unpack_from('<i', data, at)[0])
+        at += 16
+    return numbers
+
+
 def bake_character(pak, mod, character, chr_file, skin_number, names, work):
     """The first person models of `names` with the arms of `character` on them: written as `gunN.raw` for the first character (the models every character shares), as `gunN_cNN.raw` for the others."""
     global CHR_UVS
     import obedit
+    skin_numbers = character_texture_numbers(pak, chr_file)
     obj = os.path.join(work, 'character%02d.obj' % character)
     if os.environ.get('HANDS_STYLE', 'rest') == 'rest':
         subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, chr_file, '--obj', obj], stdout=subprocess.DEVNULL)
@@ -387,7 +403,7 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
         data = d[o:o + sz]
         for part_name, fs in groups.items():
             if part_name and part_name.startswith('part') and part_name[4:].isdigit():
-                data, _count = obedit.mesh_part(data, fs, int(part_name[4:]), {'skin': skin_number})
+                data, _count = obedit.mesh_part(data, fs, int(part_name[4:]), {'chrslot%d' % k: n for k, n in enumerate(skin_numbers)})
         out_name = spec['file'] if character == 0 else spec['file'].replace('.raw', '_c%02d.raw' % character)
         out = os.path.join(mod, 'OB.PAK', out_name)
         os.makedirs(os.path.dirname(out), exist_ok=True)
