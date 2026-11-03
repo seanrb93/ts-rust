@@ -37,12 +37,15 @@ pub mod menu_mouse;
 pub mod text_scale;
 #[path = "network-stats.rs"]
 pub mod network_stats;
+#[path = "throw-lift.rs"]
+pub mod throw_lift;
 #[path = "mode-presets.rs"]
 pub mod mode_presets;
 
 pub use arcadeopts::*;
 pub use text_scale::*;
 pub use network_stats::*;
+pub use throw_lift::*;
 pub use menu_mouse::*;
 pub use bigpool::*;
 pub use customlevels::*;

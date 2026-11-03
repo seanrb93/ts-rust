@@ -944,6 +944,14 @@ fn thrown_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
 
 /// The kind 19: a thing that lands and sits; when it is at rest its prop fades out and the bullet goes. The owner is told its place in all the cases it is not gone.
 fn sitting_bullet(sp: i32, b: i32, owner_prop: i32) -> Exit {
+    #[cfg(feature = "extensions")]
+    {
+        // (a test aid: where a brick is, each frame)
+        static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        if *ON.get_or_init(|| std::env::var_os("TS_BULLETLOG").is_some()) {
+            eprintln!("[bullet] brick at ({:.2}, {:.2}, {:.2}) velocity ({:.3}, {:.3}, {:.3})", lwc1(b + 24), lwc1(b + 28), lwc1(b + 32), lwc1(b + 48), lwc1(b + 52), lwc1(b + 56));
+        }
+    }
     if frames_gate() > 0.0_f32 {
         let step_x = lwc1(sp);
         let at_rest = step_x == 0.0_f32 && lwc1(sp + 4) == 0.0_f32 && lwc1(sp + 8) == 0.0_f32;

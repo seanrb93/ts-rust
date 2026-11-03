@@ -46,6 +46,8 @@ weapon 0
    The names of the fields are in `docs/mod-roadmap.md`.  A line with a wrong name or a number out of its range is left out and the log says which line.
 3. Start the game.  The log (`[mods]`) says how many changes each file made.
 
+A weapon that is thrown can be given a lift: `throw_lift 0.07` adds that to the upward speed of its shot (units a frame, as `bullet_speed`), so that a brick, which has gravity, goes up and comes down again like a throw instead of falling at the thrower's feet (`examples/brick_throw_mod`; `TS_BULLETLOG=1` prints where a brick is each frame).
+
 To add a weapon, give a number from 30 on, `copy` the weapon it starts from and a `name`:
 
 ```

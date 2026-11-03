@@ -6,6 +6,7 @@
 //!   clip 15
 //!   ammo_kind 1
 //!   max_ammo 250          # the most of its kind of ammo that can be carried (it is kept per kind of ammo, so it changes the other weapons of the kind too)
+//!   throw_lift 0.07       # added to the upward speed of the weapon's shot (units a frame, as bullet_speed): a thrown weapon that goes up and comes down again
 //!   bullet_type 3
 //!   flags 0x4
 //!   raw +60 w 7           # a field that has no name yet: offset in the entry of 400 bytes, b h w or f, the value
@@ -230,6 +231,17 @@ pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<ts_game::NewWeapon>, Vec<
             match value {
                 Some(value) => ops.push(Op::Put { addr: entry + off as i32, kind, value }),
                 None => errors.push(format!("line {n}: `{val}` is not a number")),
+            }
+            continue;
+        }
+        if which == "weapon" && key == "throw_lift" {
+            match words.get(1).and_then(|w| w.parse::<f32>().ok()) {
+                Some(v) if is_new => {
+                    let _ = v;
+                    errors.push(format!("line {n}: `throw_lift` is for the game's own weapons (numbers 0 to {})", GUN_COUNT - 1));
+                }
+                Some(v) if (-1.0..=1.0).contains(&v) => ops.push(Op::Put { addr: ts_game::THROW_LIFT + 4 * item, kind: Kind::F, value: Value::Float(v) }),
+                _ => errors.push(format!("line {n}: `throw_lift` needs a number from -1 to 1")),
             }
             continue;
         }

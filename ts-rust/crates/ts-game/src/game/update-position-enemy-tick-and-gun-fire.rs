@@ -649,6 +649,8 @@ pub fn gunFire(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32, a7
     sw(bullet + 116, 0);
     let y = lwc1(a4 + 4);
     sw(bullet + 204, 0);
+    #[cfg(feature = "extensions")]
+    let y = y + throw_lift(gun_number);
     swc1(bullet + 52, y);
     sw(bullet + 208, 0);
     let z = lwc1(a4 + 8);

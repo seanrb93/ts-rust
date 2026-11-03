@@ -1,0 +1,9 @@
+# The brick as a throw: it left the hand at 0.2 a frame and fell to the floor within about a metre.  Now it leaves at 0.85 (the speed of the grenade launcher's grenade) with
+# a lift upward, so that it goes up, comes down and meets a person at the height of the crosshair up to about 14 units away, a little below it at 18 and on the floor at about 25.
+
+weapon 25   # Brick
+  bullet_speed 0.85
+  alt_bullet_speed 0.85
+  spread 0.01
+  alt_spread 0.01
+  throw_lift 0.07
