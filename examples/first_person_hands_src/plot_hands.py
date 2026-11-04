@@ -29,7 +29,7 @@ def main():
                 mats.append(mat)
     v = np.array(v)
     t = np.array(tris)
-    hand = np.array([m == 'skin' for m in mats])
+    hand = np.array([(m or '').startswith('chr') or m == 'skin' for m in mats])
     fig, axs = plt.subplots(1, 4, figsize=(22, 6))
     c = np.zeros(3)
     span = float(sys.argv[3]) if len(sys.argv) > 3 else 0.6
