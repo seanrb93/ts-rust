@@ -7,7 +7,7 @@
 fn grace() { 30.0 }          // nobody can be infected in the first seconds of the match
 fn contact_time() { 0.0 }    // how long a touch has to last (0: infected at the first touch)
 fn immune() { 6.0 }          // a character just infected cannot infect for this long
-fn touch() { 1.3 }           // how close the infected has to be
+fn touch() { 1.3 }           // how close the infected has to be (a player is bigger: 0.3 more)
 fn infected_speed() { 0.8 }  // computer characters that are infected run slower than the survivors
 fn start_infected() { 1 }    // how many start infected
 
@@ -111,7 +111,7 @@ fn on_tick() {
             if since > 0.0 && this.clock - since < immune() * 60.0 { continue; }
             for b in surv {
                 if team(b) != SURV() || !alive(b) { continue; }
-                if dist(a, b) < touch() && (y(a) - y(b)).abs() < 1.6 {
+                if dist(a, b) < touch() + (if is_player(b) { 0.3 } else { 0.0 }) && (y(a) - y(b)).abs() < 1.6 {
                     let key = "" + a + "_" + b;
                     let held = dt;
                     if this.contact.contains(key) { held += this.contact[key]; }
