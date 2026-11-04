@@ -50,8 +50,8 @@ WEAPONS = {
     'weapon_17': dict(file='ob/gun18/gun18.raw', part='part0', kind='one'),
     'tnt': dict(file='ob/gun19/gun19.raw', part='part0', kind='one', grip=(-0.02, 0.08, 0.0)),
     'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore_abs=(0.06, 0.0, 0.34), fore_from=(0.3, -0.9, -0.3)),
-    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.05), fore_abs=(0.02, 0.04, 0.36), fore_part='part2'),
-    'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two', grip=(-0.07, -0.05, -0.12), fore_abs=(-0.06, 0.0, 0.28)),
+    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, 0.07), fit_grip={'dy': 0.04}, fore_abs=(0.02, 0.04, 0.36), fore_part='part2'),
+    'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two', grip=(-0.07, -0.05, 0.07), fit_grip={'dy': 0.04}, fore_abs=(-0.06, 0.0, 0.28)),
     'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore_abs=(0.0, 0.0, 0.38)),
     'brick': dict(file='ob/gun26/gun26.raw', part='part0', kind='one', grip=(0.0, -0.1, -0.12)),
 }
@@ -258,7 +258,7 @@ def read_blocks(path):
     return v, vt, vn, blocks
 
 
-def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts, fit_front=None):
+def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts, fit_front=None, fit_grip=None):
     """An OBJ with only the parts of the gun that carry a hand (the others are left as the game has them), each with its hands added."""
     v, vt, vn, blocks = read_blocks(gun_obj)
     out = ['mtllib hands.mtl']
@@ -315,7 +315,9 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts, fit_front
                     ax = np.array(arm_from[0], dtype=float) / np.linalg.norm(arm_from[0])
                     k = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
                     R = (np.eye(3) + math.sin(t) * k + (1 - math.cos(t)) * (k @ k)) @ R
-            if fit_front and hand_part == part and hands.index((hand_part, sources, rot, scale, place, *arm_from)) > 0 and not mirror:
+            hand_no = hands.index((hand_part, sources, rot, scale, place, *arm_from))
+            fit_now = fit_front if hand_no > 0 else fit_grip
+            if fit_now and hand_part == part:
                 # (the front hand is put under the gun where it is held: its fingers reach the underside of the forend, and it is as far across as the forend is)
                 gun_pts = np.array([[float(x) for x in l.split()[1:4]] for l in lines if l.startswith('v ')])
                 z0 = place[2]
@@ -331,7 +333,7 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts, fit_front
                     moved = (R @ local.T).T if len(ids) else np.zeros((1, 3))
                     top = moved[:, 1].max()
                     mid_x = (moved[:, 0].max() + moved[:, 0].min()) / 2
-                    place = (float((near[:, 0].max() + near[:, 0].min()) / 2 - mid_x + fit_front.get('dx', 0.0)), float(near[:, 1].min() + fit_front.get('dy', 0.03) - top), place[2])
+                    place = (float((near[:, 0].max() + near[:, 0].min()) / 2 - mid_x + fit_now.get('dx', 0.0)), float(near[:, 1].min() + fit_now.get('dy', 0.03) - top), place[2])
             hand_faces = []
             hv, hc, hf = [], [], []
             hand_nv = nv
@@ -549,7 +551,7 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
         frm = grip[5] if len(grip) > 5 and grip[5] is not None else (0.3, -0.9, -0.3)
         variants.append(([grip[:5] + ((-frm[0], frm[1], frm[2]), grip[6] if len(grip) > 6 else 0, 'mirror')], spec['file'].replace('.raw', '_c%02d_m.raw' % character), '_m'))
         for hands, out_name, tag in variants:
-            add_hands(base + '.obj', base + '_hands%02d%s.obj' % (character, tag), hands, cv, cc, cp, spec.get('fit', {'dy': float(os.environ.get('HANDS_FIT', '0.03'))}) if spec['kind'] == 'two' and not os.environ.get('HANDS_NOFIT') else None)
+            add_hands(base + '.obj', base + '_hands%02d%s.obj' % (character, tag), hands, cv, cc, cp, spec.get('fit', {'dy': float(os.environ.get('HANDS_FIT', '0.03'))}) if spec['kind'] == 'two' and not os.environ.get('HANDS_NOFIT') else None, spec.get('fit_grip'))
             body_faces = {k: len(v) for k, v in read_blocks(base + '.obj')[3].items()}
             groups = {}
             faces, _ = obedit.read_obj(base + '_hands%02d%s.obj' % (character, tag), groups)
