@@ -169,7 +169,7 @@ const NEXT_PUNCH_AT: i32 = 0x240_0000 + 0xcc00;
 pub fn bot_punch(prop: i32) {
     let chr = lw(prop + 352);
     // (a bot of the arcade modes, with no gun and the fists as its weapon)
-    if !ts_sdk::bots_punch() || chr == 0 || lw(chr + 8) != 0 || lw(chr + 376) != -1 || lw(chr + 260) != 0 || lw(g::gamestate) != 3 {
+    if !ts_sdk::bots_punch() || chr == 0 || virus_survivor_bot(prop) || lw(chr + 8) != 0 || lw(chr + 376) != -1 || lw(chr + 260) != 0 || lw(g::gamestate) != 3 {
         return;
     }
     // (not while it is dying or about to spawn, and not at a target that is dead)

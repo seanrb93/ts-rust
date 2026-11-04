@@ -6,6 +6,7 @@
 
 use crate::*;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
+use std::sync::Mutex;
 
 const SURVIVORS: i32 = 1;
 const INFECTED: i32 = 2;
@@ -51,7 +52,11 @@ pub fn virus_tick(infected_at_start: i32) {
     }
     let frame = ts_sdk::frame_count() as i32;
     if std::env::var_os("TS_VIRUSLOG").is_some() && frame % 300 == 0 {
-        eprintln!("[virus] f{frame} players {} active {} 484s {:?} teams {:?}", lw(g::lvnumplayers), lw(g::numactivechars), (0..total).map(|i| lw(i * 0x1210 + info + 484)).collect::<Vec<_>>(), (0..total).map(|i| lw(i * 0x1210 + info + 24)).collect::<Vec<_>>());
+        let at = |i: i32| {
+            let prop = lw(i * 0x1210 + info + 3020);
+            if prop == 0 { (0, 0, 0) } else { (lwc1(prop + 48) as i32, lwc1(prop + 56) as i32, lw(i * 0x1210 + info + 2716)) }
+        };
+        eprintln!("[virus] f{frame} players {} teams {:?} (x, z, state) {:?}", lw(g::lvnumplayers), (0..total).map(|i| lw(i * 0x1210 + info + 24)).collect::<Vec<_>>(), (0..total).map(at).collect::<Vec<_>>());
     }
     if !SETUP.load(Ordering::Relaxed) {
         // (a few frames after the level starts, when all the characters are made)
@@ -89,6 +94,65 @@ pub fn virus_tick(infected_at_start: i32) {
         }
         gameLevelCompleted();
     }
+}
+
+/// Is `chr` (a character's prop) a computer survivor of a game of Virus?  Survivors do not fight: they run from the infected.
+pub fn virus_survivor_bot(chr: i32) -> bool {
+    if !SETUP.load(Ordering::Relaxed) || !virus_on() {
+        return false;
+    }
+    let mind = lw(chr + 352);
+    mind != 0 && lw(mind) >= lw(g::lvnumplayers) && lw(mind + 24) == SURVIVORS
+}
+
+/// (the pad a survivor runs to, the frame it is chosen again) per character number
+static FLEE: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
+
+/// `enemyGetTargetPad`: the pad a survivor bot heads for, one far from the nearest infected character and not far from the bot, chosen again every second or so.  None for anyone else.
+pub fn virus_flee_pad(chr: i32) -> Option<i32> {
+    if !virus_survivor_bot(chr) {
+        return None;
+    }
+    let mind = lw(chr + 352);
+    let number = lw(mind) as usize;
+    let frame = ts_sdk::frame_count() as i32;
+    let mut cache = FLEE.lock().unwrap();
+    if cache.len() <= number {
+        cache.resize(number + 1, (-1, 0));
+    }
+    if cache[number].0 >= 0 && frame < cache[number].1 {
+        return Some(cache[number].0);
+    }
+    let (info, total) = characters();
+    let me = [lwc1(chr + 48), lwc1(chr + 52), lwc1(chr + 56)];
+    let mut infected: Vec<[f32; 3]> = Vec::new();
+    for i in 0..total {
+        let record = info + i * 0x1210;
+        let prop = lw(record + 3020);
+        if prop != 0 && lw(record + 24) == INFECTED && lw(record + 2716) & (16 | 32) == 0 {
+            infected.push([lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56)]);
+        }
+    }
+    if infected.is_empty() {
+        return None;
+    }
+    let dist = |a: [f32; 3], x: f32, y: f32, z: f32| ((a[0] - x).powi(2) + (a[1] - y).powi(2) + (a[2] - z).powi(2)).sqrt();
+    let pads = lw(g::levelpads);
+    let mut best = (-1, f32::MIN);
+    for k in 0..lw(g::numpads) {
+        let pad = pads + k * 28;
+        let (x, y, z) = (lwc1(pad + 12), lwc1(pad + 16), lwc1(pad + 20));
+        let away = infected.iter().map(|&p| dist(p, x, y, z)).fold(f32::MAX, f32::min);
+        let score = away - 0.5 * dist(me, x, y, z);
+        if score > best.1 {
+            best = (k, score);
+        }
+    }
+    if best.0 < 0 {
+        return None;
+    }
+    cache[number] = (best.0, frame + 45);
+    Some(best.0)
 }
 
 /// A kill is counted (`StatsKillMade`): an infected character that kills a survivor infects him.

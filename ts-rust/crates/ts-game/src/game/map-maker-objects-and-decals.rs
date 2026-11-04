@@ -239,6 +239,10 @@ pub fn preloadPass2Insert(item: i32) {
 
 /// The pad a character is heading for, by what it targets (type 8: the target's pad, 64: a player's pad, 256: a spot, 1: the base in mode 6), or -1 (@ 0x2c1328).
 pub fn enemyGetTargetPad(chr: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    if let Some(pad) = virus_flee_pad(chr) {
+        return pad;
+    }
     let data = lw(chr + 352);
     let mode = lw(g::curgameparms + 72);
     if mode == 1 && lw(data + 484) != 0 {

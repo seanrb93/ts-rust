@@ -364,6 +364,11 @@ pub fn enemyTick(a0: i32) {
     if lw(g::numactivechars) == 0 {
         return;
     }
+    // (a survivor of a game of Virus does not attack: it picks its way again, to run)
+    #[cfg(feature = "extensions")]
+    if lw(mind + 2716) == 2 && virus_survivor_bot(a0) {
+        sw(mind + 2716, 128);
+    }
     let state = lw(mind + 2716);
     if state == 0 {
         let prop = lw(mind + 3020);
