@@ -38,7 +38,7 @@ WEAPONS = {
     'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(-0.02, -0.06, 0.0), fore_z=0.26, fore_from=(0.3, -0.9, -0.3)),
     'sniper_rifle': dict(file='ob/gun4/gun4.raw', part='part0', kind='two', fore_z=0.55, fore_from=(0.3, -0.9, -0.3)),
     'raygun_carbine': dict(file='ob/gun6/gun6.raw', part='part0', kind='two', fore_z=0.22, fore_from=(0.3, -0.9, -0.3)),
-    'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two', fore_z=0.3, fore_from=(0.3, -0.9, -0.3)),
+    'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two', fore_abs=(0.03, 0.05, 0.42), fore_from=(0.3, -0.9, -0.3)),
     'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two', fore_z=0.22, fore_from=(0.3, -0.9, -0.3)),
     'minigun': dict(file='ob/gun11/gun11.raw', part='part0', kind='two', grip=(-0.02, -0.04, 0.08), fore=(0.01, -0.02, 0.3)),
     'grenade_launcher': dict(file='ob/gun12/gun12.raw', part='part0', kind='two'),
