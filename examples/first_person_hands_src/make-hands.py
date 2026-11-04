@@ -112,8 +112,11 @@ CHAINS = {'grip': ['20', '19', '18', '17'], 'front': ['12', '11', '10', '9']}
 HUMAN_CHAINS = dict(CHAINS)
 # character number -> (gun arm, other arm) for the models that are not in the humanoid layout; a chain of one part is a whole arm in one piece (hand at its bottom)
 # (an arm in one piece is long: it is made smaller)
-ARM_SCALE = {37: 0.55}
+ARM_SCALE = {37: 0.55, 22: 0.55}
+# characters whose in-between parts (kind 1) are pieces of the arm, not flat flaps (the Gingerbread Man is made of boxes): they are drawn
+KEEP_SEAMS = {22}
 OTHER_ARMS = {
+    22: (['20', '19', '18', '17', '16', '15'], ['12', '11', '10', '9', '8', '7']),
     8: (['14', '13', '12', '11'], ['9', '8', '7', '6']),
     24: (['18', '17', '16', '15'], ['11', '10', '9', '8']),
     31: (['10', '9', '8', '7'], ['6', '5', '4']),
@@ -429,7 +432,7 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
     import obdump as _ob
     CHAINS['grip'], CHAINS['front'] = OTHER_ARMS.get(character, (HUMAN_CHAINS['grip'], HUMAN_CHAINS['front']))
     arm_parts = [int(x) for x in CHAINS['grip'] + CHAINS['front']]
-    SEAM_PARTS.update(i for i in arm_parts if _f[_tab - _cnt * 80 + 80 * i] == 1)
+    SEAM_PARTS.update(i for i in arm_parts if _f[_tab - _cnt * 80 + 80 * i] == 1 and character not in KEEP_SEAMS)
     # (the pieces that are see-through, such as rags that hang from a sleeve, are drawn in a second pass that the model made here does not have: they would be white)
     for i in arm_parts:
         see_through = _st.unpack_from('<I', _f, _tab - _cnt * 80 + 80 * i + 12)[0]
