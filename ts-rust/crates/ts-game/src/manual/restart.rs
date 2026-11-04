@@ -70,7 +70,8 @@ pub fn restart_results_tick() {
     }
 }
 
-/// The two lines at the bottom of the results that say so: the game's texts for Quit and Restart (a button and a word each), drawn the same size and a line apart (`drawRetryQuit` draws the second a little bigger).
+/// What says that the match can be left or played again, under the results: the game's texts for Quit and Restart (a button and a word each) side by side on one row, so that both are drawn at the
+/// same height, and so the same size (the text near the bottom of the screen is sized by the renderer with the HUD: two rows came out in two sizes).
 pub fn restart_results_hint() {
     if lw(g::gamestate) != 4 || !restart_available() || lw(lw(g::currentplayer)) != 0 {
         return;
@@ -78,18 +79,15 @@ pub fn restart_results_hint() {
     let window = g::window;
     let font = if lw(window + 92) == 0 { 2 } else { 1 };
     let old = textSelect(font);
-    let bottom = lw(window + 24);
-    let y = if lw(window + 92) == 0 { bottom - 34 } else { bottom - 20 };
     let flags = lbu(g::fontflags);
-    let line = if (lbu(g::fontflags) & 1) == 0 { lw(lw(g::curfont) + 12) } else { lw(lw(g::curfont) + 12) >> 1 };
-    let row_gap = 2 >> (lw(window + 92) & 31);
+    let bottom = lw(window + 24);
+    let y = if lw(window + 92) == 0 { bottom - 40 } else { bottom - 24 };
     let texts = lw((lw(g::cur_language) << 2) + g::languages);
     let (fg, bg) = (lw(g::menuitem_fgcol), lw(g::menuitem_bgcol));
+    // (the button and the word of each: the button is a code of two characters in the game's text, then a space)
+    let mut parts: Vec<(i32, i32, i32, i32)> = Vec::new();
     for (k, offset) in [1780, 1776].into_iter().enumerate() {
-        textSelect(font);
-        sb(g::fontflags, flags);
         let text = lw(texts + offset);
-        // (the game's text is a button, `^3`, a space and the word: the word after a button comes out larger, so the button and the word are drawn apart, at the same size)
         let (icon, word) = if lbu(text) == b'^' as i32 && lbu(text + 2) == b' ' as i32 { (text, text + 3) } else { (0, text) };
         let icon_text = BASE + 0x17_3e00 + 8 * k as i32;
         if icon != 0 {
@@ -97,15 +95,23 @@ pub fn restart_results_hint() {
             sb(icon_text + 1, lbu(icon + 1));
             sb(icon_text + 2, 0);
         }
+        textSelect(font);
         let icon_width = if icon != 0 { textWidth(icon_text) } else { 0 };
-        let gap = if icon != 0 { 10 } else { 0 };
-        let word_width = textWidth(word);
-        let left = lw(window + 8) - ((icon_width + gap + word_width) >> 1);
-        let top = y + k as i32 * (line + row_gap);
-        if icon != 0 {
-            textOutline(left, top, icon_text, fg, bg);
+        parts.push((if icon != 0 { icon_text } else { 0 }, icon_width, word, textWidth(word)));
+    }
+    let gap = 10;
+    let between = 6 * gap;
+    let total: i32 = parts.iter().map(|p| p.1 + if p.0 != 0 { gap } else { 0 } + p.3).sum::<i32>() + between;
+    let mut x = lw(window + 8) - (total >> 1);
+    for (icon_text, icon_width, word, word_width) in parts {
+        textSelect(font);
+        sb(g::fontflags, flags);
+        if icon_text != 0 {
+            textOutline(x, y, icon_text, fg, bg);
+            x += icon_width + gap;
         }
-        textOutline(left + icon_width + gap, top, word, fg, bg);
+        textOutline(x, y, word, fg, bg);
+        x += word_width + between;
     }
     textSelect(old);
 }
