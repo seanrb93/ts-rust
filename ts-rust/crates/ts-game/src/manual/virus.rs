@@ -9,6 +9,12 @@ use crate::*;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::Mutex;
 
+/// the order in which the characters were infected (the first infected is 0), for the table of results; -1 for one who is not
+static ORDER: Mutex<Vec<i32>> = Mutex::new(Vec::new());
+/// the game frame of the last tick (a smaller one means the level started again)
+static LAST_GAME_FRAME: AtomicI32 = AtomicI32::new(0);
+
+
 const SURVIVORS: i32 = 1;
 const INFECTED: i32 = 2;
 
@@ -52,6 +58,11 @@ pub fn virus_tick(infected_at_start: i32) {
         return;
     }
     let frame = ts_sdk::frame_count() as i32;
+    // (the level was started again from the menu of the game or the results: the sides are made again)
+    let game_frame = lw(g::gameframe);
+    if game_frame < LAST_GAME_FRAME.swap(game_frame, Ordering::Relaxed) {
+        SETUP.store(false, Ordering::Relaxed);
+    }
     if std::env::var_os("TS_VIRUSLOG").is_some() && frame % 300 == 0 {
         let at = |i: i32| {
             let prop = lw(i * 0x1210 + info + 3020);
@@ -71,13 +82,16 @@ pub fn virus_tick(infected_at_start: i32) {
         for &i in &present {
             sw(i * 0x1210 + info + 24, SURVIVORS);
         }
+        *ORDER.lock().unwrap() = vec![-1; total as usize];
         let mut pool = present.clone();
         for _ in 0..infected_at_start.clamp(1, (present.len() as i32 - 1).max(1)) {
             // (chosen by the game's own random numbers)
             let k = std::env::var("TS_VIRUSZERO").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or(((newrnd() as u32) >> 8) as usize) % pool.len();
             let zero = pool.remove(k);
             sw(zero * 0x1210 + info + 24, INFECTED);
+            ORDER.lock().unwrap()[zero as usize] = 0;
             tell(zero, "You are infected! Infect them all");
+            hurt_sound(info, zero);
             if std::env::var_os("TS_VIRUSLOG").is_some() {
                 eprintln!("[virus] f{frame} character {zero} starts infected");
             }
@@ -96,6 +110,10 @@ pub fn virus_tick(infected_at_start: i32) {
             INFECTED => {
                 infected.push(i);
                 sw(record + 20, green);
+                // (an infected character groans now and then)
+                if alive(info, i) && (newrnd() as u32) % 480 == 0 {
+                    hurt_sound(info, i);
+                }
             }
             _ => {}
         }
@@ -148,7 +166,15 @@ fn alive(info: i32, i: i32) -> bool {
 /// The infected character `a` touches the survivor `b`.
 fn infect(info: i32, a: i32, b: i32, frame: i32) {
     sw(info + b * 0x1210 + 24, INFECTED);
+    {
+        let mut order = ORDER.lock().unwrap();
+        let next = order.iter().max().copied().unwrap_or(0) + 1;
+        if (b as usize) < order.len() {
+            order[b as usize] = next;
+        }
+    }
     tell(b, "You are infected!");
+    hurt_sound(info, b);
     if std::env::var_os("TS_VIRUSLOG").is_some() {
         eprintln!("[virus] f{frame} character {a} infects character {b}");
     }
@@ -253,4 +279,86 @@ pub fn virus_flee_pad(chr: i32) -> Option<i32> {
     }
     cache[number] = (best.0, frame + 45);
     Some(best.0)
+}
+
+/// The sound of a character in pain (the game's sounds 207 to 210), where the character `i` is.
+fn hurt_sound(info: i32, i: i32) {
+    let prop = lw(info + i * 0x1210 + 3020);
+    if prop != 0 {
+        soundStart(207 + (newrnd() as u32 % 4) as i32, prop + 48);
+    }
+}
+
+/// The score the table of results ranks the character of the record `record` by (`score` is the game's): in a game of Virus the survivors come first, then the infected, the last infected first.
+pub fn virus_rank_score(record: i32, score: i32) -> i32 {
+    if !SETUP.load(Ordering::Relaxed) || !virus_on() {
+        return score;
+    }
+    let info = lw(g::chrinfo);
+    let i = ((record - info) / 0x1210) as usize;
+    if lw(record + 24) == SURVIVORS {
+        return 100000;
+    }
+    1000 + ORDER.lock().unwrap().get(i).copied().unwrap_or(0).max(0)
+}
+
+/// The text the table of results shows in place of the score for the character of the record `record` in a game of Virus: its status.
+pub fn virus_status_text(record: i32) -> Option<i32> {
+    if !SETUP.load(Ordering::Relaxed) || !virus_on() {
+        return None;
+    }
+    let mut at = 0x240_0000 + 0x17_3a00;
+    let survivor = lw(record + 24) == SURVIVORS;
+    Some(super::avmenu::put_str(&mut at, if survivor { "Survivor" } else { "Infected" }))
+}
+
+/// The edge of the screen of an infected player is green (`hudGfx`, where the game draws the ring that flashes red when a character is hurt).
+pub fn virus_hud() {
+    if !SETUP.load(Ordering::Relaxed) || !virus_on() {
+        return;
+    }
+    let number = lw(lw(g::currentplayer));
+    let info = lw(g::chrinfo);
+    if info == 0 || lw(info + number * 0x1210 + 24) != INFECTED {
+        return;
+    }
+    // (a slow pulse; the word is red, green, blue and alpha, from the top byte)
+    let t = (ts_sdk::frame_count() as f32) * 0.05;
+    let alpha = (85.0 + 30.0 * t.sin()) as i32;
+    hudPainGfx(20 << 24 | 127 << 16 | 30 << 8 | alpha);
+}
+
+/// The colours that light the model `chr` (`partGfx`): the game's, or for a character that is infected in a game of Virus a green light.
+pub fn virus_lighting(chr: i32) -> i32 {
+    let own = lw(chr + 28);
+    if own == 0 || !SETUP.load(Ordering::Relaxed) || !virus_on() {
+        return own;
+    }
+    let owner = lw(chr + 244);
+    if owner == 0 || lw(owner + 8) != 8 {
+        return own;
+    }
+    let record = lw(owner + 352);
+    if record == 0 || lw(record + 24) != INFECTED {
+        return own;
+    }
+    let at = 0x240_0000 + 0x17_3c00;
+    for k in 0..4 {
+        let (r, g, b, a) = (lwc1(own + 16 * k), lwc1(own + 16 * k + 4), lwc1(own + 16 * k + 8), lwc1(own + 16 * k + 12));
+        let top = r.max(g).max(b);
+        swc1(at + 16 * k, r * 0.35);
+        swc1(at + 16 * k + 4, g * 1.1 + top * 0.4);
+        swc1(at + 16 * k + 8, b * 0.35);
+        swc1(at + 16 * k + 12, a);
+    }
+    at
+}
+
+/// The kind of the table of results (`scores_pageGfx`): in a game of Virus every character has a row, not every team.
+pub fn virus_table_kind(kind: i32) -> i32 {
+    if SETUP.load(Ordering::Relaxed) && virus_on() {
+        2
+    } else {
+        kind
+    }
 }

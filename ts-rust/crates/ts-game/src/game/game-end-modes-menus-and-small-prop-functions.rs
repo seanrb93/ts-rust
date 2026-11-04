@@ -91,7 +91,15 @@ pub fn endgame_pageTick(a0: i32) {
     };
     let player = lw(g::currentplayer);
     sw(g::endgamemenu_items, text);
+    // (a second entry restarts the match)
+    #[cfg(feature = "extensions")]
+    if restart_page_pressed(a0, lw(player)) {
+        return;
+    }
     if (joyNewBut(lw(player)) & 64) == 0 {
+        #[cfg(feature = "extensions")]
+        let menu = restart_menu(g::endgame_menu);
+        #[cfg(not(feature = "extensions"))]
         let menu = g::endgame_menu;
         ingame_menutick(a0, menu);
         let made = std_menumake(lw(a0 + 8), menu);

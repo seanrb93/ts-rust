@@ -223,7 +223,12 @@ pub fn scores_pageGfx() {
     let menu = lw(lw(g::currentplayer)) * 92 + IGMENU;
     if kind != 4 {
         if kind != 6 {
+            #[cfg(feature = "extensions")]
+            drawRankingsTable(virus_table_kind(lhu(menu + 4)));
+            #[cfg(not(feature = "extensions"))]
             drawRankingsTable(lhu(menu + 4));
+            #[cfg(feature = "extensions")]
+            restart_results_hint();
             return;
         }
         drawLastStand();

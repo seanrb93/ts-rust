@@ -51,6 +51,11 @@ pub fn scores_pageTick() {
     if (mode == 4 || mode == 6) && lw(lw(g::currentplayer)) == 0 {
         tickRetryQuit();
     }
+    // (the other modes can be played again from here too)
+    #[cfg(feature = "extensions")]
+    if mode != 4 && mode != 6 {
+        restart_results_tick();
+    }
 }
 
 /// Make an item of kind `kind` and group `group` at the head of the list of object `owner` (list head at +52); 0 if there is none free (@ 0x248b30).

@@ -54,3 +54,7 @@ Each tick ends with `UnlockCombo()` (a combination of weapons that is unlocked c
   (`gmEscortSetup`, `knockoutSetup`), so a mode that needs other objects needs that code read too.
 * Read since: `UnlockCombo` always gives 0 in this build; `gameLevelCompleted` sets the game state to 4, pauses the time, plays the sound and opens the in-game menu of each player; `teamGetScore` sums the characters' scores of a team, where a character's score is its kills in Deathmatch (mode 3) and its `+248` in the other modes; `gmEscortSetup` finds the escort's pad as the level set-up's record of kind 16.
 * What is not read yet: the end-of-game pages and the statistics of each mode (they are keyed by the mode number).
+
+## Playing a match again
+
+In the build with extensions a match of the arcade modes can be played again without going back to the menus: the End Game page of the menu of the game has a second entry, "Restart match", and on the results page at the end of a match the cross button plays it again (the game does this itself for Escort and Last Stand).  The level starts again with the settings it had; the mode's own state (a game of Virus, for one) starts again too.  It is not offered in a game on a network or in the story.
