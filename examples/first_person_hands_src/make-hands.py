@@ -114,8 +114,9 @@ HUMAN_CHAINS = dict(CHAINS)
 # (an arm in one piece is long: it is made smaller)
 ARM_SCALE = {37: 0.55, 22: 0.55}
 # characters whose in-between parts (kind 1) are pieces of the arm, not flat flaps (the Gingerbread Man is made of boxes): they are drawn
-KEEP_SEAMS = {22}
+KEEP_SEAMS = {20, 22}
 OTHER_ARMS = {
+    20: (['20', '19', '18', '17', '16', '15'], ['12', '11', '10', '9', '8', '7']),
     22: (['20', '19', '18', '17', '16', '15'], ['12', '11', '10', '9', '8', '7']),
     8: (['14', '13', '12', '11'], ['9', '8', '7', '6']),
     24: (['18', '17', '16', '15'], ['11', '10', '9', '8']),
