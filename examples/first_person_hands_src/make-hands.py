@@ -294,10 +294,14 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
             if hand_part != part:
                 continue
             R = rotation(*rot) * scale
+            mirror = len(arm_from) > 2 and arm_from[2] == 'mirror'
             if arm_from and arm_from[0] is not None:
                 # the arm is turned about its hand so that the elbow is where `arm_from` says
                 hand = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[0], []) for vi, _ in f})]
                 elbow = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[-1], []) for vi, _ in f})]
+                if mirror:
+                    hand = hand * np.array([-1.0, 1.0, 1.0])
+                    elbow = elbow * np.array([-1.0, 1.0, 1.0])
                 if len(sources) == 1:
                     # (an arm in one piece: the hand is its lowest sixth, the elbow its highest)
                     by_y = hand[np.argsort(hand[:, 1])]
@@ -334,9 +338,12 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                 else:
                     middle = chr_verts[list(used)].mean(axis=0) if first else middle
                 first = False
-                part_middle = R @ (chr_verts[list(used)].mean(axis=0) - middle) + np.array(place)
+                part_middle = R @ ((chr_verts[list(used)].mean(axis=0) - middle) * (np.array([-1.0, 1.0, 1.0]) if mirror else 1.0)) + np.array(place)
                 for vi in sorted(used, key=used.get):
-                    p = R @ (chr_verts[vi] - middle) + np.array(place)
+                    local = chr_verts[vi] - middle
+                    if mirror:
+                        local = local * np.array([-1.0, 1.0, 1.0])
+                    p = R @ local + np.array(place)
                     hv.append(p)
                     hc.append(part_middle)
                     c = chr_cols[vi]
@@ -353,7 +360,7 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                     if mat != last_mat:
                         hf.append(mat)
                         last_mat = mat
-                    hf.append([base + used[vi] for vi, _ in f])
+                    hf.append([base + used[vi] for vi, _ in f][::-1] if mirror else [base + used[vi] for vi, _ in f])
             # (the normals are the average of the faces that meet at a point, so the arm is lit as a round thing and not as the flat pieces it is made of; one that points inward is turned)
             keys = [tuple(np.round(q, 3)) for q in hv]
             total, face_normals, flip = {}, {}, 0.0
@@ -520,18 +527,143 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
         variants = [(spec['hands'], spec['file'] if character == 0 else spec['file'].replace('.raw', '_c%02d.raw' % character), '')]
         if spec['kind'] == 'two':
             variants.append((spec['hands'][:1], spec['file'].replace('.raw', '_c%02d_l.raw' % character), '_l'))
+        # (the gun of the left hand: the hand on its grip is a left hand, the right hand's mirror, its arm coming in from the lower left)
+        grip = spec['hands'][0]
+        frm = grip[5] if len(grip) > 5 and grip[5] is not None else (0.3, -0.9, -0.3)
+        variants.append(([grip[:5] + ((-frm[0], frm[1], frm[2]), grip[6] if len(grip) > 6 else 0, 'mirror')], spec['file'].replace('.raw', '_c%02d_m.raw' % character), '_m'))
         for hands, out_name, tag in variants:
             add_hands(base + '.obj', base + '_hands%02d%s.obj' % (character, tag), hands, cv, cc, cp)
+            body_faces = {k: len(v) for k, v in read_blocks(base + '.obj')[3].items()}
             groups = {}
             faces, _ = obedit.read_obj(base + '_hands%02d%s.obj' % (character, tag), groups)
             n, o, sz = [e for e in es if e[0] == spec['file']][0]
             data = d[o:o + sz]
             for part_name, fs in groups.items():
                 if part_name and part_name.startswith('part') and part_name[4:].isdigit():
-                    data, _count = obedit.mesh_part(data, fs, int(part_name[4:]), {'chrslot%d' % k: n for k, n in enumerate(skin_numbers)})
+                    before = data
+                    own = original_strip_faces(data, int(part_name[4:]))
+                    raw = None
+                    if own is not None and part_name in body_faces:
+                        # (the gun's own strips, then the faces of the hands: the part is not turned into single triangles)
+                        raw = own[1]
+                        fs = own[0] + fs[body_faces[part_name]:]
+                    data, _count = obedit.mesh_part(data, fs, int(part_name[4:]), {'chrslot%d' % k: n for k, n in enumerate(skin_numbers)}, raw_strips=raw)
+                    small = drop_old_part_data(before, data, int(part_name[4:]))
+                    if small is not data and same_geometry(data, small):
+                        data = small
+                    elif small is not data:
+                        print('model not made smaller (the check failed):', out_name, part_name)
             out = os.path.join(mod, 'OB.PAK', out_name)
             os.makedirs(os.path.dirname(out), exist_ok=True)
             open(out, 'wb').write(data)
+
+
+def original_strip_faces(f, part):
+    """The strips of a part of a model as `obedit.mesh_part` takes them (a face with all the vertices of the strip, so the part keeps the size it has): [(corners, material)] and {id(corners): flip},
+    or None when the part is not a plain part with normals (then it is made from the OBJ as triangles)."""
+    import struct
+    sys.path.insert(0, TOOLS)
+    import obdump
+    tab, = struct.unpack_from('<I', f, 4)
+    cnt, = struct.unpack_from('<I', f, tab)
+    bones = tab - cnt * 80
+    lst, = struct.unpack_from('<I', f, bones + 80 * part + 8)
+    if not obdump.ok(f, lst):
+        return None
+    strips_at, pos_at, st_at, col_at, bind_at, nrm_at = struct.unpack_from('<6I', f, bones + 80 * part + 20)
+    chunks = obdump.read_chunks(f, lst)
+    if not chunks or any(c[5] != 3 for c in chunks) or not nrm_at or not col_at:
+        return None
+    faces, flips = [], {}
+    for slot, first_strip, strips, first_vertex, vertices, kind in chunks:
+        v = first_vertex
+        mat = 'slot%d_k%d' % (slot, kind)
+        for s in range(strips):
+            word, = struct.unpack_from('<I', f, strips_at + 16 * (first_strip + s))
+            count = word & 0x7fff
+            corners = []
+            for k in range(count):
+                pos = struct.unpack_from('<3f', f, pos_at + 12 * (v + k))
+                st = struct.unpack_from('<2f', f, st_at + 16 * (v + k))
+                nrm = struct.unpack_from('<3f', f, nrm_at + 12 * (v + k))
+                col = tuple((b << 1) & 0xff for b in f[col_at + 4 * (v + k):col_at + 4 * (v + k) + 3])
+                corners.append((pos, st, nrm, col))
+            faces.append((corners, mat))
+            flips[id(corners)] = bool(word & 0x10000)
+            v += count
+    return faces, flips
+
+
+def _pointer_slots(f, bones_at, count):
+    """The words of the bone records that are places in the file (what the arrays and chunk lists of a part are found by): (position of the word, its value)."""
+    import struct
+    out = []
+    for i in range(count):
+        for k in (8, 12, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56):
+            at = bones_at + 80 * i + k
+            v = struct.unpack_from('<I', f, at)[0]
+            if 16 <= v < bones_at and v % 16 == 0:
+                out.append((i, at, v))
+    return out
+
+
+def drop_old_part_data(before, after, part):
+    """`obedit.mesh_part` writes the new arrays of a part after the others and leaves the old ones in the file: take them out (the data behind moves up, and the places in the file that point behind
+    them are changed), so a model with hands on one of its parts is not twice the size."""
+    import struct
+    tab_b, = struct.unpack_from('<I', before, 4)
+    cnt_b, = struct.unpack_from('<I', before, tab_b)
+    bones_b = tab_b - cnt_b * 80
+    slots = _pointer_slots(before, bones_b, cnt_b)
+    own = [v for i, at, v in slots if i == part]
+    others = [v for i, at, v in slots if i != part] + [bones_b]
+    if not own:
+        return after
+    lo = min(own)
+    above = [v for v in others if v > lo]
+    hi = min(above) if above else bones_b
+    if max(own) >= hi:
+        return after
+    delta = hi - lo
+    tab_a, = struct.unpack_from('<I', after, 4)
+    cnt_a, = struct.unpack_from('<I', after, tab_a)
+    bones_a = tab_a - cnt_a * 80
+    out = bytearray(after[:lo] + after[hi:])
+    for at in (0, 4):
+        v, = struct.unpack_from('<I', out, at)
+        if v >= hi:
+            struct.pack_into('<I', out, at, v - delta)
+    new_bones = bones_a - delta
+    for i in range(cnt_a):
+        for k in (8, 12, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56):
+            at = new_bones + 80 * i + k
+            v, = struct.unpack_from('<I', out, at)
+            if hi <= v <= bones_a and v % 16 == 0:
+                struct.pack_into('<I', out, at, v - delta)
+    return bytes(out)
+
+
+def same_geometry(a, b):
+    """Do two models have the same vertices in every part (a check of `drop_old_part_data`)?"""
+    import struct
+    sys.path.insert(0, TOOLS)
+    import obdump
+    out = []
+    for f in (a, b):
+        tab, = struct.unpack_from('<I', f, 4)
+        cnt, = struct.unpack_from('<I', f, tab)
+        bones = tab - cnt * 80
+        verts = []
+        for i in range(cnt):
+            lst, = struct.unpack_from('<I', f, bones + 80 * i + 8)
+            if not obdump.ok(f, lst):
+                continue
+            arrays = struct.unpack_from('<6I', f, bones + 80 * i + 20)
+            for ch in obdump.read_chunks(f, lst):
+                for k in range(ch[3], ch[3] + ch[4]):
+                    verts.append((i, ch[0], struct.unpack_from('<3f', f, arrays[1] + 12 * k), struct.unpack_from('<2f', f, arrays[2] + 16 * k)))
+        out.append(verts)
+    return out[0] == out[1]
 
 
 def pakls_entries(pak):

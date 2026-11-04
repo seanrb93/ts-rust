@@ -237,9 +237,9 @@ pub static LEFT_GUN_BUILD: AtomicBool = AtomicBool::new(false);
 
 /// `gunNew` for a gun held in both hands: the prop is made from the model of the gun that has the hand on the grip only (`gunN_cNN_l.raw`), which is loaded the first time and kept by
 /// prop number as long as the model of the plain gun is the one it was loaded beside; the prop table keeps the plain model for the next gun.
-pub fn dual_gun_new(prop: i32) -> i32 {
+pub fn dual_gun_new(prop: i32, left_hand: bool) -> i32 {
     use std::sync::Mutex;
-    static LEFT_MODELS: Mutex<Vec<(i32, i32, i32)>> = Mutex::new(Vec::new());
+    static LEFT_MODELS: Mutex<Vec<(i32, i32, i32, bool)>> = Mutex::new(Vec::new());
     let def = prop * 28 + PROPTABLE;
     if lw(def + 4) == 0 {
         // (the plain model is loaded by making a prop of it)
@@ -250,17 +250,17 @@ pub fn dual_gun_new(prop: i32) -> i32 {
     if plain == 0 || !ENABLED_LEFT.load(Ordering::Relaxed) {
         return gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32);
     }
-    let known = LEFT_MODELS.lock().ok().and_then(|l| l.iter().find(|e| e.0 == prop && e.1 == plain).map(|e| e.2));
+    let known = LEFT_MODELS.lock().ok().and_then(|l| l.iter().find(|e| e.0 == prop && e.1 == plain && e.3 == left_hand).map(|e| e.2));
     let left = match known {
         Some(left) => left,
         None => {
-            let left = match left_model_name(lw(def + 12)) {
+            let left = match left_model_name(lw(def + 12), left_hand) {
                 Some(name) => obLoad(name),
                 None => 0,
             };
             if let Ok(mut l) = LEFT_MODELS.lock() {
-                l.retain(|e| e.0 != prop);
-                l.push((prop, plain, left));
+                l.retain(|e| !(e.0 == prop && e.3 == left_hand));
+                l.push((prop, plain, left, left_hand));
             }
             left
         }
@@ -277,7 +277,7 @@ pub fn dual_gun_new(prop: i32) -> i32 {
 static ENABLED_LEFT: AtomicBool = AtomicBool::new(true);
 
 /// The name of the model of the gun held in both hands (`gunN_cNN_l.raw`) when the mod has one for the first player's character.
-fn left_model_name(name: i32) -> Option<i32> {
+fn left_model_name(name: i32, left_hand: bool) -> Option<i32> {
     let at = arms_variant_name(name)?;
     let mut text = Vec::new();
     for i in 0.. {
@@ -287,7 +287,7 @@ fn left_model_name(name: i32) -> Option<i32> {
         }
         text.push(b);
     }
-    let s = String::from_utf8_lossy(&text).replace(".raw", "_l.raw");
+    let s = String::from_utf8_lossy(&text).replace(".raw", if left_hand { "_m.raw" } else { "_l.raw" });
     let left = at + 0x80;
     for (i, b) in s.bytes().enumerate() {
         sb(left + i as i32, b as i32);

@@ -268,7 +268,12 @@ pub fn packfileLoad(a0: i32, a1: i32, a2: i32) {
         sd(sp, ld(buffer));
         sw(sp + 8, tail);
     }
-    if lw(sp) != 0x4b433450 || (0x3c000_u32) < (lw(sp + 8) as u32) {
+    // (the game takes a pack of up to 4096 files; a mod that adds many models, such as the first person hands, makes the pack of the models bigger)
+    #[cfg(feature = "extensions")]
+    let most = 0x40_0000_u32;
+    #[cfg(not(feature = "extensions"))]
+    let most = 0x3c000_u32;
+    if lw(sp) != 0x4b433450 || most < (lw(sp + 8) as u32) {
         return;
     }
     let pack = memAlloc(32, a2);

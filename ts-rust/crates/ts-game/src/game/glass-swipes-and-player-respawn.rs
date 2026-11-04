@@ -242,7 +242,7 @@ pub fn gunCreatePlayerGun(a0: i32, a1: i32, a2: i32) {
     let both = a2 != 0 || lh((lw(record + 260) << 3) + (GUNCOMBOS + 2)) >= 0;
     #[cfg(not(feature = "extensions"))]
     let both = false;
-    let view = if both { dual_gun_new(lw(gun)) } else { gunNew(lw(gun), 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32) };
+    let view = if both { dual_gun_new(lw(gun), a2 != 0) } else { gunNew(lw(gun), 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32) };
     let player = lw(g::currentplayer);
     sw(view + 136, 2);
     sw(view + 140, 2);
