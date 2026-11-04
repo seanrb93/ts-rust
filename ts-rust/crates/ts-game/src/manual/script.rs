@@ -49,10 +49,12 @@ struct State {
     last_game_frame: i32,
     in_hud: bool,
     dt: f32,
+    /// the score and the rank are left off the screen
+    hide_score: bool,
 }
 
 thread_local! {
-    static STATE: RefCell<State> = RefCell::new(State { fx: Vec::new(), started: false, last_game_frame: 0, in_hud: false, dt: 1.0 });
+    static STATE: RefCell<State> = RefCell::new(State { fx: Vec::new(), started: false, last_game_frame: 0, in_hud: false, dt: 1.0, hide_score: false });
     static HOST: RefCell<Option<Host>> = RefCell::new(None);
 }
 
@@ -219,6 +221,8 @@ fn register(engine: &mut Engine) {
             sw(record(i) + 20, lw(((team as i32) << 3) + g::storydata + 68));
         }
     });
+    // the score and the rank of the player are not shown on the screen (a mode with no use for them)
+    engine.register_fn("hide_score", |on: bool| STATE.with(|s| s.borrow_mut().hide_score = on));
     // the glow at the edge of the screen (only in `on_hud`): red, green, blue and alpha of 0 to 127
     engine.register_fn("hud_glow", |r: i64, g: i64, b: i64, a: i64| {
         if STATE.with(|s| s.borrow().in_hud) {
@@ -265,6 +269,7 @@ pub fn script_reset() {
         s.fx.clear();
         s.started = false;
         s.last_game_frame = 0;
+        s.hide_score = false;
     });
     ACTIVE.store(false, Ordering::Relaxed);
     TRIED.store(false, Ordering::Relaxed);
@@ -372,6 +377,11 @@ pub fn script_hud() {
     STATE.with(|s| s.borrow_mut().in_hud = true);
     let _: Option<()> = call("on_hud", (number,));
     STATE.with(|s| s.borrow_mut().in_hud = false);
+}
+
+/// The screen leaves out the score and the rank (`hudGfx`).
+pub fn script_hides_score() -> bool {
+    ACTIVE.load(Ordering::Relaxed) && STATE.with(|s| s.borrow().hide_score)
 }
 
 /// A computer character of the game being scripted does not attack.

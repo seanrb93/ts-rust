@@ -308,7 +308,11 @@ pub fn hudGfx() {
                     y = y + 22 + (2 >> (lw(g::window + 92) & 31));
                 }
             }
-            if gameModeDisplayRank() != 0 {
+            #[cfg(feature = "extensions")]
+            let show_rank = !script_hides_score();
+            #[cfg(not(feature = "extensions"))]
+            let show_rank = true;
+            if show_rank && gameModeDisplayRank() != 0 {
                 let score = lw(hud + 276);
                 let mut width = 0;
                 let step = hudScoreWidth() + 4;

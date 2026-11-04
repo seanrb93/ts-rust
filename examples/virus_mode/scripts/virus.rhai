@@ -17,6 +17,7 @@ fn INF() { 2 }
 fn hypot(dx, dz) { (dx * dx + dz * dz).sqrt() }
 
 fn on_start() {
+    hide_score(true);    // there is no score in this mode
     this.clock = 0.0;
     this.ticks = 0;
     this.wander = [];
