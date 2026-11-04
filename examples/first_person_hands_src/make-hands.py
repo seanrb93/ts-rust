@@ -28,28 +28,28 @@ FORE_FROM = (-0.5, -0.45, -0.7)
 GRIP_ROT = (-90, 0, 90)      # the hand of the grip: the palm is upright, the thumb up, as a hand holds a grip
 FORE_ROT = (-90, 0, 180)     # the hand under the front: the palm up, under the gun, the fingers forward
 WEAPONS = {
-    'pistol': dict(grip_scale=0.6, file='ob/gun1/gun1.raw', part='part3', kind='one', grip=(-0.022, -0.04, -0.04)),
-    'raygun': dict(grip_scale=0.6, file='ob/gun5/gun5.raw', part='part0', kind='one'),
-    'scifi_handgun': dict(grip_scale=0.6, file='ob/gun8/gun8.raw', part='part0', kind='one', grip=(-0.02, -0.06, -0.06)),
-    'mauser': dict(grip_scale=0.6, file='ob/gun10/gun10.raw', part='part0', kind='one', grip=(-0.02, -0.11, 0.05)),
-    'colt': dict(grip_scale=0.6, file='ob/gun24/gun24.raw', part='part0', kind='one', grip=(-0.03, -0.12, -0.04)),
-    'uzi': dict(grip_scale=0.6, file='ob/gun22/gun22.raw', part='part0', kind='one', grip=(-0.02, -0.09, -0.04)),
+    'pistol': dict(grip_scale=0.9, file='ob/gun1/gun1.raw', part='part3', kind='one', grip=(-0.022, -0.04, -0.04)),
+    'raygun': dict(grip_scale=0.9, file='ob/gun5/gun5.raw', part='part0', kind='one'),
+    'scifi_handgun': dict(grip_scale=0.9, file='ob/gun8/gun8.raw', part='part0', kind='one', grip=(-0.02, -0.06, -0.06)),
+    'mauser': dict(grip_scale=0.9, file='ob/gun10/gun10.raw', part='part0', kind='one', grip=(-0.02, -0.11, 0.05)),
+    'colt': dict(grip_scale=0.9, file='ob/gun24/gun24.raw', part='part0', kind='one', grip=(-0.03, -0.09, -0.04)),
+    'uzi': dict(grip_scale=0.9, file='ob/gun22/gun22.raw', part='part0', kind='one', grip=(-0.02, -0.06, -0.04)),
     'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.06, -0.10, -0.05), fore_abs=(0.03, 0.05, 0.27)),
-    'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(-0.02, -0.06, 0.0), fore=(0.01, -0.035, 0.27)),
-    'sniper_rifle': dict(file='ob/gun4/gun4.raw', part='part0', kind='two'),
-    'raygun_carbine': dict(file='ob/gun6/gun6.raw', part='part0', kind='two'),
-    'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two', fore_abs=(0.04, 0.04, 0.18)),
-    'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two', fore_abs=(0.14, 0.0, 0.12)),
+    'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(-0.02, -0.06, 0.0), fore_z=0.26, fore_from=(0.3, -0.9, -0.3)),
+    'sniper_rifle': dict(file='ob/gun4/gun4.raw', part='part0', kind='two', fore_z=0.55, fore_from=(0.3, -0.9, -0.3)),
+    'raygun_carbine': dict(file='ob/gun6/gun6.raw', part='part0', kind='two', fore_z=0.22, fore_from=(0.3, -0.9, -0.3)),
+    'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two', fore_z=0.3, fore_from=(0.3, -0.9, -0.3)),
+    'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two', fore_z=0.22, fore_from=(0.3, -0.9, -0.3)),
     'minigun': dict(file='ob/gun11/gun11.raw', part='part0', kind='two', grip=(-0.02, -0.04, 0.08), fore=(0.01, -0.02, 0.3)),
     'grenade_launcher': dict(file='ob/gun12/gun12.raw', part='part0', kind='two'),
-    'scifi_sniper_rifle': dict(file='ob/gun13/gun13.raw', part='part0', kind='two'),
+    'scifi_sniper_rifle': dict(file='ob/gun13/gun13.raw', part='part0', kind='two', fore_z=0.24, fore_from=(0.3, -0.9, -0.3)),
     'weapon_13': dict(file='ob/gun14/gun14.raw', part='part0', kind='two'),
     'proximity_mine': dict(file='ob/gun15/gun15.raw', part='part1', kind='one'),
     'remote_mine': dict(file='ob/gun16/gun16.raw', part='part0', kind='one'),
     'timed_mine': dict(file='ob/gun17/gun17.raw', part='part2', kind='one'),
     'weapon_17': dict(file='ob/gun18/gun18.raw', part='part0', kind='one'),
     'tnt': dict(file='ob/gun19/gun19.raw', part='part0', kind='one', grip=(-0.02, 0.08, 0.0)),
-    'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore_abs=(0.06, 0.0, 0.3)),
+    'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore_abs=(0.06, 0.0, 0.34), fore_from=(0.3, -0.9, -0.3)),
     'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.05), fore_abs=(0.02, 0.04, 0.36), fore_part='part2'),
     'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two', grip=(-0.07, -0.05, -0.12), fore_abs=(-0.06, 0.0, 0.28)),
     'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore_abs=(0.0, 0.0, 0.38)),
@@ -88,6 +88,28 @@ def rotation_between(a, b):
     return np.eye(3) + k + k @ k / (1.0 + c)
 
 
+def under_front(gun_obj, part, z):
+    """Where the hand that holds the front of a gun goes when only how far forward it is is known: on the underside of the body at that distance, on the side of the body (the place of the M16's hand)."""
+    v, parts, cur = [], {}, None
+    for line in open(gun_obj):
+        w = line.split()
+        if not w:
+            continue
+        if w[0] == 'v':
+            v.append([float(x) for x in w[1:4]])
+        elif w[0] == 'o':
+            cur = w[1]
+        elif w[0] == 'f':
+            parts.setdefault(cur, []).extend(int(x.split('/')[0]) - 1 for x in w[1:])
+    pts = np.array(v)[np.unique(parts[part])]
+    window = 0.04
+    near = pts[abs(pts[:, 2] - z) < window]
+    while len(near) < 20 and window < 0.3:
+        window += 0.02
+        near = pts[abs(pts[:, 2] - z) < window]
+    return (near[:, 0].max() - 0.03, near[:, 1].min() + 0.04, z)
+
+
 def hands_for(spec, gun_obj):
     """The hands of a weapon as (part, parts of the character, rotation, scale, place, where the elbow is from the hand, roll): the right hand on the grip with its forearm coming up from
     below the screen, and for a two handed gun the other hand on the side of the gun that the view sees, its arm coming in from the lower left.  The places that the table does not give are
@@ -97,8 +119,14 @@ def hands_for(spec, gun_obj):
     grip = spec.get('grip') or (-0.02, lo[1] + (0.09 if spec['kind'] == 'one' else 0.1), lo[2] + 0.25 * size[2])
     hands = [(spec['part'], CHAINS['grip'], (0, 0, 0), spec.get('grip_scale', 1.0), (grip[0], grip[1] + 0.02, grip[2]), spec.get('grip_from', (0.3, -0.9, -0.3)), spec.get('grip_roll', 0))]
     if spec['kind'] == 'two':
-        fore = spec.get('fore_abs') or (hi[0] - 0.03, (lo[1] + hi[1]) / 2 + 0.05, lo[2] + 0.6 * size[2])
+        fore = spec.get('fore_abs') or (under_front(gun_obj, spec['part'], spec['fore_z']) if 'fore_z' in spec else None) or (hi[0] - 0.03, (lo[1] + hi[1]) / 2 + 0.05, lo[2] + 0.6 * size[2])
         hands.append((spec.get('fore_part', spec['part']), CHAINS['front'], (0, 0, 0), 1.0, tuple(fore), spec.get('fore_from', (0.6, -0.6, -0.5)), spec.get('fore_roll', 0)))
+    if os.environ.get('HANDS_FORE') and spec['kind'] == 'two':
+        # (a try of another place for the front hand: HANDS_FORE=x,y,z  HANDS_FROM=x,y,z  HANDS_ROLL=degrees)
+        h = hands[-1]
+        place = tuple(float(x) for x in os.environ['HANDS_FORE'].split(','))
+        frm = tuple(float(x) for x in os.environ['HANDS_FROM'].split(',')) if os.environ.get('HANDS_FROM') else h[5]
+        hands[-1] = h[:4] + (place, frm, float(os.environ.get('HANDS_ROLL', h[6])))
     return hands
 
 
@@ -488,18 +516,22 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
         if os.environ.get('HANDS_JSON'):
             import json
             spec = dict(spec, hands=[tuple(h) for h in json.loads(os.environ['HANDS_JSON'])])
-        add_hands(base + '.obj', base + '_hands%02d.obj' % character, spec['hands'], cv, cc, cp)
-        groups = {}
-        faces, _ = obedit.read_obj(base + '_hands%02d.obj' % character, groups)
-        n, o, sz = [e for e in es if e[0] == spec['file']][0]
-        data = d[o:o + sz]
-        for part_name, fs in groups.items():
-            if part_name and part_name.startswith('part') and part_name[4:].isdigit():
-                data, _count = obedit.mesh_part(data, fs, int(part_name[4:]), {'chrslot%d' % k: n for k, n in enumerate(skin_numbers)})
-        out_name = spec['file'] if character == 0 else spec['file'].replace('.raw', '_c%02d.raw' % character)
-        out = os.path.join(mod, 'OB.PAK', out_name)
-        os.makedirs(os.path.dirname(out), exist_ok=True)
-        open(out, 'wb').write(data)
+        # (the model with the arms as the gun is held in both hands, and for a two handed gun the one of the left gun when a gun is held in each hand, with the hand on the grip only)
+        variants = [(spec['hands'], spec['file'] if character == 0 else spec['file'].replace('.raw', '_c%02d.raw' % character), '')]
+        if spec['kind'] == 'two':
+            variants.append((spec['hands'][:1], spec['file'].replace('.raw', '_c%02d_l.raw' % character), '_l'))
+        for hands, out_name, tag in variants:
+            add_hands(base + '.obj', base + '_hands%02d%s.obj' % (character, tag), hands, cv, cc, cp)
+            groups = {}
+            faces, _ = obedit.read_obj(base + '_hands%02d%s.obj' % (character, tag), groups)
+            n, o, sz = [e for e in es if e[0] == spec['file']][0]
+            data = d[o:o + sz]
+            for part_name, fs in groups.items():
+                if part_name and part_name.startswith('part') and part_name[4:].isdigit():
+                    data, _count = obedit.mesh_part(data, fs, int(part_name[4:]), {'chrslot%d' % k: n for k, n in enumerate(skin_numbers)})
+            out = os.path.join(mod, 'OB.PAK', out_name)
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            open(out, 'wb').write(data)
 
 
 def pakls_entries(pak):

@@ -4,3 +4,5 @@ game that have a model (66 of them, the aliens, robots and mutants included; the
 Limits: split screen shows the first player's arms in every view, the hands do not move for a reload, and a character added by a mod has the first character's arms.
 Run `python examples/first_person_hands_src/make-hands.py <game>/PAK/OB.PAK <game>/mods/first_person_hands_mod` to make the mod (about 100 MB: it holds the game's own models, so it is not kept
 in the repository).  WEAPONS in that file lists the guns and where the hands go; HANDS_CHARACTER=<number> makes it for one character only.
+
+Dual wielding: when a gun is held in each hand, the guns have only the hand on the grip (each gun has a second model, gunN_cNN_l.raw, that the game uses then), so a two handed gun does not show four arms.

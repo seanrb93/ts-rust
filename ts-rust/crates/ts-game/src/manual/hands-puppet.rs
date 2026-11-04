@@ -232,6 +232,96 @@ fn show(puppet: i32, number: i32, on: bool) {
 /// The name of the first person model of a gun with the arms of the player's character on it, for a name of the file of a gun (`ob/gun2/gun2.raw`, with or without `host0:`): the
 /// same with `_c<number of the character>` before the extension (the files the hands mod makes for the characters that have arms of their own: `examples/first_person_hands_src`).
 /// None for another file.  The caller uses the file with this name when the packs have it and the original when they have not.
+/// Set while the gun of the left hand is being made (a gun in each hand): its model has only the hand on its grip, `gunN_cNN_l.raw`.
+pub static LEFT_GUN_BUILD: AtomicBool = AtomicBool::new(false);
+
+/// `gunNew` for a gun held in both hands: the prop is made from the model of the gun that has the hand on the grip only (`gunN_cNN_l.raw`), which is loaded the first time and kept by
+/// prop number as long as the model of the plain gun is the one it was loaded beside; the prop table keeps the plain model for the next gun.
+pub fn dual_gun_new(prop: i32) -> i32 {
+    use std::sync::Mutex;
+    static LEFT_MODELS: Mutex<Vec<(i32, i32, i32)>> = Mutex::new(Vec::new());
+    let def = prop * 28 + PROPTABLE;
+    if lw(def + 4) == 0 {
+        // (the plain model is loaded by making a prop of it)
+        let view = gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32);
+        propDelete(view);
+    }
+    let plain = lw(def + 4);
+    if plain == 0 || !ENABLED_LEFT.load(Ordering::Relaxed) {
+        return gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32);
+    }
+    let known = LEFT_MODELS.lock().ok().and_then(|l| l.iter().find(|e| e.0 == prop && e.1 == plain).map(|e| e.2));
+    let left = match known {
+        Some(left) => left,
+        None => {
+            let left = match left_model_name(lw(def + 12)) {
+                Some(name) => obLoad(name),
+                None => 0,
+            };
+            if let Ok(mut l) = LEFT_MODELS.lock() {
+                l.retain(|e| e.0 != prop);
+                l.push((prop, plain, left));
+            }
+            left
+        }
+    };
+    if left == 0 {
+        return gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32);
+    }
+    sw(def + 4, left);
+    let view = gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32);
+    sw(def + 4, plain);
+    view
+}
+
+static ENABLED_LEFT: AtomicBool = AtomicBool::new(true);
+
+/// The name of the model of the gun held in both hands (`gunN_cNN_l.raw`) when the mod has one for the first player's character.
+fn left_model_name(name: i32) -> Option<i32> {
+    let at = arms_variant_name(name)?;
+    let mut text = Vec::new();
+    for i in 0.. {
+        let b = lbu(at + i) as u8;
+        if b == 0 {
+            break;
+        }
+        text.push(b);
+    }
+    let s = String::from_utf8_lossy(&text).replace(".raw", "_l.raw");
+    let left = at + 0x80;
+    for (i, b) in s.bytes().enumerate() {
+        sb(left + i as i32, b as i32);
+    }
+    sb(left + s.len() as i32, 0);
+    (packfileSeekPlain(left) != 0).then_some(left)
+}
+
+/// The names to try, first to last, for the model of a gun: the one of the left hand's gun (when it is being made), the one with the arms of the first player's character, then the plain one.
+pub fn arms_variant_names(name: i32) -> Vec<i32> {
+    let mut out = Vec::new();
+    if let Some(at) = arms_variant_name(name) {
+        if LEFT_GUN_BUILD.load(Ordering::Relaxed) {
+            let mut text = Vec::new();
+            for i in 0.. {
+                let b = lbu(at + i) as u8;
+                if b == 0 {
+                    break;
+                }
+                text.push(b);
+            }
+            let s = String::from_utf8_lossy(&text).replace(".raw", "_l.raw");
+            let left = at + 0x80;
+            for (i, b) in s.bytes().enumerate() {
+                sb(left + i as i32, b as i32);
+            }
+            sb(left + s.len() as i32, 0);
+            out.push(left);
+        }
+        out.push(at);
+    }
+    out
+}
+
 pub fn arms_variant_name(name: i32) -> Option<i32> {
     // ("ob/gun" and a number, "/gun", the same number and ".raw": not the guns of the characters)
     let mut text = [0u8; 48];
@@ -257,6 +347,9 @@ pub fn arms_variant_name(name: i32) -> Option<i32> {
     let character = std::env::var("TS_PLAYERCHR").ok().and_then(|v| v.parse().ok()).unwrap_or_else(|| lw(lw(g::signonarray) + id * 2936 + 32 + 84));
     if !(0..128).contains(&character) {
         return None;
+    }
+    if std::env::var_os("TS_ARMLOG").is_some() {
+        eprintln!("[arms] f{} {} state {} left {}", ts_sdk::frame_count(), s, lw(g::gamestate), LEFT_GUN_BUILD.load(Ordering::Relaxed));
     }
     let prefix = if name_has_prefix(name) { "host0:" } else { "" };
     let variant = format!("{prefix}ob/gun{digits}/gun{digits}_c{character:02}.raw");
