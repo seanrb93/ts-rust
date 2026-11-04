@@ -541,14 +541,14 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
             for part_name, fs in groups.items():
                 if part_name and part_name.startswith('part') and part_name[4:].isdigit():
                     before = data
-                    own = original_strip_faces(data, int(part_name[4:]))
+                    own = None if os.environ.get('HANDS_NOSMALL') else original_strip_faces(data, int(part_name[4:]))
                     raw = None
                     if own is not None and part_name in body_faces:
                         # (the gun's own strips, then the faces of the hands: the part is not turned into single triangles)
                         raw = own[1]
                         fs = own[0] + fs[body_faces[part_name]:]
                     data, _count = obedit.mesh_part(data, fs, int(part_name[4:]), {'chrslot%d' % k: n for k, n in enumerate(skin_numbers)}, raw_strips=raw)
-                    small = drop_old_part_data(before, data, int(part_name[4:]))
+                    small = data if os.environ.get('HANDS_NOSMALL') else drop_old_part_data(before, data, int(part_name[4:]))
                     if small is not data and same_geometry(data, small):
                         data = small
                     elif small is not data:
@@ -594,16 +594,20 @@ def original_strip_faces(f, part):
     return faces, flips
 
 
+OWN_SLOTS = (8, 12, 20, 24, 28, 32, 36, 40)
+
+
 def _pointer_slots(f, bones_at, count):
-    """The words of the bone records that are places in the file (what the arrays and chunk lists of a part are found by): (position of the word, its value)."""
+    """The words of the bone records that are places in the file: (part, position of the word, its value, is it one of the places of the arrays and chunk lists of the part).  The other places
+    (such as the data behind the chunk list of a part) are data that stays."""
     import struct
     out = []
     for i in range(count):
-        for k in (8, 12, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56):
+        for k in range(8, 80, 4):
             at = bones_at + 80 * i + k
             v = struct.unpack_from('<I', f, at)[0]
-            if 16 <= v < bones_at and v % 16 == 0:
-                out.append((i, at, v))
+            if 128 <= v < bones_at and v % 8 == 0:
+                out.append((i, at, v, k in OWN_SLOTS))
     return out
 
 
@@ -615,8 +619,8 @@ def drop_old_part_data(before, after, part):
     cnt_b, = struct.unpack_from('<I', before, tab_b)
     bones_b = tab_b - cnt_b * 80
     slots = _pointer_slots(before, bones_b, cnt_b)
-    own = [v for i, at, v in slots if i == part]
-    others = [v for i, at, v in slots if i != part] + [bones_b]
+    own = [v for i, at, v, mine in slots if i == part and mine]
+    others = [v for i, at, v, mine in slots if not (i == part and mine)] + [bones_b]
     if not own:
         return after
     lo = min(own)
@@ -635,10 +639,10 @@ def drop_old_part_data(before, after, part):
             struct.pack_into('<I', out, at, v - delta)
     new_bones = bones_a - delta
     for i in range(cnt_a):
-        for k in (8, 12, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56):
+        for k in range(8, 80, 4):
             at = new_bones + 80 * i + k
             v, = struct.unpack_from('<I', out, at)
-            if hi <= v <= bones_a and v % 16 == 0:
+            if hi <= v <= bones_a and v % 8 == 0:
                 struct.pack_into('<I', out, at, v - delta)
     return bytes(out)
 
