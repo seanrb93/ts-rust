@@ -11,6 +11,11 @@ use std::sync::Mutex;
 
 /// the order in which the characters were infected (the first infected is 0), for the table of results; -1 for one who is not
 static ORDER: Mutex<Vec<i32>> = Mutex::new(Vec::new());
+/// the time of the game in frames of 60 to the second since the sides were made, and when each character was infected (-1: not)
+static CLOCK: Mutex<f32> = Mutex::new(0.0);
+static INFECTED_AT: Mutex<Vec<f32>> = Mutex::new(Vec::new());
+/// how long each infected character has been touching each survivor (clock frames), by (infected, survivor)
+static CONTACT: Mutex<Vec<(i32, i32, f32)>> = Mutex::new(Vec::new());
 /// the game frame of the last tick (a smaller one means the level started again)
 static LAST_GAME_FRAME: AtomicI32 = AtomicI32::new(0);
 
@@ -83,6 +88,9 @@ pub fn virus_tick(infected_at_start: i32) {
             sw(i * 0x1210 + info + 24, SURVIVORS);
         }
         *ORDER.lock().unwrap() = vec![-1; total as usize];
+        *INFECTED_AT.lock().unwrap() = vec![-1.0; total as usize];
+        CONTACT.lock().unwrap().clear();
+        *CLOCK.lock().unwrap() = 0.0;
         let mut pool = present.clone();
         for _ in 0..infected_at_start.clamp(1, (present.len() as i32 - 1).max(1)) {
             // (chosen by the game's own random numbers)
@@ -90,6 +98,7 @@ pub fn virus_tick(infected_at_start: i32) {
             let zero = pool.remove(k);
             sw(zero * 0x1210 + info + 24, INFECTED);
             ORDER.lock().unwrap()[zero as usize] = 0;
+            INFECTED_AT.lock().unwrap()[zero as usize] = 0.0;
             tell(zero, "You are infected! Infect them all");
             hurt_sound(info, zero);
             if std::env::var_os("TS_VIRUSLOG").is_some() {
@@ -110,28 +119,65 @@ pub fn virus_tick(infected_at_start: i32) {
             INFECTED => {
                 infected.push(i);
                 sw(record + 20, green);
+                let prop = lw(record + 3020);
+                if prop != 0 && alive(info, i) {
+                    flame(i, prop, frame);
+                }
                 // (an infected character groans now and then)
-                if alive(info, i) && (newrnd() as u32) % 480 == 0 {
+                if alive(info, i) && (newrnd() as u32) % 900 == 0 {
                     hurt_sound(info, i);
                 }
             }
             _ => {}
         }
     }
-    // (the touch of an infected character infects a survivor)
-    for &a in &infected {
-        for &b in &survivors {
-            if lw(info + b * 0x1210 + 24) != SURVIVORS || !alive(info, a) || !alive(info, b) {
+    // (the touch of an infected character infects a survivor once it has lasted a moment; the first seconds of the match are free of it, and a character just infected cannot infect for a while)
+    let dt = lwc1(g::updateframesf).clamp(0.0, 4.0);
+    let now = {
+        let mut clock = CLOCK.lock().unwrap();
+        *clock += dt;
+        *clock
+    };
+    let mut touching: Vec<(i32, i32)> = Vec::new();
+    if now >= GRACE * 60.0 {
+        let since = INFECTED_AT.lock().unwrap().clone();
+        for &a in &infected {
+            let at = since.get(a as usize).copied().unwrap_or(0.0);
+            if !alive(info, a) || (at > 0.0 && now - at < IMMUNE * 60.0) {
                 continue;
             }
-            let (pa, pb) = (lw(info + a * 0x1210 + 3020), lw(info + b * 0x1210 + 3020));
-            if pa == 0 || pb == 0 {
-                continue;
+            for &b in &survivors {
+                if lw(info + b * 0x1210 + 24) != SURVIVORS || !alive(info, b) {
+                    continue;
+                }
+                let (pa, pb) = (lw(info + a * 0x1210 + 3020), lw(info + b * 0x1210 + 3020));
+                if pa == 0 || pb == 0 {
+                    continue;
+                }
+                let (dx, dy, dz) = (lwc1(pa + 48) - lwc1(pb + 48), lwc1(pa + 52) - lwc1(pb + 52), lwc1(pa + 56) - lwc1(pb + 56));
+                if dx * dx + dz * dz < TOUCH * TOUCH && dy.abs() < 1.6 {
+                    touching.push((a, b));
+                }
             }
-            let (dx, dy, dz) = (lwc1(pa + 48) - lwc1(pb + 48), lwc1(pa + 52) - lwc1(pb + 52), lwc1(pa + 56) - lwc1(pb + 56));
-            if dx * dx + dz * dz < TOUCH * TOUCH && dy.abs() < 1.6 {
-                infect(info, a, b, frame);
+        }
+    }
+    let mut caught = Vec::new();
+    {
+        let mut contact = CONTACT.lock().unwrap();
+        let before = contact.clone();
+        contact.clear();
+        for &(a, b) in &touching {
+            let held = before.iter().find(|c| c.0 == a && c.1 == b).map_or(0.0, |c| c.2) + dt;
+            if held >= CONTACT_TIME * 60.0 {
+                caught.push((a, b));
+            } else {
+                contact.push((a, b, held));
             }
+        }
+    }
+    for (a, b) in caught {
+        if lw(info + b * 0x1210 + 24) == SURVIVORS {
+            infect(info, a, b, frame);
         }
     }
     // (the game is over when one survivor is left: he wins)
@@ -149,6 +195,14 @@ pub fn virus_tick(infected_at_start: i32) {
         gameLevelCompleted();
     }
 }
+
+/// How long (seconds) the match goes on before anyone can be infected, how long a touch has to last, and how long (seconds) a newly infected character cannot infect.
+const GRACE: f32 = 30.0;
+const CONTACT_TIME: f32 = 1.2;
+const IMMUNE: f32 = 6.0;
+/// the speed of the infected and of the survivors, as a part of the characters' own (computer characters only)
+const INFECTED_SPEED: f32 = 0.65;
+const SURVIVOR_SPEED: f32 = 1.0;
 
 /// How close an infected character has to be to a survivor to infect him (world units).
 const TOUCH: f32 = 1.3;
@@ -172,6 +226,10 @@ fn infect(info: i32, a: i32, b: i32, frame: i32) {
         if (b as usize) < order.len() {
             order[b as usize] = next;
         }
+        let now = *CLOCK.lock().unwrap();
+        if let Some(t) = INFECTED_AT.lock().unwrap().get_mut(b as usize) {
+            *t = now;
+        }
     }
     tell(b, "You are infected!");
     hurt_sound(info, b);
@@ -186,7 +244,13 @@ pub fn virus_chase(chr: i32) {
         return;
     }
     let mind = lw(chr + 352);
-    if mind == 0 || lw(mind) < lw(g::lvnumplayers) || lw(mind + 24) != INFECTED || lw(mind + 2716) != 8 {
+    if mind == 0 || lw(mind) < lw(g::lvnumplayers) || lw(mind + 2716) != 8 {
+        return;
+    }
+    // (the infected run slower than the survivors, so that a match lasts: the top speed of a character that is going to a pad is set from its base speed each frame)
+    let factor = if lw(mind + 24) == INFECTED { INFECTED_SPEED } else { SURVIVOR_SPEED };
+    swc1(mind + 2872, lwc1(mind + 2856) * factor);
+    if lw(mind + 24) != INFECTED {
         return;
     }
     let (info, total) = characters();
@@ -263,13 +327,25 @@ pub fn virus_flee_pad(chr: i32) -> Option<i32> {
         return None;
     }
     let dist = |a: [f32; 3], x: f32, y: f32, z: f32| ((a[0] - x).powi(2) + (a[1] - y).powi(2) + (a[2] - z).powi(2)).sqrt();
+    // (the other survivors: a survivor keeps away from them too, so that they do not all end up in the same corner)
+    let mut others: Vec<[f32; 3]> = Vec::new();
+    for i in 0..total {
+        let record = info + i * 0x1210;
+        let prop = lw(record + 3020);
+        if i != number as i32 && prop != 0 && lw(record + 24) == SURVIVORS {
+            others.push([lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56)]);
+        }
+    }
     let pads = lw(g::levelpads);
     let mut best = (-1, f32::MIN);
     for k in 0..lw(g::numpads) {
         let pad = pads + k * 28;
         let (x, y, z) = (lwc1(pad + 12), lwc1(pad + 16), lwc1(pad + 20));
         let away = infected.iter().map(|&p| dist(p, x, y, z)).fold(f32::MAX, f32::min);
-        let score = away - 0.5 * dist(me, x, y, z);
+        let apart = others.iter().map(|&p| dist(p, x, y, z)).fold(40.0_f32, f32::min);
+        // (and a little of its own taste, so that two survivors in the same place do not choose the same pad)
+        let taste = ((((number as u32 + 1).wrapping_mul(2654435761)) ^ ((k as u32).wrapping_mul(40503))) % 100) as f32 * 0.07;
+        let score = away - 0.5 * dist(me, x, y, z) + 0.3 * apart + taste;
         if score > best.1 {
             best = (k, score);
         }
@@ -281,11 +357,14 @@ pub fn virus_flee_pad(chr: i32) -> Option<i32> {
     Some(best.0)
 }
 
-/// The sound of a character in pain (the game's sounds 207 to 210), where the character `i` is.
+/// The groans: four of the game's silent sounds that the mod fills with its own (`examples/virus_mode/SFX.PAK/`).
+const GROANS: [i32; 4] = [403, 405, 406, 409];
+
+/// The sound of a character in pain, where the character `i` is.
 fn hurt_sound(info: i32, i: i32) {
     let prop = lw(info + i * 0x1210 + 3020);
     if prop != 0 {
-        soundStart(207 + (newrnd() as u32 % 4) as i32, prop + 48);
+        soundStart(GROANS[(newrnd() as u32 % 4) as usize], prop + 48);
     }
 }
 
@@ -302,14 +381,19 @@ pub fn virus_rank_score(record: i32, score: i32) -> i32 {
     1000 + ORDER.lock().unwrap().get(i).copied().unwrap_or(0).max(0)
 }
 
-/// The text the table of results shows in place of the score for the character of the record `record` in a game of Virus: its status.
+/// The text the table of results shows in place of the score for the character of the record `record` in a game of Virus: its status and how long it lasted (a survivor, the whole game).
 pub fn virus_status_text(record: i32) -> Option<i32> {
     if !SETUP.load(Ordering::Relaxed) || !virus_on() {
         return None;
     }
-    let mut at = 0x240_0000 + 0x17_3a00;
+    let info = lw(g::chrinfo);
+    let i = ((record - info) / 0x1210) as usize;
     let survivor = lw(record + 24) == SURVIVORS;
-    Some(super::avmenu::put_str(&mut at, if survivor { "Survivor" } else { "Infected" }))
+    let frames = if survivor { *CLOCK.lock().unwrap() } else { INFECTED_AT.lock().unwrap().get(i).copied().unwrap_or(0.0).max(0.0) };
+    let seconds = (frames / 60.0) as i32;
+    let mut at = 0x240_0000 + 0x17_3a00;
+    let text = format!("{} {}:{:02}", if survivor { "Survived" } else { "Infected at" }, seconds / 60, seconds % 60);
+    Some(super::avmenu::put_str(&mut at, &text))
 }
 
 /// The edge of the screen of an infected player is green (`hudGfx`, where the game draws the ring that flashes red when a character is hurt).
@@ -360,5 +444,57 @@ pub fn virus_table_kind(kind: i32) -> i32 {
         2
     } else {
         kind
+    }
+}
+
+/// the particle type of the game that is drawn as a flame (a soft sprite, added to the picture): the points of a group of it are put by hand each frame
+const FLAME: i32 = 10;
+
+/// One flame group per character (the group number, the kind it was made with).
+static FLAMES: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
+
+/// Keep a flame on the character `i` whose prop is `prop`: a group of manual particles of the type `kind` whose points are put by hand each frame, rising from the feet.
+fn flame(i: i32, prop: i32, frame: i32) {
+    let kind = FLAME;
+    let mut flames = FLAMES.lock().unwrap();
+    if flames.len() <= i as usize {
+        flames.resize(i as usize + 1, (0, -1));
+    }
+    let (mut group, made_kind) = flames[i as usize];
+    if group == 0 || lw(group) != 11 || made_kind != kind {
+        let at = 0x240_0000 + 0x17_2d00;
+        for k in 0..3 {
+            swc1(at + 4 * k, 0.0);
+        }
+        group = particleNewManual(0, kind, at);
+        flames[i as usize] = (group, kind);
+        for r in 0..4 {
+            for c in 0..4 {
+                swc1(group + 928 + 16 * r + 4 * c, if r == c { 1.0 } else { 0.0 });
+            }
+        }
+    }
+    let info = g::particleinfos + kind * 104;
+    // (the age is kept where the particles are fully lit)
+    let life = lwc1(info + 12);
+    let age = (lwc1(info + 24) + 0.1).min(life * 0.5);
+    swc1(group + 12, age);
+    swc1(group + 52, 0.0);
+    let n = lw(group + 24).clamp(0, 40);
+    let t = frame as f32 / 60.0;
+    let (cx, cy, cz) = (lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));
+    for k in 0..n {
+        let phase = (k as f32 / n as f32 + t * 0.8).fract();
+        let radius = 0.3 * (1.0 - phase).powf(0.7);
+        let angle = k as f32 * 2.4 + t * 3.0;
+        let place = group + 992 + 12 * k;
+        swc1(place, cx + radius * angle.cos());
+        swc1(place + 4, cy + 0.1 + phase * 1.8);
+        swc1(place + 8, cz + radius * angle.sin());
+        let g = (255.0 * (1.0 - 0.55 * phase)) as i32;
+        let r = (g as f32 * (0.15 + 0.35 * (1.0 - phase))) as i32;
+        let colour = (r << 16) | (g << 8) | r;
+        swc1(group + 2192 + 4 * k, colour as f32);
+        swc1(group + 2592 + 4 * k, 20.0 * (k % 5) as f32);
     }
 }

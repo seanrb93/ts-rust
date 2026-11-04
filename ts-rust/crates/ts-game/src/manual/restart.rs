@@ -63,22 +63,18 @@ pub fn restart_now() {
     gameLevelRestart();
 }
 
-/// The results page (the match is over): the cross button plays the match again.
+/// The results page (the match is over): the game's retry or quit, as the story's results have it: the cross button plays the match again, the triangle button quits.
 pub fn restart_results_tick() {
-    if lw(g::gamestate) == 4 && restart_available() && lw(lw(g::currentplayer)) == 0 && joyNewBut(0) & 64 != 0 {
-        restart_now();
+    if lw(g::gamestate) == 4 && restart_available() && lw(lw(g::currentplayer)) == 0 {
+        tickRetryQuit();
     }
 }
 
-/// The line under the table of results that says so.
+/// The two lines at the bottom of the results that say so (the game's own `drawRetryQuit`).
 pub fn restart_results_hint() {
-    if lw(g::gamestate) != 4 || !restart_available() {
+    if lw(g::gamestate) != 4 || !restart_available() || lw(lw(g::currentplayer)) != 0 {
         return;
     }
-    let mut at = TEXT_AT + 0x40;
-    let text = crate::manual::avmenu::put_str(&mut at, "X: play again");
-    let width = textWidth(text);
-    let x = lw(g::window + 8) - (width >> 1);
-    let y = 2 * lw(g::window + 28) - 25;
-    textOutline(x, y, text, 0x40787880, 0x5080);
+    let bottom = lw(g::window + 24);
+    drawRetryQuit(if lw(g::window + 92) == 0 { bottom - 56 } else { bottom - 30 });
 }
