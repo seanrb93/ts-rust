@@ -482,7 +482,7 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
             if name.is_empty() {
                 errors.push(format!("line {n}: `variant` needs a name"));
             } else {
-                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new(), rules: Vec::new(), hidden: Vec::new() });
+                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new(), rules: Vec::new(), hidden: Vec::new(), script_file: String::new(), script_source: String::new() });
                 in_variant = true;
             }
             continue;
@@ -492,14 +492,21 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
                 Some("win_score") => Some(ts_game::Rule::WinScore),
                 Some("win_score_seconds") => Some(ts_game::Rule::WinScoreSeconds),
                 Some("win_lead") => Some(ts_game::Rule::WinLead),
-                Some("virus") => Some(ts_game::Rule::Virus),
                 _ => None,
             };
             match (variants.last_mut().filter(|_| in_variant), rule, words.get(2).and_then(|w| parse_int(w))) {
                 (None, _, _) => errors.push(format!("line {n}: a `rule` belongs to a `variant`")),
-                (_, None, _) => errors.push(format!("line {n}: unknown rule (the rules are win_score, win_score_seconds, win_lead, virus)")),
+                (_, None, _) => errors.push(format!("line {n}: unknown rule (the rules are win_score, win_score_seconds, win_lead)")),
                 (Some(v), Some(r), Some(val)) if (1..=100000).contains(&val) => v.rules.push((r, val as i32)),
                 _ => errors.push(format!("line {n}: a rule needs a number from 1 to 100000")),
+            }
+            continue;
+        }
+        if words[0] == "script" {
+            match (variants.last_mut().filter(|_| in_variant), words.get(1)) {
+                (None, _) => errors.push(format!("line {n}: `script` belongs to a `variant`")),
+                (_, None) => errors.push(format!("line {n}: `script` needs the name of a file of the mod")),
+                (Some(v), Some(file)) => v.script_file = file.trim_matches('"').to_string(),
             }
             continue;
         }
@@ -570,6 +577,15 @@ pub fn load_file(mod_name: &str, which: &str, path: &Path) {
         let (presets, variants, errors) = parse_modes(&text);
         for e in &errors {
             eprintln!("[mods] {mod_name}/modes.txt {e}");
+        }
+        let mut variants = variants;
+        // (the scripts of the variants are files of the mod, in its `scripts` folder or next to `modes.txt`)
+        for v in variants.iter_mut().filter(|v| !v.script_file.is_empty()) {
+            let dir = path.parent().unwrap_or_else(|| Path::new("."));
+            match std::fs::read_to_string(dir.join("scripts").join(&v.script_file)).or_else(|_| std::fs::read_to_string(dir.join(&v.script_file))) {
+                Ok(text) => v.script_source = text,
+                Err(e) => eprintln!("[mods] {mod_name}: the script {} of the variant {:?}: {e}", v.script_file, v.name),
+            }
         }
         let (n, nv) = (presets.len(), variants.len());
         for p in presets {

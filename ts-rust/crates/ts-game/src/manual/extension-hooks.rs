@@ -107,7 +107,7 @@ pub fn dual_reset_hook() {
     #[cfg(feature = "extended-tables")]
     dual_reset();
     #[cfg(feature = "extensions")]
-    virus_reset();
+    script_reset();
 }
 
 /// The weapon page has made its list of the weapons that can be chosen: the added pairs follow the singles they are made from.

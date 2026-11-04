@@ -105,7 +105,12 @@ pub fn trackTarget(chr: i32) {
         swc1(state + 2800, lwc1(pad + 16));
         swc1(state + 2804, lwc1(pad + 20));
     }
-    if lw(state + 2772) != 0 {
+    // (a computer character that a script holds back only follows its pads: it does not go to attack)
+    #[cfg(feature = "extensions")]
+    let held = script_bot_passive(chr);
+    #[cfg(not(feature = "extensions"))]
+    let held = false;
+    if !held && lw(state + 2772) != 0 {
         let params = g::curgameparms;
         let mode = lw(params + 72);
         let mut skip_to_reselect = false;
@@ -137,7 +142,7 @@ pub fn trackTarget(chr: i32) {
             return;
         }
     }
-    if enemyReselectTarget(chr) != 0 {
+    if !held && enemyReselectTarget(chr) != 0 {
         return;
     }
     if next == -1 {

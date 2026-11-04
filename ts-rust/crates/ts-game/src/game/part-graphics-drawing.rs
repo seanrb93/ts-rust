@@ -86,7 +86,7 @@ fn lighting_packets(chr: i32, matrix: i32) {
     gfx_matrix(g::vif_load_lmtx1, matrix, g::vif_entry_loadldir1);
     gfx_push(LOAD, 1, g::vif_load_lcol);
     #[cfg(feature = "extensions")]
-    gfx_push(LOAD, 4, virus_lighting(chr));
+    gfx_push(LOAD, 4, script_lighting(chr));
     #[cfg(not(feature = "extensions"))]
     gfx_push(LOAD, 4, lw(chr + 28));
     gfx_push(LOAD, 1, g::vif_entry_loadlcol);

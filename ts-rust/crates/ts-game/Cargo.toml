@@ -7,6 +7,8 @@ edition = "2021"
 ts-rt = { path = "../ts-rt" }
 ts-sdk = { path = "../ts-sdk" }
 ts-audio = { path = "../ts-audio" }
+# the scripts of mods (the extensions build only)
+rhai = { version = "1", optional = true, default-features = false, features = ["std", "no_module", "no_time"] }
 
 [features]
 calltrace = ["ts-rt/calltrace"]
@@ -17,4 +19,4 @@ extended-tables = []
 # frame rates above 60 Hz: the frame time hooks in the game code (the port turns on the setting)
 high-framerate = []
 # what the port adds to the game and its state (widescreen and field of view, mouse look, the debug menu reset, new character names, PC texts, demo resync, the unlock option): off while the code is made to match the original exactly
-extensions = ["ts-rt/journal"]
+extensions = ["ts-rt/journal", "dep:rhai"]

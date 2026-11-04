@@ -224,7 +224,7 @@ pub fn scores_pageGfx() {
     if kind != 4 {
         if kind != 6 {
             #[cfg(feature = "extensions")]
-            drawRankingsTable(virus_table_kind(lhu(menu + 4)));
+            drawRankingsTable(script_table_kind(lhu(menu + 4)));
             #[cfg(not(feature = "extensions"))]
             drawRankingsTable(lhu(menu + 4));
             #[cfg(feature = "extensions")]

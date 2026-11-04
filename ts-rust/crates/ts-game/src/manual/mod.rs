@@ -45,8 +45,8 @@ pub mod hands_puppet;
 #[path = "mode-presets.rs"]
 pub mod mode_presets;
 pub mod restart;
-#[path = "virus.rs"]
-pub mod virus;
+#[cfg(feature = "extensions")]
+pub mod script;
 
 pub use arcademodes::*;
 pub use arcadeopts::*;
@@ -55,7 +55,8 @@ pub use network_stats::*;
 pub use throw_lift::*;
 pub use hands_puppet::*;
 pub use restart::*;
-pub use virus::*;
+#[cfg(feature = "extensions")]
+pub use script::*;
 pub use menu_mouse::*;
 pub use bigpool::*;
 pub use customlevels::*;

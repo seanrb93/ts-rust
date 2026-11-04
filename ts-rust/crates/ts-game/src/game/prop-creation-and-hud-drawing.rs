@@ -247,7 +247,7 @@ pub fn hudGfx() {
             sw(sp + 20, old_zb);
             dlSetBlend(1);
             #[cfg(feature = "extensions")]
-            virus_hud();
+            script_hud();
             let mut pain = lw(hud + 268);
             if lw(lw(g::front) + 20) == 0 {
                 if pain == 0 {

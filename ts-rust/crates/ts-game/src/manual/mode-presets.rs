@@ -33,6 +33,9 @@ pub struct ModeVariant {
     pub rules: Vec<(Rule, i32)>,
     /// the options that the Options page leaves out for this variant (the addresses of their values, see `hidden_option`)
     pub hidden: Vec<i32>,
+    /// the script of the variant (`script <file>` in `modes.txt`): the name of the file, and its text once the loader has read it
+    pub script_file: String,
+    pub script_source: String,
 }
 
 /// The option of the Options page that `hide` names in `modes.txt`: the address of its value in the game.
@@ -62,8 +65,6 @@ pub enum Rule {
     WinScoreSeconds,
     /// the level is completed when the best team's score is ahead of the second best by the value (and is above 0)
     WinLead,
-    /// the Virus mode (`manual/virus.rs`): the value is the number of characters that start infected
-    Virus,
 }
 
 static VARIANTS: Mutex<Vec<ModeVariant>> = Mutex::new(Vec::new());
@@ -102,6 +103,17 @@ pub fn active_hidden(mode: i32) -> Vec<i32> {
         return Vec::new();
     }
     VARIANTS.lock().unwrap().iter().filter(|v| v.kind == mode).nth(choice - 1).map_or(Vec::new(), |v| v.hidden.clone())
+}
+
+/// The script of the variant that is being played: its file name and its text.
+pub fn active_script(mode: i32) -> Option<(String, String)> {
+    let choice = super::arcadeopts::variant_choice(mode);
+    if choice == 0 {
+        return None;
+    }
+    let all = VARIANTS.lock().unwrap();
+    let v = all.iter().filter(|v| v.kind == mode).nth(choice - 1)?;
+    (!v.script_source.is_empty()).then(|| (v.script_file.clone(), v.script_source.clone()))
 }
 
 /// The names of the variants of a mode.
@@ -184,11 +196,10 @@ pub fn custom_rules_tick() {
     if std::env::var_os("TS_COMBOLOG").is_some() && ts_sdk::frame_count() % 600 == 1 {
         eprintln!("[rules] frame {} mode {mode}", ts_sdk::frame_count());
     }
+    // (the script of the variant)
+    #[cfg(feature = "extensions")]
+    script_tick();
     for (rule, value) in active_rules(mode) {
-        if rule == Rule::Virus {
-            virus_tick(value);
-            continue;
-        }
         if rule == Rule::WinLead {
             let mut scores: Vec<i32> = (1..=5).map(teamGetScore).collect();
             scores.sort_unstable_by(|a, b| b.cmp(a));
@@ -204,7 +215,7 @@ pub fn custom_rules_tick() {
         let goal = match rule {
             Rule::WinScore => value,
             Rule::WinScoreSeconds => value.saturating_mul(60),
-            Rule::WinLead | Rule::Virus => continue,
+            Rule::WinLead => continue,
         };
         // (a test aid: TS_RULEGOAL=-1 makes the goal reached at once)
         let goal = std::env::var("TS_RULEGOAL").ok().and_then(|v| v.parse().ok()).unwrap_or(goal);

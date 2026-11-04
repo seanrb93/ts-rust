@@ -166,10 +166,23 @@ const HIT_AT: i32 = 0x240_0000 + 0xc100;
 /// (a table in the game's memory, see `memmap.rs`; the value is the time as the bits of a float)
 const NEXT_PUNCH_AT: i32 = 0x240_0000 + 0xcc00;
 
+/// A script of the mode that is played holds the computer character back from fighting.
+fn bot_is_held_back(prop: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        script_bot_passive(prop)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = prop;
+        false
+    }
+}
+
 pub fn bot_punch(prop: i32) {
     let chr = lw(prop + 352);
     // (a bot of the arcade modes, with no gun and the fists as its weapon)
-    if !ts_sdk::bots_punch() || chr == 0 || virus_bot(prop) || lw(chr + 8) != 0 || lw(chr + 376) != -1 || lw(chr + 260) != 0 || lw(g::gamestate) != 3 {
+    if !ts_sdk::bots_punch() || chr == 0 || bot_is_held_back(prop) || lw(chr + 8) != 0 || lw(chr + 376) != -1 || lw(chr + 260) != 0 || lw(g::gamestate) != 3 {
         return;
     }
     // (not while it is dying or about to spawn, and not at a target that is dead)

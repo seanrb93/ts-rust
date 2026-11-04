@@ -76,5 +76,5 @@ pub fn restart_results_hint() {
         return;
     }
     let bottom = lw(g::window + 24);
-    drawRetryQuit(if lw(g::window + 92) == 0 { bottom - 56 } else { bottom - 30 });
+    drawRetryQuit(if lw(g::window + 92) == 0 { bottom - 34 } else { bottom - 20 });
 }

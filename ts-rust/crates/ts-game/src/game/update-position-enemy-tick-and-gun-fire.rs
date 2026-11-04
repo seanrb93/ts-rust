@@ -364,11 +364,9 @@ pub fn enemyTick(a0: i32) {
     if lw(g::numactivechars) == 0 {
         return;
     }
-    // (a computer character of a game of Virus does not attack: it picks its way again)
+    // (a computer character that a script holds back does not attack: it picks its way again)
     #[cfg(feature = "extensions")]
-    if lw(mind + 2716) == 2 && virus_bot(a0) {
-        sw(mind + 2716, 128);
-    }
+    script_bot_hold(a0);
     let state = lw(mind + 2716);
     if state == 0 {
         let prop = lw(mind + 3020);
@@ -597,7 +595,7 @@ pub fn enemyTick(a0: i32) {
     }
     // (an infected character runs at the survivor that is near)
     #[cfg(feature = "extensions")]
-    virus_chase(a0);
+    script_bot_post(a0);
     if settle {
         setAnimation(a0);
     }

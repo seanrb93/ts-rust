@@ -34,7 +34,7 @@ pub fn drawRankingsTable(kind: i32) {
                     score = value;
                 }
                 #[cfg(feature = "extensions")]
-                let score = virus_rank_score(record, score);
+                let score = script_result_key(record, score);
                 let offset = i << 3;
                 i += 1;
                 sw(sp + offset, score);
@@ -189,10 +189,18 @@ pub fn drawRankingsTable(kind: i32) {
                     } else {
                         text = vafmt(&[(g::lastgfxendtime + 4) as i64, lw(lw(sp + 864 + offset)) as i64]);
                     }
-                    // (a game of Virus shows who is infected in place of the score)
+                    // (a script of a mode can say something else in place of the score, in the plain font: the flag 2 is the one that sets numbers apart)
                     #[cfg(feature = "extensions")]
-                    let text = virus_status_text(lw(sp + 1084)).unwrap_or(text);
-                    sb(g::fontflags, lbu(g::fontflags) | 2);
+                    let scripted = script_result_text(lw(sp + 1084));
+                    #[cfg(feature = "extensions")]
+                    let text = scripted.unwrap_or(text);
+                    #[cfg(feature = "extensions")]
+                    let numbers = scripted.is_none();
+                    #[cfg(not(feature = "extensions"))]
+                    let numbers = true;
+                    if numbers {
+                        sb(g::fontflags, lbu(g::fontflags) | 2);
+                    }
                     let width = textWidth(text);
                     textOutline(lw(sp + 1080) - (width + 4), y, text, colour, lw(sp + 1088));
                     let flags = lbu(g::fontflags) & 253;

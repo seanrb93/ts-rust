@@ -444,10 +444,14 @@ pub fn load(game_dir: &Path) {
             let lower = rel.to_ascii_lowercase();
             let first = lower.split('/').next().unwrap_or("");
             // (what a mod author keeps next to the files: notes, and the sources of the pictures and sounds in a folder that starts with _ or is called art, source or docs)
-            if matches!(first, "art" | "source" | "src" | "docs") || first.starts_with('_') || first.starts_with('.') {
+            if matches!(first, "art" | "source" | "src" | "docs" | "scripts") || first.starts_with('_') || first.starts_with('.') {
                 if lower.contains('/') {
                     continue;
                 }
+            }
+            // (the scripts of the modes: read with `modes.txt`)
+            if lower.ends_with(".rhai") {
+                continue;
             }
             if lower == "levels.txt" {
                 level_lists.push((m.name.clone(), host));
