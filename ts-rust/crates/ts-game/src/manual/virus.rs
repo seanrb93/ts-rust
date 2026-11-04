@@ -11,6 +11,9 @@ use std::sync::Mutex;
 const SURVIVORS: i32 = 1;
 const INFECTED: i32 = 2;
 
+/// the particle type of the game that is a green smoke rising
+const FLAME: i32 = 18;
+
 static SETUP: AtomicBool = AtomicBool::new(false);
 /// the game frame at which the teams were made
 static SETUP_FRAME: AtomicI32 = AtomicI32::new(0);
@@ -70,11 +73,10 @@ pub fn virus_tick(infected_at_start: i32) {
         for &i in &present {
             sw(i * 0x1210 + info + 24, SURVIVORS);
         }
-        let mut seed = frame.wrapping_mul(1103515245).wrapping_add(12345) as u32;
         let mut pool = present.clone();
         for _ in 0..infected_at_start.clamp(1, (present.len() as i32 - 1).max(1)) {
-            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
-            let k = std::env::var("TS_VIRUSZERO").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or((seed >> 8) as usize) % pool.len();
+            // (chosen by the game's own random numbers)
+            let k = std::env::var("TS_VIRUSZERO").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or(((newrnd() as u32) >> 8) as usize) % pool.len();
             let zero = pool.remove(k);
             sw(zero * 0x1210 + info + 24, INFECTED);
             tell(zero, "You are infected! Infect them all");
@@ -85,6 +87,25 @@ pub fn virus_tick(infected_at_start: i32) {
         SETUP.store(true, Ordering::Relaxed);
         SETUP_FRAME.store(frame, Ordering::Relaxed);
         return;
+    }
+    // (a green flame rises from every infected character, so that they can be told)
+    if frame % 6 == 0 {
+        let at = 0x240_0000 + 0x17_2d00;
+        for i in 0..total {
+            let record = info + i * 0x1210;
+            let prop = lw(record + 3020);
+            // (the state word is the bots'; a player's is not)
+            let gone = i >= lw(g::lvnumplayers) && lw(record + 2716) & (16 | 32) != 0;
+            if prop == 0 || lw(record + 24) != INFECTED || gone {
+                continue;
+            }
+            swc1(at, lwc1(prop + 48));
+            swc1(at + 8, lwc1(prop + 56));
+            for height in [0.0_f32, 0.7, 1.4] {
+                swc1(at + 4, lwc1(prop + 52) + height);
+                particleNewBurst(0, FLAME, at, 0, 0.0);
+            }
+        }
     }
     // (the game is over when no survivor is left)
     let survivors = (0..total).filter(|&i| lw(i * 0x1210 + info + 24) == SURVIVORS).count();

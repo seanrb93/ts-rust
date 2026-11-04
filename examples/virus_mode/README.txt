@@ -1,6 +1,6 @@
 Virus, a mode of the later TimeSplitters games, as a way to play Deathmatch.
 
-One character starts infected (red).  Whoever an infected character kills is infected too and plays on the red team from then on.  The infected win when nobody is left uninfected;
+One character starts infected, chosen at random, and a green flame rises from every infected character so that they can be told.  Whoever an infected character kills is infected too and plays on the red team from then on.  The infected win when nobody is left uninfected;
 the survivors win when the time limit runs out, so set a time limit on the Options page.
 Survivors that are computer characters do not fight: they run to the part of the level farthest from the infected, and the infected chase them.
 
