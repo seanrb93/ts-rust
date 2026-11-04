@@ -5,7 +5,7 @@
 
 // the numbers to play with (seconds, and parts of the characters' own speed)
 fn grace() { 30.0 }          // nobody can be infected in the first seconds of the match
-fn contact_time() { 1.2 }    // how long a touch has to last
+fn contact_time() { 0.0 }    // how long a touch has to last (0: infected at the first touch)
 fn immune() { 6.0 }          // a character just infected cannot infect for this long
 fn touch() { 1.3 }           // how close the infected has to be
 fn infected_speed() { 0.8 }  // computer characters that are infected run slower than the survivors

@@ -1,6 +1,6 @@
 Virus, a mode of the later TimeSplitters games, as a script of a mod (scripts/virus.rhai; docs/scripting.md says how scripts work).
 
-A free for all: one character, chosen at random, starts infected.  An infected character that touches a survivor for a moment infects him, and he plays as infected from then on.  The last survivor wins.
+A free for all: one character, chosen at random, starts infected.  An infected character that touches a survivor infects him at once, and he plays as infected from then on.  The last survivor wins.
 Computer characters never shoot in this mode: the survivors run from the infected and spread out, and the infected go after the survivors on foot, a little slower than they run.
 
 An infected character is on fire with a green flame, is lit green, and says its own lines of being hit now and then (and when it is infected); the edge of the screen of an infected player glows green.
