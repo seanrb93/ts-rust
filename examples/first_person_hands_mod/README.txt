@@ -8,3 +8,6 @@ in the repository).  WEAPONS in that file lists the guns and where the hands go;
 Dual wielding: when a gun is held in each hand, the guns have only the hand on the grip (each gun has a second model, gunN_cNN_l.raw, that the game uses then), so a two handed gun does not show four arms.
 
 The mod makes many model files (a set for each of the 66 characters, with a left hand for the gun of the left hand), more than the 4096 that the game's own list of a pack holds: the build with extensions takes bigger lists.
+
+Which of the files the game loads is the script of the mod, scripts/hands.rhai (docs/scripting.md): it gives the model of each gun with the arms of the first player's character (`gunN_cNN.raw`), and the
+model with the hand on the grip only for a gun held in both hands.  The program has no knowledge of these names.

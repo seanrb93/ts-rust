@@ -25,6 +25,8 @@ All are optional.  The state of the script is kept in `this` (a map): `this.cloc
 | `on_start()` | the match has its characters (and again when it is restarted) |
 | `on_tick()` | every frame of the match, after the game's own |
 | `on_bot_idle(i)` | the game looked for a weapon for the computer character `i` and found none to pick up: answer `true` if the script gave it something else to do |
+| `file_prefixes()` and `on_file(name)` | the game loads a file whose name starts with one of the prefixes: `on_file` gives the names to try instead (a list; the plain file is used when none is in the packs) |
+| `on_gun_model(name, left)` | a gun is made for a hand when a gun is held in each: the name of the file of another model for it (or "") |
 | `on_hud(player)` | when the screen of a player is drawn (`hud_glow` works here) |
 | `results_per_character()` | the results: `true` for a row for every character instead of every team |
 | `result_key(i)` | the number the results rank the character `i` by (the highest first) |
@@ -35,7 +37,7 @@ All are optional.  The state of the script is kept in `this` (a map): `this.cloc
 Characters are numbered from 0, the players first, then the computer characters.
 
 `chars()`, `players()`, `is_player(i)`, `alive(i)`, `team(i)`, `x(i)`, `y(i)`, `z(i)`, `score(i)`, `bot_state(i)` (the game's own state of a computer character: 8 is going to a pad),
-`bot_unarmed(i)` (a computer character with no weapon in either hand), `bot_target(i)` (the character it goes after, -1 for none), `peek(address)` (a word of the game's memory),
+`player_character(p)` (the number of the character of the player `p`, -1 before the player chose), `bot_unarmed(i)` (a computer character with no weapon in either hand), `bot_target(i)` (the character it goes after, -1 for none), `peek(address)` (a word of the game's memory),
 `dt()` (frames of 1/60 second since the last call), `rand_int(n)` (0 to n-1, by the game's random numbers), `env_int(name, default)` (a number from the environment: test aids),
 `pad_count()`, `pad_x(k)`, `pad_y(k)`, `pad_z(k)` (the pads of the level: the places computer characters go between).
 

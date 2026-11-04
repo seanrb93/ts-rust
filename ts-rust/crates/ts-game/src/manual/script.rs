@@ -7,8 +7,8 @@
 //! characters move, damage, a flame, a tint, a glow at the edge of the screen, what the table of results says, the words of the game's memory) and calls it at a few places.  A script is read
 //! when the game starts (a mod's) or when the match starts (a mode's); one that has an error is told in the log and stops.
 //!
-//! The functions a script may define (all are optional): `on_frame()`, `on_start()`, `on_tick()`, `on_hud(player)`, `on_bot_idle(i)`, `results_per_character()`, `result_key(i)` and
-//! `result_text(i)`.  `docs/scripting.md` lists them and what the script can call.
+//! The functions a script may define (all are optional): `on_frame()`, `on_start()`, `on_tick()`, `on_hud(player)`, `on_bot_idle(i)`, `file_prefixes()` with `on_file(name)`, `on_gun_model(name, left)`,
+//! `results_per_character()`, `result_key(i)` and `result_text(i)`.  `docs/scripting.md` lists them and what the script can call.
 
 use crate::*;
 use rhai::{Engine, Scope, AST};
@@ -69,6 +69,8 @@ struct Host {
     state: rhai::Dynamic,
     /// the script of a mode (put away when a game starts), not of a mod
     of_mode: bool,
+    /// the start of the names of the files that `on_file` is asked about (`file_prefixes()`)
+    prefixes: Vec<String>,
 }
 
 thread_local! {
@@ -203,6 +205,14 @@ fn register(engine: &mut Engine) {
             lw(rec) as i64
         }
     });
+    // the character of the player `p` (the number in the game's table of characters; -1 before the player has chosen)
+    engine.register_fn("player_character", |p: i64| {
+        let id = signonGet(p as i32);
+        if id < 0 {
+            return -1;
+        }
+        lw(lw(g::signonarray) + id * 2936 + 32 + 84) as i64
+    });
     // time and chance
     engine.register_fn("dt", || STATE.with(|s| s.borrow().dt) as f64);
     engine.register_fn("rand_int", |n: i64| if n <= 0 { 0 } else { ((newrnd() as u32) as i64) % n });
@@ -330,7 +340,17 @@ fn compile(name: &str, source: &str, of_mode: bool) -> Option<Host> {
     match engine.compile(source) {
         Ok(ast) => {
             let functions = ast.iter_functions().map(|f| f.name.to_string()).collect();
-            Some(Host { engine, ast, scope: Scope::new(), functions, name: name.to_string(), state: rhai::Dynamic::from_map(rhai::Map::new()), of_mode })
+            let mut host = Host { engine, ast, scope: Scope::new(), functions, name: name.to_string(), state: rhai::Dynamic::from_map(rhai::Map::new()), of_mode, prefixes: Vec::new() };
+            if host.functions.contains("file_prefixes") {
+                let Host { engine, ast, scope, state, .. } = &mut host;
+                let options = rhai::CallFnOptions::new().eval_ast(false).rewind_scope(false).bind_this_ptr(state);
+                let list = engine.call_fn_with_options::<rhai::Array>(options, scope, ast, "file_prefixes", ());
+                match list {
+                    Ok(list) => host.prefixes = list.into_iter().filter_map(|d| d.into_string().ok()).collect(),
+                    Err(e) => eprintln!("[script] {name}: file_prefixes: {e}"),
+                }
+            }
+            Some(host)
         }
         Err(e) => {
             eprintln!("[script] {name}: {e}");
@@ -380,18 +400,25 @@ fn load() {
 }
 
 /// Call the function `name` of every script that has it: the answers come back in a list.  A script that fails is put away.
-fn call_all<A: rhai::FuncArgs + Clone, T: Clone + Send + Sync + 'static>(name: &str, args: A) -> Vec<T> {
+fn call_all<A: rhai::FuncArgs + Clone, T: Clone + std::any::Any>(name: &str, args: A) -> Vec<T> {
     let mut out = Vec::new();
     let mut failed: Vec<String> = Vec::new();
     HOSTS.with(|h| {
-        for host in h.borrow_mut().iter_mut() {
+        // (a script that is running and makes the game call it again, by a file it loads, is not asked twice)
+        let Ok(mut hosts) = h.try_borrow_mut() else {
+            return;
+        };
+        for host in hosts.iter_mut() {
             if !host.functions.contains(name) {
                 continue;
             }
             let Host { engine, ast, scope, name: script, state, .. } = host;
             let options = rhai::CallFnOptions::new().eval_ast(false).rewind_scope(false).bind_this_ptr(state);
-            match engine.call_fn_with_options::<T>(options, scope, ast, name, args.clone()) {
-                Ok(v) => out.push(v),
+            match engine.call_fn_with_options::<rhai::Dynamic>(options, scope, ast, name, args.clone()) {
+                Ok(v) => match v.try_cast::<T>() {
+                    Some(v) => out.push(v),
+                    None => eprintln!("[script] {script}: {name}: the answer is not of the kind the game asks for"),
+                },
                 Err(e) => {
                     eprintln!("[script] {script}: {name}: {e}");
                     failed.push(script.clone());
@@ -644,4 +671,119 @@ fn flame(i: i32, prop: i32, frame: i32) {
         swc1(group + 2192 + 4 * k, colour as f32);
         swc1(group + 2592 + 4 * k, 20.0 * (k % 5) as f32);
     }
+}
+
+/// The names of the files that scripts want to give another name (`packfileSeek`): the name of the file at `name` (in the game's memory, with or without `host0:`) goes to the scripts that asked
+/// for names that start so (`file_prefixes()`), and each of their answers (`on_file(name)`, a list of names) is put in the game's memory; the file with the first of them that the packs have is
+/// the one that is used.
+pub fn script_file_candidates(name: i32) -> Vec<i32> {
+    if !ACTIVE.load(Ordering::Relaxed) {
+        return Vec::new();
+    }
+    // (the name, up to 48 bytes)
+    let mut text = Vec::new();
+    for i in 0..48 {
+        let b = lbu(name + i) as u8;
+        if b == 0 {
+            break;
+        }
+        text.push(b);
+    }
+    let full = String::from_utf8_lossy(&text).to_string();
+    let (prefix, plain) = match full.strip_prefix("host0:") {
+        Some(rest) => ("host0:", rest.to_string()),
+        None => ("", full.clone()),
+    };
+    let wanted = HOSTS.with(|h| h.try_borrow().map_or(false, |hosts| hosts.iter().any(|host| host.prefixes.iter().any(|p| plain.starts_with(p.as_str())))));
+    if !wanted {
+        return Vec::new();
+    }
+    let answers = call_all::<_, rhai::Array>("on_file", (plain,));
+    let mut out = Vec::new();
+    let mut at = BASE + 0x17_2a00;
+    for list in answers {
+        for d in list {
+            let Ok(s) = d.into_string() else { continue };
+            let s = format!("{prefix}{s}");
+            if s.len() > 120 || out.len() >= 4 {
+                continue;
+            }
+            put_text(at, &s, 120);
+            out.push(at);
+            at += 0x80;
+        }
+    }
+    out
+}
+
+/// The name of a model file, from the game's memory.
+fn read_name(at: i32) -> String {
+    let mut text = Vec::new();
+    for i in 0..48 {
+        let b = lbu(at + i) as u8;
+        if b == 0 {
+            break;
+        }
+        text.push(b);
+    }
+    String::from_utf8_lossy(&text).to_string()
+}
+
+/// `gunNew` for a gun held in both hands: a script may give another model for it (`on_gun_model(file name of the gun's model, left hand)`: the name of a file of the packs, or ""), which is loaded
+/// the first time and kept as long as the model of the plain gun is the one it was loaded beside; the table of props keeps the plain model for the next gun.
+pub fn script_gun_new(prop: i32, left_hand: bool) -> i32 {
+    thread_local! {
+        static MODELS: RefCell<Vec<(i32, i32, i32, bool)>> = RefCell::new(Vec::new());
+    }
+    let plain_view = || gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32);
+    if !ACTIVE.load(Ordering::Relaxed) || !has("on_gun_model") {
+        return plain_view();
+    }
+    let def = prop * 28 + PROPTABLE;
+    if lw(def + 4) == 0 {
+        // (the plain model is loaded by making a prop of it)
+        let view = plain_view();
+        propDelete(view);
+    }
+    let plain = lw(def + 4);
+    if plain == 0 {
+        return plain_view();
+    }
+    let known = MODELS.with(|m| m.borrow().iter().find(|e| e.0 == prop && e.1 == plain && e.3 == left_hand).map(|e| e.2));
+    let other = match known {
+        Some(other) => other,
+        None => {
+            let full = read_name(lw(def + 12));
+            let (prefix, name) = match full.strip_prefix("host0:") {
+                Some(rest) => ("host0:", rest.to_string()),
+                None => ("", full.clone()),
+            };
+            let answer = call_all::<_, String>("on_gun_model", (name, left_hand)).into_iter().find(|s| !s.is_empty()).map(|s| format!("{prefix}{s}"));
+            let other = match answer {
+                Some(s) if s.len() < 100 => {
+                    let at = BASE + 0x17_2a00 + 0x200;
+                    put_text(at, &s, 120);
+                    if packfileSeekPlain(at) != 0 {
+                        obLoad(at)
+                    } else {
+                        0
+                    }
+                }
+                _ => 0,
+            };
+            MODELS.with(|m| {
+                let mut m = m.borrow_mut();
+                m.retain(|e| !(e.0 == prop && e.3 == left_hand));
+                m.push((prop, plain, other, left_hand));
+            });
+            other
+        }
+    };
+    if other == 0 {
+        return plain_view();
+    }
+    sw(def + 4, other);
+    let view = plain_view();
+    sw(def + 4, plain);
+    view
 }
