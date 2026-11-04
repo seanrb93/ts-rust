@@ -40,7 +40,7 @@ All are optional.  The state of the script is kept in `this` (a map): `this.cloc
 Characters are numbered from 0, the players first, then the computer characters.
 
 `chars()`, `players()`, `is_player(i)`, `alive(i)`, `team(i)`, `x(i)`, `y(i)`, `z(i)`, `score(i)`, `bot_state(i)` (the game's own state of a computer character: 8 is going to a pad),
-`player_character(p)` (the number of the character of the player `p`, -1 before the player chose), `bot_unarmed(i)` (a computer character with no weapon in either hand), `bot_target(i)` (the character it goes after, -1 for none), `peek(address)` (a word of the game's memory),
+`player_character(p)` (the number of the character of the player `p`, -1 before the player chose), `bot_unarmed(i)` (a computer character with no weapon in either hand), `bot_target(i)` (the character it goes after, -1 for none), `peek(address)` (a word of the game's memory), `peekf(address)` (a float), `chr_entry(c)` (the address of the entry of the character `c` in the game's table of characters: +20 the height of its head standing, +24 crouching, +28 the floor, +40 its scale),
 `dt()` (frames of 1/60 second since the last call), `rand_int(n)` (0 to n-1, by the game's random numbers), `env_int(name, default)` (a number from the environment: test aids),
 `pad_count()`, `pad_x(k)`, `pad_y(k)`, `pad_z(k)` (the pads of the level: the places computer characters go between).
 
@@ -48,7 +48,7 @@ Characters are numbered from 0, the players first, then the computer characters.
 
 * `set_team(i, t)`, `set_score(i, v)`: the side of a character (the game uses it to know whom a computer character goes after; the teams of the Options page are separate), and its score.
 * `message(i, "text")`: a line on the screen of a player.  `sound(id, i)`: a sound of the game at the character.  `pain_voice(i)`: one of the character's own lines of being hit.
-* `damage(target, attacker, amount)`: a blow (of the game's damage: a fraction of a character's health, a pistol shot is 0.3).  `poke(address, value)`: set a word of the game's memory (a mod's script can reach what the other functions do not).
+* `damage(target, attacker, amount)`: a blow (of the game's damage: a fraction of a character's health, a pistol shot is 0.3).  `poke(address, value)` and `pokef(address, number)`: set a word or a float of the game's memory (a mod's script can reach what the other functions do not).
 * `finish()`: the match is over.
 * Computer characters: `bot_passive(i, true)` (never attacks, looks for no weapon: it only goes to the pads it is sent to), `bot_pad(i, k)` (go to that pad; -1 gives the choice back to the game),
   `bot_set_state(i, state)` (a state of the game's own machine: 128 chooses a target), `bot_speed(i, 0.8)` (a part of its own speed), `bot_steer(i, x, y, z)` and `bot_steer_clear(i)` (run straight at a place when going to a pad).

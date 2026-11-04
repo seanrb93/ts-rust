@@ -227,6 +227,10 @@ fn register(engine: &mut Engine) {
     // the words of the game's memory (for what the other functions do not reach)
     engine.register_fn("peek", |at: i64| lw(at as i32) as i64);
     engine.register_fn("poke", |at: i64, value: i64| sw(at as i32, value as i32));
+    engine.register_fn("peekf", |at: i64| lwc1(at as i32) as f64);
+    engine.register_fn("pokef", |at: i64, value: f64| swc1(at as i32, value as f32));
+    // the entry of a character in the game's table of characters (44 bytes): +20 the height of its head standing, +24 crouching, +28 the floor, +32 and +36 sizes of its body, +40 its scale
+    engine.register_fn("chr_entry", |c: i64| (CHRS_TABLE + 44 * (c as i32)) as i64);
     // the pads of the level (the places the computer characters go between)
     engine.register_fn("pad_count", || lw(g::numpads) as i64);
     engine.register_fn("pad_x", |k: i64| lwc1(lw(g::levelpads) + (k as i32) * 28 + 12) as f64);
