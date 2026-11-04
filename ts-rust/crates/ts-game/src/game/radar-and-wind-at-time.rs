@@ -33,7 +33,11 @@ pub fn hudRadarGfx() -> i32 {
                 swc1(slot + 0x1fea940, ps2float::sub(angle, facing));
                 if team_game == 0 {
                     players = lw(g::lvnumplayers);
-                    sw(slot + 0x1fea948, lw(g::teamdata + 4));
+                    #[cfg(feature = "extensions")]
+                    let colour = script_radar_colour(count).unwrap_or(lw(g::teamdata + 4));
+                    #[cfg(not(feature = "extensions"))]
+                    let colour = lw(g::teamdata + 4);
+                    sw(slot + 0x1fea948, colour);
                     characters = lw(g::numactivechars);
                 } else {
                     players = lw(g::lvnumplayers);

@@ -41,11 +41,13 @@ struct Fx {
     steer: Option<[f32; 3]>,
     /// the group of particles of the flame
     flame_group: i32,
+    /// the colour of the character's dot on the radar (the game's colour word of a team)
+    radar: Option<i32>,
 }
 
 impl Default for Fx {
     fn default() -> Self {
-        Fx { flame: false, tint: None, passive: false, speed: 1.0, pad: -1, steer: None, flame_group: 0 }
+        Fx { flame: false, tint: None, passive: false, speed: 1.0, pad: -1, steer: None, flame_group: 0, radar: None }
     }
 }
 
@@ -296,6 +298,14 @@ fn register(engine: &mut Engine) {
             sw(record(i) + 20, lw(((team as i32) << 3) + g::storydata + 68));
         }
     });
+    // the colour of a character's dot on the radar, that of a team of the game (1 red, 2 blue, 3 yellow, 4 green); the game uses one colour for every character when it is not a team game
+    engine.register_fn("radar_colour", |i: i64, team: i64| {
+        let colour = lw(((team as i32) << 3) + g::storydata + 68);
+        fx_of(i, |f| f.radar = Some(colour));
+    });
+    engine.register_fn("radar_colour_clear", |i: i64| {
+        fx_of(i, |f| f.radar = None);
+    });
     // the score and the rank of the player are not shown on the screen (a mode with no use for them)
     engine.register_fn("hide_score", |on: bool| STATE.with(|s| s.borrow_mut().hide_score = on));
     // the glow at the edge of the screen (only in `on_hud`): red, green, blue and alpha of 0 to 127
@@ -517,6 +527,14 @@ pub fn script_alternate_fists() -> bool {
 
 /// What `alternate_fists()` said at the start of the frame (the picture of a fist asks every frame).
 static FISTS: AtomicBool = AtomicBool::new(false);
+
+/// The colour of the dot of the character `i` on the radar (`hudRadarGfx`), if a script gave one.
+pub fn script_radar_colour(i: i32) -> Option<i32> {
+    if !ACTIVE.load(Ordering::Relaxed) {
+        return None;
+    }
+    fx_read(i, |f| f.radar).flatten()
+}
 
 /// The screen leaves out the score and the rank (`hudGfx`).
 pub fn script_hides_score() -> bool {

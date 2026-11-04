@@ -64,6 +64,7 @@ fn on_start() {
 fn make_infected(i) {
     set_team(i, INF());
     set_colour(i, 4);
+    radar_colour(i, 4);    // a green dot on the radar
     tint(i, 0.35, 1.1, 0.35, 0.4);
     flame(i, true);
     bot_speed(i, infected_speed());

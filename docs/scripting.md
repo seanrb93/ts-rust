@@ -53,7 +53,8 @@ Characters are numbered from 0, the players first, then the computer characters.
 * Computer characters: `bot_passive(i, true)` (never attacks, looks for no weapon: it only goes to the pads it is sent to), `bot_pad(i, k)` (go to that pad; -1 gives the choice back to the game),
   `bot_set_state(i, state)` (a state of the game's own machine: 128 chooses a target), `bot_speed(i, 0.8)` (a part of its own speed), `bot_steer(i, x, y, z)` and `bot_steer_clear(i)` (run straight at a place when going to a pad).
 * Looks: `flame(i, true)` (a green flame), `tint(i, r, g, b, add)` and `tint_clear(i)` (the light of the character's model: its parts of red, green and blue, and a part of the strongest colour added to green),
-  `set_colour(i, team)` (its colour on the radar and in the results: 1 red, 2 blue, 3 yellow, 4 green), `hud_glow(r, g, b, a)` (in `on_hud`: a glow at the edge of the screen, each 0 to 127).
+  `radar_colour(i, team)` and `radar_colour_clear(i)` (the colour of its dot on the radar: a team's colour; the game gives every character one colour when it is not a team game),
+  `set_colour(i, team)` (its colour in the results and the HUD: 1 red, 2 blue, 3 yellow, 4 green), `hud_glow(r, g, b, a)` (in `on_hud`: a glow at the edge of the screen, each 0 to 127).
 * `hide_score(true)`: the score and the rank are left off the screen.
 * `log("text")`.
 
