@@ -1,23 +1,29 @@
-//! The scripts of mods: a mode that a mod adds (a `variant` of `modes.txt`) can have a script, `script virus.rhai`, a file of the mod in the Rhai language that runs while the mode is played.
+//! The scripts of mods: a file of a mod in the Rhai language that runs while the game is played.  There are two kinds:
 //!
-//! The engine has no knowledge of any mode: it gives the script a small set of things to ask and do (the characters and where they are, their sides, messages and sounds, how the computer
-//! characters move, a flame, a tint, a glow at the edge of the screen, what the table of results says) and calls it at a few places (when the match starts, every game frame, when the
-//! screen is drawn for a player, when the results are drawn).  A script is read when the match starts; one that has an error is told in the log and stops.
+//! * the script of a mode (`script virus.rhai` in a `variant` of `modes.txt`): it runs while that mode is played;
+//! * the script of a mod (`script = bots_punch.rhai` in `mod.ini`): it runs all the time the mod is on, in every match and (`on_frame`) in the menus too.
 //!
-//! The functions a script may define (all are optional): `on_start()`, `on_tick()`, `on_hud(player)`, `results_per_character()`, `result_key(i)` (the number the table ranks the character `i` by,
-//! the highest first) and `result_text(i)` (what the table says in place of the score).  `docs/scripting.md` lists what the script can call.
+//! The engine has no knowledge of what a script does: it gives it a small set of things to ask and do (the characters and where they are, their sides, messages and sounds, how the computer
+//! characters move, damage, a flame, a tint, a glow at the edge of the screen, what the table of results says, the words of the game's memory) and calls it at a few places.  A script is read
+//! when the game starts (a mod's) or when the match starts (a mode's); one that has an error is told in the log and stops.
+//!
+//! The functions a script may define (all are optional): `on_frame()`, `on_start()`, `on_tick()`, `on_hud(player)`, `on_bot_idle(i)`, `results_per_character()`, `result_key(i)` and
+//! `result_text(i)`.  `docs/scripting.md` lists them and what the script can call.
 
 use crate::*;
 use rhai::{Engine, Scope, AST};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 const BASE: i32 = 0x240_0000;
 const MESSAGE_AT: i32 = BASE + 0x17_2c00;
 const TEXT_AT: i32 = BASE + 0x17_3a00;
 const LIGHT_AT: i32 = BASE + 0x17_3c00;
 const FLAME_AT: i32 = BASE + 0x17_2d00;
+/// the place, source and direction of a blow (three floats each, 16 bytes apart)
+const HIT_AT: i32 = BASE + 0x17_3d00;
 
 /// What a script has asked for, for each character.
 #[derive(Clone)]
@@ -53,16 +59,6 @@ struct State {
     hide_score: bool,
 }
 
-thread_local! {
-    static STATE: RefCell<State> = RefCell::new(State { fx: Vec::new(), started: false, last_game_frame: 0, in_hud: false, dt: 1.0, hide_score: false });
-    static HOST: RefCell<Option<Host>> = RefCell::new(None);
-}
-
-/// A script is running (set while one is loaded, so that the hooks in the game's code cost nothing otherwise).
-static ACTIVE: AtomicBool = AtomicBool::new(false);
-/// The script of the variant chosen was looked for in this game.
-static TRIED: AtomicBool = AtomicBool::new(false);
-
 struct Host {
     engine: Engine,
     ast: AST,
@@ -71,7 +67,28 @@ struct Host {
     name: String,
     /// what the script keeps between calls: a map, which its functions see as `this`
     state: rhai::Dynamic,
+    /// the script of a mode (put away when a game starts), not of a mod
+    of_mode: bool,
 }
+
+thread_local! {
+    static STATE: RefCell<State> = RefCell::new(State { fx: Vec::new(), started: false, last_game_frame: 0, in_hud: false, dt: 1.0, hide_score: false });
+    static HOSTS: RefCell<Vec<Host>> = RefCell::new(Vec::new());
+}
+
+/// The scripts that mods have given (the mod, the file, the text), read by the loader when the game starts.
+static MOD_SCRIPTS: Mutex<Vec<(String, String, String)>> = Mutex::new(Vec::new());
+
+/// A mod has a script (`script = file` in its `mod.ini`).
+pub fn register_script(mod_name: &str, file: &str, source: String) {
+    MOD_SCRIPTS.lock().unwrap().push((mod_name.to_string(), file.to_string(), source));
+}
+
+/// A script is running (set while one is loaded, so that the hooks in the game's code cost nothing otherwise).
+static ACTIVE: AtomicBool = AtomicBool::new(false);
+/// The script of the mode chosen was looked for in this game, and those of the mods in this run.
+static TRIED: AtomicBool = AtomicBool::new(false);
+static MODS_TRIED: AtomicBool = AtomicBool::new(false);
 
 fn log_on() -> bool {
     std::env::var_os("TS_SCRIPTLOG").is_some()
@@ -126,6 +143,10 @@ fn is_alive(i: i64) -> bool {
     }
 }
 
+fn is_player_index(i: i64) -> bool {
+    i >= 0 && (i as i32) < lw(g::lvnumplayers)
+}
+
 fn put_text(at: i32, text: &str, most: usize) {
     for (k, b) in text.bytes().take(most).enumerate() {
         sb(at + k as i32, b as i32);
@@ -137,7 +158,7 @@ fn register(engine: &mut Engine) {
     // the characters: numbered from 0, the players first
     engine.register_fn("chars", || characters().1 as i64);
     engine.register_fn("players", || lw(g::lvnumplayers) as i64);
-    engine.register_fn("is_player", |i: i64| i >= 0 && (i as i32) < lw(g::lvnumplayers));
+    engine.register_fn("is_player", |i: i64| is_player_index(i));
     engine.register_fn("alive", |i: i64| is_alive(i));
     engine.register_fn("team", |i: i64| if prop_of(i) == 0 { 0 } else { lw(record(i) + 24) as i64 });
     engine.register_fn("set_team", |i: i64, t: i64| {
@@ -154,8 +175,34 @@ fn register(engine: &mut Engine) {
             sw(record(i) + 248, v as i32);
         }
     });
-    // a computer character's state in the game's own machine of states (8: going to a pad)
+    // a computer character's state in the game's own machine of states (8: going to a pad, 64: looking for a weapon, 128: choosing a target)
     engine.register_fn("bot_state", |i: i64| if prop_of(i) == 0 || is_player_index(i) { 0 } else { lw(record(i) + 2716) as i64 });
+    engine.register_fn("bot_set_state", |i: i64, state: i64| {
+        if prop_of(i) != 0 && !is_player_index(i) {
+            let r = record(i);
+            sw(r + 2720, lw(r + 2716));
+            sw(r + 2716, state as i32);
+            sw(r + 2892, 0);
+        }
+    });
+    // a computer character with no weapon in either hand
+    engine.register_fn("bot_unarmed", |i: i64| prop_of(i) != 0 && !is_player_index(i) && lw(record(i) + 8) == 0 && lw(record(i) + 376) == -1 && lw(record(i) + 260) == 0);
+    // the character a computer character goes after (-1: none)
+    engine.register_fn("bot_target", |i: i64| {
+        if prop_of(i) == 0 || is_player_index(i) {
+            return -1;
+        }
+        let target = lw(record(i) + 2788);
+        if target == 0 || lw(target + 8) != 8 {
+            return -1;
+        }
+        let rec = lw(target + 352);
+        if rec == 0 {
+            -1
+        } else {
+            lw(rec) as i64
+        }
+    });
     // time and chance
     engine.register_fn("dt", || STATE.with(|s| s.borrow().dt) as f64);
     engine.register_fn("rand_int", |n: i64| if n <= 0 { 0 } else { ((newrnd() as u32) as i64) % n });
@@ -165,12 +212,15 @@ fn register(engine: &mut Engine) {
             eprintln!("[script] f{} {text}", ts_sdk::frame_count());
         }
     });
+    // the words of the game's memory (for what the other functions do not reach)
+    engine.register_fn("peek", |at: i64| lw(at as i32) as i64);
+    engine.register_fn("poke", |at: i64, value: i64| sw(at as i32, value as i32));
     // the pads of the level (the places the computer characters go between)
     engine.register_fn("pad_count", || lw(g::numpads) as i64);
     engine.register_fn("pad_x", |k: i64| lwc1(lw(g::levelpads) + (k as i32) * 28 + 12) as f64);
     engine.register_fn("pad_y", |k: i64| lwc1(lw(g::levelpads) + (k as i32) * 28 + 16) as f64);
     engine.register_fn("pad_z", |k: i64| lwc1(lw(g::levelpads) + (k as i32) * 28 + 20) as f64);
-    // messages, sounds and the end of the match
+    // messages, sounds, blows and the end of the match
     engine.register_fn("message", |i: i64, text: &str| {
         if (0..lw(g::lvnumplayers) as i64).contains(&i) {
             put_text(MESSAGE_AT, text, 60);
@@ -184,6 +234,21 @@ fn register(engine: &mut Engine) {
         }
     });
     engine.register_fn("pain_voice", |i: i64| pain_voice(i));
+    // a blow of the character `attacker` on the character `target` (of the game's damage, a fraction of a character's health: a pistol shot is 0.3)
+    engine.register_fn("damage", |target: i64, attacker: i64, amount: f64| {
+        let (t, a) = (prop_of(target), prop_of(attacker));
+        if t == 0 || a == 0 {
+            return;
+        }
+        let d = [lwc1(t + 48) - lwc1(a + 48), lwc1(t + 52) - lwc1(a + 52), lwc1(t + 56) - lwc1(a + 56)];
+        let len = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt().max(1.0e-3);
+        for k in 0..3 {
+            swc1(HIT_AT + 4 * k, lwc1(t + 48 + 4 * k)); // where it hits
+            swc1(HIT_AT + 16 + 4 * k, lwc1(a + 48 + 4 * k)); // where it comes from
+            swc1(HIT_AT + 32 + 4 * k, d[k as usize] / len); // the way it goes
+        }
+        propDamage(t, a, HIT_AT, 1, HIT_AT + 16, HIT_AT + 32, 0, 0, amount as f32);
+    });
     engine.register_fn("finish", || {
         if lw(g::gamestate) != 4 {
             gameLevelCompleted();
@@ -231,10 +296,6 @@ fn register(engine: &mut Engine) {
     });
 }
 
-fn is_player_index(i: i64) -> bool {
-    i >= 0 && (i as i32) < lw(g::lvnumplayers)
-}
-
 /// A character says one of its lines of being hit: the lines the game gives each character in its table of characters (the ones it plays when it is hit), where the character is.
 fn pain_voice(i: i64) {
     let p = prop_of(i);
@@ -261,9 +322,26 @@ fn pain_voice(i: i64) {
     soundDelayStartEx(sounds[(newrnd() as u32 as usize) % sounds.len()], p + 48, 20, 0);
 }
 
-/// A new game starts: the script of the last one is put away.
+fn compile(name: &str, source: &str, of_mode: bool) -> Option<Host> {
+    let mut engine = Engine::new();
+    engine.set_max_operations(5_000_000);
+    engine.set_max_expr_depths(256, 128);
+    register(&mut engine);
+    match engine.compile(source) {
+        Ok(ast) => {
+            let functions = ast.iter_functions().map(|f| f.name.to_string()).collect();
+            Some(Host { engine, ast, scope: Scope::new(), functions, name: name.to_string(), state: rhai::Dynamic::from_map(rhai::Map::new()), of_mode })
+        }
+        Err(e) => {
+            eprintln!("[script] {name}: {e}");
+            None
+        }
+    }
+}
+
+/// A new game starts: the script of the last mode and what the scripts asked for are put away.
 pub fn script_reset() {
-    HOST.with(|h| *h.borrow_mut() = None);
+    HOSTS.with(|h| h.borrow_mut().retain(|host| !host.of_mode));
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         s.fx.clear();
@@ -271,67 +349,76 @@ pub fn script_reset() {
         s.last_game_frame = 0;
         s.hide_score = false;
     });
-    ACTIVE.store(false, Ordering::Relaxed);
     TRIED.store(false, Ordering::Relaxed);
+    refresh_active();
 }
 
-/// Read the script of the variant being played, once for each game.
+fn refresh_active() {
+    ACTIVE.store(HOSTS.with(|h| !h.borrow().is_empty()), Ordering::Relaxed);
+}
+
+/// Read the scripts of the mods (once) and the script of the mode being played (once for each game).
 fn load() {
-    if TRIED.swap(true, Ordering::Relaxed) {
-        return;
-    }
-    let Some((name, source)) = active_script(lw(g::curgameparms + 72)) else {
-        return;
-    };
-    let mut engine = Engine::new();
-    engine.set_max_operations(5_000_000);
-    engine.set_max_expr_depths(256, 128);
-    register(&mut engine);
-    match engine.compile(&source) {
-        Ok(ast) => {
-            let functions = ast.iter_functions().map(|f| f.name.to_string()).collect();
-            let scope = Scope::new();
-            let state = rhai::Dynamic::from_map(rhai::Map::new());
-            HOST.with(|h| *h.borrow_mut() = Some(Host { engine, ast, scope, functions, name, state }));
-            ACTIVE.store(true, Ordering::Relaxed);
-            eprintln!("[script] a script is running");
+    if !MODS_TRIED.swap(true, Ordering::Relaxed) {
+        let scripts = MOD_SCRIPTS.lock().unwrap().clone();
+        for (m, file, source) in scripts {
+            if let Some(host) = compile(&format!("{m}/{file}"), &source, false) {
+                eprintln!("[script] {m}/{file}");
+                HOSTS.with(|h| h.borrow_mut().push(host));
+            }
         }
-        Err(e) => eprintln!("[script] {name}: {e}"),
     }
+    if lw(g::gamestate) == 3 && !TRIED.swap(true, Ordering::Relaxed) {
+        if let Some((name, source)) = active_script(lw(g::curgameparms + 72)) {
+            if let Some(host) = compile(&name, &source, true) {
+                eprintln!("[script] a script is running");
+                HOSTS.with(|h| h.borrow_mut().push(host));
+            }
+        }
+    }
+    refresh_active();
 }
 
-/// Call the function `name` of the script with `args`, if it has it.  The script is put away when it fails.
-fn call<A: rhai::FuncArgs, T: Clone + Send + Sync + 'static>(name: &str, args: A) -> Option<T> {
-    let mut failed = false;
-    let out = HOST.with(|h| {
-        let mut h = h.borrow_mut();
-        let host = h.as_mut()?;
-        if !host.functions.contains(name) {
-            return None;
-        }
-        let Host { engine, ast, scope, name: script, state, .. } = host;
-        let options = rhai::CallFnOptions::new().eval_ast(false).rewind_scope(false).bind_this_ptr(state);
-        match engine.call_fn_with_options::<T>(options, scope, ast, name, args) {
-            Ok(v) => Some(v),
-            Err(e) => {
-                eprintln!("[script] {script}: {name}: {e}");
-                failed = true;
-                None
+/// Call the function `name` of every script that has it: the answers come back in a list.  A script that fails is put away.
+fn call_all<A: rhai::FuncArgs + Clone, T: Clone + Send + Sync + 'static>(name: &str, args: A) -> Vec<T> {
+    let mut out = Vec::new();
+    let mut failed: Vec<String> = Vec::new();
+    HOSTS.with(|h| {
+        for host in h.borrow_mut().iter_mut() {
+            if !host.functions.contains(name) {
+                continue;
+            }
+            let Host { engine, ast, scope, name: script, state, .. } = host;
+            let options = rhai::CallFnOptions::new().eval_ast(false).rewind_scope(false).bind_this_ptr(state);
+            match engine.call_fn_with_options::<T>(options, scope, ast, name, args.clone()) {
+                Ok(v) => out.push(v),
+                Err(e) => {
+                    eprintln!("[script] {script}: {name}: {e}");
+                    failed.push(script.clone());
+                }
             }
         }
     });
-    if failed {
-        ACTIVE.store(false, Ordering::Relaxed);
-        HOST.with(|h| *h.borrow_mut() = None);
+    if !failed.is_empty() {
+        HOSTS.with(|h| h.borrow_mut().retain(|host| !failed.contains(&host.name)));
+        refresh_active();
     }
     out
 }
 
 fn has(name: &str) -> bool {
-    HOST.with(|h| h.borrow().as_ref().map_or(false, |host| host.functions.contains(name)))
+    HOSTS.with(|h| h.borrow().iter().any(|host| host.functions.contains(name)))
 }
 
-/// Every game frame while a mode with a script is played (`custom_rules_tick`).
+/// Every frame the game is run, in the menus too (`on_frame` of the scripts).
+pub fn script_frame() {
+    load();
+    if ACTIVE.load(Ordering::Relaxed) {
+        let _: Vec<()> = call_all("on_frame", ());
+    }
+}
+
+/// Every game frame of a match (`custom_rules_tick`).
 pub fn script_tick() {
     if lw(g::gamestate) != 3 {
         return;
@@ -344,39 +431,45 @@ pub fn script_tick() {
     if info == 0 || total < 2 || lw(g::lvnumplayers) <= 0 {
         return;
     }
-    // (the level was started again from the menu of the game or the results: the script starts again)
+    // (the level was started again from the menu of the game or the results: the scripts start again)
     let game_frame = lw(g::gameframe);
-    let restarted = STATE.with(|s| {
+    STATE.with(|s| {
         let mut s = s.borrow_mut();
-        let back = game_frame < s.last_game_frame;
-        s.last_game_frame = game_frame;
-        if back {
+        if game_frame < s.last_game_frame {
             s.fx.clear();
             s.started = false;
         }
+        s.last_game_frame = game_frame;
         s.dt = lwc1(g::updateframesf).clamp(0.0, 4.0);
-        back
     });
-    let _ = restarted;
     let started = STATE.with(|s| s.borrow().started);
     if !started {
         STATE.with(|s| s.borrow_mut().started = true);
-        let _: Option<()> = call("on_start", ());
+        let _: Vec<()> = call_all("on_start", ());
         return;
     }
-    let _: Option<()> = call("on_tick", ());
+    let _: Vec<()> = call_all("on_tick", ());
     flames(info, total);
 }
 
-/// The game's hook of the screen of the player being drawn (`hudGfx`): the script may draw a glow.
+/// The game's hook of the screen of the player being drawn (`hudGfx`): a script may draw a glow.
 pub fn script_hud() {
     if !ACTIVE.load(Ordering::Relaxed) || !has("on_hud") {
         return;
     }
     let number = lw(lw(g::currentplayer)) as i64;
     STATE.with(|s| s.borrow_mut().in_hud = true);
-    let _: Option<()> = call("on_hud", (number,));
+    let _: Vec<()> = call_all("on_hud", (number,));
     STATE.with(|s| s.borrow_mut().in_hud = false);
+}
+
+/// `findweapon` found nothing for the computer character of the record `record` to pick up: a script may give it something else to do (it says so by answering true).
+pub fn script_bot_idle(record: i32) -> bool {
+    if !ACTIVE.load(Ordering::Relaxed) || !has("on_bot_idle") {
+        return false;
+    }
+    let i = ((record - lw(g::chrinfo)) / 0x1210) as i64;
+    call_all::<_, bool>("on_bot_idle", (i,)).into_iter().any(|b| b)
 }
 
 /// The screen leaves out the score and the rank (`hudGfx`).
@@ -406,7 +499,7 @@ pub fn script_bot_hold(chr: i32) {
     }
 }
 
-/// `enemyGetTargetPad`: the pad the script sends a computer character to.
+/// `enemyGetTargetPad`: the pad a script sends a computer character to.
 pub fn script_bot_pad(chr: i32) -> Option<i32> {
     if !ACTIVE.load(Ordering::Relaxed) {
         return None;
@@ -418,7 +511,7 @@ pub fn script_bot_pad(chr: i32) -> Option<i32> {
     fx_read(lw(mind), |f| f.pad).filter(|&p| p >= 0)
 }
 
-/// After the state of a computer character ran (`enemyTick`): its speed, and the place the script has it run at, when it is going to a pad.
+/// After the state of a computer character ran (`enemyTick`): its speed, and the place a script has it run at, when it is going to a pad.
 pub fn script_bot_post(chr: i32) {
     if !ACTIVE.load(Ordering::Relaxed) {
         return;
@@ -441,7 +534,7 @@ pub fn script_bot_post(chr: i32) {
     }
 }
 
-/// The colours that light the model `chr` (`partGfx`): the game's, or a tint that the script gave its character.
+/// The colours that light the model `chr` (`partGfx`): the game's, or a tint that a script gave its character.
 pub fn script_lighting(chr: i32) -> i32 {
     let own = lw(chr + 28);
     if own == 0 || !ACTIVE.load(Ordering::Relaxed) {
@@ -471,7 +564,7 @@ pub fn script_lighting(chr: i32) -> i32 {
 
 /// The kind of the table of results (`scores_pageGfx`): a script can ask for a row for every character.
 pub fn script_table_kind(kind: i32) -> i32 {
-    if ACTIVE.load(Ordering::Relaxed) && call::<_, bool>("results_per_character", ()).unwrap_or(false) {
+    if ACTIVE.load(Ordering::Relaxed) && call_all::<_, bool>("results_per_character", ()).into_iter().any(|b| b) {
         2
     } else {
         kind
@@ -484,21 +577,21 @@ pub fn script_result_key(record: i32, score: i32) -> i32 {
         return score;
     }
     let i = ((record - lw(g::chrinfo)) / 0x1210) as i64;
-    call::<_, i64>("result_key", (i,)).map_or(score, |v| v as i32)
+    call_all::<_, i64>("result_key", (i,)).first().map_or(score, |&v| v as i32)
 }
 
-/// What the table of results says in place of the score of the character of the record `record`, if the script has a text for it.
+/// What the table of results says in place of the score of the character of the record `record`, if a script has a text for it.
 pub fn script_result_text(record: i32) -> Option<i32> {
     if !ACTIVE.load(Ordering::Relaxed) || !has("result_text") {
         return None;
     }
     let i = ((record - lw(g::chrinfo)) / 0x1210) as i64;
-    let text: String = call("result_text", (i,))?;
+    let text = call_all::<_, String>("result_text", (i,)).into_iter().next()?;
     put_text(TEXT_AT, &text, 60);
     Some(TEXT_AT)
 }
 
-/// The flames of the characters the script has set alight.
+/// The flames of the characters a script has set alight.
 fn flames(info: i32, total: i32) {
     let frame = ts_sdk::frame_count() as i32;
     for i in 0..total {

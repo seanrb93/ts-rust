@@ -387,25 +387,33 @@ fn stamp(files: &BTreeMap<String, PathBuf>) -> String {
     s
 }
 
-/// A mod's `mod.ini` can turn on three features of the port, each with a line `name = true`:
-///   `unlock_all`      everything the game keeps locked (levels, characters, bot sets, challenges, cheats) is open
+/// A mod's `mod.ini` can turn on a feature of the port with a line `name = true` (any mod that is switched on and has the line turns it on):
 ///   `dual_wield_all`  the dual (x2) versions of the weapons in the weapon sets, and the left fist when unarmed
-///   `bots_punch`      bots that have no weapon go after their target and punch it, instead of standing still
-/// (any mod that is switched on and has the line turns it on).
+/// and can have scripts, with a line `script = file.rhai` each (the file is in the mod's `scripts` folder; `docs/scripting.md`).
 fn apply_features(mods: &[Mod]) {
     for m in mods {
         let ini = std::fs::read_to_string(m.dir.join("mod.ini")).unwrap_or_default();
         for line in ini.lines() {
             let line = line.split('#').next().unwrap_or("");
             let Some((k, v)) = line.split_once('=') else { continue };
+            if k.trim().eq_ignore_ascii_case("script") {
+                let file = v.trim().trim_matches('"');
+                let read = std::fs::read_to_string(m.dir.join("scripts").join(file)).or_else(|_| std::fs::read_to_string(m.dir.join(file)));
+                match read {
+                    #[cfg(feature = "extensions")]
+                    Ok(text) => ts_game::register_script(&m.name, file, text),
+                    #[cfg(not(feature = "extensions"))]
+                    Ok(_) => eprintln!("[mods] {}: the script {file} needs a build with extensions", m.name),
+                    Err(e) => eprintln!("[mods] {}: the script {file}: {e}", m.name),
+                }
+                continue;
+            }
             let on = matches!(v.trim().to_ascii_lowercase().as_str(), "true" | "1" | "yes" | "on");
             if !on {
                 continue;
             }
             match k.trim().to_ascii_lowercase().as_str() {
-                "unlock_all" => ts_sdk::set_unlock_all(true),
                 "dual_wield_all" => ts_sdk::set_dual_all(true),
-                "bots_punch" => ts_sdk::set_bots_punch(true),
                 _ => continue,
             }
             eprintln!("[mods] {}: {}", m.name, k.trim());

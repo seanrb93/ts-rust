@@ -287,7 +287,7 @@ the bot set page fills a custom set with ten random bots (the level only has roo
 
 A bot that starts without a weapon (Always start with gun: No) looks for one (`findweapon`).  In a level with no weapon to pick up (an empty
 custom weapon set) it used to stand still playing its idle animation; it now goes after its target and hits it bare handed when it is close
-(`bot_punch` in `manual/dualwield.rs`, called from `enemyTick`: one punch every 0.75 s within two and a half units on the same floor, never while the bot is dying or spawning or at a dead target, damage as the player's fist).  This is the **Bots Punch** row of Game Options (`bots_punch` in `ts-rust.ini`, on by default; off, bots stand idle as in the original).  In modes with teams the bot set randomiser also puts the bots in random teams.
+(the **Bots Punch** mod, `examples/bots_punch_mod`, is a script, `scripts/bots_punch.rhai`: one punch every 0.75 s within two and a half units on the same floor, never while the bot is dying or spawning or at a dead target; the engine only asks the script what to do when `findweapon` finds nothing, `on_bot_idle`; off, bots stand idle as in the original).  In modes with teams the bot set randomiser also puts the bots in random teams.
 
 ## Randomisers
 
@@ -373,8 +373,7 @@ texture.
 
 ## Unlock Everything
 
-The **Unlock Everything** mod (`examples/unlock_everything_mod`: its `mod.ini` says `unlock_all = true`; `--set unlock_all=true` does it for one
-run) opens everything the game keeps locked: the levels of the story and arcade modes, the characters, bot sets, the challenge mode and the
+The **Unlock Everything** mod (`examples/unlock_everything_mod`: a script, `scripts/unlock.rhai`, that keeps the game's own switch for it on) opens everything the game keeps locked: the levels of the story and arcade modes, the characters, bot sets, the challenge mode and the
 unlockable cheats (the Cheats Menu button on the level select page).  Every unlock in the game is a test on the profile's statistics
 (`unlockedEx`); the game has a switch that makes all of those tests pass (what one of its cheat codes sets), and the option keeps it on.  The
 save is not changed: switching the option off locks everything again as the profile has it.
@@ -438,12 +437,6 @@ The MapMaker's L1 and L2 pills (`mm_cursor13` and `14`) are replaced the same wa
 
 ## Features that mods turn on
 
-Three features of the port are switched on by a mod, with a line in its `mod.ini` (they were rows of the Game Options page):
-
-| Line in `mod.ini` | What it does | Example |
-|---|---|---|
-| `unlock_all = true` | everything the game keeps locked (levels, characters, bot sets, challenges, cheats) is open | `examples/unlock_everything_mod` |
-| `dual_wield_all = true` | the dual (x2) versions of the weapons in the weapon sets, and the left fist when unarmed | `examples/dual_wield_everything_mod` |
-| `bots_punch = true` | bots that have no weapon go after their target and punch it, instead of standing still | `examples/bots_punch_mod` |
-
-Any mod that is switched on and has the line turns the feature on; with none, they are off.  They take effect when the program starts, like the rest of a mod.  `--set unlock_all=true` (and the other two) does the same for one test run.  A `ts-rust.ini` that still has the old settings is read without them and loses them the next time it is saved.
+A mod's `mod.ini` can have a line `dual_wield_all = true` (the dual (x2) versions of the weapons in the weapon sets, and the left fist when unarmed; `examples/dual_wield_everything_mod`), and any number of
+lines `script = file.rhai` (a script of the mod, in its `scripts` folder, that runs all the time the mod is on: `docs/scripting.md`; `examples/unlock_everything_mod` and `examples/bots_punch_mod` are made of one).
+They take effect when the program starts, like the rest of a mod.  `--set dual_wield_all=true` does the same for one test run.  A `ts-rust.ini` that still has the old settings is read without them and loses them the next time it is saved.

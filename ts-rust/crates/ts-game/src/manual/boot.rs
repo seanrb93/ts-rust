@@ -345,15 +345,9 @@ pub fn present_frame() {
     if std::env::var_os("TS_MENULOG").is_some() {
         eprintln!("[menu] f{} state {} tick {} skip {} pc {:#x} front {} players {:#x} cur {:#x} nplayers {} fxstate {} fronttime {:.3} scale {:.3} {:.3} replay {}", ts_sdk::frame_count(), lw(g::gamestate), lw(g::tickframenum), menu_skip(), lw(g::playercontrollers), lw(lw(g::front) + 20), lw(g::players), lw(g::currentplayer), lw(g::lvnumplayers), lw(g::frontstate), lwc1(g::fronttime), lwc1(g::globalscalex), lwc1(g::globalscaley), lw(g::replaymode));
     }
-    // "Unlock Everything": the game's own switch for it (what its cheat code sets) is kept on while the option is on
-    static UNLOCKED: AtomicBool = AtomicBool::new(false);
+    // the scripts of the mods (their `on_frame`)
     #[cfg(feature = "extensions")]
-    if ts_sdk::unlock_all() {
-        sw(g::val1, 1);
-        UNLOCKED.store(true, Ordering::Relaxed);
-    } else if UNLOCKED.swap(false, Ordering::Relaxed) {
-        sw(g::val1, 0);
-    }
+    script_frame();
     // test aid: TS_SCORE=<frame> keeps every player's score box shown from then on
     if let Ok(v) = std::env::var("TS_SCORE") {
         if v.parse::<u64>().map_or(false, |f| ts_sdk::frame_count() as u64 >= f) && lw(g::gamestate) == 3 {

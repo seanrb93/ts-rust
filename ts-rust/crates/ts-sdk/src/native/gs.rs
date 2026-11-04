@@ -237,13 +237,6 @@ pub fn set_view(aspect: f32, hfov: f32) {
     VIEW_HFOV.store(hfov.to_bits(), std::sync::atomic::Ordering::Relaxed);
 }
 
-static UNLOCK_ALL: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-
-/// Everything the game keeps locked (levels, characters, bot sets, challenges, cheats) is open (the "Unlock Everything" option).
-pub fn set_unlock_all(on: bool) {
-    UNLOCK_ALL.store(on, std::sync::atomic::Ordering::Relaxed);
-}
-
 static DUAL_ALL: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 
 /// The dual versions of the weapons and the two fists are on (the "Dual Wield Everything" option).
@@ -253,21 +246,6 @@ pub fn set_dual_all(on: bool) {
 
 pub fn dual_all() -> bool {
     DUAL_ALL.load(std::sync::atomic::Ordering::Relaxed)
-}
-
-static BOT_PUNCH: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
-
-/// Bots without a weapon go after their target and punch it (the "Bots Punch" option).
-pub fn set_bots_punch(on: bool) {
-    BOT_PUNCH.store(on, std::sync::atomic::Ordering::Relaxed);
-}
-
-pub fn bots_punch() -> bool {
-    BOT_PUNCH.load(std::sync::atomic::Ordering::Relaxed)
-}
-
-pub fn unlock_all() -> bool {
-    UNLOCK_ALL.load(std::sync::atomic::Ordering::Relaxed)
 }
 
 pub fn view() -> (f32, f32) {

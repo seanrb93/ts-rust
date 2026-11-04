@@ -98,7 +98,6 @@ pub fn dual_reset() {
     hands_reset();
     own_clear_all();
     mm_clear(PUNCHES_AT);
-    mm_clear(NEXT_PUNCH_AT);
 }
 
 // ---- the left fist ------------------------------------------------------------------------------------------------------------
@@ -154,84 +153,4 @@ pub fn punch_mirror_points(prop: i32, chr: i32, p1: i32, p2: i32) {
             swc1(p + 4 * k as i32, q[k] - 2.0 * d * r[k]);
         }
     }
-}
-
-// ---- bots without a weapon ----------------------------------------------------------------------------------------------------
-//
-// A bot that starts without a weapon looks for one; in a level that has none to pick up it used to stand still.  It now goes after its
-// target (`findweapon` patch) and, bare handed, hits it when it is close (this function, called by `enemyTick` for every bot).
-
-const HIT_AT: i32 = 0x240_0000 + 0xc100;
-/// time (in frames of 60 Hz) a bot has to wait for its next punch, per bot
-/// (a table in the game's memory, see `memmap.rs`; the value is the time as the bits of a float)
-const NEXT_PUNCH_AT: i32 = 0x240_0000 + 0xcc00;
-
-/// A script of the mode that is played holds the computer character back from fighting.
-fn bot_is_held_back(prop: i32) -> bool {
-    #[cfg(feature = "extensions")]
-    {
-        script_bot_passive(prop)
-    }
-    #[cfg(not(feature = "extensions"))]
-    {
-        let _ = prop;
-        false
-    }
-}
-
-pub fn bot_punch(prop: i32) {
-    let chr = lw(prop + 352);
-    // (a bot of the arcade modes, with no gun and the fists as its weapon)
-    if !ts_sdk::bots_punch() || chr == 0 || bot_is_held_back(prop) || lw(chr + 8) != 0 || lw(chr + 376) != -1 || lw(chr + 260) != 0 || lw(g::gamestate) != 3 {
-        return;
-    }
-    // (not while it is dying or about to spawn, and not at a target that is dead)
-    let state = lw(chr + 2716);
-    if state == 0 || state & (16 | 32) != 0 {
-        return;
-    }
-    let target = lw(chr + 2788);
-    if target == 0 {
-        return;
-    }
-    let mut is_player = false;
-    for p in 0..lw(g::lvnumplayers).clamp(0, MAX_MATCH_PLAYERS) {
-        let player = lw(g::players) + p * 1820;
-        if lw(player + 384) == target {
-            is_player = true;
-            if lw(player + 296) == 4 {
-                return;
-            }
-        }
-    }
-    let tchr = lw(target + 352);
-    if !is_player && tchr != 0 && lw(tchr + 2716) & (16 | 32) != 0 {
-        return;
-    }
-    let d = [lwc1(target + 48) - lwc1(prop + 48), lwc1(target + 52) - lwc1(prop + 52), lwc1(target + 56) - lwc1(prop + 56)];
-    let dist2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
-    let dt = lwc1(g::updateframesf);
-    let left = f32::from_bits(mm_get(NEXT_PUNCH_AT, prop).unwrap_or(0) as u32);
-    let left = (left - dt).max(0.0);
-    mm_set(NEXT_PUNCH_AT, prop, left.to_bits() as u64);
-    // (close, and on the same floor)
-    if dist2 > 6.25 || d[1].abs() > 1.5 || left > 0.0 {
-        return;
-    }
-    mm_set(NEXT_PUNCH_AT, prop, 45.0f32.to_bits() as u64);
-    if std::env::var_os("TS_PUNCHLOG").is_some() {
-        eprintln!("[punch] f{} bot ({:.1} {:.1} {:.1}) target ({:.1} {:.1} {:.1}) dist {:.2} state {:#x} yaw {:.0}", ts_sdk::frame_count(), lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56), lwc1(target + 48), lwc1(target + 52), lwc1(target + 56), dist2.sqrt(), lw(chr + 2716), lwc1(prop + 80));
-    }
-    let len = dist2.sqrt().max(1.0e-3);
-    for k in 0..3 {
-        swc1(HIT_AT + 4 * k, lwc1(target + 48 + 4 * k)); // where it hits
-        swc1(HIT_AT + 16 + 4 * k, lwc1(prop + 48 + 4 * k)); // where it comes from
-        swc1(HIT_AT + 32 + 4 * k, d[k as usize] / len); // the way it goes
-    }
-    propDamage(target, prop, HIT_AT, 1, HIT_AT + 16, HIT_AT + 32, 0, 0, 0.5);
-    soundStart(if below_coin() { 172 } else { 171 }, prop + 48);
-}
-
-fn below_coin() -> bool {
-    (ts_sdk::frame_count() & 1) != 0
 }

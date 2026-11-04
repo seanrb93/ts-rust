@@ -390,16 +390,12 @@ pub fn load(overrides: &[(String, String)]) {
             std::fs::write(&path, TEMPLATE).ok();
         }
     }
-    // (the three features of the mods are off unless a mod turns them on; `--set` names them for a test run)
-    ts_sdk::set_unlock_all(false);
+    // (the feature of the mods is off unless a mod turns it on; `--set` names it for a test run)
     ts_sdk::set_dual_all(false);
-    ts_sdk::set_bots_punch(false);
     for (k, v) in overrides {
         let on = parse_bool(v).unwrap_or(false);
         match k.as_str() {
-            "unlock_all" => ts_sdk::set_unlock_all(on),
             "dual_wield_all" => ts_sdk::set_dual_all(on),
-            "bots_punch" => ts_sdk::set_bots_punch(on),
             _ => {}
         }
         if let Err(e) = c.set(k, v) {

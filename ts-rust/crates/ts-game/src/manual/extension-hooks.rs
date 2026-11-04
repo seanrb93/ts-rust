@@ -1060,19 +1060,12 @@ pub fn look_scale(speed: f32) -> f32 {
     }
 }
 
-/// A bot without a weapon in a level that has none to pick up goes after its target (bare handed) instead of standing still (`findweapon`): gives
-/// true when the bot was set to do it.
+/// A bot found nothing to pick up in a level (`findweapon`): a script may give it something else to do (a bot without a weapon that goes after its target, for one).  Gives true when it did.
 #[inline]
 pub fn bot_idle_punch(record: i32) -> bool {
     #[cfg(feature = "extensions")]
     {
-        if ts_sdk::bots_punch() {
-            sw(record + 2720, lw(record + 2716));
-            sw(record + 2716, 128);
-            sw(record + 2892, 0);
-            return true;
-        }
-        false
+        script_bot_idle(record)
     }
     #[cfg(not(feature = "extensions"))]
     {
