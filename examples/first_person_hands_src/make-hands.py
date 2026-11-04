@@ -50,7 +50,7 @@ WEAPONS = {
     'weapon_17': dict(file='ob/gun18/gun18.raw', part='part0', kind='one'),
     'tnt': dict(file='ob/gun19/gun19.raw', part='part0', kind='one', grip=(-0.02, 0.08, 0.0)),
     'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore_abs=(0.06, 0.0, 0.3)),
-    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.05), fore_abs=(0.02, 0.04, 0.3)),
+    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.05), fore_abs=(0.02, 0.04, 0.36), fore_part='part2'),
     'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two', grip=(-0.07, -0.05, -0.12), fore_abs=(-0.06, 0.0, 0.28)),
     'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore_abs=(0.0, 0.0, 0.38)),
     'brick': dict(file='ob/gun26/gun26.raw', part='part0', kind='one', grip=(0.0, -0.1, -0.12)),
