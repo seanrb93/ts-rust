@@ -51,6 +51,42 @@ pub fn pickup_name(combo: i32, name: i32) -> i32 {
     }
 }
 
+/// The dual versions, the left fist: what a script of a mod says (a build without extensions has none of it, as the original game).
+fn pair_listed(single: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        script_pair_listed(single)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = single;
+        false
+    }
+}
+
+fn pair_allowed(pair: i32, single: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        script_pair_allowed(pair, single)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = (pair, single);
+        false
+    }
+}
+
+fn fists_alternate() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        script_alternate_fists()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}
+
 /// `weapons_pageTick`, after it made the list of the weapons that can be chosen: the added pairs follow the singles they are made from.
 pub fn weapons_list_extend() {
     WEAPONS_PAGE.store(ts_sdk::frame_count() as u64, std::sync::atomic::Ordering::Relaxed);
@@ -64,10 +100,10 @@ pub fn weapons_list_extend() {
     }
     sw(COUNT, n);
     let have: Vec<i32> = (0..n).map(|i| lw(LIST + 4 * i)).collect();
-    if !ts_sdk::dual_all() {
+    let extra: Vec<i32> = (0..dual_count()).filter(|&k| single_of(FIRST + k).map_or(false, |s| have.contains(&s) && pair_listed(s))).map(|k| FIRST + k).collect();
+    if extra.is_empty() {
         return;
     }
-    let extra: Vec<i32> = (0..dual_count()).filter(|&k| single_of(FIRST + k).map_or(false, |s| have.contains(&s))).map(|k| FIRST + k).collect();
     let mut count = n;
     for id in extra {
         if !have.contains(&id) && count < 64 {
@@ -85,7 +121,7 @@ pub fn dual_combo(_place: i32, combo: i32) -> i32 {
         eprintln!("[combo] set place {_place} combo {combo} set {} gunzpack {} state {}", weaponset_effective(), lw(g::gunzpack + 4 * _place), lw(g::gamestate));
     }
     match single_of(combo) {
-        Some(single) if !ts_sdk::dual_all() => single,
+        Some(single) if !pair_allowed(combo, single) => single,
         Some(_) => combo,
         // (the single weapon of a mod is a combination past the pairs: it stays)
         None if combo >= FIRST && !added_singles().contains(&combo) => 0,
@@ -111,7 +147,7 @@ const PUNCHES_AT: i32 = 0x240_0000 + 0xc800;
 
 /// The puppet `prop` starts a swipe (`gunUpdate`): the swipes take turns.
 pub fn punch_swing(prop: i32) {
-    if !ts_sdk::dual_all() {
+    if !fists_alternate() {
         return;
     }
     let left = mm_get(PUNCHES_AT, prop).map_or(false, |v| v != 0);
@@ -120,7 +156,7 @@ pub fn punch_swing(prop: i32) {
 
 /// Is the picture of this prop mirrored (`propGfxRoom`)?
 pub fn punch_mirrored(prop: i32) -> bool {
-    ts_sdk::dual_all() && mm_get(PUNCHES_AT, prop).map_or(false, |v| v != 0)
+    fists_alternate() && mm_get(PUNCHES_AT, prop).map_or(false, |v| v != 0)
 }
 
 const SCRATCH: i32 = 0x240_0000 + 0xc000;

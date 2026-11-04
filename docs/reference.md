@@ -437,6 +437,6 @@ The MapMaker's L1 and L2 pills (`mm_cursor13` and `14`) are replaced the same wa
 
 ## Features that mods turn on
 
-A mod's `mod.ini` can have a line `dual_wield_all = true` (the dual (x2) versions of the weapons in the weapon sets, and the left fist when unarmed; `examples/dual_wield_everything_mod`), and any number of
-lines `script = file.rhai` (a script of the mod, in its `scripts` folder, that runs all the time the mod is on: `docs/scripting.md`; `examples/unlock_everything_mod` and `examples/bots_punch_mod` are made of one).
-They take effect when the program starts, like the rest of a mod.  `--set dual_wield_all=true` does the same for one test run.  A `ts-rust.ini` that still has the old settings is read without them and loses them the next time it is saved.
+A mod's `mod.ini` can have any number of lines `script = file.rhai` (a script of the mod, in its `scripts` folder, that runs all the time the mod is on: `docs/scripting.md`).  `examples/unlock_everything_mod`,
+`examples/bots_punch_mod`, `examples/first_person_hands_mod` and `examples/dual_wield_everything_mod` (the dual versions of the weapons in the weapon sets, and the left fist: the script says which pairs are listed
+and allowed and that the fists take turns) are made of one each.  They take effect when the program starts, like the rest of a mod.  A `ts-rust.ini` that still has the old settings is read without them and loses them the next time it is saved.

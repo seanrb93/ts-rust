@@ -237,17 +237,6 @@ pub fn set_view(aspect: f32, hfov: f32) {
     VIEW_HFOV.store(hfov.to_bits(), std::sync::atomic::Ordering::Relaxed);
 }
 
-static DUAL_ALL: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
-
-/// The dual versions of the weapons and the two fists are on (the "Dual Wield Everything" option).
-pub fn set_dual_all(on: bool) {
-    DUAL_ALL.store(on, std::sync::atomic::Ordering::Relaxed);
-}
-
-pub fn dual_all() -> bool {
-    DUAL_ALL.load(std::sync::atomic::Ordering::Relaxed)
-}
-
 pub fn view() -> (f32, f32) {
     (f32::from_bits(VIEW_ASPECT.load(std::sync::atomic::Ordering::Relaxed)), f32::from_bits(VIEW_HFOV.load(std::sync::atomic::Ordering::Relaxed)))
 }

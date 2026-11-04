@@ -387,9 +387,7 @@ fn stamp(files: &BTreeMap<String, PathBuf>) -> String {
     s
 }
 
-/// A mod's `mod.ini` can turn on a feature of the port with a line `name = true` (any mod that is switched on and has the line turns it on):
-///   `dual_wield_all`  the dual (x2) versions of the weapons in the weapon sets, and the left fist when unarmed
-/// and can have scripts, with a line `script = file.rhai` each (the file is in the mod's `scripts` folder; `docs/scripting.md`).
+/// A mod's `mod.ini` can have scripts, with a line `script = file.rhai` each (the file is in the mod's `scripts` folder; `docs/scripting.md`).
 fn apply_features(mods: &[Mod]) {
     for m in mods {
         let ini = std::fs::read_to_string(m.dir.join("mod.ini")).unwrap_or_default();
@@ -408,15 +406,6 @@ fn apply_features(mods: &[Mod]) {
                 }
                 continue;
             }
-            let on = matches!(v.trim().to_ascii_lowercase().as_str(), "true" | "1" | "yes" | "on");
-            if !on {
-                continue;
-            }
-            match k.trim().to_ascii_lowercase().as_str() {
-                "dual_wield_all" => ts_sdk::set_dual_all(true),
-                _ => continue,
-            }
-            eprintln!("[mods] {}: {}", m.name, k.trim());
         }
     }
 }

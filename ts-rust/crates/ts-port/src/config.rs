@@ -390,12 +390,9 @@ pub fn load(overrides: &[(String, String)]) {
             std::fs::write(&path, TEMPLATE).ok();
         }
     }
-    // (the feature of the mods is off unless a mod turns it on; `--set` names it for a test run)
-    ts_sdk::set_dual_all(false);
     for (k, v) in overrides {
         let on = parse_bool(v).unwrap_or(false);
         match k.as_str() {
-            "dual_wield_all" => ts_sdk::set_dual_all(on),
             _ => {}
         }
         if let Err(e) = c.set(k, v) {

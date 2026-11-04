@@ -8,7 +8,7 @@
 //! when the game starts (a mod's) or when the match starts (a mode's); one that has an error is told in the log and stops.
 //!
 //! The functions a script may define (all are optional): `on_frame()`, `on_start()`, `on_tick()`, `on_hud(player)`, `on_bot_idle(i)`, `file_prefixes()` with `on_file(name)`, `on_gun_model(name, left)`,
-//! `results_per_character()`, `result_key(i)` and `result_text(i)`.  `docs/scripting.md` lists them and what the script can call.
+//! `lists_pair(single)`, `allows_pair(pair, single)`, `alternate_fists()`, `results_per_character()`, `result_key(i)` and `result_text(i)`.  `docs/scripting.md` lists them and what the script can call.
 
 use crate::*;
 use rhai::{Engine, Scope, AST};
@@ -442,6 +442,7 @@ pub fn script_frame() {
     load();
     if ACTIVE.load(Ordering::Relaxed) {
         let _: Vec<()> = call_all("on_frame", ());
+        FISTS.store(call_all::<_, bool>("alternate_fists", ()).into_iter().any(|b| b), Ordering::Relaxed);
     }
 }
 
@@ -498,6 +499,24 @@ pub fn script_bot_idle(record: i32) -> bool {
     let i = ((record - lw(g::chrinfo)) / 0x1210) as i64;
     call_all::<_, bool>("on_bot_idle", (i,)).into_iter().any(|b| b)
 }
+
+/// The weapon page may list the dual (x2) version of the weapon `single` (a script says so with `lists_pair(single)`; with none the pairs the game does not have are not listed).
+pub fn script_pair_listed(single: i32) -> bool {
+    ACTIVE.load(Ordering::Relaxed) && call_all::<_, bool>("lists_pair", (single as i64,)).into_iter().any(|b| b)
+}
+
+/// A set of weapons may have the pair `pair` of the weapon `single` (`allows_pair(pair, single)` of a script; otherwise the set has the single weapon).
+pub fn script_pair_allowed(pair: i32, single: i32) -> bool {
+    ACTIVE.load(Ordering::Relaxed) && call_all::<_, bool>("allows_pair", (pair as i64, single as i64)).into_iter().any(|b| b)
+}
+
+/// An unarmed player punches with the left fist and the right in turn (`alternate_fists()` of a script).
+pub fn script_alternate_fists() -> bool {
+    ACTIVE.load(Ordering::Relaxed) && FISTS.load(Ordering::Relaxed)
+}
+
+/// What `alternate_fists()` said at the start of the frame (the picture of a fist asks every frame).
+static FISTS: AtomicBool = AtomicBool::new(false);
 
 /// The screen leaves out the score and the rank (`hudGfx`).
 pub fn script_hides_score() -> bool {
