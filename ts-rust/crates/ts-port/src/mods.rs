@@ -80,10 +80,24 @@ pub fn list() -> Vec<Listed> {
         .into_iter()
         .map(|(m, enabled)| {
             let ini = std::fs::read_to_string(m.dir.join("mod.ini")).unwrap_or_default();
-            let title = ini_name(&ini).unwrap_or_else(|| m.name.clone());
+            // (the title is the mod's own, from its `mod.ini`; a mod with none gets its folder's name made readable)
+            let title = ini_name(&ini).unwrap_or_else(|| readable(&m.name));
             Listed { loaded: loaded.contains(&m.name), title, name: m.name, enabled }
         })
         .collect()
+}
+
+/// A folder name as a title: `first_person_hands_mod` is "First Person Hands Mod".
+fn readable(folder: &str) -> String {
+    folder
+        .split(|c: char| c == '_' || c == '-')
+        .filter(|w| !w.is_empty())
+        .map(|w| {
+            let mut c = w.chars();
+            c.next().map_or(String::new(), |f| f.to_uppercase().collect::<String>() + c.as_str())
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// The `name = ...` line of a `mod.ini`.
