@@ -561,6 +561,34 @@ pub fn av_level_music_or(own: i32) -> i32 {
     }
 }
 
+/// The table of the arcade page's menu: the game's, or the port's copy with more places for the modes.
+#[inline]
+pub fn av_arcade_menu_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        let _ = own;
+        av_arcade_menu()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
+/// How many modes that table has room for (the game's has 6).
+#[inline]
+pub fn av_arcade_slots_or(own: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        let _ = own;
+        SLOTS
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        own
+    }
+}
+
 /// The number of the arcade levels (the console game lists 19; the port adds Ron after MapMaker).
 #[inline]
 pub fn av_arcade_count_or(own: i32) -> i32 {

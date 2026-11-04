@@ -69,6 +69,12 @@ pub fn active_rules(mode: i32) -> Vec<(Rule, i32)> {
     VARIANTS.lock().unwrap().iter().filter(|v| v.kind == mode).nth(choice - 1).map_or(Vec::new(), |v| v.rules.clone())
 }
 
+/// Every variant of every mod, in the order the mods gave them: (its mode, its number among the variants of that mode (1 and on), its name).
+pub fn all_variants() -> Vec<(i32, usize, String)> {
+    let all = VARIANTS.lock().unwrap();
+    all.iter().enumerate().map(|(i, v)| (v.kind, all[..=i].iter().filter(|o| o.kind == v.kind).count(), v.name.clone())).collect()
+}
+
 /// The names of the variants of a mode.
 pub fn variants_of(kind: i32) -> Vec<String> {
     VARIANTS.lock().unwrap().iter().filter(|v| v.kind == kind).map(|v| v.name.clone()).collect()

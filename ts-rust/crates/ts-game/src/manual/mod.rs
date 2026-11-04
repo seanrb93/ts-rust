@@ -1,6 +1,7 @@
 //! Hand-written replacements for functions the decompiler cannot translate automatically, and the platform glue.
 //! A function defined here wins over the generated one of the same name (the generator skips it).
 
+pub mod arcademodes;
 pub mod arcadeopts;
 pub mod bigpool;
 pub mod customlevels;
@@ -46,6 +47,7 @@ pub mod mode_presets;
 #[path = "virus.rs"]
 pub mod virus;
 
+pub use arcademodes::*;
 pub use arcadeopts::*;
 pub use text_scale::*;
 pub use network_stats::*;

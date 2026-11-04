@@ -35,6 +35,9 @@ const NEW_ID: i32 = 15;
 /// the lines between Bot Set and the new row, and between the new row and GO!
 const ROW_GAP: i32 = 13;
 const GO_GAP: i32 = 17;
+/// the same with the Rules row, which is the last row before GO!: the rows are closer so that GO! keeps off the legend
+const ROW2_GAP: i32 = 13;
+const GO2_GAP: i32 = 9;
 /// how much lower the Back and Edit legends are than the game has them (in line with the Bots)
 const LEGEND_DOWN: i32 = 7;
 /// room for the left arrow beside a long value (in the units of the page)
@@ -104,6 +107,17 @@ pub fn variant_choice(mode: i32) -> usize {
         return 0;
     }
     VARIANT.load(Ordering::Relaxed).max(0) as usize
+}
+
+/// A mode of a mod was chosen on the arcade page: the Options page that follows has its variant (`variant`: 0 is the mode as it is) on the Rules row, and the options are the variant's.
+pub fn arcade_pick_variant(mode: i32, variant: usize) {
+    VARIANT_MODE.store(mode, Ordering::Relaxed);
+    VARIANT.store(variant as i32, Ordering::Relaxed);
+    VARIANT_LAST.store(-1, Ordering::Relaxed);
+    sw(GV2_AT, variant as i32);
+    if variant > 0 {
+        apply_variant(mode, variant);
+    }
 }
 
 /// The table, with the new row made, for the page's menu (called by the tick after it has put the game's rows where they go).
@@ -207,6 +221,12 @@ pub fn av_opt_ready() -> i32 {
         textSelect(font);
         sw(list, 0);
         sw(list + 4, 0);
+        // (a mode of a mod, chosen on the arcade page, has its own name at the top of the page)
+        if choice > 0 {
+            if let Some(name) = variants.get(choice as usize - 1) {
+                sw(m + 16, put_str(&mut at, name));
+            }
+        }
         for i in 0..12 {
             sw(GV2_AT + 4 * i, lw(g::gv_weaponset + 4 * i));
         }
@@ -221,13 +241,13 @@ pub fn av_opt_ready() -> i32 {
             sw(item(NEW2) + 4 * i, lw(item(BOT) + 4 * i));
         }
         sw(item(NEW2), label);
-        sh(item(NEW2) + 6, bot_y + 2 * ROW_GAP);
+        sh(item(NEW2) + 6, bot_y + ROW_GAP + ROW2_GAP);
         sw(item(NEW2) + 8, (lw(item(BOT) + 8) & !0xffff) | NEW2_ID);
         sw(item(NEW2) + 12, GV2_AT);
         sw(item(NEW2) + 16, (GO_ID << 16) | NEW_ID);
         sw(item(NEW) + 16, (NEW2_ID << 16) | BOT_ID);
         sw(item(GO) + 16, (lw(item(GO) + 16) & !0xffff) | NEW2_ID);
-        sh(item(GO) + 6, bot_y + 2 * ROW_GAP + GO_GAP);
+        sh(item(GO) + 6, bot_y + ROW_GAP + ROW2_GAP + GO2_GAP);
         sw(m, NEW2 + 1);
     }
     // the legends (Back, Edit) go down to the line of the Bots

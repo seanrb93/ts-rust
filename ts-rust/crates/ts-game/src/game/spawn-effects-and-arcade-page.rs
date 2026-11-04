@@ -178,6 +178,11 @@ pub fn specialfxNewSpawn(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) -> i32 {
 pub fn arcade_pageTick(a0: i32) {
     let frame = Frame::new(304);
     let sp = frame.sp();
+    // (the table of the menu: the game's, or in the extensions' build a copy with more places for the modes, whose names a mod adds; `slots` is how many modes it has room for)
+    let menu_table = av_arcade_menu_or(g::arcade_menu1);
+    let items_at = menu_table + 16;
+    let slots = av_arcade_slots_or(6);
+    let mut picks = [0i32; 16];
     let table = (lw(g::cur_language) << 2) + g::languages;
     sw(((lw(0x3aff2c) - 1) << 3) + 0x1fc1308, 0);
     pageSet(lw(lw(table) + 484), g::arcade_page);
@@ -248,14 +253,14 @@ pub fn arcade_pageTick(a0: i32) {
     sw(state + 40, lw((level << 2) + av_arcade_levels_or(g::arcadelevels)));
     let page_items;
     'maker: {
-        let items = g::i0400;
+        let items = items_at;
         if level != 18 {
             sh(items + 10, lhu(items + 10) | 0x4200);
         } else {
             let buffer = lw(g::mmtempbuffer);
             if lw(buffer) == 0x1324626 {
                 let info = mmfileGetInfo(buffer);
-                let items = g::i0400;
+                let items = items_at;
                 let flags = lhu(items + 10);
                 sw(g::setup_tileset, lw(info));
                 sh(items + 10, flags & 0xbdff);
@@ -267,12 +272,12 @@ pub fn arcade_pageTick(a0: i32) {
     'loaded: {
         if (lw(state + 4) & 128) != 0 {
             if lw(state + 36) != 18 {
-                page_items = g::i0400;
+                page_items = items_at;
                 break 'loaded;
             }
             let buffer = lw(g::mmtempbuffer);
             if lw(buffer) != 0x1324626 {
-                page_items = g::i0400;
+                page_items = items_at;
                 break 'loaded;
             }
             let info = mmfileGetInfo(buffer);
@@ -281,7 +286,7 @@ pub fn arcade_pageTick(a0: i32) {
             sw(state + 4, flags);
             sh(a0 + 4, 3);
         }
-        page_items = g::i0400;
+        page_items = items_at;
     }
     let state = 0x1fc11f8;
     let mut text = 0;
@@ -291,7 +296,7 @@ pub fn arcade_pageTick(a0: i32) {
     let mut item = page_items + 64;
     sw(state + 56, 0);
     let mut clear = item;
-    let mut left = 5;
+    let mut left = slots - 1;
     loop {
         left -= 1;
         sh(clear + 10, lhu(clear + 10) | 0x4240);
@@ -340,7 +345,7 @@ pub fn arcade_pageTick(a0: i32) {
                         }
                         let count = lw(state + 56);
                         item += 32;
-                        sw(sp + (count << 2), i);
+                        picks[count as usize] = i;
                         sw(state + 56, count + 1);
                         let line = if half == 0 { lw(font + 12) } else { lw(font + 12) >> 1 };
                         y = (((y - 1) + line) << 16) >> 16;
@@ -351,6 +356,26 @@ pub fn arcade_pageTick(a0: i32) {
             mode += 2;
             if i >= 6 {
                 break;
+            }
+        }
+        // (the modes that mods add, after the game's: each is a way to play one of the six)
+        #[cfg(feature = "extensions")]
+        if setup != 0 {
+            let allowed = lw(setup);
+            for entry in arcade_extra_modes(allowed, few_players != 0, lw(state + 56)) {
+                sh(item + 6, y);
+                let flags = lhu(item + 10) & 0xbdbf;
+                sh(item + 10, flags);
+                sw(item, entry.text);
+                if entry.locked {
+                    sh(item + 10, flags | 64);
+                }
+                let count = lw(state + 56);
+                item += 32;
+                picks[count as usize] = 100 + entry.number;
+                sw(state + 56, count + 1);
+                let line = if half == 0 { lw(font + 12) } else { lw(font + 12) >> 1 };
+                y = (((y - 1) + line) << 16) >> 16;
             }
         }
     }
@@ -381,19 +406,19 @@ pub fn arcade_pageTick(a0: i32) {
         sh(a0 + 4, count + 2);
         lhu(a0 + 4)
     };
-    let mut items = g::i0400;
+    let mut items = items_at;
     if (picked as u32) >= (3 as u32) {
         let language = lw(g::cur_language);
-        if (lhu(((lhu(a0 + 4) - 1) << 5) + (g::i0400 + 10)) & 64) == 0 {
+        if (lhu(((lhu(a0 + 4) - 1) << 5) + (items_at + 10)) & 64) == 0 {
             text = lw(lw((language << 2) + g::languages) + 512);
-            items = g::i0400;
+            items = items_at;
         }
     }
     'input: {
-        sw(items + 288, text);
+        sw(items + 32 * (slots + 3), text);
         let cheats = cheatsArcade();
         let option = cheatOption(cheats);
-        sw(items + 320, option);
+        sw(items + 32 * (slots + 4), option);
         if (joyNewBut(0) & 32) != 0 {
             let cheats = cheatsArcade();
             let state = 0x1fc11f8;
@@ -431,19 +456,26 @@ pub fn arcade_pageTick(a0: i32) {
                     soundStart(140, 0);
                 }
             } else {
-                let found = menuitem(g::arcade_menu1, selected);
+                let found = menuitem(menu_table, selected);
                 if (lhu(found + 10) & 64) == 0 {
                     sw((lw(0x3aff2c) << 3) + 0x1fc1308, lw(lw((lw(g::cur_language) << 2) + g::languages) + 1008));
                     frontPageSet(0, g::arcadeoptions_page);
                     pageIn(a0);
-                    let mode = lbu((lw(sp + ((lhu(a0 + 4) - 3) << 2)) << 1) + g::gmtab);
+                    let pick = picks[(lhu(a0 + 4) - 3) as usize];
+                    #[cfg(feature = "extensions")]
+                    let (mode, variant) = if pick >= 100 { arcade_variant_of(pick - 100) } else { (lbu((pick << 1) + g::gmtab), 0) };
+                    #[cfg(not(feature = "extensions"))]
+                    let mode = lbu((pick << 1) + g::gmtab);
                     sw(state + 48, mode);
                     getGameModeOptions(mode);
+                    // (an entry of a mod's mode is its base mode with the variant chosen)
+                    #[cfg(feature = "extensions")]
+                    arcade_pick_variant(mode, variant);
                 }
             }
         }
     }
-    let menu = g::arcade_menu1;
+    let menu = menu_table;
     menutick_230238(a0, menu);
     let made = std_menumake(lw(a0 + 8), menu);
     sw(a0 + 12, made);
