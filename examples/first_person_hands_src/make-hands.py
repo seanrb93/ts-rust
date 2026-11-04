@@ -284,6 +284,9 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                     k = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
                     R = (np.eye(3) + math.sin(t) * k + (1 - math.cos(t)) * (k @ k)) @ R
             hand_faces = []
+            hv, hc, hf = [], [], []
+            hand_nv = nv
+            nv_before_t, nt_base = nv, nt
             first, middle = True, None
             for src in sources:
                 if int(src) in SEAM_PARTS:
@@ -303,8 +306,11 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                 else:
                     middle = chr_verts[list(used)].mean(axis=0) if first else middle
                 first = False
+                part_middle = R @ (chr_verts[list(used)].mean(axis=0) - middle) + np.array(place)
                 for vi in sorted(used, key=used.get):
                     p = R @ (chr_verts[vi] - middle) + np.array(place)
+                    hv.append(p)
+                    hc.append(part_middle)
                     c = chr_cols[vi]
                     out.append('v %.6f %.6f %.6f %.3f %.3f %.3f' % (p[0], p[1], p[2], c[0], c[1], c[2]))
                     out.append('vt %.6f %.6f' % tuple(CHR_UVS[uv_of[vi]]))
@@ -317,10 +323,33 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                     # (each face has the texture of the slot the character's own model gives it: the sleeve and the skin are not one picture in every character)
                     mat = 'chr' + (CHR_MATS.get('part' + src, [None] * (fi + 1))[fi] or 'slot6').split('_')[0]
                     if mat != last_mat:
-                        hand_faces.append('usemtl ' + mat)
+                        hf.append(mat)
                         last_mat = mat
-                    hand_faces.append('f ' + ' '.join('%d/%d' % (base + used[vi] + 1, base_t + used[vi] + 1) for vi, _ in f))
-            out += hand_faces
+                    hf.append([base + used[vi] for vi, _ in f])
+            # (the normals are the average of the faces that meet at a point, so the arm is lit as a round thing and not as the flat pieces it is made of; one that points inward is turned)
+            keys = [tuple(np.round(q, 3)) for q in hv]
+            total, face_normals, flip = {}, {}, 0.0
+            for k, f in enumerate(hf):
+                if isinstance(f, str) or len(f) < 3:
+                    continue
+                a, b, c = (hv[i - hand_nv] for i in f[:3])
+                n = np.cross(b - a, c - a)
+                face_normals[k] = n
+                flip += float(np.dot(n, (a + b + c) / 3 - hc[f[0] - hand_nv]))
+                for i in f:
+                    total[keys[i - hand_nv]] = total.get(keys[i - hand_nv], 0) + n
+            sign = -1.0 if flip < 0 else 1.0
+            for q in range(len(hv)):
+                n = total.get(keys[q], np.zeros(3)) * sign
+                norm = np.linalg.norm(n)
+                n = n / norm if norm > 1e-9 else np.array([0.0, 1.0, 0.0])
+                out.append('vn %.5f %.5f %.5f' % tuple(n))
+            for f in hf:
+                if isinstance(f, str):
+                    out.append('usemtl ' + f)
+                else:
+                    out.append('f ' + ' '.join('%d/%d/%d' % (i + 1, (i - nv_before_t) + 1 + nt_base, (i - hand_nv) + 1 + nn) for i in f))
+            nn += len(hv)
     open(out_obj, 'w').write(chr(10).join(out) + chr(10))
 
 
