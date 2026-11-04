@@ -270,9 +270,9 @@ fn result_key(i) {
 }
 
 fn result_text(i) {
+    // how long the character lasted: a survivor the whole match, an infected character until it was infected
     let frames = if team(i) == SURV() { this.clock } else { if this.at[i] > 0.0 { this.at[i] } else { 0.0 } };
     let secs = (frames / 60.0).to_int();
     let s = secs % 60;
-    let label = if team(i) == SURV() { "Survived " } else { "Infected at " };
-    label + (secs / 60) + ":" + (if s < 10 { "0" } else { "" }) + s
+    "" + (secs / 60) + ":" + (if s < 10 { "0" } else { "" }) + s
 }

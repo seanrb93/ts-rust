@@ -70,11 +70,42 @@ pub fn restart_results_tick() {
     }
 }
 
-/// The two lines at the bottom of the results that say so (the game's own `drawRetryQuit`).
+/// The two lines at the bottom of the results that say so: the game's texts for Quit and Restart (a button and a word each), drawn the same size and a line apart (`drawRetryQuit` draws the second a little bigger).
 pub fn restart_results_hint() {
     if lw(g::gamestate) != 4 || !restart_available() || lw(lw(g::currentplayer)) != 0 {
         return;
     }
-    let bottom = lw(g::window + 24);
-    drawRetryQuit(if lw(g::window + 92) == 0 { bottom - 34 } else { bottom - 20 });
+    let window = g::window;
+    let font = if lw(window + 92) == 0 { 2 } else { 1 };
+    let old = textSelect(font);
+    let bottom = lw(window + 24);
+    let y = if lw(window + 92) == 0 { bottom - 34 } else { bottom - 20 };
+    let flags = lbu(g::fontflags);
+    let line = if (lbu(g::fontflags) & 1) == 0 { lw(lw(g::curfont) + 12) } else { lw(lw(g::curfont) + 12) >> 1 };
+    let row_gap = 2 >> (lw(window + 92) & 31);
+    let texts = lw((lw(g::cur_language) << 2) + g::languages);
+    let (fg, bg) = (lw(g::menuitem_fgcol), lw(g::menuitem_bgcol));
+    for (k, offset) in [1780, 1776].into_iter().enumerate() {
+        textSelect(font);
+        sb(g::fontflags, flags);
+        let text = lw(texts + offset);
+        // (the game's text is a button, `^3`, a space and the word: the word after a button comes out larger, so the button and the word are drawn apart, at the same size)
+        let (icon, word) = if lbu(text) == b'^' as i32 && lbu(text + 2) == b' ' as i32 { (text, text + 3) } else { (0, text) };
+        let icon_text = BASE + 0x17_3e00 + 8 * k as i32;
+        if icon != 0 {
+            sb(icon_text, lbu(icon));
+            sb(icon_text + 1, lbu(icon + 1));
+            sb(icon_text + 2, 0);
+        }
+        let icon_width = if icon != 0 { textWidth(icon_text) } else { 0 };
+        let gap = if icon != 0 { 10 } else { 0 };
+        let word_width = textWidth(word);
+        let left = lw(window + 8) - ((icon_width + gap + word_width) >> 1);
+        let top = y + k as i32 * (line + row_gap);
+        if icon != 0 {
+            textOutline(left, top, icon_text, fg, bg);
+        }
+        textOutline(left + icon_width + gap, top, word, fg, bg);
+    }
+    textSelect(old);
 }
