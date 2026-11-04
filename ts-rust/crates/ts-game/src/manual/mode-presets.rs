@@ -42,6 +42,8 @@ pub enum Rule {
     WinScoreSeconds,
     /// the level is completed when the best team's score is ahead of the second best by the value (and is above 0)
     WinLead,
+    /// the Virus mode (`manual/virus.rs`): the value is the number of characters that start infected
+    Virus,
 }
 
 static VARIANTS: Mutex<Vec<ModeVariant>> = Mutex::new(Vec::new());
@@ -148,6 +150,10 @@ pub fn custom_rules_tick() {
         eprintln!("[rules] frame {} mode {mode}", ts_sdk::frame_count());
     }
     for (rule, value) in active_rules(mode) {
+        if rule == Rule::Virus {
+            virus_tick(value);
+            continue;
+        }
         if rule == Rule::WinLead {
             let mut scores: Vec<i32> = (1..=5).map(teamGetScore).collect();
             scores.sort_unstable_by(|a, b| b.cmp(a));
@@ -163,7 +169,7 @@ pub fn custom_rules_tick() {
         let goal = match rule {
             Rule::WinScore => value,
             Rule::WinScoreSeconds => value.saturating_mul(60),
-            Rule::WinLead => continue,
+            Rule::WinLead | Rule::Virus => continue,
         };
         // (a test aid: TS_RULEGOAL=-1 makes the goal reached at once)
         let goal = std::env::var("TS_RULEGOAL").ok().and_then(|v| v.parse().ok()).unwrap_or(goal);

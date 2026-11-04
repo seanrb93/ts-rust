@@ -97,6 +97,8 @@ fn stats_slot_kept(id: i32) -> bool {
 /// and by gun, the headshot-like count for kind 2 hits (stat 64), the kill streak (the kills in the last 3 seconds out of a ring of 20 times) and its records (stats 5, 6 and 7) are
 /// kept; a victim who killed himself counts as a suicide (stat 2); the victim's own kill run (stats 65 to 67) is then closed (@ 0x220bc8).
 pub fn StatsKillMade(killer: i32, victim: i32) {
+    #[cfg(feature = "extensions")]
+    virus_kill(killer, victim);
     StatsAdd(1, lw(victim), 1.0_f32);
     let victim_slot;
     if killer == 0 {

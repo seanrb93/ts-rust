@@ -106,6 +106,8 @@ pub fn dual_combo_or(place: i32, combo: i32) -> i32 {
 pub fn dual_reset_hook() {
     #[cfg(feature = "extended-tables")]
     dual_reset();
+    #[cfg(feature = "extensions")]
+    virus_reset();
 }
 
 /// The weapon page has made its list of the weapons that can be chosen: the added pairs follow the singles they are made from.

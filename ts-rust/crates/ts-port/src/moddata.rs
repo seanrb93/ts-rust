@@ -492,11 +492,12 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
                 Some("win_score") => Some(ts_game::Rule::WinScore),
                 Some("win_score_seconds") => Some(ts_game::Rule::WinScoreSeconds),
                 Some("win_lead") => Some(ts_game::Rule::WinLead),
+                Some("virus") => Some(ts_game::Rule::Virus),
                 _ => None,
             };
             match (variants.last_mut().filter(|_| in_variant), rule, words.get(2).and_then(|w| parse_int(w))) {
                 (None, _, _) => errors.push(format!("line {n}: a `rule` belongs to a `variant`")),
-                (_, None, _) => errors.push(format!("line {n}: unknown rule (the rules are win_score, win_score_seconds, win_lead)")),
+                (_, None, _) => errors.push(format!("line {n}: unknown rule (the rules are win_score, win_score_seconds, win_lead, virus)")),
                 (Some(v), Some(r), Some(val)) if (1..=100000).contains(&val) => v.rules.push((r, val as i32)),
                 _ => errors.push(format!("line {n}: a rule needs a number from 1 to 100000")),
             }
