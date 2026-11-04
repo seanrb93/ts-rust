@@ -51,7 +51,7 @@ WEAPONS = {
     'tnt': dict(file='ob/gun19/gun19.raw', part='part0', kind='one', grip=(-0.02, 0.08, 0.0)),
     'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore_abs=(0.06, 0.0, 0.3)),
     'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.05), fore_abs=(0.02, 0.04, 0.3)),
-    'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two'),
+    'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two', grip=(-0.07, -0.05, -0.12), fore_abs=(-0.06, 0.0, 0.28)),
     'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore=(0.01, -0.02, 0.3), fore_part='part2'),
     'brick': dict(file='ob/gun26/gun26.raw', part='part0', kind='one', grip=(0.0, -0.1, -0.12)),
 }
@@ -95,10 +95,10 @@ def hands_for(spec, gun_obj):
     lo, hi = body_box(gun_obj, spec['part'])
     size = hi - lo
     grip = spec.get('grip') or (-0.02, lo[1] + (0.09 if spec['kind'] == 'one' else 0.1), lo[2] + 0.25 * size[2])
-    hands = [(spec['part'], ['20', '19', '18', '17'], (0, 0, 0), spec.get('grip_scale', 1.0), (grip[0], grip[1] + 0.02, grip[2]), spec.get('grip_from', (0.3, -0.9, -0.3)), spec.get('grip_roll', 0))]
+    hands = [(spec['part'], CHAINS['grip'], (0, 0, 0), spec.get('grip_scale', 1.0), (grip[0], grip[1] + 0.02, grip[2]), spec.get('grip_from', (0.3, -0.9, -0.3)), spec.get('grip_roll', 0))]
     if spec['kind'] == 'two':
         fore = spec.get('fore_abs') or (hi[0] - 0.03, (lo[1] + hi[1]) / 2 + 0.05, lo[2] + 0.6 * size[2])
-        hands.append((spec.get('fore_part', spec['part']), ['12', '11', '10', '9'], (0, 0, 0), 1.0, tuple(fore), spec.get('fore_from', (0.6, -0.6, -0.5)), spec.get('fore_roll', 0)))
+        hands.append((spec.get('fore_part', spec['part']), CHAINS['front'], (0, 0, 0), 1.0, tuple(fore), spec.get('fore_from', (0.6, -0.6, -0.5)), spec.get('fore_roll', 0)))
     return hands
 
 
@@ -106,6 +106,22 @@ CHR_MATS = {}
 # the parts of the character that blend two joints (kind 1: a seam that has no joint of its own): their triangles are drawn between the joints of a pose, and in the rest pose of a model that has
 # them they are flat flaps, so they are left out
 SEAM_PARTS = set()
+# the parts of the arm that holds the gun and of the other arm, from the hand up to the shoulder (strings, the numbers of the parts): the humanoid layout unless the character is one whose
+# model numbers its parts otherwise
+CHAINS = {'grip': ['20', '19', '18', '17'], 'front': ['12', '11', '10', '9']}
+HUMAN_CHAINS = dict(CHAINS)
+# character number -> (gun arm, other arm) for the models that are not in the humanoid layout; a chain of one part is a whole arm in one piece (hand at its bottom)
+# (an arm in one piece is long: it is made smaller)
+ARM_SCALE = {37: 0.55}
+OTHER_ARMS = {
+    8: (['14', '13', '12', '11'], ['9', '8', '7', '6']),
+    24: (['18', '17', '16', '15'], ['11', '10', '9', '8']),
+    31: (['10', '9', '8', '7'], ['6', '5', '4']),
+    37: (['17'], ['10']),
+    44: (['23', '22', '21', '20', '19'], ['12', '11', '10', '9', '8']),
+    46: (['19', '18', '17', '16'], ['11', '10', '9', '8']),
+    49: (['20', '19', '18', '17'], ['12', '11', '10', '9']),
+}
 
 
 def load_obj(path):
@@ -248,8 +264,14 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
             R = rotation(*rot) * scale
             if arm_from and arm_from[0] is not None:
                 # the arm is turned about its hand so that the elbow is where `arm_from` says
-                hand = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[0], []) for vi, _ in f})].mean(axis=0)
-                elbow = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[-1], []) for vi, _ in f})].mean(axis=0)
+                hand = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[0], []) for vi, _ in f})]
+                elbow = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[-1], []) for vi, _ in f})]
+                if len(sources) == 1:
+                    # (an arm in one piece: the hand is its lowest sixth, the elbow its highest)
+                    by_y = hand[np.argsort(hand[:, 1])]
+                    k = max(1, len(by_y) // 6)
+                    hand, elbow = by_y[:k], by_y[-k:]
+                hand, elbow = hand.mean(axis=0), elbow.mean(axis=0)
                 R = rotation_between(elbow - hand, arm_from[0]) @ R
                 if len(arm_from) > 1 and arm_from[1]:
                     # (the roll of the hand about the arm, degrees)
@@ -271,7 +293,11 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
                 base = nv
                 base_t = nt
                 # (the parts of the character are in the character's own space: the hand is turned about its own middle, which goes to `place`)
-                middle = chr_verts[list(used)].mean(axis=0) if first else middle
+                if first and len(sources) == 1:
+                    low = chr_verts[list(used)]
+                    middle = low[np.argsort(low[:, 1])][:max(1, len(low) // 6)].mean(axis=0)
+                else:
+                    middle = chr_verts[list(used)].mean(axis=0) if first else middle
                 first = False
                 for vi in sorted(used, key=used.get):
                     p = R @ (chr_verts[vi] - middle) + np.array(place)
@@ -341,12 +367,17 @@ def character_files(pak):
             continue
         name = prop_file(model)
         if name in by_name and name.endswith('.raw') and '/chrs/' in name:
+            if c in OTHER_ARMS:
+                out[c] = (name, 0)
+                continue
             try:
                 got = layout(name)
             except Exception:
                 continue
             if got and got[0] == first[0]:
                 out[c] = (name, got[1])
+        if c in OTHER_ARMS and name in by_name and name.endswith('.raw') and '/chrs/' in name:
+            out[c] = (name, 0)
     return out
 
 
@@ -396,9 +427,11 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
     _cnt = _st.unpack_from('<I', _f, _tab)[0]
     SEAM_PARTS.clear()
     import obdump as _ob
-    SEAM_PARTS.update(i for i in ARM_PARTS if _f[_tab - _cnt * 80 + 80 * i] == 1)
+    CHAINS['grip'], CHAINS['front'] = OTHER_ARMS.get(character, (HUMAN_CHAINS['grip'], HUMAN_CHAINS['front']))
+    arm_parts = [int(x) for x in CHAINS['grip'] + CHAINS['front']]
+    SEAM_PARTS.update(i for i in arm_parts if _f[_tab - _cnt * 80 + 80 * i] == 1)
     # (the pieces that are see-through, such as rags that hang from a sleeve, are drawn in a second pass that the model made here does not have: they would be white)
-    for i in ARM_PARTS:
+    for i in arm_parts:
         see_through = _st.unpack_from('<I', _f, _tab - _cnt * 80 + 80 * i + 12)[0]
         if _ob.ok(_f, see_through) and _ob.read_chunks(_f, see_through):
             SEAM_PARTS.add(i)
@@ -417,6 +450,8 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
         if not os.path.exists(base + '.obj'):
             subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, spec['file'], '--obj', base + '.obj'], stdout=subprocess.DEVNULL)
         spec = dict(spec, hands=hands_for(spec, base + '.obj'))
+        if character in ARM_SCALE:
+            spec = dict(spec, hands=[h[:3] + (h[3] * ARM_SCALE[character],) + h[4:] for h in spec['hands']])
         if os.environ.get('HANDS_JSON'):
             import json
             spec = dict(spec, hands=[tuple(h) for h in json.loads(os.environ['HANDS_JSON'])])

@@ -39,3 +39,4 @@ modkit-error.txt
 # the mod kit program (built by tools/build-modkit.py)
 /tools/modkit.exe
 /tools/modkit
+examples/first_person_hands_src/work/
