@@ -31,6 +31,26 @@ pub struct ModeVariant {
     pub fields: Vec<(i32, i32)>,
     /// rules the tick applies while this variant is played: (the rule, the value)
     pub rules: Vec<(Rule, i32)>,
+    /// the options that the Options page leaves out for this variant (the addresses of their values, see `hidden_option`)
+    pub hidden: Vec<i32>,
+}
+
+/// The option of the Options page that `hide` names in `modes.txt`: the address of its value in the game.
+pub fn hidden_option(name: &str) -> Option<i32> {
+    Some(match name {
+        "team_play" => g::gv_teamplay,
+        "team_starts" => g::gv_useteamstarts,
+        "friendly_fire" => g::gv_friendfire,
+        "radar" => g::gv_dispradar,
+        "time_limit" => g::gv_timelimit,
+        "kill_limit" => g::gv_killlimit,
+        "score_method" => g::gv_scoremethod,
+        "score_limit" => g::gv_scorelimit,
+        "one_shot_kill" => g::gv_oneshotkill,
+        "handicaps" => g::gv_handicaps,
+        "start_with_gun" => g::gv_spawngun,
+        _ => return None,
+    })
 }
 
 /// A rule of a variant (`rule <name> <value>` in `modes.txt`).
@@ -73,6 +93,15 @@ pub fn active_rules(mode: i32) -> Vec<(Rule, i32)> {
 pub fn all_variants() -> Vec<(i32, usize, String)> {
     let all = VARIANTS.lock().unwrap();
     all.iter().enumerate().map(|(i, v)| (v.kind, all[..=i].iter().filter(|o| o.kind == v.kind).count(), v.name.clone())).collect()
+}
+
+/// The options the Options page leaves out for the variant that is being played (the addresses of their values).
+pub fn active_hidden(mode: i32) -> Vec<i32> {
+    let choice = super::arcadeopts::variant_choice(mode);
+    if choice == 0 {
+        return Vec::new();
+    }
+    VARIANTS.lock().unwrap().iter().filter(|v| v.kind == mode).nth(choice - 1).map_or(Vec::new(), |v| v.hidden.clone())
 }
 
 /// The names of the variants of a mode.

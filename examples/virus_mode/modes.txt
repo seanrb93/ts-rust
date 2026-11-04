@@ -1,8 +1,10 @@
-# Virus, from the later games: one player starts infected; whoever the infected kill is infected too.
-# The infected win when nobody is left; the survivors win when the time runs out.
+# Virus, from the later games: a free for all in which one player starts infected and whoever an infected player touches is infected too.
+# The last survivor wins.  It is a way to play Deathmatch, so the options that do not mean anything for it are left off the page.
 mode deathmatch
   variant "Virus"
-  team_play on
-  friendly_fire off
+  team_play off
+  score_limit 0
+  kill_limit 0
+  time_limit 0
   rule virus 1
-  time_limit 5
+  hide team_play team_starts friendly_fire kill_limit score_method score_limit one_shot_kill

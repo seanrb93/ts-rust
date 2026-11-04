@@ -1,9 +1,9 @@
 Virus, a mode of the later TimeSplitters games, as a way to play Deathmatch.
 
-One character starts infected, chosen at random, and a green flame rises from every infected character so that they can be told.  Whoever an infected character kills is infected too and plays on the red team from then on.  The infected win when nobody is left uninfected;
-the survivors win when the time limit runs out, so set a time limit on the Options page.
-Survivors that are computer characters do not fight: they run to the part of the level farthest from the infected, and the infected chase them.
+A free for all: one character, chosen at random, starts infected.  An infected character that touches a survivor infects him, and he plays as infected from then on (he is tinted green).  The last
+survivor wins.  Computer characters never shoot in this mode: the survivors run from the infected and the infected go after the survivors on foot.
 
-Switch it on from the Mods page (or enabled = true in mod.ini), start the game again, and pick "Virus" from the list of modes on the arcade Select Level page (after the game's modes); its Options page has the Rules row set to Virus.  It needs the build
-with extensions (the build the mods are made for; the default build is the original game).
-It is made of one line, `rule virus 1` in modes.txt; the number is how many characters start infected.
+Switch it on from the Mods page (or enabled = true in mod.ini), start the game again, and pick "Virus" from the list of modes on the arcade Select Level page (after the game's modes).  The options of
+a mode that mean nothing for Virus (the score limit and method, team play and team starts, friendly fire, one shot kill) are left off its Options page.  It needs the build with extensions (the build the
+mods are made for; the default build is the original game).
+It is made of `rule virus 1` in modes.txt (the number is how many characters start infected) and `hide` for the options of the page to leave out (docs/modding-guide.md).

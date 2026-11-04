@@ -1326,6 +1326,9 @@ pub fn arcadeoptions_pageTick(a0: i32) {
             }
         }
     }
+    // (a mode of a mod may leave rows of the page out)
+    #[cfg(feature = "extensions")]
+    let (source, count) = arcade_options_filter(lw(0x1fc11f8 + 48), source, count);
     let mut i = 0;
     let total = count + 1;
     if count != 0 {

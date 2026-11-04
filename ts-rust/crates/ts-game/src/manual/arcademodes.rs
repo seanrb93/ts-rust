@@ -99,3 +99,26 @@ pub fn arcade_variant_of(number: i32) -> (i32, usize) {
     };
     (kind, index)
 }
+
+/// The rows of the Options page of the mode `kind` (`source`: the game's list of `count` items): without the options that the variant being played hides, the rest moved up.  Gives the list and its count.
+pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
+    let hidden = active_hidden(kind);
+    if hidden.is_empty() || count == 0 {
+        return (source, count);
+    }
+    let rows = BASE + 0x17_3800;
+    let ys: Vec<i32> = (0..count).map(|k| lh(source + 32 * k + 6)).collect();
+    let mut kept = 0;
+    for k in 0..count {
+        let item = source + 32 * k;
+        if hidden.contains(&lw(item + 12)) {
+            continue;
+        }
+        for j in 0..8 {
+            sw(rows + 32 * kept + 4 * j, lw(item + 4 * j));
+        }
+        sh(rows + 32 * kept + 6, ys[kept as usize]);
+        kept += 1;
+    }
+    (rows, kept)
+}

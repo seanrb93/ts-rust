@@ -482,7 +482,7 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
             if name.is_empty() {
                 errors.push(format!("line {n}: `variant` needs a name"));
             } else {
-                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new(), rules: Vec::new() });
+                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new(), rules: Vec::new(), hidden: Vec::new() });
                 in_variant = true;
             }
             continue;
@@ -500,6 +500,20 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
                 (_, None, _) => errors.push(format!("line {n}: unknown rule (the rules are win_score, win_score_seconds, win_lead, virus)")),
                 (Some(v), Some(r), Some(val)) if (1..=100000).contains(&val) => v.rules.push((r, val as i32)),
                 _ => errors.push(format!("line {n}: a rule needs a number from 1 to 100000")),
+            }
+            continue;
+        }
+        if words[0] == "hide" {
+            match variants.last_mut().filter(|_| in_variant) {
+                None => errors.push(format!("line {n}: `hide` belongs to a `variant`")),
+                Some(v) => {
+                    for w in &words[1..] {
+                        match ts_game::hidden_option(w) {
+                            Some(at) => v.hidden.push(at),
+                            None => errors.push(format!("line {n}: `{w}` is not an option of the page (team_play, team_starts, friendly_fire, radar, time_limit, kill_limit, score_method, score_limit, one_shot_kill, handicaps, start_with_gun)")),
+                        }
+                    }
+                }
             }
             continue;
         }

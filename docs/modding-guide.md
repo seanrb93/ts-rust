@@ -84,7 +84,7 @@ mode deathmatch
   rule win_lead 5
 ```
 
-Each variant is listed as a mode on the Select Level page, after the game's own (a level lists up to seven modes in all); choosing it opens the Options page with its Rules row set, and the Rules row still has Standard and the variants.  A `rule` ends the match by itself: `win_score N`, `win_score_seconds N` (BagTag) and `win_lead N`.  `rule virus N` makes the variant a game of Virus (see `examples/virus_mode/`): N characters start infected, and an infected character's kills infect the survivors.  A mode with objects, bases or its own rules of play (new code) is not possible yet; a variant changes the numbers the game already keeps and adds these rules.
+Each variant is listed as a mode on the Select Level page, after the game's own (a level lists up to seven modes in all); choosing it opens the Options page with the variant's options set and its name at the top.  A `rule` ends the match by itself: `win_score N`, `win_score_seconds N` (BagTag) and `win_lead N`.  `hide` (in a variant) leaves options off the Options page: `hide team_play team_starts friendly_fire kill_limit score_method score_limit one_shot_kill` (also `time_limit`, `radar`, `handicaps`, `start_with_gun`); set their values with the lines above it.  `rule virus N` makes the variant a game of Virus (see `examples/virus_mode/`): a free for all in which N characters start infected, an infected character infects the survivors it touches, and the last survivor wins.  A mode with objects, bases or its own rules of play (new code) is not possible yet; a variant changes the numbers the game already keeps and adds these rules.
 
 ## Add a level
 

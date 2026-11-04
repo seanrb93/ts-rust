@@ -364,9 +364,9 @@ pub fn enemyTick(a0: i32) {
     if lw(g::numactivechars) == 0 {
         return;
     }
-    // (a survivor of a game of Virus does not attack: it picks its way again, to run)
+    // (a computer character of a game of Virus does not attack: it picks its way again)
     #[cfg(feature = "extensions")]
-    if lw(mind + 2716) == 2 && virus_survivor_bot(a0) {
+    if lw(mind + 2716) == 2 && virus_bot(a0) {
         sw(mind + 2716, 128);
     }
     let state = lw(mind + 2716);
@@ -595,6 +595,9 @@ pub fn enemyTick(a0: i32) {
             strncpy(name, 0x3afd68, 30);
         }
     }
+    // (an infected character runs at the survivor that is near)
+    #[cfg(feature = "extensions")]
+    virus_chase(a0);
     if settle {
         setAnimation(a0);
     }

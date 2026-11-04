@@ -19,15 +19,9 @@ const TEXT_AT: i32 = BASE + 0x5_0800;
 const BOT: i32 = 12;
 const GO: i32 = 13;
 const NEW: i32 = 16;
-/// the row "Rules" after Level Music, for the modes that a mod gives variants (`modes.txt`)
-const NEW2: i32 = 17;
-const NEW2_ID: i32 = 16;
-const GV2_AT: i32 = BASE + 0x5_0580;
-const LIST2_AT: i32 = BASE + 0x5_05c0;
 /// the variant chosen (0: Standard) and the mode it was chosen for
 static VARIANT: AtomicI32 = AtomicI32::new(0);
 static VARIANT_MODE: AtomicI32 = AtomicI32::new(-1);
-static VARIANT_LAST: AtomicI32 = AtomicI32::new(-1);
 /// item numbers (the cursor's value) of Bot Set, GO! and the new row
 const BOT_ID: i32 = 13;
 const GO_ID: i32 = 14;
@@ -35,9 +29,6 @@ const NEW_ID: i32 = 15;
 /// the lines between Bot Set and the new row, and between the new row and GO!
 const ROW_GAP: i32 = 13;
 const GO_GAP: i32 = 17;
-/// the same with the Rules row, which is the last row before GO!: the rows are closer so that GO! keeps off the legend
-const ROW2_GAP: i32 = 13;
-const GO2_GAP: i32 = 9;
 /// how much lower the Back and Edit legends are than the game has them (in line with the Bots)
 const LEGEND_DOWN: i32 = 7;
 /// room for the left arrow beside a long value (in the units of the page)
@@ -109,13 +100,13 @@ pub fn variant_choice(mode: i32) -> usize {
     VARIANT.load(Ordering::Relaxed).max(0) as usize
 }
 
-/// A mode of a mod was chosen on the arcade page: the Options page that follows has its variant (`variant`: 0 is the mode as it is) on the Rules row, and the options are the variant's.
+/// A mode of a mod was chosen on the arcade page (`variant`: 0 is the mode as it is): the options of the Options page that follows are the variant's.
 pub fn arcade_pick_variant(mode: i32, variant: usize) {
+    let before = if VARIANT_MODE.load(Ordering::Relaxed) == mode { VARIANT.load(Ordering::Relaxed) } else { 0 };
     VARIANT_MODE.store(mode, Ordering::Relaxed);
     VARIANT.store(variant as i32, Ordering::Relaxed);
-    VARIANT_LAST.store(-1, Ordering::Relaxed);
-    sw(GV2_AT, variant as i32);
-    if variant > 0 {
+    // (the game keeps what a variant set in the mode's record: the mode itself starts as the mods left it)
+    if variant > 0 || before > 0 {
         apply_variant(mode, variant);
     }
 }
@@ -188,67 +179,14 @@ pub fn av_opt_ready() -> i32 {
     sw(item(GO) + 16, (lw(item(GO) + 16) & !0xffff) | NEW_ID);
     sh(item(GO) + 6, bot_y + ROW_GAP + GO_GAP);
     sw(m, NEW + 1);
-    // the row "Rules": the variants of the mode that was chosen
+    // a mode of a mod that was chosen on the arcade page has its own name at the top of the page
     let mode = lw(0x1fc11f8 + 48);
     let variants = variants_of(mode);
-    if !variants.is_empty() {
-        if VARIANT_MODE.swap(mode, Ordering::Relaxed) != mode {
-            VARIANT.store(0, Ordering::Relaxed);
-            VARIANT_LAST.store(-1, Ordering::Relaxed);
+    let choice = variant_choice(mode);
+    if choice > 0 {
+        if let Some(name) = variants.get(choice - 1) {
+            sw(m + 16, put_str(&mut at, name));
         }
-        let now = lw(GV2_AT);
-        let last = VARIANT_LAST.load(Ordering::Relaxed);
-        let mut choice = VARIANT.load(Ordering::Relaxed);
-        if last >= 0 && now != last && (0..=variants.len() as i32).contains(&now) {
-            choice = now;
-            VARIANT.store(choice, Ordering::Relaxed);
-            apply_variant(mode, choice as usize);
-        }
-        VARIANT_LAST.store(choice, Ordering::Relaxed);
-        let label = put_str(&mut at, "Rules");
-        let mut list = LIST2_AT;
-        let mut width_of_value = 0;
-        let font = textSelect(lw(g::menuitem_bigfont));
-        for (v, name) in std::iter::once("Standard".to_string()).chain(variants.iter().cloned()).enumerate() {
-            let s = put_str(&mut at, &name);
-            sw(list, v as i32);
-            sw(list + 4, s);
-            list += 8;
-            if v as i32 == choice {
-                width_of_value = textWidth(s);
-            }
-        }
-        textSelect(font);
-        sw(list, 0);
-        sw(list + 4, 0);
-        // (a mode of a mod, chosen on the arcade page, has its own name at the top of the page)
-        if choice > 0 {
-            if let Some(name) = variants.get(choice as usize - 1) {
-                sw(m + 16, put_str(&mut at, name));
-            }
-        }
-        for i in 0..12 {
-            sw(GV2_AT + 4 * i, lw(g::gv_weaponset + 4 * i));
-        }
-        sw(GV2_AT, choice);
-        sw(GV2_AT + 4, 0);
-        sw(GV2_AT + 8, variants.len() as i32);
-        sw(GV2_AT + 12, 0);
-        sw(GV2_AT + 16, LIST2_AT);
-        sw(GV2_AT + 20, 0);
-        sw(GV2_AT + 32, -(256.max(width_of_value + ARROW_ROOM)));
-        for i in 0..8 {
-            sw(item(NEW2) + 4 * i, lw(item(BOT) + 4 * i));
-        }
-        sw(item(NEW2), label);
-        sh(item(NEW2) + 6, bot_y + ROW_GAP + ROW2_GAP);
-        sw(item(NEW2) + 8, (lw(item(BOT) + 8) & !0xffff) | NEW2_ID);
-        sw(item(NEW2) + 12, GV2_AT);
-        sw(item(NEW2) + 16, (GO_ID << 16) | NEW_ID);
-        sw(item(NEW) + 16, (NEW2_ID << 16) | BOT_ID);
-        sw(item(GO) + 16, (lw(item(GO) + 16) & !0xffff) | NEW2_ID);
-        sh(item(GO) + 6, bot_y + ROW_GAP + ROW2_GAP + GO2_GAP);
-        sw(m, NEW2 + 1);
     }
     // the legends (Back, Edit) go down to the line of the Bots
     for k in [14, 15] {

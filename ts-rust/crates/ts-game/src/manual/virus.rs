@@ -1,8 +1,9 @@
 //! The Virus mode (from the later games): a way to play Deathmatch, `rule virus 1` in a variant of `modes.txt`.
 //!
-//! Everyone is a survivor (team 1) but one, who starts infected (team 2).  A kill that an infected character makes of a survivor infects the survivor: he is on the infected team from then on, and
-//! respawns as one.  The infected win when no survivor is left; the survivors win when the time limit of the game runs out.  The teams are the ones the game keeps for its team games (the team
-//! word of a character's record, +24), so who the bots fight, the friendly fire switch and the team scores are the game's own.
+//! A free for all: everyone is a survivor but one, who starts infected.  An infected character that touches a survivor infects him; he is on the infected side from then on and respawns as
+//! one.  The last survivor wins.  The survivors run from the infected and never shoot; the infected go after the nearest survivor on foot.  The sides are kept in the team word of a character's
+//! record (+24, 1 survivors, 2 infected: the game uses it to know whom a computer character goes after; the teams of the Options page stay off), and an infected character has the colour of
+//! the green team.
 
 use crate::*;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
@@ -10,9 +11,6 @@ use std::sync::Mutex;
 
 const SURVIVORS: i32 = 1;
 const INFECTED: i32 = 2;
-
-/// the particle type of the game that is a green smoke rising
-const FLAME: i32 = 18;
 
 static SETUP: AtomicBool = AtomicBool::new(false);
 /// the game frame at which the teams were made
@@ -88,33 +86,114 @@ pub fn virus_tick(infected_at_start: i32) {
         SETUP_FRAME.store(frame, Ordering::Relaxed);
         return;
     }
-    // (a green flame rises from every infected character, so that they can be told)
-    if frame % 6 == 0 {
-        let at = 0x240_0000 + 0x17_2d00;
-        for i in 0..total {
-            let record = info + i * 0x1210;
-            let prop = lw(record + 3020);
-            // (the state word is the bots'; a player's is not)
-            let gone = i >= lw(g::lvnumplayers) && lw(record + 2716) & (16 | 32) != 0;
-            if prop == 0 || lw(record + 24) != INFECTED || gone {
+    let mut survivors = Vec::new();
+    let mut infected = Vec::new();
+    let green = lw((4 << 3) + g::storydata + 68);
+    for i in 0..total {
+        let record = info + i * 0x1210;
+        match lw(record + 24) {
+            SURVIVORS => survivors.push(i),
+            INFECTED => {
+                infected.push(i);
+                sw(record + 20, green);
+            }
+            _ => {}
+        }
+    }
+    // (the touch of an infected character infects a survivor)
+    for &a in &infected {
+        for &b in &survivors {
+            if lw(info + b * 0x1210 + 24) != SURVIVORS || !alive(info, a) || !alive(info, b) {
                 continue;
             }
-            swc1(at, lwc1(prop + 48));
-            swc1(at + 8, lwc1(prop + 56));
-            for height in [0.0_f32, 0.7, 1.4] {
-                swc1(at + 4, lwc1(prop + 52) + height);
-                particleNewBurst(0, FLAME, at, 0, 0.0);
+            let (pa, pb) = (lw(info + a * 0x1210 + 3020), lw(info + b * 0x1210 + 3020));
+            if pa == 0 || pb == 0 {
+                continue;
+            }
+            let (dx, dy, dz) = (lwc1(pa + 48) - lwc1(pb + 48), lwc1(pa + 52) - lwc1(pb + 52), lwc1(pa + 56) - lwc1(pb + 56));
+            if dx * dx + dz * dz < TOUCH * TOUCH && dy.abs() < 1.6 {
+                infect(info, a, b, frame);
             }
         }
     }
-    // (the game is over when no survivor is left)
-    let survivors = (0..total).filter(|&i| lw(i * 0x1210 + info + 24) == SURVIVORS).count();
-    if survivors == 0 && lw(g::gamestate) != 4 {
+    // (the game is over when one survivor is left: he wins)
+    let left: Vec<i32> = (0..total).filter(|&i| lw(i * 0x1210 + info + 24) == SURVIVORS).collect();
+    if left.len() <= 1 && lw(g::gamestate) != 4 && frame > SETUP_FRAME.load(Ordering::Relaxed) + 60 {
         if std::env::var_os("TS_VIRUSLOG").is_some() {
-            eprintln!("[virus] f{frame} nobody is left uninfected");
+            eprintln!("[virus] f{frame} {}", if left.is_empty() { "nobody is left uninfected".to_string() } else { format!("character {} is the last survivor", left[0]) });
+        }
+        if let Some(&winner) = left.first() {
+            // (he is first on the scores)
+            let best = (0..total).map(|i| lw(i * 0x1210 + info + 248)).max().unwrap_or(0);
+            sw(winner * 0x1210 + info + 248, best + 1);
+            tell(winner, "You are the last survivor!");
         }
         gameLevelCompleted();
     }
+}
+
+/// How close an infected character has to be to a survivor to infect him (world units).
+const TOUCH: f32 = 1.3;
+
+/// Is the character `i` on the field (a computer character that is dying or spawning is not, nor a player who is dead)?
+fn alive(info: i32, i: i32) -> bool {
+    let player = lw(g::players) + i * 1820;
+    if i < lw(g::lvnumplayers) {
+        lw(player + 296) != 4
+    } else {
+        lw(info + i * 0x1210 + 2716) & (16 | 32) == 0
+    }
+}
+
+/// The infected character `a` touches the survivor `b`.
+fn infect(info: i32, a: i32, b: i32, frame: i32) {
+    sw(info + b * 0x1210 + 24, INFECTED);
+    tell(b, "You are infected!");
+    if std::env::var_os("TS_VIRUSLOG").is_some() {
+        eprintln!("[virus] f{frame} character {a} infects character {b}");
+    }
+}
+
+/// An infected computer character runs at the survivor it goes after when it is near (`enemyTick`, after the state of the character ran): its pad is not where the survivor is.
+pub fn virus_chase(chr: i32) {
+    if !SETUP.load(Ordering::Relaxed) || !virus_on() {
+        return;
+    }
+    let mind = lw(chr + 352);
+    if mind == 0 || lw(mind) < lw(g::lvnumplayers) || lw(mind + 24) != INFECTED || lw(mind + 2716) != 8 {
+        return;
+    }
+    let (info, total) = characters();
+    let me = [lwc1(chr + 48), lwc1(chr + 52), lwc1(chr + 56)];
+    let mut best: Option<(f32, [f32; 3])> = None;
+    for i in 0..total {
+        let record = info + i * 0x1210;
+        let prop = lw(record + 3020);
+        if prop == 0 || lw(record + 24) != SURVIVORS || !alive(info, i) {
+            continue;
+        }
+        let at = [lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56)];
+        let d = (at[0] - me[0]).powi(2) + (at[2] - me[2]).powi(2);
+        if (at[1] - me[1]).abs() < 2.0 && best.map_or(true, |b| d < b.0) {
+            best = Some((d, at));
+        }
+    }
+    if let Some((d, at)) = best {
+        if d < 15.0 * 15.0 {
+            swc1(mind + 2796, at[0]);
+            swc1(mind + 2800, at[1]);
+            swc1(mind + 2804, at[2]);
+        }
+    }
+}
+
+/// Is `chr` (a character's prop) a computer character of a game of Virus?  None of them fights: they run (the survivors) or go after the survivors on foot (the infected).
+pub fn virus_bot(chr: i32) -> bool {
+    if !SETUP.load(Ordering::Relaxed) || !virus_on() {
+        return false;
+    }
+    let mind = lw(chr + 352);
+    mind != 0 && lw(mind) >= lw(g::lvnumplayers)
 }
 
 /// Is `chr` (a character's prop) a computer survivor of a game of Virus?  Survivors do not fight: they run from the infected.
@@ -174,18 +253,4 @@ pub fn virus_flee_pad(chr: i32) -> Option<i32> {
     }
     cache[number] = (best.0, frame + 45);
     Some(best.0)
-}
-
-/// A kill is counted (`StatsKillMade`): an infected character that kills a survivor infects him.
-pub fn virus_kill(killer: i32, victim: i32) {
-    if killer == 0 || victim == 0 || killer == victim || !SETUP.load(Ordering::Relaxed) || !virus_on() {
-        return;
-    }
-    if lw(killer + 24) == INFECTED && lw(victim + 24) == SURVIVORS {
-        sw(victim + 24, INFECTED);
-        tell(lw(victim), "You are infected!");
-        if std::env::var_os("TS_VIRUSLOG").is_some() {
-            eprintln!("[virus] f{} character {} infects character {}", ts_sdk::frame_count(), lw(killer), lw(victim));
-        }
-    }
 }
