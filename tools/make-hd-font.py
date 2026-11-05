@@ -28,20 +28,19 @@ SCALE_Y = 16
 MEASURE_SAMPLES = 5    # samples across a texel of the original when comparing
 DRAW_SAMPLES = 3       # samples across a pixel of the picture
 ARC_STEPS = 10         # lines in a curve when measuring (DRAW_STEPS when drawing)
-DRAW_STEPS = 32
+DRAW_STEPS = 48
 REGULAR = 0.004        # how much a measurement is held to the drawing (against the error of the pixels)
 REACH = 0.18           # and how far it can go from the drawing, so that a shape stays the shape that was drawn
 
-ROUND_O = 'M !.45,0 Ah 1,.3 L 1,!.3 Av !.45,1 L .45,1 Ah 0,!.3 L 0,.3 Av .45,0 Z'
-ELLIPSE = 'M #.5,0 Ah 1,#.5 Av #.5,1 Ah 0,#.5 Av #.5,0 Z'
-ROUND_S = 'M 1,.2 Av !.42,0 L .42,0 Ah 0,.25 Av .42,.5 L !.42,.5 Ah 1,.75 Av !.42,1 L .42,1 Ah 0,!.2'
-# the drawings.  Letters: M move, L line, Ah a quarter curve that starts level, Av one that starts upright, C a curve by two control points, Z close.  y goes down.  0 and 1 are the edges of the character's box and are fixed, #n is a fixed number,
+ELLIPSE = 'R 0,0 1,1 #0,#360 Z'
+ROUND_S = 'M 1,.2 Av #.5,0 Ah 0,.25 Av #.5,.5 Ah 1,.75 Av #.5,1 Ah 0,!.2'
+# the drawings.  Letters: M move, L line, Ah a quarter curve that starts level, Av one that starts upright, C a curve by two control points, R an arc of the ellipse in the box from corner to corner, between two angles (0 is right, -90 the top), Z close.  y goes down.  0 and 1 are the edges of the character's box and are fixed, #n is a fixed number,
 # !n is 1 less the measurement n (for what is the same on both sides).  A character can have several drawings (a list): the first is used unless a later one fits clearly better.
 GLYPHS = {
     '!': 'M #.5,0 L #.5,.7 M #.5,.84 L #.5,1',
     '"': 'M 0,0 L 0,1 M 1,0 L 1,1',
     '#': 'M !.2,0 L .55,1 M !.55,0 L .2,1 M 0,.33 L 1,.33 M 0,!.33 L 1,!.33',
-    '$': 'M #.5,0 L #.5,1 M 1,.25 Av !.42,.1 L .42,.1 Ah 0,.3 Av .42,.5 L !.42,.5 Ah 1,.7 Av !.42,.9 L .42,.9 Ah 0,.75',
+    '$': 'M #.5,0 L #.5,1 M 1,.25 Av #.5,.1 Ah 0,.3 Av #.5,.5 Ah 1,.7 Av #.5,.9 Ah 0,.75',
     '%': ['M .22,0 Ah .42,.25 Av .22,.5 Ah 0,.25 Av .22,0 Z M !.22,.5 Ah 1,.75 Av !.22,1 Ah .58,.75 Av !.22,.5 Z M .85,#-.05 L .15,#1.05'],
     '&': 'M 1,#1.03 L #.3,#.36 C #.16,#.2 #.26,0 #.46,0 C #.66,0 #.74,#.2 #.58,#.34 L #.2,#.6 C #.02,#.72 #.04,1 #.36,1 C #.66,1 #.9,#.8 1,#.52',
     "'": 'M #.5,0 L #.5,1',
@@ -53,44 +52,44 @@ GLYPHS = {
     '-': 'M 0,#.5 L 1,#.5',
     '.': 'M #.5,0 L #.5,1',
     '/': 'M 0,#1.1 L 1,#-.1',
-    '0': [ELLIPSE, ROUND_O],
-    '1': ['M 1,0 L 1,1 M 1,#.02 L 0,.3', 'M .55,0 L .55,1 M .55,#.02 L 0,.28 M 0,1 L 1,1'],
-    '2': 'M 0,.28 Av .42,0 L !.42,0 Ah 1,.28 C 1,.5 .6,.62 0,.97 L 0,1 L 1,1',
-    '3': 'M 0,.2 Av .42,0 L .6,0 Ah .96,.24 Av .6,.48 L .35,.48 M .6,.48 Ah 1,.74 Av .6,1 L .42,1 Ah 0,!.2',
+    '0': ELLIPSE,
+    '1': ['M 1,0 L 1,1 M 1,#.02 L 0,.36', 'M .55,0 L .55,1 M .55,#.02 L 0,.3 M 0,1 L 1,1'],
+    '2': 'M 0,.28 Av #.5,0 Ah 1,.28 C 1,.5 .6,.62 0,.97 L 0,1 L 1,1',
+    '3': 'M 0,.2 Av .5,0 Ah .96,.24 Av .5,.48 L .35,.48 M .5,.48 Ah 1,.74 Av .5,1 Ah 0,!.2',
     '4': 'M .74,0 L .74,1 M .74,#-.08 L 0,.72 L 1,.72',
-    '5': 'M .95,0 L .08,0 L .03,.5 C .2,.42 .35,.38 .52,.38 Ah 1,.69 Av .52,1 L .4,1 Ah 0,.82',
-    '6': 'M .96,.2 Av .55,0 L .45,0 Ah 0,.35 L 0,.7 Av .45,1 L .58,1 Ah 1,.72 Av .58,.42 L .42,.42 Ah 0,.7',
+    '5': 'M .95,0 L .08,0 L .03,.5 C .2,.42 .35,.38 .52,.38 Ah 1,.69 Av .52,1 Ah 0,.82',
+    '6': 'R 0,.4 1,1 #0,#360 Z M .96,.2 Av #.55,0 Ah 0,.55 L 0,.7',
     '7': 'M 0,0 L 1,0 L .3,#1.1',
-    '8': 'M .58,0 Ah .96,.24 Av .58,.48 L !.58,.48 Ah .04,.24 Av !.58,0 Z M .58,.48 Ah 1,.74 Av .58,1 L !.58,1 Ah 0,.74 Av !.58,.48 Z',
-    '9': 'M .04,.8 Av .45,1 L .55,1 Ah 1,.65 L 1,.3 Av .55,0 L .42,0 Ah 0,.28 Av .42,.58 L .58,.58 Ah 1,.3',
+    '8': 'R .04,0 .96,.48 #0,#360 Z R 0,.48 1,1 #0,#360 Z',
+    '9': 'R 0,0 1,.6 #0,#360 Z M .04,.8 Av #.45,1 Ah 1,.45 L 1,.3',
     ':': 'M #.5,0 L #.5,.25 M #.5,!.25 L #.5,1',
     ';': 'M .8,0 L .8,.22 M .8,.58 L .8,.8 L 0,1',
     '<': 'M 1,0 L 0,#.5 L 1,1',
     '=': 'M 0,0 L 1,0 M 0,1 L 1,1',
     '>': 'M 0,0 L 1,#.5 L 0,1',
-    '?': 'M 0,.22 Av .42,0 L !.42,0 Ah 1,.25 Av .58,.5 Ah .5,.72 M .5,.86 L .5,1',
+    '?': 'M 0,.22 Av #.5,0 Ah 1,.25 Av .58,.5 Ah .5,.72 M .5,.86 L .5,1',
     '@': 'M #.5,#.28 Ah #.68,#.5 Av #.5,#.72 Ah #.32,#.5 Av #.5,#.28 Z M #.68,#.26 L #.68,#.62 Av #.82,#.74 Ah 1,#.5 Av #.5,0 Ah 0,#.5 Av #.5,1 L #.8,1',
     'A': 'M 0,#1.2 L #.5,#-.15 L 1,#1.2 M .2,.68 L !.2,.68',
     'B': 'M 0,1 L 0,0 L .7,0 Ah .96,.24 Av .7,.48 L 0,.48 M .7,.48 Ah 1,.74 Av .7,1 L 0,1 L 0,#.5',
-    'C': 'M 1,.22 Av !.45,0 L .45,0 Ah 0,.3 L 0,!.3 Av .45,1 L !.45,1 Ah 1,!.22',
-    'D': 'M 0,#.5 L 0,0 L .55,0 Ah 1,.3 L 1,!.3 Av .55,1 L 0,1 L 0,#.5',
+    'C': 'R 0,0 1.16,1 #-46,#-314',
+    'D': 'M 0,#.5 L 0,0 L .5,0 Ah 1,#.5 Av .5,1 L 0,1 L 0,#.5',
     'E': 'M 1,0 L 0,0 L 0,1 L 1,1 M 0,.5 L .9,.5',
     'F': 'M 1,0 L 0,0 L 0,1 M 0,.5 L .85,.5',
-    'G': 'M 1,.22 Av !.45,0 L .45,0 Ah 0,.3 L 0,!.3 Av .45,1 L !.45,1 Ah 1,.75 L 1,.55 L .6,.55',
+    'G': 'R 0,0 1.16,1 #-46,#-340 L 1,.55 L .6,.55',
     'H': 'M 0,0 L 0,1 M 1,0 L 1,1 M 0,.5 L 1,.5',
     'I': 'M #.5,0 L #.5,1',
-    'J': 'M 1,0 L 1,.7 Av .55,1 L .45,1 Ah 0,.75',
+    'J': 'M 1,0 L 1,.66 Av #.5,1 Ah 0,.72',
     'K': 'M 0,0 L 0,1 M .98,#-.1 L 0,.65 M .3,.42 L 1,#1.1',
     'L': 'M 0,0 L 0,1 L 1,1',
     'M': 'M 0,1 L 0,0 L #.5,.92 L 1,0 L 1,1',
     'N': 'M 0,1 L 0,0 L 1,1 L 1,0',
-    'O': [ELLIPSE, ROUND_O],
+    'O': ELLIPSE,
     'P': 'M 0,1 L 0,0 L .68,0 Ah 1,.28 Av .68,.56 L 0,.56',
-    'Q': [ELLIPSE + ' M .6,.72 L #1.25,#1.25', ROUND_O + ' M .6,.72 L #1.25,#1.25'],
+    'Q': ELLIPSE + ' M .6,.72 L #1.25,#1.25',
     'R': 'M 0,1 L 0,0 L .68,0 Ah 1,.26 Av .68,.52 L 0,.52 M .6,.52 L 1,#1.1',
     'S': ROUND_S,
     'T': 'M 0,0 L 1,0 M #.5,0 L #.5,1',
-    'U': 'M 0,0 L 0,.7 Av .45,1 L !.45,1 Ah 1,.7 L 1,0',
+    'U': 'M 0,0 L 0,.6 Av #.5,1 Ah 1,.6 L 1,0',
     'V': 'M 0,#-.15 L #.5,#1.15 L 1,#-.15',
     'W': 'M 0,#-.15 L .25,#1.15 L #.5,.05 L !.25,#1.15 L 1,#-.15',
     'X': 'M 0,#-.1 L 1,#1.1 M 1,#-.1 L 0,#1.1',
@@ -102,27 +101,27 @@ GLYPHS = {
     '^': 'M 0,#1.2 L #.5,#-.15 L 1,#1.2',
     '_': 'M 0,#.5 L 1,#.5',
     '`': 'M 0,#-.1 L 1,#1.1',
-    'a': ['M .03,.22 Av .42,0 L .6,0 Ah 1,.25 L 1,1 M 1,.45 L .4,.45 Ah 0,.72 Av .4,1 L .6,1 Ah 1,.75', 'M 1,0 L 1,1 ' + ROUND_O],
-    'b': 'M 0,0 L 0,1 M .55,.3 Ah 1,.55 L 1,.75 Av .55,1 L .4,1 Ah 0,.75 L 0,.55 Av .4,.3 Z',
-    'c': 'M 1,.22 Av !.45,0 L .45,0 Ah 0,.35 L 0,!.35 Av .45,1 L !.45,1 Ah 1,!.22',
-    'd': 'M 1,0 L 1,1 M .45,.3 Ah 0,.55 L 0,.75 Av .45,1 L .6,1 Ah 1,.75 L 1,.55 Av .6,.3 Z',
-    'e': 'M 0,.52 L 1,.52 L 1,.4 Av !.45,0 L .45,0 Ah 0,.35 L 0,.65 Av .45,1 L .6,1 Ah .98,.82',
+    'a': ['M .03,.22 Av .5,0 Ah 1,.3 L 1,1 M 1,.45 L .42,.45 Ah 0,.72 Av .42,1 Ah 1,.72', 'M 1,0 L 1,1 ' + ELLIPSE],
+    'b': 'M 0,0 L 0,1 R 0,.3 1,1 #0,#360 Z',
+    'c': 'R 0,0 1.14,1 #-48,#-312',
+    'd': 'M 1,0 L 1,1 R 0,.3 1,1 #0,#360 Z',
+    'e': 'M 0,#.5 L 1,#.5 R 0,0 1,1 #0,#-305',
     'f': 'M 1,0 L .65,0 Ah .3,.25 L .3,1 M 0,.32 L .85,.32',
-    'g': 'M 1,0 L 1,.8 Av .55,1 L .4,1 Ah .05,.88 M .55,0 Ah 1,.25 L 1,.5 Av .55,.75 L .45,.75 Ah 0,.5 L 0,.25 Av .45,0 Z',
-    'h': 'M 0,0 L 0,1 M 0,.5 Av .45,.28 L .55,.28 Ah 1,.55 L 1,1',
+    'g': 'R 0,0 1,.75 #0,#360 Z M 1,0 L 1,.74 Av #.5,1 Ah .05,.95',
+    'h': 'M 0,0 L 0,1 M 0,.56 Av #.5,.28 Ah 1,.6 L 1,1',
     'i': 'M #.5,.3 L #.5,1 M #.5,0 L #.5,.15',
     'j': 'M 1,.3 L 1,.78 Av .55,1 L 0,1 M 1,0 L 1,.15',
     'k': 'M 0,0 L 0,1 M .95,.25 L 0,.72 M .32,.55 L 1,#1.1',
     'l': 'M #.5,0 L #.5,1',
-    'm': 'M 0,0 L 0,1 M 0,.35 Av .25,0 L .3,0 Ah #.5,.35 L #.5,1 M #.5,.35 Av !.3,0 L !.25,0 Ah 1,.35 L 1,1',
-    'n': 'M 0,0 L 0,1 M 0,.35 Av .45,0 L !.45,0 Ah 1,.35 L 1,1',
-    'o': [ELLIPSE, ROUND_O],
-    'p': 'M 0,0 L 0,1 M .55,0 Ah 1,.25 L 1,.5 Av .55,.75 L .4,.75 Ah 0,.5 L 0,.25 Av .4,0 Z',
-    'q': 'M 1,0 L 1,1 M .45,0 Ah 0,.25 L 0,.5 Av .45,.75 L .6,.75 Ah 1,.5 L 1,.25 Av .6,0 Z',
+    'm': 'M 0,0 L 0,1 M 0,.38 Av .27,0 Ah #.5,.38 L #.5,1 M #.5,.38 Av !.27,0 Ah 1,.38 L 1,1',
+    'n': 'M 0,0 L 0,1 M 0,.4 Av #.5,0 Ah 1,.4 L 1,1',
+    'o': ELLIPSE,
+    'p': 'M 0,0 L 0,1 R 0,0 1,.75 #0,#360 Z',
+    'q': 'M 1,0 L 1,1 R 0,0 1,.75 #0,#360 Z',
     'r': 'M 0,0 L 0,1 M 0,.42 Av .55,0 L 1,0',
     's': ROUND_S,
     't': 'M .35,0 L .35,.75 Av .65,1 L 1,1 M 0,.28 L .9,.28',
-    'u': 'M 0,0 L 0,.65 Av .45,1 L !.45,1 Ah 1,.65 M 1,0 L 1,1',
+    'u': 'M 0,0 L 0,.6 Av #.5,1 Ah 1,.6 M 1,0 L 1,1',
     'v': 'M 0,#-.15 L #.5,#1.15 L 1,#-.15',
     'w': 'M 0,#-.15 L .25,#1.15 L #.5,.05 L !.25,#1.15 L 1,#-.15',
     'x': 'M 0,#-.1 L 1,#1.1 M 1,#-.1 L 0,#1.1',
@@ -143,6 +142,10 @@ ON_LINES = {
 }
 # what the lines are measured from: the flat ones, not those whose tips the pixels blur
 LINE_FROM = {'cap': ('top', 'EFHTZLDBPRKN'), 'digit': ('top', '123457'), 'small': ('top', 'xzvwnmur'), 'tall': ('top', 'bdhkl'), 'base': ('bottom', 'EFHLTZDBIKNRxzmnhik'), 'deep': ('bottom', 'pqgy')}
+# round characters go this much of their height past the lines, or they look smaller than the flat ones
+OVERSHOOT = 0.012
+ROUND_TOP = 'CGOQS0235689acdegopqs'
+ROUND_BOTTOM = 'CGJOQSU035689abcdeostu'
 SNAP = 1.5             # (a character further than this from its line, in texels, is meant to be: font09's J hangs below the baseline)
 
 
@@ -169,7 +172,7 @@ def parse(text):
         return (None, key, flip)
     params = {}
     commands = []
-    for cmd, args in re.findall(r'(Ah|Av|M|L|Z|C)\s*([^A-Z]*)', text):
+    for cmd, args in re.findall(r'(Ah|Av|M|L|Z|C|R)\s*([^A-Z]*)', text):
         if cmd == 'Z':
             commands.append(('Z', None, None, None))
             continue
@@ -195,13 +198,23 @@ def strokes(commands, m):
     paths = []
     steps = m.get('steps', ARC_STEPS)
     for cmd, xn, yn, controls in commands:
-        if cmd == 'M':
+        if cmd in 'MR':
             paths.append(dict(points=[], kinds=[], closed=False))
         if cmd == 'Z':
             paths[-1]['closed'] = True
             continue
-        x, y = left + value_of(xn, m) * span_x, top + value_of(yn, m) * span_y
         path = paths[-1]
+        if cmd == 'R':
+            (ax, ay), (bx, by) = [(left + value_of(cx, m) * span_x, top + value_of(cy, m) * span_y) for cx, cy in controls]
+            start, end = np.radians(value_of(xn, m)), np.radians(value_of(yn, m))
+            count = max(2, int(steps * abs(end - start) / (np.pi / 2.0)))
+            for i in range(count + 1):
+                t = start + (end - start) * i / count
+                c, d = np.cos(t), np.sin(t)
+                path['points'].append(((ax + bx) / 2.0 + (bx - ax) / 2.0 * np.sign(c) * abs(c) ** power, (ay + by) / 2.0 + (by - ay) / 2.0 * np.sign(d) * abs(d) ** power))
+                path['kinds'].append('A')
+            continue
+        x, y = left + value_of(xn, m) * span_x, top + value_of(yn, m) * span_y
         if cmd in 'ML':
             path['points'].append((x, y))
             path['kinds'].append(cmd)
@@ -255,22 +268,27 @@ def inside(px, py, commands, m):
     segments, corners = strokes(commands, m)
     rx, ry = max(m['wx'] / 2.0, 1.0e-3), max(m['wy'] / 2.0, 1.0e-3)
     out = np.zeros(px.shape, dtype=bool)
-    x = px / rx
-    y = py / ry
+    xs, ys = px[0, :], py[:, 0]
     for ax, ay, bx, by, cut_a, cut_b in segments:
+        # (only the points the pen can reach from this segment)
+        columns = slice(np.searchsorted(xs, min(ax, bx) - rx), np.searchsorted(xs, max(ax, bx) + rx, side='right'))
+        rows = slice(np.searchsorted(ys, min(ay, by) - ry), np.searchsorted(ys, max(ay, by) + ry, side='right'))
+        x, y = px[rows, columns] / rx, py[rows, columns] / ry
+        if x.size == 0:
+            continue
         ax, ay, bx, by = ax / rx, ay / ry, bx / rx, by / ry
         dx, dy = bx - ax, by - ay
         length = dx * dx + dy * dy
         if length < 1.0e-9:
             continue
         t = ((x - ax) * dx + (y - ay) * dy) / length
-        near = np.ones(px.shape, dtype=bool)
+        near = np.ones(x.shape, dtype=bool)
         if cut_a:
             near &= t >= 0.0
         if cut_b:
             near &= t <= 1.0
         t = np.clip(t, 0.0, 1.0)
-        out |= near & ((x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2 <= 1.0)
+        out[rows, columns] |= near & ((x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2 <= 1.0)
     for cx, cy in corners:
         out |= (np.abs(px - cx) <= rx) & (np.abs(py - cy) <= ry)
     # (a tail may go past the box: Q)
@@ -412,7 +430,7 @@ def font_lines(results, font_rects):
     return lines
 
 
-def plan(ch, result, rect, lines, signs):
+def plan(ch, result, rect, lines, signs, pen):
     """What the lines fix of a character: its box up and down, and the rect and the lines to place what is inside it."""
     m = result['m']
     box = {}
@@ -425,6 +443,14 @@ def plan(ch, result, rect, lines, signs):
                 box[name] = at
     if ch == 'Q' and m['y1'] > box.get('y1', m['y1']):
         box['clip'] = m['y1']
+    if ch == '1':
+        # (the pixels of the flag are faint: it would be measured too short, and the character would look like an l)
+        box['x1'] = m['x1']
+        box['x0'] = max(0.0, min(m['x0'], m['x1'] - 2.4 * pen['wx']))
+    if ch in ROUND_TOP and 'y0' in box and 'y1' in box:
+        box['y0'] = max(0.0, box['y0'] - OVERSHOOT * (box['y1'] - box['y0']))
+    if ch in ROUND_BOTTOM and 'y0' in box and 'y1' in box:
+        box['y1'] = min(float(rect[3] - 1), box['y1'] + OVERSHOOT * (box['y1'] - box['y0']))
     if ch in signs:
         # (the signs of arithmetic have one middle and, but for =, one height)
         middle, half = signs[ch]
@@ -484,7 +510,7 @@ def measure(src, rects):
                 if not pens:
                     yield font, ch, target, None, None
                 elif ch in first[font]:
-                    yield font, ch, target, pens[font][kind_of(ch)], plan(ch, first[font][ch], rect, lines[font], signs[font])
+                    yield font, ch, target, pens[font][kind_of(ch)], plan(ch, first[font][ch], rect, lines[font], signs[font], pens[font][kind_of(ch)])
 
     with multiprocessing.Pool() as pool:
         first = {}
