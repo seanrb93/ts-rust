@@ -26,11 +26,11 @@ TEX_BASE = 9400
 # fingers curl round it (how far across it is, is measured from the model).
 # fore=z: how far forward the left hand holds: palm up under the gun, the fingers up its far side, the thumb on the near side; fore_part: the part it rides on (the sliding forend of a pump gun).
 # foregrip=(y, z): an upright grip for the left hand, held as the right hand holds its grip.
-# handle=(x, y, z): a handle that sticks out to the left of the gun, for the left hand.
 # arm: where the elbow of the right arm is, when not GRIP_ARM.
 # palm=(x, y, z) with fingers=(x, y, z) and thumb=(x, y, z): something that is carried rather than gripped, lying on the upturned right palm.
 CURL_LIMIT = 150.0  # how far round the fingers bend, degrees
-GRIP_ARM = (-0.35, -0.3, -0.9)  # where the elbow of the right arm is from its wrist: back, down and to the right of the screen, nearly along the gun
+WRIST_BEND = 0.14  # how much of the arm the bend at the wrist takes
+GRIP_ARM = (-0.35, -0.2, -0.92)  # where the elbow of the right arm is from its wrist: back, down and to the right of the screen, nearly along the gun
 WRIST_ARM = (-0.45, -0.65, -0.6)  # the right arm when the hand is on the wrist of a stock: the elbow is lower
 FORE_ARM = (0.6, -0.45, -0.7)   # and of the left arm, which comes across from the lower left
 WEAPONS = {
@@ -45,7 +45,7 @@ WEAPONS = {
     'sniper_rifle': dict(file='ob/gun4/gun4.raw', part='part0', kind='two', grip=(-0.06, -0.06), rake=30, fore=0.38),
     'raygun_carbine': dict(file='ob/gun6/gun6.raw', part='part0', kind='two', grip=(-0.06, -0.035), rake=25, fore=0.2),
     'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two', grip=(-0.05, -0.09), rake=30, fore=0.18),
-    'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two', grip=(-0.02, -0.02), rake=10, handle=(0.15, 0.05, 0.08)),
+    'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two', grip=(-0.02, -0.02), rake=10, fore=0.25),
     'minigun': dict(file='ob/gun11/gun11.raw', part='part0', kind='two', grip=(0.015, 0.035), rake=5, fore=0.19),
     'grenade_launcher': dict(file='ob/gun12/gun12.raw', part='part0', kind='two', grip=(-0.06, -0.07), rake=25, fore=0.27),
     'scifi_sniper_rifle': dict(file='ob/gun13/gun13.raw', part='part0', kind='two', grip=(-0.04, -0.06), rake=25, fore=0.3),
@@ -120,12 +120,6 @@ def side_pose(points, y, z, rake, side):
     return dict(kind='side', fingers=tuple(fingers), thumb=tuple(-along), knuckle=tuple(float(v) for v in point), width=float(np.ptp(near[:, 0])))
 
 
-def handle_pose(points, x, y, z):
-    """The left hand on a handle that sticks out to the left of the gun: from behind it, the fingers over the top and forward, the thumb towards the gun."""
-    near = points[(abs(points[:, 0] - x) < 0.03) & (abs(points[:, 2] - z) < 0.05)]
-    return dict(kind='side', fingers=(0.0, 0.85, 0.5), thumb=(-1.0, 0.0, 0.0), knuckle=(x, y + 0.03, z - 0.03), width=0.06, limit=170.0)
-
-
 def under_pose(points, z):
     """The left hand under the gun at the distance `z`: palm up, the fingers across and forward, up the far side."""
     near = around(points, None, z)
@@ -141,9 +135,7 @@ def hands_for(spec, gun_obj):
         pose = side_pose(points, spec['grip'][0], spec['grip'][1], spec['rake'], -1)
     hands = [(spec['part'], CHAINS['grip'], pose, spec.get('grip_scale', 1.0), (0.0, 0.0, 0.0), spec.get('arm', GRIP_ARM), 0)]
     if spec['kind'] == 'two':
-        if 'handle' in spec:
-            pose = handle_pose(points, *spec['handle'])
-        elif 'foregrip' in spec:
+        if 'foregrip' in spec:
             pose = side_pose(points, spec['foregrip'][0], spec['foregrip'][1], 5, 1)
         else:
             pose = under_pose(points, spec['fore'])
@@ -207,6 +199,7 @@ def posed(pose, sources, scale, arm_from, chr_verts, chr_parts, mirror):
         k = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
         arm_turn = (np.eye(3) + math.sin(angle) * k + (1 - math.cos(angle)) * (k @ k)) @ arm_turn
     wrist_at = hand_at + turn @ (wrist - middle) * scale
+    arm_rest = (far - wrist) / np.linalg.norm(far - wrist)
 
     def curl(point):
         d = point - middle
@@ -229,6 +222,10 @@ def posed(pose, sources, scale, arm_from, chr_verts, chr_parts, mirror):
             out = hand_at + turn @ (curl(point) - middle) * scale
         else:
             out = wrist_at + arm_turn @ (point - wrist) * scale
+            # (the arm bends over its first part: a stiff arm would stick out at the top of the wrist)
+            bend = max(0.0, min(1.0, ((point - wrist) @ arm_rest) / WRIST_BEND))
+            bend = bend * bend * (3.0 - 2.0 * bend)
+            out = bend * out + (1.0 - bend) * (hand_at + turn @ (point - middle) * scale)
         return out * np.array([-1.0, 1.0, 1.0]) if mirror else out
 
     return place
