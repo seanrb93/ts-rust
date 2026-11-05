@@ -46,7 +46,7 @@ pub mod hands_puppet;
 pub mod mode_presets;
 pub mod restart;
 #[cfg(feature = "extensions")]
-pub mod armmerge;
+pub mod modelmerge;
 #[cfg(feature = "extensions")]
 pub mod script;
 
@@ -60,7 +60,7 @@ pub use restart::*;
 #[cfg(feature = "extensions")]
 pub use script::*;
 #[cfg(feature = "extensions")]
-pub use armmerge::*;
+pub use modelmerge::*;
 pub use menu_mouse::*;
 pub use bigpool::*;
 pub use customlevels::*;

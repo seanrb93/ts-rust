@@ -15,7 +15,8 @@ use rhai::{Engine, Scope, AST};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 const BASE: i32 = 0x240_0000;
 const MESSAGE_AT: i32 = BASE + 0x17_2c00;
@@ -76,16 +77,20 @@ struct Host {
 }
 
 thread_local! {
+    /// What `model_add` was given while a model is made: a part and its triangles.
+    static MODEL_ADDITIONS: RefCell<Vec<(usize, Vec<f64>)>> = RefCell::new(Vec::new());
+    /// The models last made (a game asks for the size and then the file).
+    static MODELS_MADE: RefCell<HashMap<String, Arc<Vec<u8>>>> = RefCell::new(HashMap::new());
     static STATE: RefCell<State> = RefCell::new(State { fx: Vec::new(), started: false, last_game_frame: 0, in_hud: false, dt: 1.0, hide_score: false });
     static HOSTS: RefCell<Vec<Host>> = RefCell::new(Vec::new());
 }
 
 /// The scripts that mods have given (the mod, the file, the text), read by the loader when the game starts.
-static MOD_SCRIPTS: Mutex<Vec<(String, String, String)>> = Mutex::new(Vec::new());
+static MOD_SCRIPTS: Mutex<Vec<(String, String, String, std::path::PathBuf)>> = Mutex::new(Vec::new());
 
 /// A mod has a script (`script = file` in its `mod.ini`).
-pub fn register_script(mod_name: &str, file: &str, source: String) {
-    MOD_SCRIPTS.lock().unwrap().push((mod_name.to_string(), file.to_string(), source));
+pub fn register_script(mod_name: &str, mod_dir: &std::path::Path, file: &str, source: String) {
+    MOD_SCRIPTS.lock().unwrap().push((mod_name.to_string(), file.to_string(), source, mod_dir.to_path_buf()));
 }
 
 /// A script is running (set while one is loaded, so that the hooks in the game's code cost nothing otherwise).
@@ -354,11 +359,28 @@ fn pain_voice(i: i64) {
     soundDelayStartEx(sounds[(newrnd() as u32 as usize) % sounds.len()], p + 48, 20, 0);
 }
 
-fn compile(name: &str, source: &str, of_mode: bool) -> Option<Host> {
+fn compile(name: &str, source: &str, of_mode: bool, mod_dir: Option<std::path::PathBuf>) -> Option<Host> {
     let mut engine = Engine::new();
     engine.set_max_operations(5_000_000);
     engine.set_max_expr_depths(256, 128);
     register(&mut engine);
+    // the mod's own files, by their place in its folder
+    let in_mod = move |file: &str| -> Option<std::path::PathBuf> {
+        if file.contains("..") {
+            return None;
+        }
+        mod_dir.as_ref().map(|d| d.join(file))
+    };
+    let (a, b, c) = (in_mod.clone(), in_mod.clone(), in_mod);
+    engine.register_fn("mod_file", move |file: &str| -> rhai::Blob { a(file).and_then(|p| std::fs::read(p).ok()).unwrap_or_default() });
+    engine.register_fn("mod_text", move |file: &str| -> String { b(file).and_then(|p| std::fs::read_to_string(p).ok()).unwrap_or_default() });
+    engine.register_fn("mod_has_file", move |file: &str| -> bool { c(file).map_or(false, |p| p.is_file()) });
+    // (a 32 bit float in a file: the language's own reads only 64 bit ones)
+    engine.register_fn("f32_at", |b: &mut rhai::Blob, at: i64| -> f64 { b.get(at as usize..at as usize + 4).map_or(0.0, |x| f32::from_le_bytes(x.try_into().unwrap()) as f64) });
+    engine.register_fn("model_add", |part: i64, values: rhai::Array| {
+        let values: Vec<f64> = values.iter().map(|v| v.as_float().unwrap_or_else(|_| v.as_int().unwrap_or(0) as f64)).collect();
+        MODEL_ADDITIONS.with(|m| m.borrow_mut().push((part as usize, values)));
+    });
     match engine.compile(source) {
         Ok(ast) => {
             let functions = ast.iter_functions().map(|f| f.name.to_string()).collect();
@@ -406,8 +428,8 @@ fn refresh_active() {
 fn load() {
     if !MODS_TRIED.swap(true, Ordering::Relaxed) {
         let scripts = MOD_SCRIPTS.lock().unwrap().clone();
-        for (m, file, source) in scripts {
-            if let Some(host) = compile(&format!("{m}/{file}"), &source, false) {
+        for (m, file, source, dir) in scripts {
+            if let Some(host) = compile(&format!("{m}/{file}"), &source, false, Some(dir)) {
                 eprintln!("[script] {m}/{file}");
                 HOSTS.with(|h| h.borrow_mut().push(host));
             }
@@ -415,7 +437,7 @@ fn load() {
     }
     if lw(g::gamestate) == 3 && !TRIED.swap(true, Ordering::Relaxed) {
         if let Some((name, source)) = active_script(lw(g::curgameparms + 72)) {
-            if let Some(host) = compile(&name, &source, true) {
+            if let Some(host) = compile(&name, &source, true, None) {
                 eprintln!("[script] a script is running");
                 HOSTS.with(|h| h.borrow_mut().push(host));
             }
@@ -462,9 +484,91 @@ fn has(name: &str) -> bool {
     HOSTS.with(|h| h.borrow().iter().any(|host| host.functions.contains(name)))
 }
 
+/// A name in the game's memory, without the mark of the disc, in small letters.
+fn plain_name(at: i32) -> String {
+    let mut text = Vec::new();
+    for i in 0..120 {
+        let b = lbu(at + i) as u8;
+        if b == 0 {
+            break;
+        }
+        text.push(b);
+    }
+    let text = String::from_utf8_lossy(&text).to_ascii_lowercase();
+    text.strip_prefix("host0:").unwrap_or(&text).to_string()
+}
+
+fn has_model(name: &str) -> bool {
+    has("has_model") && call_all::<_, bool>("has_model", (name.to_string(),)).into_iter().any(|b| b)
+}
+
+fn make_model(name: &str) -> Option<Arc<Vec<u8>>> {
+    if let Some(done) = MODELS_MADE.with(|m| m.borrow().get(name).cloned()) {
+        return Some(done);
+    }
+    MODEL_ADDITIONS.with(|m| m.borrow_mut().clear());
+    let base = call_all::<_, String>("make_model", (name.to_string(),)).into_iter().find(|s| !s.is_empty())?;
+    let additions = MODEL_ADDITIONS.with(|m| std::mem::take(&mut *m.borrow_mut()));
+    let made = Arc::new(model_with(&base, &additions)?);
+    MODELS_MADE.with(|m| {
+        let mut m = m.borrow_mut();
+        if m.len() >= 8 {
+            m.clear();
+        }
+        m.insert(name.to_string(), made.clone());
+    });
+    Some(made)
+}
+
+/// Can a script make the model named at `at` (`has_model`)?
+pub fn script_model_known(at: i32) -> bool {
+    ACTIVE.load(Ordering::Relaxed) && has_model(&plain_name(at))
+}
+
+/// The file to load in place of the one named at `name`, if a script makes it: the name itself, or what a script says instead (`on_file`).
+pub fn script_model_for(name: i32) -> Option<Arc<Vec<u8>>> {
+    if !ACTIVE.load(Ordering::Relaxed) || !has("make_model") {
+        return None;
+    }
+    let plain = plain_name(name);
+    if !HOSTS.with(|h| h.try_borrow().map_or(false, |hosts| hosts.iter().any(|host| host.prefixes.iter().any(|p| plain.starts_with(p.as_str()))))) {
+        return None;
+    }
+    let chosen = if has_model(&plain) { plain } else { script_file_candidates(name).into_iter().map(plain_name).find(|s| has_model(s))? };
+    make_model(&chosen)
+}
+
+/// Test aid: `TS_MODELDUMP=<folder>` writes every model the scripts can make there (`model_names`), and says how long they took.
+fn dump_models() {
+    let Ok(folder) = std::env::var("TS_MODELDUMP") else { return };
+    let names: Vec<String> = call_all::<_, rhai::Array>("model_names", ()).into_iter().flatten().filter_map(|d| d.into_string().ok()).collect();
+    let start = std::time::Instant::now();
+    let (mut written, mut slowest) = (0, 0.0f64);
+    for name in &names {
+        let one = std::time::Instant::now();
+        MODELS_MADE.with(|m| m.borrow_mut().clear());
+        match make_model(name) {
+            Some(data) => {
+                let path = std::path::Path::new(&folder).join(name);
+                let _ = std::fs::create_dir_all(path.parent().unwrap());
+                let _ = std::fs::write(path, data.as_slice());
+                written += 1;
+            }
+            None => eprintln!("[script] {name} could not be made"),
+        }
+        slowest = slowest.max(one.elapsed().as_secs_f64());
+    }
+    let total = start.elapsed().as_secs_f64();
+    eprintln!("[script] {written} models written to {folder}: {:.1} ms each, the slowest {:.1} ms", total * 1000.0 / written.max(1) as f64, slowest * 1000.0);
+}
+
 /// Every frame the game is run, in the menus too (`on_frame` of the scripts).
 pub fn script_frame() {
     load();
+    static DUMPED: AtomicBool = AtomicBool::new(false);
+    if !DUMPED.swap(true, Ordering::Relaxed) {
+        dump_models();
+    }
     if ACTIVE.load(Ordering::Relaxed) {
         let _: Vec<()> = call_all("on_frame", ());
         FISTS.store(call_all::<_, bool>("alternate_fists", ()).into_iter().any(|b| b), Ordering::Relaxed);
@@ -923,7 +1027,7 @@ fn gun_model_of(prop: i32, left_hand: bool) -> Option<i32> {
                 Some(s) if s.len() < 100 => {
                     let at = BASE + 0x17_2a00 + 0x200;
                     put_text(at, &s, 120);
-                    if packfileSeekPlain(at) != 0 || arm_model_known(at) {
+                    if packfileSeekPlain(at) != 0 || script_model_known(at) {
                         obLoad(at)
                     } else {
                         0

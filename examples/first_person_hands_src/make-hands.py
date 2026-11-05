@@ -1,8 +1,8 @@
-"""Make the first person hands mod: what the program needs to put the arms of each character on the first person guns when a gun is loaded (`ts-game/src/manual/armmerge.rs`).
+"""Make the first person hands mod: what the mod's script needs to put the arms of each character on the first person guns when a gun is loaded (`first_person_hands_mod/scripts/hands.rhai`).
 
     python make-hands.py <OB.PAK> <mods folder>/first_person_hands_mod
 
-Writes the mod's folder `arms`: `c<NN>.arm` for each character, the triangles of its arms as they are in its model, and `guns.txt`, how each gun is held.  How each hand holds its weapon is in WEAPONS: the hand is turned to the weapon and its
+Writes the mod's folder `scripts/arms`: `c<NN>.arm` for each character, the triangles of its arms as they are in its model, and `guns.txt`, how each gun is held.  How each hand holds its weapon is in WEAPONS: the hand is turned to the weapon and its
 fingers bent round it, and the forearm comes in from where it would in real life.  The gun is whichever the packs have when the game runs, so another mod's guns get the arms too.  HANDS_CHARACTER=<number> makes one character only.
 """
 import math
@@ -328,7 +328,7 @@ def write_arms(pak, mod, character, chr_file):
                 for vi, ti in face:
                     colour = bytes(int(round(c * 255)) >> 1 for c in cols[vi]) + bytes(1)
                     out += struct.pack('<3f2f', *verts[vi], *uvs[ti]) + colour
-    with open(os.path.join(mod, 'arms', 'c%02d.arm' % character), 'wb') as o:
+    with open(os.path.join(mod, 'scripts', 'arms', 'c%02d.arm' % character), 'wb') as o:
         o.write(out)
 
 
@@ -349,7 +349,7 @@ def write_guns(pak, mod):
                 at = pose['under'] if pose['kind'] == 'palm' else pose['knuckle']
                 numbers = [scale, pose['kind'], *pose['fingers'], *pose['thumb'], *at, pose.get('width', 0.05), pose.get('limit', CURL_LIMIT), *arm]
                 lines.append(' '.join([spec['file'], '' if tag == '-' else tag, part[4:], str(chain), str(mirror)] + [x if isinstance(x, str) else '%.6f' % x for x in numbers] + ['.']).replace('  ', ' - ', 1))
-    with open(os.path.join(mod, 'arms', 'guns.txt'), 'w') as f:
+    with open(os.path.join(mod, 'scripts', 'arms', 'guns.txt'), 'w') as f:
         f.write(chr(10).join(lines) + chr(10))
 
 
@@ -437,7 +437,7 @@ def main():
         sys.exit(__doc__)
     pak, mod = sys.argv[1], sys.argv[2]
     os.makedirs(WORK, exist_ok=True)
-    os.makedirs(os.path.join(mod, 'arms'), exist_ok=True)
+    os.makedirs(os.path.join(mod, 'scripts', 'arms'), exist_ok=True)
     sys.path.insert(0, TOOLS)
     chars = character_files(pak)
     if os.environ.get('HANDS_CHARACTER'):
