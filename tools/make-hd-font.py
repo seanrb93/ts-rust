@@ -27,14 +27,15 @@ SCALE_X = 8
 SCALE_Y = 16
 MEASURE_SAMPLES = 5    # samples across a texel of the original when comparing
 DRAW_SAMPLES = 3       # samples across a pixel of the picture
+SOFTEN = 3             # how far the corners are rounded, in pixels of the picture
 ARC_STEPS = 10         # lines in a curve when measuring (DRAW_STEPS when drawing)
 DRAW_STEPS = 48
 REGULAR = 0.004        # how much a measurement is held to the drawing (against the error of the pixels)
 REACH = 0.18           # and how far it can go from the drawing, so that a shape stays the shape that was drawn
 
 ELLIPSE = 'R 0,0 1,1 #0,#360 Z'
-ROUND_S = 'M 1,.2 Av #.5,0 Ah 0,.25 Av #.5,.5 Ah 1,.75 Av #.5,1 Ah 0,!.2'
-# the drawings.  Letters: M move, L line, Ah a quarter curve that starts level, Av one that starts upright, C a curve by two control points, R an arc of the ellipse in the box from corner to corner, between two angles (0 is right, -90 the top), Z close.  y goes down.  0 and 1 are the edges of the character's box and are fixed, #n is a fixed number,
+ROUND_S = 'R .03,0 .97,#.5 #-32,#-270 T 0,#.5 1,1 #-90,#148'
+# the drawings.  Letters: M move, L line, Ah a quarter curve that starts level, Av one that starts upright, C a curve by two control points, R an arc of the ellipse in the box from corner to corner, between two angles (0 is right, -90 the top), T the same going on from the line before it, Z close.  y goes down.  0 and 1 are the edges of the character's box and are fixed, #n is a fixed number,
 # !n is 1 less the measurement n (for what is the same on both sides).  A character can have several drawings (a list): the first is used unless a later one fits clearly better.
 GLYPHS = {
     '!': 'M #.5,0 L #.5,.7 M #.5,.84 L #.5,1',
@@ -55,13 +56,13 @@ GLYPHS = {
     '0': ELLIPSE,
     '1': ['M 1,0 L 1,1 M 1,#.02 L 0,.36', 'M .55,0 L .55,1 M .55,#.02 L 0,.3 M 0,1 L 1,1'],
     '2': 'M 0,.28 Av #.5,0 Ah 1,.28 C 1,.5 .6,.62 0,.97 L 0,1 L 1,1',
-    '3': 'M 0,.2 Av .5,0 Ah .96,.24 Av .5,.48 L .35,.48 M .5,.48 Ah 1,.74 Av .5,1 Ah 0,!.2',
+    '3': 'R 0,0 .96,#.5 #-155,#90 L .42,#.5 R 0,#.5 1,1 #-90,#155',
     '4': 'M .74,0 L .74,1 M .74,#-.08 L 0,.72 L 1,.72',
-    '5': 'M .95,0 L .08,0 L .03,.5 C .2,.42 .35,.38 .52,.38 Ah 1,.69 Av .52,1 Ah 0,.82',
-    '6': 'R 0,.4 1,1 #0,#360 Z M .96,.2 Av #.55,0 Ah 0,.55 L 0,.7',
+    '5': 'M 1,0 L .1,0 L .06,.46 T 0,.34 1,1 #-120,#148',
+    '6': 'R 0,.4 1,1 #0,#360 Z R 0,0 1.16,1.4 #-58,#-180',
     '7': 'M 0,0 L 1,0 L .3,#1.1',
     '8': 'R .04,0 .96,.48 #0,#360 Z R 0,.48 1,1 #0,#360 Z',
-    '9': 'R 0,0 1,.6 #0,#360 Z M .04,.8 Av #.45,1 Ah 1,.45 L 1,.3',
+    '9': 'R 0,0 1,.6 #0,#360 Z R -.16,-.4 1,1 #122,#0',
     ':': 'M #.5,0 L #.5,.25 M #.5,!.25 L #.5,1',
     ';': 'M .8,0 L .8,.22 M .8,.58 L .8,.8 L 0,1',
     '<': 'M 1,0 L 0,#.5 L 1,1',
@@ -107,7 +108,7 @@ GLYPHS = {
     'd': 'M 1,0 L 1,1 R 0,.3 1,1 #0,#360 Z',
     'e': 'M 0,#.5 L 1,#.5 R 0,0 1,1 #0,#-305',
     'f': 'M 1,0 L .65,0 Ah .3,.25 L .3,1 M 0,.32 L .85,.32',
-    'g': 'R 0,0 1,.75 #0,#360 Z M 1,0 L 1,.74 Av #.5,1 Ah .05,.95',
+    'g': 'R 0,0 1,.75 #0,#360 Z M 1,0 L 1,.7 T -.02,.4 1,1 #0,#140',
     'h': 'M 0,0 L 0,1 M 0,.56 Av #.5,.28 Ah 1,.6 L 1,1',
     'i': 'M #.5,.3 L #.5,1 M #.5,0 L #.5,.15',
     'j': 'M 1,.3 L 1,.78 Av .55,1 L 0,1 M 1,0 L 1,.15',
@@ -172,7 +173,7 @@ def parse(text):
         return (None, key, flip)
     params = {}
     commands = []
-    for cmd, args in re.findall(r'(Ah|Av|M|L|Z|C|R)\s*([^A-Z]*)', text):
+    for cmd, args in re.findall(r'(Ah|Av|M|L|Z|C|R|T)\s*([^A-Z]*)', text):
         if cmd == 'Z':
             commands.append(('Z', None, None, None))
             continue
@@ -204,7 +205,7 @@ def strokes(commands, m):
             paths[-1]['closed'] = True
             continue
         path = paths[-1]
-        if cmd == 'R':
+        if cmd in 'RT':
             (ax, ay), (bx, by) = [(left + value_of(cx, m) * span_x, top + value_of(cy, m) * span_y) for cx, cy in controls]
             start, end = np.radians(value_of(xn, m)), np.radians(value_of(yn, m))
             count = max(2, int(steps * abs(end - start) / (np.pi / 2.0)))
@@ -245,50 +246,98 @@ def strokes(commands, m):
         on_edge = min(abs(at[1] - top), abs(at[1] - top - span_y)) < 1.0e-6
         return (at[0], at[1] + (ry if dy > 0 else -ry)) if on_edge else at
 
-    segments = []
+    outlines = []
     corners = []
     for path in paths:
-        pts = path['points']
-        count = len(pts) - 1
-        for i in range(count):
-            first, last = (i == 0 and not path['closed']), (i == count - 1 and not path['closed'])
-            a = to_edge(pts[i], pts[i + 1]) if first else pts[i]
-            b = to_edge(pts[i + 1], pts[i]) if last else pts[i + 1]
-            segments.append((a[0], a[1], b[0], b[1], first, last))
-            # (a corner between straight lines where one is level or upright is square: the pen's box; a pointed one stays pointed)
-            if 0 < i and path['kinds'][i] == 'L' and path['kinds'][i + 1] == 'L':
+        pts = list(path['points'])
+        kinds = path['kinds']
+        for i in range(1, len(pts) - 1):
+            # (a corner between a level and an upright straight line is square: the pen's box; a pointed one stays pointed)
+            if kinds[i] == 'L' and kinds[i + 1] == 'L':
                 a, b, c = pts[i - 1], pts[i], pts[i + 1]
-                if min(abs(a[0] - b[0]), abs(a[1] - b[1])) < 1.0e-3 or min(abs(b[0] - c[0]), abs(b[1] - c[1])) < 1.0e-3:
+                if min(abs(a[0] - b[0]), abs(a[1] - b[1])) < 1.0e-3 and min(abs(b[0] - c[0]), abs(b[1] - c[1])) < 1.0e-3:
                     corners.append(b)
-    return segments, corners
+        if not path['closed'] and len(pts) > 1:
+            pts[0] = to_edge(pts[0], pts[1])
+            pts[-1] = to_edge(pts[-1], pts[-2])
+        outlines.append((pts, path['closed']))
+    return outlines, corners
+
+
+def triangles(pts, closed):
+    """A stroke as triangles and round joins, with the pen a circle (the points are given divided by the pen's size): the line down its middle offset to both sides, so that its ends are flat and a curve is smooth."""
+    pts = [p for i, p in enumerate(pts) if i == 0 or abs(p[0] - pts[i - 1][0]) + abs(p[1] - pts[i - 1][1]) > 1.0e-9]
+    if closed and len(pts) > 1 and abs(pts[0][0] - pts[-1][0]) + abs(pts[0][1] - pts[-1][1]) < 1.0e-9:
+        pts = pts[:-1]
+    count = len(pts)
+    edges = count if closed else count - 1
+    if edges < 1:
+        return [], []
+    tangents = []
+    for i in range(edges):
+        (ax, ay), (bx, by) = pts[i], pts[(i + 1) % count]
+        size = np.hypot(bx - ax, by - ay)
+        tangents.append(((bx - ax) / size, (by - ay) / size))
+    out = []
+    joins = []
+
+    def side(i, own):
+        """The offset at point i for the edge `own`: shared with the edge next to it where the line bends little, its own at a corner."""
+        other = None
+        if own == i and (closed or i > 0):
+            other = (i - 1) % edges
+        elif own != i and (closed or i < edges):
+            other = i % edges
+        if other is None or tangents[other][0] * tangents[own][0] + tangents[other][1] * tangents[own][1] < 0.9:
+            return -tangents[own][1], tangents[own][0]
+        nx, ny = -(tangents[own][1] + tangents[other][1]), tangents[own][0] + tangents[other][0]
+        size = max(np.hypot(nx, ny), 1.0e-9)
+        return nx / size, ny / size
+
+    for i in range(edges):
+        j = (i + 1) % count
+        (ax, ay), (bx, by) = pts[i], pts[j]
+        (nax, nay), (nbx, nby) = side(i, i), side(j, i)
+        out.append((ax, ay, ax + nax, ay + nay, bx + nbx, by + nby))
+        out.append((ax, ay, bx + nbx, by + nby, bx, by))
+        out.append((ax, ay, bx, by, bx - nbx, by - nby))
+        out.append((ax, ay, bx - nbx, by - nby, ax - nax, ay - nay))
+        # (a corner has the round of the pen; a line that bends little needs none)
+        if (closed or i + 1 < edges) and tangents[i][0] * tangents[(i + 1) % edges][0] + tangents[i][1] * tangents[(i + 1) % edges][1] < 0.9:
+            joins.append((bx, by))
+    return out, joins
 
 
 def inside(px, py, commands, m):
     """Which of the points (arrays) are inked."""
-    segments, corners = strokes(commands, m)
+    outlines, corners = strokes(commands, m)
     rx, ry = max(m['wx'] / 2.0, 1.0e-3), max(m['wy'] / 2.0, 1.0e-3)
     out = np.zeros(px.shape, dtype=bool)
-    xs, ys = px[0, :], py[:, 0]
-    for ax, ay, bx, by, cut_a, cut_b in segments:
-        # (only the points the pen can reach from this segment)
-        columns = slice(np.searchsorted(xs, min(ax, bx) - rx), np.searchsorted(xs, max(ax, bx) + rx, side='right'))
-        rows = slice(np.searchsorted(ys, min(ay, by) - ry), np.searchsorted(ys, max(ay, by) + ry, side='right'))
-        x, y = px[rows, columns] / rx, py[rows, columns] / ry
-        if x.size == 0:
-            continue
-        ax, ay, bx, by = ax / rx, ay / ry, bx / rx, by / ry
-        dx, dy = bx - ax, by - ay
-        length = dx * dx + dy * dy
-        if length < 1.0e-9:
-            continue
-        t = ((x - ax) * dx + (y - ay) * dy) / length
-        near = np.ones(x.shape, dtype=bool)
-        if cut_a:
-            near &= t >= 0.0
-        if cut_b:
-            near &= t <= 1.0
-        t = np.clip(t, 0.0, 1.0)
-        out[rows, columns] |= near & ((x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2 <= 1.0)
+    xs, ys = px[0, :] / rx, py[:, 0] / ry
+
+    def window(x0, x1, y0, y1):
+        # (only the points that the shape can reach)
+        return slice(np.searchsorted(ys, y0), np.searchsorted(ys, y1, side='right')), slice(np.searchsorted(xs, x0), np.searchsorted(xs, x1, side='right'))
+
+    for pts, closed in outlines:
+        shapes, joins = triangles([(x / rx, y / ry) for x, y in pts], closed)
+        for ax, ay, bx, by, cx, cy in shapes:
+            area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+            if abs(area) < 1.0e-12:
+                continue
+            rows, columns = window(min(ax, bx, cx), max(ax, bx, cx), min(ay, by, cy), max(ay, by, cy))
+            x, y = xs[columns][None, :], ys[rows][:, None]
+            if x.size == 0 or y.size == 0:
+                continue
+            flip = 1.0 if area > 0.0 else -1.0
+            hit = ((bx - ax) * (y - ay) - (by - ay) * (x - ax)) * flip >= 0.0
+            hit &= ((cx - bx) * (y - by) - (cy - by) * (x - bx)) * flip >= 0.0
+            hit &= ((ax - cx) * (y - cy) - (ay - cy) * (x - cx)) * flip >= 0.0
+            out[rows, columns] |= hit
+        for jx, jy in joins:
+            rows, columns = window(jx - 1.0, jx + 1.0, jy - 1.0, jy + 1.0)
+            x, y = xs[columns][None, :], ys[rows][:, None]
+            out[rows, columns] |= (x - jx) ** 2 + (y - jy) ** 2 <= 1.0
     for cx, cy in corners:
         out |= (np.abs(px - cx) <= rx) & (np.abs(py - cy) <= ry)
     # (a tail may go past the box: Q)
@@ -524,9 +573,8 @@ def measure(src, rects):
             for kind in ('upper', 'lower', 'digit', 'other'):
                 ms = [r['m'] for ch, r in results.items() if kind_of(ch) == kind] or everything
                 pens[font][kind] = {k: float(np.median([m[k] for m in ms])) for k in ('wx', 'wy')}
-                # (the squareness only from characters with curves: the others say nothing about it)
-                curved = [r['m']['n'] for ch, r in results.items() if kind_of(ch) == kind and 'A' in ' '.join(drawings_of(font, ch)).replace('A,', '')]
-                pens[font][kind]['n'] = float(np.median(curved)) if curved else 2.6
+                # (the squareness, one for the font: from its round characters, which say most about it)
+                pens[font][kind]['n'] = float(np.median([r['m']['n'] for ch, r in results.items() if ch in 'OCGQ0ocegq']))
             print(font, {k: {a: round(b, 2) for a, b in v.items()} for k, v in pens[font].items()})
         lines = {font: font_lines(results, rects[font]) for font, results in first.items()}
         signs = {font: sign_lines(results, rects[font]) for font, results in first.items()}
@@ -543,6 +591,21 @@ def measure(src, rects):
                 middle = (m['x0'] + m['x1']) / 2.0
                 m['x0'], m['x1'] = middle - m['wx'] / 2.0, middle + m['wx'] / 2.0
     return second
+
+
+def soften(alpha):
+    """Round the corners a little, as the edge of real type is: a spike comes to a small curve, and a straight edge stays where it is."""
+    def blur(a, axis, width):
+        for _ in range(3):
+            sums = np.cumsum(np.insert(a, 0, 0.0, axis=axis), axis=axis)
+            half = width // 2
+            size = a.shape[axis]
+            top = np.take(sums, np.clip(np.arange(size) + half + 1, 0, size), axis=axis)
+            bottom = np.take(sums, np.clip(np.arange(size) - half, 0, size), axis=axis)
+            a = (top - bottom) / width
+        return a
+    wide = blur(blur(alpha.astype(np.float64), 1, SOFTEN), 0, SOFTEN)
+    return np.clip((wide - 0.5) * SOFTEN + 0.5, 0.0, 1.0).astype(np.float32)
 
 
 def draw_font(font, atlas, rects, fit):
@@ -575,6 +638,7 @@ def draw_font(font, atlas, rects, fit):
         at_y, at_x = v * SCALE_Y, u * SCALE_X
         place = alpha[at_y:at_y + tile_h, at_x:at_x + tile_w]
         np.maximum(place, ink[:place.shape[0], :place.shape[1]], out=place)
+    alpha = soften(alpha)
     out = np.full(alpha.shape + (4,), 255, dtype=np.uint8)
     out[..., 3] = (alpha * 255.0 + 0.5).astype(np.uint8)
     return Image.fromarray(out, 'RGBA')

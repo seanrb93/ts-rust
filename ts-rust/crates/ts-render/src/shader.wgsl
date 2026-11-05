@@ -83,8 +83,14 @@ fn fs_main(i: VsOut) -> FsOut {
             // The GS draws a sprite's last pixel one step before its far UV edge, so keep lookups on the outermost texel centres
             // instead of letting the filter blend in the neighbouring texture (which may be another glyph).
             let step = vec2<f32>(dpdx(raw).x, dpdy(raw).y) * screen.extra.x;
-            let lo = i.uvb.xy + max(-step, vec2<f32>(0.0));
-            let hi = i.uvb.zw - max(step, vec2<f32>(0.0));
+            var lo = i.uvb.xy + max(-step, vec2<f32>(0.0));
+            var hi = i.uvb.zw - max(step, vec2<f32>(0.0));
+            // A picture of a mod in place of the texture has many texels to one of the texture's: it is drawn to its edges (the limit above would cut off what lies in
+            // the outer half of a texture's texel, and smear what is at the limit).
+            if (f32(textureDimensions(tex).x) > p.misc.y * 1.5) {
+                lo = i.uvb.xy - d;
+                hi = i.uvb.zw - d;
+            }
             uv = clamp(uv, lo, max(hi, lo)) / vec2<f32>(p.misc.y, p.misc.z);
         }
         var t = textureSampleGrad(tex, samp, uv, gx, gy);
