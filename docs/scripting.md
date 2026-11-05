@@ -26,7 +26,7 @@ All are optional.  The state of the script is kept in `this` (a map): `this.cloc
 | `on_tick()` | every frame of the match, after the game's own |
 | `on_bot_idle(i)` | the game looked for a weapon for the computer character `i` and found none to pick up: answer `true` if the script gave it something else to do |
 | `file_prefixes()` and `on_file(name)` | the game loads a file whose name starts with one of the prefixes: `on_file` gives the names to try instead (a list; the plain file is used when none is in the packs) |
-| `on_gun_model(name, left)` | a gun is made for a hand when a gun is held in each: the name of the file of another model for it (or "") |
+| `fist_hand()` (true: the arm of the fists has a closed fist in line with the forearm, for any character with a humanoid arm), `on_gun_model(name, left)` | a gun is made for a hand when a gun is held in each: the name of the file of another model for it (or "") |
 | `lists_pair(single)` | the weapon page may list the dual (x2) version of the weapon `single` (a number of the game's table of weapon combinations): answer `true` for it |
 | `allows_pair(pair, single)` | a set of weapons may have the pair `pair` of the weapon `single` (when not, it has the single weapon): answer `true` |
 | `alternate_fists()` | an unarmed player punches with the left fist and the right in turn: answer `true` |

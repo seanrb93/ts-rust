@@ -112,6 +112,8 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
         s1_11 = lw(g::currentplayer);
         f1_11 = lwc1(s5_1 + 76);
     }
+    #[cfg(feature = "extensions")]
+    hands_fist_slot(lw(s1_11), a0);
     let mind = lw(s3_2 + 352);
     swc1(s3_2 + 76, f1_11);
     swc1(s3_2 + 80, lwc1(s5_1 + 80));

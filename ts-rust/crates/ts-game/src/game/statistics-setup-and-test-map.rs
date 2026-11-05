@@ -478,6 +478,7 @@ pub fn lvTickAfter() {
         animMtxTick();
         #[cfg(feature = "extensions")]
         hands_gun_matrices();
+        hands_fist_matrices();
         roomlightTick();
         propTickAfter();
         chrgunTick();
