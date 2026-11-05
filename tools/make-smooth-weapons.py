@@ -6,9 +6,10 @@ Writes <mods folder>/smooth_weapons_mod/OB.PAK/<name> for the first person guns 
 the repository: the mod is written next to the game, and this script is what is kept.
 
 Each triangle becomes a curved patch, as in "curved PN triangles" (Vlachos and others, 2001): a cubic surface through its corners, from the normals there.  The normals are worked out from the faces: faces that meet at less than
-CREASE degrees are one smooth surface and share a normal, and an edge sharper than that (or with no face on the other side) stays a straight line.  So a barrel or a drum goes round, and a box keeps its corners and flat sides, which
-get no more polygons.  First Person Hands replaces these files when its arms are wanted (its script asks for its own names first), so with that mod on the guns are only smoothed in the third person, unless it is
-made from these with HANDS_BASE=<this mod's folder>.  A patch is split only where the surface leaves the flat triangle by more than TOLERANCE, and that is decided edge by edge from the curve of the edge alone, so that the two faces at an edge split it alike and
+CREASE degrees are one smooth surface and share a normal.  An edge that shows (faces that meet at more than FEATURE degrees, or no face on the other side) follows the line it is a piece of: where such edges of about the same length meet at a
+small turn they are a polygon standing for a curve (the rim of a tube), and they are made an arc, each end along the line through its two neighbours.  So a barrel, a drum or a rim goes round, and a box keeps its corners and flat sides, which
+get no more polygons.  First Person Hands replaces these files when its arms are wanted (its script asks for its own names first), so with that mod on the guns are only smoothed in the third person, (making it from these with HANDS_BASE gives a pack too big for the game: see the README).
+A patch is split only where the surface leaves the flat triangle by more than TOLERANCE, and that is decided edge by edge from the curve of the edge alone, so that the two faces at an edge split it alike and
 no crack opens between them.
 """
 import contextlib
@@ -33,6 +34,9 @@ _spec.loader.exec_module(make_hands)
 
 CREASE = 62.0       # degrees: a sharper edge between two faces is kept
 TOLERANCE = 0.0012  # how far the surface can be from its triangles, in the model's units (a gun is about 1 long)
+FEATURE = 20.0      # degrees: faces that meet at more than this have an edge that shows
+CHAIN_TURN = 62.0   # degrees: sharp edges that turn by less than this at a point can be pieces of a curve
+CHAIN_RATIO = 1.6   # and only if one is at most so many times as long as the other (a chamfer between long edges is not a curve)
 MAX_DEPTH = 3       # an edge is cut in two at most so many times over
 WELD = 1.0e-4       # points nearer than this are one point
 FLASH_POINTS = 12   # a part of so few points that is large is the flash of the muzzle: it is left alone
@@ -98,20 +102,62 @@ def smooth_normals(faces):
         for k in range(3):
             n = total[find((fi, k))]
             corner_normals[(fi, k)] = n / max(np.linalg.norm(n), 1.0e-12)
-    return points, normals, corner_normals, soft
+    return points, normals, corner_normals, soft, line_tangents(points, normals, edges)
 
 
-def patch_of(p, n, soft):
-    """The control points of the cubic patch of a triangle: the corners, two on each edge (on the line for a hard edge, so the edge stays straight) and the middle."""
+def line_tangents(points, normals, edges):
+    """(point, neighbour) -> the way an edge that shows leaves the point, for the points where two such edges are pieces of one curve.  A point can be on several lines (a rim and the edge along the tube): the straightest are paired first."""
+    feature = math.cos(math.radians(FEATURE))
+    where = {}
+    links = {}
+    for pair_key, pair in edges.items():
+        ends = list(pair_key)
+        if len(ends) != 2 or (len(pair) == 2 and float(normals[pair[0][0]] @ normals[pair[1][0]]) > feature):
+            continue
+        fi, i = pair[0]
+        for k in (i, (i + 1) % 3):
+            where[key_of(points[fi][k])] = points[fi][k]
+        links.setdefault(ends[0], []).append(ends[1])
+        links.setdefault(ends[1], []).append(ends[0])
+    limit = math.cos(math.radians(CHAIN_TURN))
+    out = {}
+    for v, others in links.items():
+        pairs = []
+        for ia in range(len(others)):
+            for ib in range(ia + 1, len(others)):
+                to_a, to_b = where[others[ia]] - where[v], where[others[ib]] - where[v]
+                la, lb = np.linalg.norm(to_a), np.linalg.norm(to_b)
+                if la < 1.0e-9 or lb < 1.0e-9 or max(la, lb) / min(la, lb) > CHAIN_RATIO:
+                    continue
+                straight = -float(to_a @ to_b) / (la * lb)
+                if straight > limit:
+                    pairs.append((straight, ia, ib))
+        used = set()
+        for _, ia, ib in sorted(pairs, reverse=True):
+            if ia in used or ib in used:
+                continue
+            used.update((ia, ib))
+            along = where[others[ib]] - where[others[ia]]
+            along = along / max(np.linalg.norm(along), 1.0e-12)
+            out[(v, others[ib])] = along
+            out[(v, others[ia])] = -along
+    return out
+
+
+def patch_of(p, n, soft, tangents):
+    """The control points of the cubic patch of a triangle: the corners, two on each edge and the middle.  An end of an edge that is on a line goes along the line; otherwise a soft edge's come from the normals, and a sharp edge's lie on the edge, which stays straight."""
     c = {}
     for i in range(3):
         j = (i + 1) % 3
-        if i in soft:
-            c[(i, j)] = (2.0 * p[i] + p[j] - float((p[j] - p[i]) @ n[i]) * n[i]) / 3.0
-            c[(j, i)] = (2.0 * p[j] + p[i] - float((p[i] - p[j]) @ n[j]) * n[j]) / 3.0
-        else:
-            c[(i, j)] = (2.0 * p[i] + p[j]) / 3.0
-            c[(j, i)] = (2.0 * p[j] + p[i]) / 3.0
+        ki, kj = key_of(p[i]), key_of(p[j])
+        third = float(np.linalg.norm(p[j] - p[i])) / 3.0
+        for a, b, ka, kb in ((i, j, ki, kj), (j, i, kj, ki)):
+            if (ka, kb) in tangents:
+                c[(a, b)] = p[a] + tangents[(ka, kb)] * third
+            elif i in soft:
+                c[(a, b)] = (2.0 * p[a] + p[b] - float((p[b] - p[a]) @ n[a]) * n[a]) / 3.0
+            else:
+                c[(a, b)] = (2.0 * p[a] + p[b]) / 3.0
     e = sum(c.values()) / 6.0
     v = (p[0] + p[1] + p[2]) / 3.0
     return c, e + (e - v) / 2.0
@@ -124,10 +170,10 @@ def surface(bary, p, c, middle):
             + 3.0 * (c[(0, 1)] * u * u * v + c[(1, 0)] * v * v * u + c[(1, 2)] * v * v * w + c[(2, 1)] * w * w * v + c[(2, 0)] * w * w * u + c[(0, 2)] * u * u * w))
 
 
-def tessellate(face, p, n, soft_edges):
+def tessellate(face, p, n, soft_edges, tangents):
     """The triangles (corners as `obedit.read_obj` gives them) of a face made curved."""
     corners, _ = face
-    c, middle = patch_of(p, n, soft_edges)
+    c, middle = patch_of(p, n, soft_edges, tangents)
     st = [np.array(x[1], dtype=float) for x in corners]
     colour = [np.array(x[3], dtype=float) if x[3] else None for x in corners]
     out = []
@@ -199,18 +245,20 @@ def tessellate(face, p, n, soft_edges):
 def smooth_part(faces):
     """The faces of a part of a model, made curved."""
     faces = [(c, m) for corners, m in faces for c in ([corners] if len(corners) == 3 else [[corners[0], corners[1], corners[2]], [corners[0], corners[2], corners[3]]])]
-    points, normals, corner_normals, soft = smooth_normals(faces)
+    points, normals, corner_normals, soft, tangents = smooth_normals(faces)
     out = []
     for fi, face in enumerate(faces):
         if normals[fi] is None:
             continue
         n = [corner_normals[(fi, k)] for k in range(3)]
         soft_edges = {i for i in range(3) if (fi, i) in soft}
-        if not soft_edges:
-            # (a face with no soft edge stays as it is, with the game's own normals)
+        keys = [key_of(q) for q in points[fi]]
+        curved = any((keys[i], keys[j]) in tangents for i in range(3) for j in range(3) if i != j)
+        if not soft_edges and not curved:
+            # (a face with nothing curved stays as it is, with the game's own normals)
             out.append(face)
             continue
-        out += [(t, face[1]) for t in tessellate(face, points[fi], n, soft_edges)]
+        out += [(t, face[1]) for t in tessellate(face, points[fi], n, soft_edges, tangents)]
     return out
 
 
