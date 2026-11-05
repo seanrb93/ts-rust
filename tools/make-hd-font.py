@@ -34,7 +34,7 @@ REGULAR = 0.004        # how much a measurement is held to the drawing (against 
 REACH = 0.18           # and how far it can go from the drawing, so that a shape stays the shape that was drawn
 
 ELLIPSE = 'R 0,0 1,1 #0,#360 Z'
-ROUND_S = 'R .03,0 .97,#.5 #-32,#-270 T 0,#.5 1,1 #-90,#148'
+ROUND_S = 'R #.04,0 #.96,#.49 #-30,#-270 T 0,#.49 1,1 #-90,#152'
 # the drawings.  Letters: M move, L line, Ah a quarter curve that starts level, Av one that starts upright, C a curve by two control points, R an arc of the ellipse in the box from corner to corner, between two angles (0 is right, -90 the top), T the same going on from the line before it, F a filled shape with straight sides (corners in order, no pen), Z close.  y goes down.  0 and 1 are the edges of the character's box and are fixed, #n is a fixed number,
 # !n is 1 less the measurement n (for what is the same on both sides).  A character can have several drawings (a list): the first is used unless a later one fits clearly better.
 GLYPHS = {
