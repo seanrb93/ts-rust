@@ -57,6 +57,15 @@ pub fn text_nudge() -> (i32, i32) {
     }
 }
 
+/// `v` times the scale `s` (thousandths) in sixteenths of a pixel: distances of text that is scaled add up without the error of rounding each to a pixel.
+pub fn text_scaled16(v: i32, s: i32) -> i32 {
+    if s == 1000 {
+        v << 4
+    } else {
+        (v as f32 * 16.0 * s as f32 / 1000.0).round() as i32
+    }
+}
+
 /// `v` times the scale `s` (thousandths), rounded.
 pub fn text_scaled(v: i32, s: i32) -> i32 {
     if s == 1000 {

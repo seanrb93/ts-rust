@@ -85,11 +85,12 @@ fn fs_main(i: VsOut) -> FsOut {
             let step = vec2<f32>(dpdx(raw).x, dpdy(raw).y) * screen.extra.x;
             var lo = i.uvb.xy + max(-step, vec2<f32>(0.0));
             var hi = i.uvb.zw - max(step, vec2<f32>(0.0));
-            // A picture of a mod in place of the texture has many texels to one of the texture's: it is drawn to its edges (the limit above would cut off what lies in
-            // the outer half of a texture's texel, and smear what is at the limit).
+            // A picture of a mod in place of the texture has many texels to one of the texture's: it is drawn to its edges, and exactly (the limit above would cut off what
+            // lies in the outer half of a texture's texel and smear what is at the limit, and the half a pixel back is less than half a texel down, by the screen's proportions).
             if (f32(textureDimensions(tex).x) > p.misc.y * 1.5) {
-                lo = i.uvb.xy - d;
-                hi = i.uvb.zw - d;
+                uv = raw - vec2<f32>(0.5);
+                lo = i.uvb.xy - vec2<f32>(0.5);
+                hi = i.uvb.zw - vec2<f32>(0.5);
             }
             uv = clamp(uv, lo, max(hi, lo)) / vec2<f32>(p.misc.y, p.misc.z);
         }

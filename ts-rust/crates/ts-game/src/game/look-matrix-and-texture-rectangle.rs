@@ -47,6 +47,11 @@ pub fn matrixLook(m: i32, eye_x: f32, eye_y: f32, eye_z: f32, dir_x: f32, dir_y:
 /// (`u0`, `v0`) to (`u1`, `v1`) (as the number `a7` and the three others, with 8 added); the colour (0xaarrggbb) is the eighth argument on the caller's stack. The depth test is
 /// turned off for it (@ 0x2b8c08).
 pub fn dlTextureRectangle(x0: i32, y0: i32, x1: i32, y1: i32, u0: i32, v0: i32, u1: i32, v1: i32) {
+    dlTextureRectangleFine(x0 << 4, y0 << 4, x1 << 4, y1 << 4, u0, v0, u1, v1);
+}
+
+/// The same with the place on the screen in sixteenths of a pixel (the text of a size that is not the font's lands between pixels).
+pub fn dlTextureRectangleFine(x0: i32, y0: i32, x1: i32, y1: i32, u0: i32, v0: i32, u1: i32, v1: i32) {
     let frame = Frame::new(176);
     let colour = lw(frame.sp() + 176);
     let (nudge_x, nudge_y) = text_nudge();
@@ -78,9 +83,9 @@ pub fn dlTextureRectangle(x0: i32, y0: i32, x1: i32, y1: i32, u0: i32, v0: i32, 
     at += 4;
     sw(at, 0);
     at += 4;
-    sw(at, (x0 << 4) + nudge_x + 0x6c00);
+    sw(at, x0 + nudge_x + 0x6c00);
     at += 4;
-    sw(at, (y0 << 4) + nudge_y + 0x7900);
+    sw(at, y0 + nudge_y + 0x7900);
     at += 4;
     sw(at, -1);
     at += 4;
@@ -94,9 +99,9 @@ pub fn dlTextureRectangle(x0: i32, y0: i32, x1: i32, y1: i32, u0: i32, v0: i32, 
     at += 4;
     sw(at, 0);
     at += 4;
-    sw(at, (x1 << 4) + nudge_x + 0x6c00);
+    sw(at, x1 + nudge_x + 0x6c00);
     at += 4;
-    sw(at, (y1 << 4) + nudge_y + 0x7900);
+    sw(at, y1 + nudge_y + 0x7900);
     at += 4;
     sw(at, -1);
     sw(at + 4, 0);

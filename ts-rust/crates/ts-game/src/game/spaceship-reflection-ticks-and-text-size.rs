@@ -111,12 +111,14 @@ pub fn textSize(width: i32, height: i32, text: i32) {
     let mut max_x = 0;
     let mut max_y = 0;
     let mut x = 0;
+    let mut x16 = 0;
     let mut cursor = text;
     sw(sp, width);
     sw(sp + 4, height);
     let shift = lbu(g::fontflags) & 1;
     let scale = text_scale();
     let sc = |v: i32| text_scaled(v, scale);
+    let f16 = |v: i32| text_scaled16(v, scale);
     let mut base = lw(font) as u128;
     sw(sp + 8, sc(lw(font + 12) >> (shift & 31)));
     if cursor != 0 {
@@ -133,7 +135,8 @@ pub fn textSize(width: i32, height: i32, text: i32) {
                     if ch == 94 {
                         cursor += 1;
                         let picture = lw(((lbu(cursor) - 49) << 2) + g::texnum_text_gfx) * 40 + lw(lw(g::thistexbuf) + 4);
-                        x += sc(lhu(picture) >> (shift & 31));
+                        x16 += f16(lhu(picture) >> (shift & 31));
+ x = x16 >> 4;
                         let bottom = lines + half_line + sc((lhu(picture + 2) >> 1) >> (shift & 31));
                         let right = x - 1;
                         max_y = if max_y < bottom { bottom } else { max_y };
@@ -146,6 +149,7 @@ pub fn textSize(width: i32, height: i32, text: i32) {
                             }
                         } else if ch == 10 {
                             x = 0;
+                            x16 = 0;
                             lines += lw(sp + 8);
                             break 'next;
                         }
@@ -161,19 +165,25 @@ pub fn textSize(width: i32, height: i32, text: i32) {
                             sq(sp + 16, base);
                             let offset = GetXOffset(cursor);
                             base = lq(sp + 16);
-                            x += sc((lhu(glyph + 4) + offset) >> (shift & 31));
+                            x16 += f16((lhu(glyph + 4) + offset) >> (shift & 31));
+ x = x16 >> 4;
                         } else if ch == 47 {
-                            x += sc(6);
+                            x16 += f16(6);
+ x = x16 >> 4;
                         } else if ch >= 48 {
                             if ch != 58 {
-                                x += sc(lw(lw(g::curfont) + 20) >> (shift & 31));
+                                x16 += f16(lw(lw(g::curfont) + 20) >> (shift & 31));
+ x = x16 >> 4;
                             } else {
-                                x += sc(5);
+                                x16 += f16(5);
+ x = x16 >> 4;
                             }
                         } else if ch != 46 {
-                            x += sc(lw(lw(g::curfont) + 20) >> (shift & 31));
+                            x16 += f16(lw(lw(g::curfont) + 20) >> (shift & 31));
+ x = x16 >> 4;
                         } else {
-                            x += sc(5);
+                            x16 += f16(5);
+ x = x16 >> 4;
                         }
                         let right = x - 1;
                         max_x = if max_x < right { right } else { max_x };
