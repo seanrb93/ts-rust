@@ -46,6 +46,8 @@ pub mod hands_puppet;
 pub mod mode_presets;
 pub mod restart;
 #[cfg(feature = "extensions")]
+pub mod armmerge;
+#[cfg(feature = "extensions")]
 pub mod script;
 
 pub use arcademodes::*;
@@ -57,6 +59,8 @@ pub use hands_puppet::*;
 pub use restart::*;
 #[cfg(feature = "extensions")]
 pub use script::*;
+#[cfg(feature = "extensions")]
+pub use armmerge::*;
 pub use menu_mouse::*;
 pub use bigpool::*;
 pub use customlevels::*;

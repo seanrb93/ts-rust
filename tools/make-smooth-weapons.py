@@ -8,7 +8,7 @@ the repository: the mod is written next to the game, and this script is what is 
 Each triangle becomes a curved patch, as in "curved PN triangles" (Vlachos and others, 2001): a cubic surface through its corners, from the normals there.  The normals are worked out from the faces: faces that meet at less than
 CREASE degrees are one smooth surface and share a normal.  An edge that shows (faces that meet at more than FEATURE degrees, or no face on the other side) follows the line it is a piece of: where such edges of about the same length meet at a
 small turn they are a polygon standing for a curve (the rim of a tube), and they are made an arc, each end along the line through its two neighbours.  So a barrel, a drum or a rim goes round, and a box keeps its corners and flat sides, which
-get no more polygons.  First Person Hands replaces these files when its arms are wanted (its script asks for its own names first), so with that mod on the guns are only smoothed in the third person, (making it from these with HANDS_BASE gives a pack too big for the game: see the README).
+get no more polygons.  First Person Hands puts its arms on these guns when they are loaded.
 A patch is split only where the surface leaves the flat triangle by more than TOLERANCE, and that is decided edge by edge from the curve of the edge alone, so that the two faces at an edge split it alike and
 no crack opens between them.
 """

@@ -450,6 +450,9 @@ pub fn load(game_dir: &Path) {
     for m in &mods {
         // (the pictures of the buttons of the devices: `icons.rs`)
         crate::icons::add_folder(&m.dir.join("button_icons"));
+        // (the arms that are put on the guns when they are loaded: `ts_game::armmerge`)
+        #[cfg(feature = "extensions")]
+        ts_game::register_arms_folder(&m.dir.join("arms"));
         let mut files = Vec::new();
         files_under(&m.dir, "", &mut files);
         let mut count = 0;
@@ -457,7 +460,7 @@ pub fn load(game_dir: &Path) {
             let lower = rel.to_ascii_lowercase();
             let first = lower.split('/').next().unwrap_or("");
             // (what a mod author keeps next to the files: notes, and the sources of the pictures and sounds in a folder that starts with _ or is called art, source or docs)
-            if matches!(first, "art" | "source" | "src" | "docs" | "scripts" | "button_icons") || first.starts_with('_') || first.starts_with('.') {
+            if matches!(first, "art" | "source" | "src" | "docs" | "scripts" | "button_icons" | "arms") || first.starts_with('_') || first.starts_with('.') {
                 if lower.contains('/') {
                     continue;
                 }

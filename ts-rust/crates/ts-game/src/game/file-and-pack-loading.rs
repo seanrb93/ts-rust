@@ -43,6 +43,10 @@ pub fn fileCopy(a0: i32, a1: i32) {
 
 /// The size of the file named `a0`, from the pack files if it is in one (a compressed file has 256 more), or else from the host; -1 if it does not exist.
 pub fn fileSize(a0: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    if let Some(model) = arm_model_for(a0) {
+        return model.len() as i32;
+    }
     if lw(0x3afea8) != 0 {
         let entry = packfileSeek(a0);
         if entry != 0 {
@@ -68,6 +72,11 @@ pub fn fileSize(a0: i32) -> i32 {
 /// Load the file named `a0` to the address `a1`, `a2` is the room there. Gives the size of the file, or 0 if it is not in a pack file.
 pub fn fileLoadTo(a0: i32, a1: i32, a2: i32) -> i32 {
     file_log_hook(a0);
+    #[cfg(feature = "extensions")]
+    if let Some(model) = arm_model_for(a0) {
+        arm_model_copy(&model, a1);
+        return model.len() as i32;
+    }
     if lw(0x3afea8) == 0 {
         return 0;
     }
@@ -96,6 +105,10 @@ pub fn fileLoadTo(a0: i32, a1: i32, a2: i32) -> i32 {
 
 /// The address in memory of the file named `a0` if its pack file is all in memory and the file is not compressed and starts on 16 bytes, or else 0.
 pub fn fileGetMem(a0: i32) -> i32 {
+    #[cfg(feature = "extensions")]
+    if arm_model_for(a0).is_some() {
+        return 0;
+    }
     if lw(0x3afea8) == 0 {
         return 0;
     }

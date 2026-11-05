@@ -787,6 +787,8 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
     mods::load(&exe_dir());
     icons::register();
     mods::publish_pack_names();
+    #[cfg(feature = "extensions")]
+    ts_game::arms_dump_if_asked();
     ts_game::prop_table_init();
     ts_game::character_table_init();
     ts_game::weapon_table_init();

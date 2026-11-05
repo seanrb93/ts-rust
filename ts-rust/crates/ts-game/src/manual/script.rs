@@ -923,7 +923,7 @@ fn gun_model_of(prop: i32, left_hand: bool) -> Option<i32> {
                 Some(s) if s.len() < 100 => {
                     let at = BASE + 0x17_2a00 + 0x200;
                     put_text(at, &s, 120);
-                    if packfileSeekPlain(at) != 0 {
+                    if packfileSeekPlain(at) != 0 || arm_model_known(at) {
                         obLoad(at)
                     } else {
                         0
