@@ -448,6 +448,10 @@ pub fn gunUpdate(a0: i32, a1: i32) {
         s7_1 = -1;
     }
     let frames = lw(g::updateframesi);
+    #[cfg(feature = "extensions")]
+    if a1 == 0 && lw(a0) == 1 {
+        script_gun_refit(a0, lw(s3_1), lh(combo + 2) >= 0);
+    }
     let s0_1 = lw(a0 + 12);
     sw(a0 + 148, lw(a0 + 148) + frames);
     sw(s3_1 + 68, lw(s3_1 + 68) + frames);

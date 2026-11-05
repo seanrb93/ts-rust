@@ -791,16 +791,57 @@ fn read_name(at: i32) -> String {
     String::from_utf8_lossy(&text).to_string()
 }
 
+/// The gun in the right hand stays when the weapon changes to the pair of the same gun, or back (the game makes a gun only when its number changes), so the model it was made with can
+/// be the wrong one: a two handed gun would keep its front hand beside the second gun.  It is made again, in the same place in the slot `slot`, from the right model (a script's, `on_gun_model`).
+pub fn script_gun_refit(slot: i32, gun: i32, pair: bool) {
+    let view = lw(slot + 12);
+    if view == 0 || gun < 0 || !ACTIVE.load(Ordering::Relaxed) || !has("on_gun_model") {
+        return;
+    }
+    let prop = lw(gun * 400 + GUNS_TABLE);
+    let plain = lw(prop * 28 + PROPTABLE + 4);
+    let model = lw(lw(view + 32));
+    if plain == 0 {
+        return;
+    }
+    // (a gun with no such model, as every gun of one hand: the plain one is right)
+    let wanted = if pair { gun_model_of(prop, false).unwrap_or(plain) } else { plain };
+    if model == wanted {
+        return;
+    }
+    let new = if pair { script_gun_new(prop, false) } else { gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32) };
+    for at in [12, 16, 136, 140] {
+        sw(new + at, lw(view + at));
+    }
+    obInstSetAnim(lw(new + 32), 1, 0.0_f32);
+    propDelete(view);
+    sw(slot + 12, new);
+}
+
 /// `gunNew` for a gun held in both hands: a script may give another model for it (`on_gun_model(file name of the gun's model, left hand)`: the name of a file of the packs, or ""), which is loaded
 /// the first time and kept as long as the model of the plain gun is the one it was loaded beside; the table of props keeps the plain model for the next gun.
 pub fn script_gun_new(prop: i32, left_hand: bool) -> i32 {
-    thread_local! {
-        static MODELS: RefCell<Vec<(i32, i32, i32, bool)>> = RefCell::new(Vec::new());
-    }
     let plain_view = || gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32);
     if !ACTIVE.load(Ordering::Relaxed) || !has("on_gun_model") {
         return plain_view();
     }
+    let def = prop * 28 + PROPTABLE;
+    let Some(other) = gun_model_of(prop, left_hand) else {
+        return plain_view();
+    };
+    let plain = lw(def + 4);
+    sw(def + 4, other);
+    let view = plain_view();
+    sw(def + 4, plain);
+    view
+}
+
+/// The model a script gives for a gun held in both hands, if there is one (loaded the first time and kept as long as the plain model is the one it was loaded beside).
+fn gun_model_of(prop: i32, left_hand: bool) -> Option<i32> {
+    thread_local! {
+        static MODELS: RefCell<Vec<(i32, i32, i32, bool)>> = RefCell::new(Vec::new());
+    }
+    let plain_view = || gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32);
     let def = prop * 28 + PROPTABLE;
     if lw(def + 4) == 0 {
         // (the plain model is loaded by making a prop of it)
@@ -809,7 +850,7 @@ pub fn script_gun_new(prop: i32, left_hand: bool) -> i32 {
     }
     let plain = lw(def + 4);
     if plain == 0 {
-        return plain_view();
+        return None;
     }
     let known = MODELS.with(|m| m.borrow().iter().find(|e| e.0 == prop && e.1 == plain && e.3 == left_hand).map(|e| e.2));
     let other = match known {
@@ -841,11 +882,5 @@ pub fn script_gun_new(prop: i32, left_hand: bool) -> i32 {
             other
         }
     };
-    if other == 0 {
-        return plain_view();
-    }
-    sw(def + 4, other);
-    let view = plain_view();
-    sw(def + 4, plain);
-    view
+    (other != 0).then_some(other)
 }
