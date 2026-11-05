@@ -196,6 +196,24 @@ impl Vif {
             let bytes_per = [4usize, 2, 1, 0][vl] * comps;
             if bytes_per != 0 && start + n * bytes_per <= d.len() && addr + n <= VU_MEM_QW {
                 let src = &d[start..start + n * bytes_per];
+                #[inline(always)]
+                fn word(e: &[u8], at: usize) -> u32 {
+                    u32::from_le_bytes([e[at], e[at + 1], e[at + 2], e[at + 3]])
+                }
+                let to = &mut vu.mem[addr..addr + n];
+                // (the kinds that nearly all the data is: whole words, four or three to an element)
+                if vl == 0 && vn == 3 {
+                    for (e, m) in src.chunks_exact(16).zip(to) {
+                        *m = [word(e, 0), word(e, 4), word(e, 8), word(e, 12)];
+                    }
+                    return start + n * 16;
+                }
+                if vl == 0 && vn == 2 {
+                    for (e, m) in src.chunks_exact(12).zip(to) {
+                        *m = [word(e, 0), word(e, 4), word(e, 8), 0];
+                    }
+                    return start + n * 12;
+                }
                 for i in 0..n {
                     let e = &src[i * bytes_per..(i + 1) * bytes_per];
                     let mut tmp = [0u32; 4];

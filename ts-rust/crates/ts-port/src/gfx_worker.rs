@@ -73,7 +73,8 @@ pub fn finish(n: u64, frame: ts_gfx::scene::Frame, fbp: u32) {
         // stamped before the (possibly blocking) hand-over: the stamps show the pace of the game, not of the drawing thread
         tx.lock().unwrap().send((n, frame, fbp, std::time::Instant::now())).ok();
     } else {
-        crate::finish_frame(n, frame, fbp);
+        crate::finish_frame(n, &frame, fbp);
+        ts_gfx::scene::frame_done(frame);
     }
 }
 
@@ -84,6 +85,7 @@ fn stage2(rx: std::sync::mpsc::Receiver<Job>) {
         let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             crate::prepare_frame(n, &frame, fbp);
             crate::show_frame(&frame);
+            ts_gfx::scene::frame_done(frame);
         }));
     }
 }

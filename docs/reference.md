@@ -161,7 +161,7 @@ a few integer-tick animation phases into continuous ones.  The patches are appli
 match exactly once.  Per-tick random effects (flicker, smoke) keep their whole-tick gates so that their rate does not change.
 
 Debug aids: `TS_TICKCLOCK=1` makes `--press` / `--screenshot` / `--profile` / `--frames` frame numbers count game ticks
-(starting at 1000000) while a level runs, `TS_NOPACE=1` removes the frame wait, `TS_SNAP=t1,t2` + `TS_SNAPFILE` dump RAM at
+(starting at 1000000) while a level runs, `TS_NOPACE=1` removes the frame wait (with `TS_SEED=<number>` two headless runs of the same input give the same pictures, which shows that a change to the engine left the game as it was; a program built with the feature `sampler` of ts-port writes with `TS_SAMPLE=<file>` where its threads spend their time, `TS_SAMPLE_DELAY=<seconds>` when windowed, and `tools/sample-report.py` makes a table of it), `TS_SNAP=t1,t2` + `TS_SNAPFILE` dump RAM at
 game ticks (compare runs at different rates word by word), `TS_WATCH=addr` + `TS_WATCHFROM=tick` (calltrace build) names
 the functions that store to an address, `TS_PLAYERLOG=1` prints the player's state every frame.
 

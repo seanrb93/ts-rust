@@ -96,11 +96,46 @@ pub fn logic_hz() -> f32 {
     f32::from_bits(LOGIC_HZ.load(std::sync::atomic::Ordering::Relaxed))
 }
 
+/// Sleep for about `d` on a high resolution timer of the system (Windows 10 1803 on): false when there is none.
+#[cfg(windows)]
+fn fine_sleep(d: Duration) -> bool {
+    use std::ffi::c_void;
+    extern "system" {
+        fn CreateWaitableTimerExW(attributes: *const c_void, name: *const u16, flags: u32, access: u32) -> *mut c_void;
+        fn SetWaitableTimer(timer: *mut c_void, due: *const i64, period: i32, routine: *const c_void, arg: *const c_void, resume: i32) -> i32;
+        fn WaitForSingleObject(handle: *mut c_void, ms: u32) -> u32;
+    }
+    const HIGH_RESOLUTION: u32 = 2;
+    const ALL_ACCESS: u32 = 0x1f_0003;
+    thread_local! {
+        static TIMER: *mut c_void = unsafe { CreateWaitableTimerExW(std::ptr::null(), std::ptr::null(), HIGH_RESOLUTION, ALL_ACCESS) };
+    }
+    TIMER.with(|t| {
+        if t.is_null() {
+            return false;
+        }
+        // (negative: from now, in units of 100 ns)
+        let due = -((d.as_nanos() / 100) as i64);
+        unsafe {
+            if SetWaitableTimer(*t, &due, 0, std::ptr::null(), std::ptr::null(), 0) == 0 {
+                return false;
+            }
+            WaitForSingleObject(*t, 0xffff_ffff) == 0
+        }
+    })
+}
+
+#[cfg(not(windows))]
+fn fine_sleep(_: Duration) -> bool {
+    false
+}
+
 pub fn sleep_until(target: Instant) {
-    // Windows sleeps in ~15 ms steps: sleep most of the wait, then spin the rest for an exact deadline.
+    // The system's timers wake late by a little: sleep most of the wait, then spin the rest for an exact deadline.  The high resolution timer needs little of that; the plain sleep (steps of a millisecond) more.
+    let fine = Duration::from_micros(1000);
     let coarse = Duration::from_micros(2500);
     if let Some(d) = target.checked_duration_since(Instant::now()) {
-        if d > coarse {
+        if !(d > fine && fine_sleep(d - fine)) && d > coarse {
             std::thread::sleep(d - coarse);
         }
     }
@@ -169,6 +204,11 @@ pub fn wait_vsync() -> u32 {
             timeBeginPeriod(1);
         });
     }
+    // (test aid: as fast as the machine can, one blank for each frame, so that a run does not depend on the clock)
+    if std::env::var_os("TS_NOPACE").is_some() {
+        perf::add_ticks(1);
+        return 1;
+    }
     let period = Duration::from_secs_f64(1.0 / VBLANK_HZ);
     let mut g = VSYNC.lock().unwrap();
     if HIRATE_CLOCK.swap(false, std::sync::atomic::Ordering::Relaxed) {
@@ -179,17 +219,7 @@ pub fn wait_vsync() -> u32 {
     let mut ticks = (elapsed.as_secs_f64() * VBLANK_HZ) as u32;
     if ticks == 0 {
         let t = Instant::now();
-        // Windows sleeps in ~15 ms steps: sleep most of the wait, then spin the rest for an exact vblank.
-        let target = *last + period;
-        let coarse = Duration::from_micros(2500);
-        if let Some(d) = target.checked_duration_since(Instant::now()) {
-            if d > coarse {
-                std::thread::sleep(d - coarse);
-            }
-        }
-        while Instant::now() < target {
-            std::hint::spin_loop();
-        }
+        sleep_until(*last + period);
         perf::add_wait(t.elapsed());
         ticks = 1;
     }
@@ -247,7 +277,9 @@ pub fn view() -> (f32, f32) {
 pub const DEPTH_W: usize = 640;
 pub const DEPTH_H: usize = 224;
 
-static DEPTH: Mutex<Option<Vec<u16>>> = Mutex::new(None);
+static DEPTH: Mutex<Option<ts_rt::depth::DepthScene>> = Mutex::new(None);
+/// The scene before the last, to fill again.
+static DEPTH_SPARE: Mutex<Option<ts_rt::depth::DepthScene>> = Mutex::new(None);
 static DEPTH_WANTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 /// requests of the game so far (one per frame whose picture it wants the depth of) and depth buffers delivered
 static DEPTH_REQUESTS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -256,7 +288,7 @@ static DEPTH_DONE: (Mutex<u64>, std::sync::Condvar) = (Mutex::new(0), std::sync:
 /// The game asks for the depth buffer of the picture it sent last, and for the one of the picture it is about to send to be
 /// kept.  Its light glows test their positions against the depth of the very frame they were drawn in, so the answer waits
 /// until the translation / drawing threads (which may be a frame behind) have delivered exactly that picture's depth.
-pub fn depth_request() -> Option<Vec<u16>> {
+pub fn depth_request<R>(f: impl FnOnce(&ts_rt::depth::DepthScene) -> R) -> Option<R> {
     if !DEPTH_WANTED.swap(true, std::sync::atomic::Ordering::AcqRel) {
         let before = DEPTH_REQUESTS.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
         let mut done = DEPTH_DONE.0.lock().unwrap();
@@ -269,7 +301,7 @@ pub fn depth_request() -> Option<Vec<u16>> {
             done = DEPTH_DONE.1.wait_timeout(done, left).unwrap().0;
         }
     }
-    DEPTH.lock().unwrap().clone()
+    DEPTH.lock().unwrap().as_ref().map(f)
 }
 
 /// Renderer side: true once after the game requested depth.
@@ -277,8 +309,14 @@ pub fn depth_wanted() -> bool {
     DEPTH_WANTED.swap(false, std::sync::atomic::Ordering::AcqRel)
 }
 
-pub fn depth_store(d: Vec<u16>) {
-    *DEPTH.lock().unwrap() = Some(d);
+/// A scene to fill and give to `depth_store`.
+pub fn depth_spare() -> ts_rt::depth::DepthScene {
+    DEPTH_SPARE.lock().unwrap().take().unwrap_or_default()
+}
+
+pub fn depth_store(d: ts_rt::depth::DepthScene) {
+    let old = DEPTH.lock().unwrap().replace(d);
+    *DEPTH_SPARE.lock().unwrap() = old;
     *DEPTH_DONE.0.lock().unwrap() += 1;
     DEPTH_DONE.1.notify_all();
 }

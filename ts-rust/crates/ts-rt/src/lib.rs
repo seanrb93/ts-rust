@@ -7,6 +7,7 @@
 //!
 //! Over time, individual structures are lifted out of the arena into typed Rust structs.
 
+pub mod depth;
 pub mod mem;
 #[cfg(feature = "journal")]
 pub mod journal;

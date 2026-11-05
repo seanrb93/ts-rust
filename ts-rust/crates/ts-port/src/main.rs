@@ -5,6 +5,8 @@
 //!
 //! Opens a window by default; `--headless` (implied by `--screenshot`) renders offscreen only.
 
+#[cfg(feature = "sampler")]
+mod sampler;
 mod audio;
 mod config;
 mod gamepads;
@@ -87,9 +89,9 @@ fn verbose() -> bool {
 
 /// Second half of a frame: depth reconstruction for the game's occlusion probes, then drawing / presenting.  Runs on its
 /// own thread when windowed so that it overlaps the translation of the next display list.
-pub(crate) fn finish_frame(n: u64, frame: ts_gfx::scene::Frame, fbp: u32) {
-    prepare_frame(n, &frame, fbp);
-    show_frame(&frame);
+pub(crate) fn finish_frame(n: u64, frame: &ts_gfx::scene::Frame, fbp: u32) {
+    prepare_frame(n, frame, fbp);
+    show_frame(frame);
 }
 
 /// Work that belongs to a new game frame (not to every picture shown): depth reconstruction, benchmarks.
@@ -99,11 +101,13 @@ pub(crate) fn prepare_frame(n: u64, frame: &ts_gfx::scene::Frame, fbp: u32) {
     // glow positions of the same frame: it is rebuilt for every frame it was asked for (`depth_request` waits for it).
     if ts_sdk::depth_wanted() {
         let t_depth = std::time::Instant::now();
-        ts_sdk::depth_store(ts_gfx::depth::rasterize(frame));
+        let mut scene = ts_sdk::depth_spare();
+        ts_gfx::depth::fill_scene(frame, &mut scene);
+        ts_sdk::depth_store(scene);
         ts_sdk::perf::add_depth(t_depth.elapsed());
     }
     if std::env::var_os("TS_ZLOG").is_some() && n % 100 == 0 {
-        if let Some(d) = ts_sdk::depth_request() {
+        if let Some(d) = ts_sdk::depth_request(|scene| scene.rasterize()) {
             use ts_game::g;
             for i in 0..3 {
                 let cnt = ts_rt::lw(0x1fea0a0 + 4 * i) * 9;
@@ -584,6 +588,8 @@ fn process_frame(n: u64, list: i32, world: Vec<(i32, i32)>) {
 }
 
 fn main() {
+    #[cfg(feature = "sampler")]
+    sampler::start();
     ts_game::set_av_options(Box::new(menu::PortAv));
     // the translation's own timing counters (clock reads in its inner loops) only run when a report asks for them
     if ["TS_BENCH", "TS_PERFLOG", "TS_VUPROF"].iter().any(|k| std::env::var_os(k).is_some()) {

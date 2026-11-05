@@ -124,7 +124,7 @@ pub struct DecodedTex {
 pub struct Frame {
     /// Snapshot of every texture the draws use.  Texture memory keeps changing while later frames are built and the
     /// drawing thread may show this frame (or blends of it) after that, so the pixels must travel with the frame.
-    pub textures: std::collections::HashMap<TexKey, std::sync::Arc<DecodedTex>>,
+    pub textures: FastMap<TexKey, std::sync::Arc<DecodedTex>>,
     /// the same vertex ranges split at every VU1 kick (mesh batch): what frame interpolation pairs up
     pub segs: Vec<Draw>,
     /// the level is being played (as opposed to the front-end menus)
@@ -151,3 +151,75 @@ pub struct Frame {
 /// Frame buffer page (FBP, in 32-block units: 0 or 40) the game is currently drawing into.  The game's display-list
 /// setup runs outside the list, so the host publishes it here for the renderer's screen-copy logic.
 pub static CURRENT_FBP: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+/// The memory of frames that have been shown: a frame's lists are megabytes, and memory new from the system costs far more than the writing of it.
+static FREE_FRAMES: std::sync::Mutex<Vec<(Vec<Vertex>, Vec<Draw>, Vec<Draw>)>> = std::sync::Mutex::new(Vec::new());
+
+/// A frame that uses the memory of one that has been shown (`frame_done`).
+pub fn new_frame() -> Frame {
+    let mut frame = Frame::default();
+    if let Some((vertices, draws, segs)) = FREE_FRAMES.lock().unwrap().pop() {
+        (frame.vertices, frame.draws, frame.segs) = (vertices, draws, segs);
+    }
+    frame
+}
+
+/// The frame has been shown: its memory can be used again.
+pub fn frame_done(frame: Frame) {
+    let Frame { mut vertices, mut draws, mut segs, .. } = frame;
+    vertices.clear();
+    draws.clear();
+    segs.clear();
+    let mut free = FREE_FRAMES.lock().unwrap();
+    if free.len() < 2 {
+        free.push((vertices, draws, segs));
+    }
+}
+
+/// A quick hash for the small keys that are looked up for every draw of every frame (no one chooses them, so the protection of the standard hash from chosen keys is not needed).
+#[derive(Default, Clone, Copy)]
+pub struct FastHasher(u64);
+
+impl FastHasher {
+    #[inline(always)]
+    fn add(&mut self, x: u64) {
+        self.0 = (self.0.rotate_left(5) ^ x).wrapping_mul(0x517c_c1b7_2722_0a95);
+    }
+}
+
+impl std::hash::Hasher for FastHasher {
+    #[inline(always)]
+    fn finish(&self) -> u64 {
+        // (the table uses the low bits and the top ones, and the multiplication leaves the low ones weak)
+        self.0.rotate_left(26)
+    }
+    #[inline]
+    fn write(&mut self, bytes: &[u8]) {
+        for b in bytes {
+            self.add(*b as u64);
+        }
+    }
+    #[inline(always)]
+    fn write_u8(&mut self, x: u8) {
+        self.add(x as u64);
+    }
+    #[inline(always)]
+    fn write_u16(&mut self, x: u16) {
+        self.add(x as u64);
+    }
+    #[inline(always)]
+    fn write_u32(&mut self, x: u32) {
+        self.add(x as u64);
+    }
+    #[inline(always)]
+    fn write_u64(&mut self, x: u64) {
+        self.add(x);
+    }
+    #[inline(always)]
+    fn write_usize(&mut self, x: usize) {
+        self.add(x as u64);
+    }
+}
+
+pub type FastMap<K, V> = std::collections::HashMap<K, V, std::hash::BuildHasherDefault<FastHasher>>;
+pub type FastSet<K> = std::collections::HashSet<K, std::hash::BuildHasherDefault<FastHasher>>;

@@ -22,12 +22,35 @@ pub fn sjeGsExecLoadImage(desc: i32, data: i32) {
 
 /// Copy the depth buffer back to main memory (the game's light-glow occlusion probes).  Only the 640x224 Z16 copy
 /// into `zbuffer` is ever requested; it comes from the renderer's CPU depth reconstruction (one frame old, as the
-/// original's asynchronous copy effectively was).
+/// original's asynchronous copy effectively was).  Only `zbtestDoTest`, straight after this, reads the copy, and only at the points
+/// of the test slot, so only those are worked out.  (The shadow check compares all the memory with the original's: it gets the whole picture.)
 pub fn sjeStoreImage(_a0: i32, _a1: i32, _a2: i32, _a3: i32, _a4: i32, _a5: i32, _a6: i32, _a7: i32) {
-    if let Some(d) = ts_sdk::depth_request() {
+    if cfg!(feature = "shadow") {
+        ts_sdk::depth_request(|scene| {
+            let dst = lw(g::zbuffer);
+            for (i, z) in scene.rasterize().iter().enumerate() {
+                sh(dst + 2 * i as i32, *z as i32);
+            }
+        });
+        return;
+    }
+    let slot = lw(0x3b0174) << 2;
+    let (first, points) = (lw(slot + g::zbval), lw(slot + 0x1fea0a0).max(0) * 9);
+    let mut pixels = Vec::with_capacity(points as usize);
+    for i in 0..points {
+        let point = first + i * 24;
+        let at = lw(point + 12);
+        if lw(point) >= 0 && (0..(ts_rt::depth::W * ts_rt::depth::H * 2) as i32).contains(&at) {
+            pixels.push(at as u32 / 2);
+        }
+    }
+    pixels.sort_unstable();
+    pixels.dedup();
+    let mut values = Vec::new();
+    if ts_sdk::depth_request(|scene| scene.probe(&pixels, &mut values)).is_some() {
         let dst = lw(g::zbuffer);
-        for (i, z) in d.iter().enumerate() {
-            sh(dst + 2 * i as i32, *z as i32);
+        for (p, z) in pixels.iter().zip(&values) {
+            sh(dst + *p as i32 * 2, *z as i32);
         }
     }
 }

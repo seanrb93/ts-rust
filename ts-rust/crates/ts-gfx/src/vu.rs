@@ -99,6 +99,72 @@ pub fn ftoi(x: f32, scale: f32) -> u32 {
     v as u32
 }
 
+/// The MAC flags of the lanes in `mask` of a result `raw`, `v` being it as stored: for each lane, zero (x in bit 3 .. w in bit 0), negative (the same four bits up by 4), overflow (by 8).
+#[cfg(target_arch = "x86_64")]
+#[inline(always)]
+fn mac_flags(raw: [f32; 4], v: [f32; 4], mask: u8) -> u16 {
+    use std::arch::x86_64::*;
+    // (a mask of four bits with x in the lowest, as the lanes come, turned round)
+    const TURNED: [u16; 16] = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
+    // SAFETY: SSE is part of x86_64; the arrays have four floats.
+    unsafe {
+        let (r, s) = (_mm_loadu_ps(raw.as_ptr()), _mm_loadu_ps(v.as_ptr()));
+        let zero = _mm_setzero_ps();
+        let stored_zero = _mm_movemask_ps(_mm_cmpeq_ps(s, zero)) as usize;
+        let negative = (_mm_movemask_ps(r) & !_mm_movemask_ps(_mm_cmpeq_ps(r, zero))) as usize;
+        let size = _mm_andnot_ps(_mm_set1_ps(-0.0), r);
+        let infinite = _mm_movemask_ps(_mm_cmpeq_ps(size, _mm_set1_ps(f32::INFINITY))) as usize;
+        let m = mask as usize & 15;
+        TURNED[stored_zero & m] | TURNED[negative & m] << 4 | TURNED[infinite & m] << 8
+    }
+}
+
+#[cfg(not(target_arch = "x86_64"))]
+fn mac_flags(raw: [f32; 4], v: [f32; 4], mask: u8) -> u16 {
+    let mut mac = 0u16;
+    for l in 0..4 {
+        if mask & (1 << l) == 0 {
+            continue;
+        }
+        let sh = 3 - l; // x -> bit 3 .. w -> bit 0
+        if v[l] == 0.0 {
+            mac |= 1 << sh;
+        }
+        if raw[l].is_sign_negative() && raw[l] != 0.0 {
+            mac |= 0x10 << sh;
+        }
+        if raw[l].is_infinite() {
+            mac |= 0x100 << sh;
+        }
+    }
+    mac
+}
+
+/// `ftoi` of four lanes at once.
+#[cfg(target_arch = "x86_64")]
+#[inline(always)]
+pub fn ftoi4(x: [f32; 4], scale: f32) -> [u32; 4] {
+    use std::arch::x86_64::*;
+    // SAFETY: SSE is part of x86_64; the arrays have four lanes.
+    unsafe {
+        let v = _mm_mul_ps(_mm_loadu_ps(fz4(x).as_ptr()), _mm_set1_ps(scale));
+        // (the conversion gives the lowest number for what does not fit, right when it is negative; `fz4` has left no NaN, but a NaN of the product is 0 for `as`)
+        let t = _mm_cvttps_epi32(v);
+        let over = _mm_castps_si128(_mm_cmpge_ps(v, _mm_set1_ps(2147483648.0)));
+        let t = _mm_or_si128(_mm_and_si128(over, _mm_set1_epi32(i32::MAX)), _mm_andnot_si128(over, t));
+        let t = _mm_and_si128(t, _mm_castps_si128(_mm_cmpord_ps(v, v)));
+        let mut out = [0u32; 4];
+        _mm_storeu_si128(out.as_mut_ptr() as *mut __m128i, t);
+        out
+    }
+}
+
+#[cfg(not(target_arch = "x86_64"))]
+#[inline(always)]
+pub fn ftoi4(x: [f32; 4], scale: f32) -> [u32; 4] {
+    [ftoi(x[0], scale), ftoi(x[1], scale), ftoi(x[2], scale), ftoi(x[3], scale)]
+}
+
 impl Regs {
     #[inline(always)]
     pub fn tick(&mut self) {
@@ -127,24 +193,7 @@ impl Regs {
     pub fn commit(&mut self, fd: usize, mask: u8, r: [f32; 4], flags: bool) {
         let v = fz4(r);
         if flags {
-            let mut mac = 0u16;
-            for l in 0..4 {
-                if mask & (1 << l) == 0 {
-                    continue;
-                }
-                let raw = r[l];
-                let sh = 3 - l; // x -> bit 3 .. w -> bit 0
-                if v[l] == 0.0 {
-                    mac |= 1 << sh;
-                }
-                if raw.is_sign_negative() && raw != 0.0 {
-                    mac |= 0x10 << sh;
-                }
-                if raw.is_infinite() {
-                    mac |= 0x100 << sh;
-                }
-            }
-            self.mac = mac;
+            self.mac = mac_flags(r, v, mask);
         }
         if fd != 0 {
             if mask == 15 {
@@ -230,6 +279,7 @@ impl Regs {
         }
     }
 
+    #[inline(always)]
     pub fn clip_op(&mut self, fs: [f32; 4], ft_w: f32) {
         let w = fz(ft_w).abs();
         let mut b = 0u32;
@@ -240,6 +290,7 @@ impl Regs {
         if fs[2] > w { b |= 16 }
         if fs[2] < -w { b |= 32 }
         self.clip = ((self.clip << 6) | b) & 0xff_ffff;
+        #[cfg(feature = "vutrace")]
         if crate::trace::vu_enabled() {
             crate::trace::line(format!("      CLIP fs={:?} w={} bits={:#x} clip={:#x}", fs, ft_w, b, self.clip));
         }
@@ -285,4 +336,52 @@ pub fn qw(vi: u16, imm: i32) -> usize {
 #[inline(always)]
 pub fn mem_lane(vu: &Vu1, q: usize, l: usize) -> u32 {
     vu.mem[q][l]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ODD: [f32; 16] = [0.0, -0.0, 1.0, -1.0, 0.5, -0.5, 1e-40, -1e-40, f32::MAX, -f32::MAX, f32::INFINITY, f32::NEG_INFINITY, f32::NAN, 2147483648.0, -2147483904.0, 2147483520.0];
+
+    /// The flags as the lanes are written one by one.
+    fn mac_by_lane(raw: [f32; 4], v: [f32; 4], mask: u8) -> u16 {
+        let mut mac = 0u16;
+        for l in 0..4 {
+            if mask & (1 << l) == 0 {
+                continue;
+            }
+            let sh = 3 - l;
+            if v[l] == 0.0 {
+                mac |= 1 << sh;
+            }
+            if raw[l].is_sign_negative() && raw[l] != 0.0 {
+                mac |= 0x10 << sh;
+            }
+            if raw[l].is_infinite() {
+                mac |= 0x100 << sh;
+            }
+        }
+        mac
+    }
+
+    #[test]
+    fn four_lanes_match_one_by_one() {
+        enter_vu_mode();
+        let neg_nan = f32::from_bits(0xffc0_0000);
+        let mut seed = 99u32;
+        let mut pick = || {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            let i = (seed >> 16) as usize % 17;
+            if i == 16 { neg_nan } else { ODD[i] }
+        };
+        for _ in 0..200_000 {
+            let raw = [pick(), pick(), pick(), pick()];
+            let mask = (raw[0].to_bits() ^ raw[2].to_bits() >> 3) as u8 & 15;
+            assert_eq!(mac_flags(raw, fz4(raw), mask), mac_by_lane(raw, fz4(raw), mask), "{raw:?} {mask}");
+            for scale in [1.0, 16.0, 4096.0] {
+                assert_eq!(ftoi4(raw, scale), [ftoi(raw[0], scale), ftoi(raw[1], scale), ftoi(raw[2], scale), ftoi(raw[3], scale)], "{raw:?} {scale}");
+            }
+        }
+    }
 }

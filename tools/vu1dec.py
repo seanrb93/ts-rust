@@ -159,7 +159,7 @@ def emit_upper(p, out):
     if 20 <= idx <= 23:  # FTOI0/4/12/15
         sc = ['1.0', '16.0', '4096.0', '32768.0'][idx - 20]
         out.append(f'        let {n}a = r.vf[{fs}];')
-        out.append(f'        let {n} = [{", ".join(f"ftoi({n}a[{l}], {sc})" for l in range(4))}];')
+        out.append(f'        let {n} = ftoi4({n}a, {sc});')
         return f'r.put_bits({ft}, {mask}, {n});'
     if idx == 29:  # ABS
         out.append(f'        let {n}a = r.vf[{fs}];')

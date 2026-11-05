@@ -24,7 +24,6 @@ pub fn interp_total() -> u32 {
 pub fn interp_blended() -> u32 {
     interp::STAT_BLENDED.swap(0, std::sync::atomic::Ordering::Relaxed)
 }
-use std::collections::HashMap;
 use ts_gfx::scene::*;
 use wgpu::util::DeviceExt;
 
@@ -215,7 +214,7 @@ enum BlendKind {
 struct GpuTexture {
     _tex: wgpu::Texture,
     view: wgpu::TextureView,
-    binds: HashMap<(bool, bool, bool), wgpu::BindGroup>,
+    binds: FastMap<(bool, bool, bool), wgpu::BindGroup>,
     sig: u64,
     size: (u32, u32),
 }
@@ -330,17 +329,45 @@ fn fuse_scratch_strips(quads: &mut [GpuVertex]) {
     }
 }
 
+/// A buffer that is written again each frame, and made bigger when it must be.
+struct FrameBuffer {
+    buffer: wgpu::Buffer,
+    size: u64,
+}
+
+impl FrameBuffer {
+    /// Write `data`; true when the buffer is a new one (what refers to it must be made again).
+    fn write(slot: &mut Option<FrameBuffer>, device: &wgpu::Device, queue: &wgpu::Queue, label: &'static str, usage: wgpu::BufferUsages, data: &[u8]) -> bool {
+        let need = data.len() as u64;
+        let fresh = slot.as_ref().map_or(true, |b| b.size < need);
+        if fresh {
+            // (with room, so that it is not made again when the scene grows a little)
+            let size = (need + need / 4).max(4096);
+            let buffer = device.create_buffer(&wgpu::BufferDescriptor { label: Some(label), size, usage: usage | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
+            *slot = Some(FrameBuffer { buffer, size });
+        }
+        queue.write_buffer(&slot.as_ref().unwrap().buffer, 0, data);
+        fresh
+    }
+}
+
 pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
+    /// What a frame needs and the next can use again.
+    gpu_verts: Vec<GpuVertex>,
+    vertex_buffer: Option<FrameBuffer>,
+    params_buffer: Option<FrameBuffer>,
+    screen_buffer: Option<FrameBuffer>,
+    frame_bind: Option<wgpu::BindGroup>,
     shader: wgpu::ShaderModule,
-    pipelines: HashMap<PipelineKey, wgpu::RenderPipeline>,
+    pipelines: FastMap<PipelineKey, wgpu::RenderPipeline>,
     pipeline_layout: wgpu::PipelineLayout,
     frame_layout: wgpu::BindGroupLayout,
     tex_layout: wgpu::BindGroupLayout,
-    textures: HashMap<TexKey, GpuTexture>,
+    textures: FastMap<TexKey, GpuTexture>,
     white: Option<GpuTexture>,
-    samplers: HashMap<(bool, bool, bool), wgpu::Sampler>,
+    samplers: FastMap<(bool, bool, bool), wgpu::Sampler>,
     scene: Option<SceneTarget>,
     blit: Option<(wgpu::RenderPipeline, wgpu::BindGroupLayout, wgpu::Sampler, wgpu::Sampler)>,
     /// Image-quality options; changing them takes effect on the next frame.
@@ -582,13 +609,18 @@ impl Renderer {
             device,
             queue,
             shader,
-            pipelines: HashMap::new(),
+            gpu_verts: Vec::new(),
+            vertex_buffer: None,
+            params_buffer: None,
+            screen_buffer: None,
+            frame_bind: None,
+            pipelines: FastMap::default(),
             pipeline_layout,
             frame_layout,
             tex_layout,
-            textures: HashMap::new(),
+            textures: FastMap::default(),
             white: None,
-            samplers: HashMap::new(),
+            samplers: FastMap::default(),
             scene: None,
             blit: None,
             settings: Settings::default(),
@@ -704,7 +736,7 @@ impl Renderer {
             data,
         );
         let view = tex.create_view(&Default::default());
-        let mut t = GpuTexture { _tex: tex, view, binds: HashMap::new(), sig, size: (w, h) };
+        let mut t = GpuTexture { _tex: tex, view, binds: FastMap::default(), sig, size: (w, h) };
         self.ensure_bind(&mut t, samp);
         t
     }
@@ -941,7 +973,7 @@ impl Renderer {
         self.scene = None;
     }
 
-    fn texture_for(&mut self, key: &TexKey, samp: (bool, bool, bool), cache: &mut HashMap<(TexKey, (bool, bool, bool)), Option<(u32, u32)>>, snaps: &HashMap<TexKey, std::sync::Arc<DecodedTex>>) -> Option<(u32, u32)> {
+    fn texture_for(&mut self, key: &TexKey, samp: (bool, bool, bool), cache: &mut FastMap<(TexKey, (bool, bool, bool)), Option<(u32, u32)>>, snaps: &FastMap<TexKey, std::sync::Arc<DecodedTex>>) -> Option<(u32, u32)> {
         if let Some(r) = cache.get(&(*key, samp)) {
             return *r;
         }
@@ -1033,15 +1065,13 @@ impl Renderer {
         }
         self.ensure_scene(size);
         // per-frame buffers
-        let mut verts: Vec<GpuVertex> = frame
-            .vertices
-            .iter()
-            .map(|v| GpuVertex { pos: v.pos, color: v.color, st: v.st, fog: v.fog, uvb: [-1e9, -1e9, 1e9, 1e9], vel: v.vel })
-            .collect();
+        let mut verts = std::mem::take(&mut self.gpu_verts);
+        verts.clear();
+        verts.extend(frame.vertices.iter().map(|v| GpuVertex { pos: v.pos, color: v.color, st: v.st, fog: v.fog, uvb: [-1e9, -1e9, 1e9, 1e9], vel: v.vel }));
         let mut params: Vec<GpuParams> = Vec::with_capacity(frame.draws.len());
         let mut prepared: Vec<(Option<TexKey>, PipelineKey, f32)> = Vec::new();
         let mut screen_kinds: Vec<u8> = Vec::with_capacity(frame.draws.len());
-        let mut tex_cache: HashMap<(TexKey, (bool, bool, bool)), Option<(u32, u32)>> = HashMap::new();
+        let mut tex_cache: FastMap<(TexKey, (bool, bool, bool)), Option<(u32, u32)>> = FastMap::default();
         let mut samps: Vec<(bool, bool, bool)> = Vec::with_capacity(frame.draws.len());
         for d in &frame.draws {
             let s = &d.state;
@@ -1669,16 +1699,8 @@ impl Renderer {
         }
         let zero_v = [GpuVertex::zeroed()];
         let zero_p = [GpuParams::zeroed()];
-        let vbuf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("verts"),
-            contents: bytemuck::cast_slice(if verts.is_empty() { &zero_v[..] } else { &verts[..] }),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        let pbuf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("params"),
-            contents: bytemuck::cast_slice(if params.is_empty() { &zero_p[..] } else { &params[..] }),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
+        FrameBuffer::write(&mut self.vertex_buffer, &self.device, &self.queue, "verts", wgpu::BufferUsages::VERTEX, bytemuck::cast_slice(if verts.is_empty() { &zero_v[..] } else { &verts[..] }));
+        let new_params = FrameBuffer::write(&mut self.params_buffer, &self.device, &self.queue, "params", wgpu::BufferUsages::STORAGE, bytemuck::cast_slice(if params.is_empty() { &zero_p[..] } else { &params[..] }));
         // the game fills the whole internal image
         let (vx, vy, vw, vh) = (0.0f32, 0.0f32, size.0 as f32, size.1 as f32);
         // GS samples sit on integer coordinates (pixel centres): a pixel's sample point is its integer position and the game's
@@ -1686,19 +1708,17 @@ impl Renderer {
         // pixels) and the shader moves texture lookups half a logical pixel back, which keeps every texel centre where it was.
         let shift = if self.no_shift { 0.0 } else { vw / LOGICAL_W };
         let xf: [f32; 8] = [2.0 / LOGICAL_W, -2.0 / LOGICAL_H, -1.0, 1.0, shift, 0.0, 0.0, 0.0];
-        let sbuf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("screen"),
-            contents: bytemuck::cast_slice(&xf),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
-        let frame_bind = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("frame"),
-            layout: &self.frame_layout,
-            entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: pbuf.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: sbuf.as_entire_binding() },
-            ],
-        });
+        let new_screen = FrameBuffer::write(&mut self.screen_buffer, &self.device, &self.queue, "screen", wgpu::BufferUsages::UNIFORM, bytemuck::cast_slice(&xf));
+        if new_params || new_screen || self.frame_bind.is_none() {
+            self.frame_bind = Some(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("frame"),
+                layout: &self.frame_layout,
+                entries: &[
+                    wgpu::BindGroupEntry { binding: 0, resource: self.params_buffer.as_ref().unwrap().buffer.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 1, resource: self.screen_buffer.as_ref().unwrap().buffer.as_entire_binding() },
+                ],
+            }));
+        }
         // Draws that sample the frame buffer (image-processing effects) need a snapshot of the image rendered so far.
         let uses_screen = screen_kinds.iter().any(|&k| k != 0);
         if uses_screen && std::env::var_os("TS_SCREENLOG").is_some() {
@@ -1822,8 +1842,8 @@ impl Renderer {
             });
             first_pass = false;
             pass.set_viewport(vx, vy, vw, vh, 0.0, 1.0);
-            pass.set_vertex_buffer(0, vbuf.slice(..));
-            pass.set_bind_group(0, &frame_bind, &[]);
+            pass.set_vertex_buffer(0, self.vertex_buffer.as_ref().unwrap().buffer.slice(..));
+            pass.set_bind_group(0, self.frame_bind.as_ref().unwrap(), &[]);
             let sx = vw / LOGICAL_W;
             let sy = vh / LOGICAL_H;
             for vi in start..end {
@@ -1866,10 +1886,12 @@ impl Renderer {
                 );
             }
         }
+        self.gpu_verts = verts;
         self.queue.submit(Some(enc.finish()));
-        // every 30th scene: wait for the GPU to learn how long drawing it really takes
+        // every 30th scene: wait for the GPU to learn how long drawing it really takes (for the report of TS_PERFLOG only: the wait is a stall of this thread)
         self.scene_count += 1;
-        if self.scene_count % 30 == 0 {
+        static MEASURE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        if self.scene_count % 30 == 0 && *MEASURE.get_or_init(|| std::env::var_os("TS_PERFLOG").is_some()) {
             let t = std::time::Instant::now();
             self.device.poll(wgpu::Maintain::Wait);
             self.gpu_ms = t.elapsed().as_secs_f32() * 1e3;

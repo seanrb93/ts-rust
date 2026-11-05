@@ -34,7 +34,7 @@ pub struct Gfx {
     vif: Vif,
     gif: Gif,
     /// decoded textures by key, reused while their texture memory is unchanged
-    tex_cache: std::collections::HashMap<scene::TexKey, std::sync::Arc<scene::DecodedTex>>,
+    tex_cache: scene::FastMap<scene::TexKey, std::sync::Arc<scene::DecodedTex>>,
     /// the VIF byte stream of the frame being translated (kept between frames so that it is not allocated every time)
     stream_buf: Vec<u8>,
     /// size of the previous frame's draw list: the next one is allocated with room for about as much
@@ -79,7 +79,7 @@ impl Gfx {
     pub fn run_list(&mut self, head: i32, world: &[(i32, i32)]) -> Frame {
         vu::enter_vu_mode();
         let t_stream = programs::tstart();
-        let mut frame = Frame::default();
+        let mut frame = scene::new_frame();
         frame.vertices.reserve(self.last_sizes.0 + self.last_sizes.0 / 8 + 4096);
         frame.draws.reserve(self.last_sizes.1 + self.last_sizes.1 / 8 + 256);
         // (stream offset, tag is inside a world-sprite range): lets the VIF attribute draws to the tag that produced them
@@ -140,7 +140,7 @@ impl Gfx {
         self.stream_buf = stream;
         let t_tex = programs::tstart();
         // snapshot the textures the frame uses (texture memory changes while later frames are built)
-        let keys: std::collections::HashSet<scene::TexKey> = frame.draws.iter().filter_map(|d| d.state.tex).collect();
+        let keys: scene::FastSet<scene::TexKey> = frame.draws.iter().filter_map(|d| d.state.tex).collect();
         vram::with_vram(|v| {
             static TEXLOG: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
             let texlog = *TEXLOG.get_or_init(|| std::env::var_os("TS_TEXLOG").is_some());

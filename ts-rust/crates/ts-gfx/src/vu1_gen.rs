@@ -402,7 +402,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x3d vi={:?}", &r.vi[1..16])); } }
             let u3da = r.vf[7];
-            let u3d = [ftoi(u3da[0], 16.0), ftoi(u3da[1], 16.0), ftoi(u3da[2], 16.0), ftoi(u3da[3], 16.0)];
+            let u3d = ftoi4(u3da, 16.0);
             let l3dc = (r.vi[8] as i16) > 0;
             r.put_bits(7, 15, u3d);
             // --- 0x03e
@@ -2299,7 +2299,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x17f vi={:?}", &r.vi[1..16])); } }
             let u17fa = r.vf[28];
-            let u17f = [ftoi(u17fa[0], 1.0), ftoi(u17fa[1], 1.0), ftoi(u17fa[2], 1.0), ftoi(u17fa[3], 1.0)];
+            let u17f = ftoi4(u17fa, 1.0);
             r.put_bits(28, 15, u17f);
             // --- 0x180
             r.tick();
@@ -2336,7 +2336,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x184 vi={:?}", &r.vi[1..16])); } }
             let u184a = r.vf[29];
-            let u184 = [ftoi(u184a[0], 16.0), ftoi(u184a[1], 16.0), ftoi(u184a[2], 16.0), ftoi(u184a[3], 16.0)];
+            let u184 = ftoi4(u184a, 16.0);
             r.vi_set(5, r.vi[5].wrapping_sub(1));
             r.put_bits(29, 15, u184);
             // --- 0x185
@@ -2894,7 +2894,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x1f8 vi={:?}", &r.vi[1..16])); } }
             let u1f8a = r.vf[7];
-            let u1f8 = [ftoi(u1f8a[0], 16.0), ftoi(u1f8a[1], 16.0), ftoi(u1f8a[2], 16.0), ftoi(u1f8a[3], 16.0)];
+            let u1f8 = ftoi4(u1f8a, 16.0);
             let l1f8c = (r.vi[8] as i16) > 0;
             r.put_bits(7, 15, u1f8);
             // --- 0x1f9
@@ -4791,7 +4791,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x33a vi={:?}", &r.vi[1..16])); } }
             let u33aa = r.vf[28];
-            let u33a = [ftoi(u33aa[0], 1.0), ftoi(u33aa[1], 1.0), ftoi(u33aa[2], 1.0), ftoi(u33aa[3], 1.0)];
+            let u33a = ftoi4(u33aa, 1.0);
             r.put_bits(28, 15, u33a);
             // --- 0x33b
             r.tick();
@@ -4821,7 +4821,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x33e vi={:?}", &r.vi[1..16])); } }
             let u33ea = r.vf[29];
-            let u33e = [ftoi(u33ea[0], 16.0), ftoi(u33ea[1], 16.0), ftoi(u33ea[2], 16.0), ftoi(u33ea[3], 16.0)];
+            let u33e = ftoi4(u33ea, 16.0);
             r.vi_set(5, r.vi[5].wrapping_sub(1));
             r.put_bits(29, 15, u33e);
             // --- 0x33f
@@ -5370,7 +5370,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x3a9 vi={:?}", &r.vi[1..16])); } }
             let u3a9a = r.vf[13];
-            let u3a9 = [ftoi(u3a9a[0], 1.0), ftoi(u3a9a[1], 1.0), ftoi(u3a9a[2], 1.0), ftoi(u3a9a[3], 1.0)];
+            let u3a9 = ftoi4(u3a9a, 1.0);
             r.put_bits(13, 15, u3a9);
             // --- 0x3aa
             r.tick();
@@ -5385,7 +5385,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x3ab vi={:?}", &r.vi[1..16])); } }
             let u3aba = r.vf[7];
-            let u3ab = [ftoi(u3aba[0], 16.0), ftoi(u3aba[1], 16.0), ftoi(u3aba[2], 16.0), ftoi(u3aba[3], 16.0)];
+            let u3ab = ftoi4(u3aba, 16.0);
             { let q = qw(r.vi[6], 144); r.put_bits(15, 15, vu.mem[q]); }
             r.put_bits(7, 15, u3ab);
             // --- 0x3ac
@@ -7157,7 +7157,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x4df vi={:?}", &r.vi[1..16])); } }
             let u4dfa = r.vf[28];
-            let u4df = [ftoi(u4dfa[0], 1.0), ftoi(u4dfa[1], 1.0), ftoi(u4dfa[2], 1.0), ftoi(u4dfa[3], 1.0)];
+            let u4df = ftoi4(u4dfa, 1.0);
             r.put_bits(28, 15, u4df);
             // --- 0x4e0
             r.tick();
@@ -7194,7 +7194,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x4e4 vi={:?}", &r.vi[1..16])); } }
             let u4e4a = r.vf[29];
-            let u4e4 = [ftoi(u4e4a[0], 16.0), ftoi(u4e4a[1], 16.0), ftoi(u4e4a[2], 16.0), ftoi(u4e4a[3], 16.0)];
+            let u4e4 = ftoi4(u4e4a, 16.0);
             r.vi_set(5, r.vi[5].wrapping_sub(1));
             r.put_bits(29, 15, u4e4);
             // --- 0x4e5
@@ -7884,7 +7884,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x563 vi={:?}", &r.vi[1..16])); } }
             let u563a = r.vf[13];
-            let u563 = [ftoi(u563a[0], 1.0), ftoi(u563a[1], 1.0), ftoi(u563a[2], 1.0), ftoi(u563a[3], 1.0)];
+            let u563 = ftoi4(u563a, 1.0);
             r.put_bits(13, 15, u563);
             // --- 0x564
             r.tick();
@@ -7893,7 +7893,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x565 vi={:?}", &r.vi[1..16])); } }
             let u565a = r.vf[7];
-            let u565 = [ftoi(u565a[0], 16.0), ftoi(u565a[1], 16.0), ftoi(u565a[2], 16.0), ftoi(u565a[3], 16.0)];
+            let u565 = ftoi4(u565a, 16.0);
             { let q = qw(r.vi[4], -3); let v = r.vf[29];
               vu.mem[q][0] = v[0].to_bits();
               vu.mem[q][1] = v[1].to_bits();
@@ -9645,7 +9645,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x694 vi={:?}", &r.vi[1..16])); } }
             let u694a = r.vf[28];
-            let u694 = [ftoi(u694a[0], 1.0), ftoi(u694a[1], 1.0), ftoi(u694a[2], 1.0), ftoi(u694a[3], 1.0)];
+            let u694 = ftoi4(u694a, 1.0);
             r.put_bits(28, 15, u694);
             // --- 0x695
             r.tick();
@@ -9682,7 +9682,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x699 vi={:?}", &r.vi[1..16])); } }
             let u699a = r.vf[29];
-            let u699 = [ftoi(u699a[0], 16.0), ftoi(u699a[1], 16.0), ftoi(u699a[2], 16.0), ftoi(u699a[3], 16.0)];
+            let u699 = ftoi4(u699a, 16.0);
             r.vi_set(5, r.vi[5].wrapping_sub(1));
             r.put_bits(29, 15, u699);
             // --- 0x69a
@@ -10231,7 +10231,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x6f1 vi={:?}", &r.vi[1..16])); } }
             let u6f1a = r.vf[13];
-            let u6f1 = [ftoi(u6f1a[0], 1.0), ftoi(u6f1a[1], 1.0), ftoi(u6f1a[2], 1.0), ftoi(u6f1a[3], 1.0)];
+            let u6f1 = ftoi4(u6f1a, 1.0);
             r.put_bits(13, 15, u6f1);
             // --- 0x6f2
             r.tick();
@@ -10246,7 +10246,7 @@ pub fn run(vu: &mut Vu1, r: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: 
             r.tick();
             #[cfg(feature = "vutrace")] { if crate::trace::vu_enabled() { crate::trace::line(format!("      vu pc=0x6f3 vi={:?}", &r.vi[1..16])); } }
             let u6f3a = r.vf[7];
-            let u6f3 = [ftoi(u6f3a[0], 16.0), ftoi(u6f3a[1], 16.0), ftoi(u6f3a[2], 16.0), ftoi(u6f3a[3], 16.0)];
+            let u6f3 = ftoi4(u6f3a, 16.0);
             { let q = qw(r.vi[6], 144); r.put_bits(15, 15, vu.mem[q]); }
             r.put_bits(7, 15, u6f3);
             // --- 0x6f4
