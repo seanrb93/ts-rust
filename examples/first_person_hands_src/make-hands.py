@@ -9,6 +9,7 @@ The tools it uses are `tools/obdump.py` (a model as an OBJ) and `tools/obedit.py
 """
 import math
 import os
+import shutil
 import subprocess
 import sys
 
@@ -715,7 +716,14 @@ def main():
         name, skin = character_files(pak)[0]
         bake_character(pak, mod, 0, name, skin, names, work)
     os.makedirs(mod, exist_ok=True)
-    open(os.path.join(mod, 'mod.ini'), 'w').write('enabled = true' + chr(10))
+    # (the mod's own mod.ini and script say how the models are used: they are kept, and written when the folder is new)
+    ini = os.path.join(mod, 'mod.ini')
+    if not os.path.exists(ini) or 'script' not in open(ini).read():
+        open(ini, 'w').write('name = First Person Hands' + chr(10) + 'enabled = true' + chr(10) + 'script = hands.rhai' + chr(10))
+    scripts = os.path.join(mod, 'scripts')
+    if not os.path.exists(os.path.join(scripts, 'hands.rhai')):
+        os.makedirs(scripts, exist_ok=True)
+        shutil.copy(os.path.join(HERE, '..', 'first_person_hands_mod', 'scripts', 'hands.rhai'), scripts)
 
 
 main()
