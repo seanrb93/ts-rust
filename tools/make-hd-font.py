@@ -35,7 +35,7 @@ REACH = 0.18           # and how far it can go from the drawing, so that a shape
 
 ELLIPSE = 'R 0,0 1,1 #0,#360 Z'
 ROUND_S = 'R .03,0 .97,#.5 #-32,#-270 T 0,#.5 1,1 #-90,#148'
-# the drawings.  Letters: M move, L line, Ah a quarter curve that starts level, Av one that starts upright, C a curve by two control points, R an arc of the ellipse in the box from corner to corner, between two angles (0 is right, -90 the top), T the same going on from the line before it, Z close.  y goes down.  0 and 1 are the edges of the character's box and are fixed, #n is a fixed number,
+# the drawings.  Letters: M move, L line, Ah a quarter curve that starts level, Av one that starts upright, C a curve by two control points, R an arc of the ellipse in the box from corner to corner, between two angles (0 is right, -90 the top), T the same going on from the line before it, F a filled shape with straight sides (corners in order, no pen), Z close.  y goes down.  0 and 1 are the edges of the character's box and are fixed, #n is a fixed number,
 # !n is 1 less the measurement n (for what is the same on both sides).  A character can have several drawings (a list): the first is used unless a later one fits clearly better.
 GLYPHS = {
     '!': 'M #.5,0 L #.5,.7 M #.5,.84 L #.5,1',
@@ -54,11 +54,11 @@ GLYPHS = {
     '.': 'M #.5,0 L #.5,1',
     '/': 'M 0,#1.1 L 1,#-.1',
     '0': ELLIPSE,
-    '1': ['M 1,0 L 1,1 M 1,#.02 L 0,.36', 'M .55,0 L .55,1 M .55,#.02 L 0,.3 M 0,1 L 1,1'],
+    '1': ['M 1,0 L 1,1 F 1,#-.12 #-.3,#.24 #-.3,#.4 1,#.1', 'M .55,0 L .55,1 F .55,#-.12 #-.3,#.24 #-.3,#.4 .55,#.1 M 0,1 L 1,1'],
     '2': 'M 0,.28 Av #.5,0 Ah 1,.28 C 1,.5 .6,.62 0,.97 L 0,1 L 1,1',
     '3': 'R 0,0 .96,#.5 #-155,#90 L .42,#.5 R 0,#.5 1,1 #-90,#155',
     '4': 'M .74,0 L .74,1 M .74,#-.08 L 0,.72 L 1,.72',
-    '5': 'M 1,0 L .1,0 L .06,.46 T 0,.34 1,1 #-120,#148',
+    '5': 'M 1,0 L .08,0 L .08,.5 R 0,.36 1,1 #-135,#148',
     '6': 'R 0,.4 1,1 #0,#360 Z R 0,0 1.16,1.4 #-58,#-180',
     '7': 'M 0,0 L 1,0 L .3,#1.1',
     '8': 'R .04,0 .96,.48 #0,#360 Z R 0,.48 1,1 #0,#360 Z',
@@ -76,7 +76,7 @@ GLYPHS = {
     'D': 'M 0,#.5 L 0,0 L .5,0 Ah 1,#.5 Av .5,1 L 0,1 L 0,#.5',
     'E': 'M 1,0 L 0,0 L 0,1 L 1,1 M 0,.5 L .9,.5',
     'F': 'M 1,0 L 0,0 L 0,1 M 0,.5 L .85,.5',
-    'G': 'R 0,0 1,1 #-40,#-340 L 1,.55 L .6,.55',
+    'G': 'R 0,0 1,1 #-40,#-360 L .6,#.5',
     'H': 'M 0,0 L 0,1 M 1,0 L 1,1 M 0,.5 L 1,.5',
     'I': 'M #.5,0 L #.5,1',
     'J': 'M 1,0 L 1,.66 Av #.5,1 Ah 0,.72',
@@ -133,6 +133,26 @@ GLYPHS = {
     '}': 'M 0,0 L .25,0 Ah .55,.2 L .55,.36 Av .85,#.5 L 1,#.5 M .85,#.5 Ah .55,!.36 L .55,!.2 Av .25,1 L 0,1',
     '~': 'M 0,.85 Av .28,0 Ah .55,.5 Av .78,1 Ah 1,.15',
 }
+# The game's tables of kerning pull some pairs together by up to 4 texels (T and O, A and T), so that their rectangles overlap: right for its blurred letters, too close for sharp ones.
+KERNING = '''// HD Font: the kerning of the sharp letters.  The game's pairs that are pulled together by up to 4 texels are pulled together by at most 1.
+fn on_frame() {
+    if this.contains("done") { return; }
+    let seen = [];
+    for f in 0..5 {
+        let table = peek(0x3198a8 + 24 * f + 8);
+        if table == 0 { return; }
+        if seen.contains(table) { continue; }
+        seen.push(table);
+        for i in 0..121 {
+            let v = peek(table + 4 * i);
+            if v < -1 { poke(table + 4 * i, -1); } else if v == -1 { poke(table + 4 * i, 0); }
+        }
+    }
+    this.done = true;
+}
+'''
+
+
 # the lines of a font that each character stands on (top, bottom: None is its own)
 TOPS = {**{c: 'cap' for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'}, **{c: 'digit' for c in '0123456789'}, **{c: 'small' for c in 'acegmnopqrsuvwxyz'}, **{c: 'tall' for c in 'bdfhkl'}}
 BOTTOMS = {**{c: 'base' for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefhiklmnorstuvwxz'}, **{c: 'deep' for c in 'gjpqy'}}
@@ -173,7 +193,7 @@ def parse(text):
         return (None, key, flip)
     params = {}
     commands = []
-    for cmd, args in re.findall(r'(Ah|Av|M|L|Z|C|R|T)\s*([^A-Z]*)', text):
+    for cmd, args in re.findall(r'(Ah|Av|M|L|Z|C|R|T|F)\s*([^A-Z]*)', text):
         if cmd == 'Z':
             commands.append(('Z', None, None, None))
             continue
@@ -198,7 +218,11 @@ def strokes(commands, m):
     power = 2.0 / m['n']
     paths = []
     steps = m.get('steps', ARC_STEPS)
+    fills = []
     for cmd, xn, yn, controls in commands:
+        if cmd == 'F':
+            fills.append([(left + value_of(cx, m) * span_x, top + value_of(cy, m) * span_y) for cx, cy in controls + [(xn, yn)]])
+            continue
         if cmd in 'MR':
             paths.append(dict(points=[], kinds=[], closed=False))
         if cmd == 'Z':
@@ -261,7 +285,7 @@ def strokes(commands, m):
             pts[0] = to_edge(pts[0], pts[1])
             pts[-1] = to_edge(pts[-1], pts[-2])
         outlines.append((pts, path['closed']))
-    return outlines, corners
+    return outlines, corners, fills
 
 
 def triangles(pts, closed):
@@ -310,7 +334,7 @@ def triangles(pts, closed):
 
 def inside(px, py, commands, m):
     """Which of the points (arrays) are inked."""
-    outlines, corners = strokes(commands, m)
+    outlines, corners, fills = strokes(commands, m)
     rx, ry = max(m['wx'] / 2.0, 1.0e-3), max(m['wy'] / 2.0, 1.0e-3)
     out = np.zeros(px.shape, dtype=bool)
     xs, ys = px[0, :] / rx, py[:, 0] / ry
@@ -319,21 +343,28 @@ def inside(px, py, commands, m):
         # (only the points that the shape can reach)
         return slice(np.searchsorted(ys, y0), np.searchsorted(ys, y1, side='right')), slice(np.searchsorted(xs, x0), np.searchsorted(xs, x1, side='right'))
 
+    def triangle(ax, ay, bx, by, cx, cy):
+        area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+        if abs(area) < 1.0e-12:
+            return
+        rows, columns = window(min(ax, bx, cx), max(ax, bx, cx), min(ay, by, cy), max(ay, by, cy))
+        x, y = xs[columns][None, :], ys[rows][:, None]
+        if x.size == 0 or y.size == 0:
+            return
+        flip = 1.0 if area > 0.0 else -1.0
+        hit = ((bx - ax) * (y - ay) - (by - ay) * (x - ax)) * flip >= 0.0
+        hit &= ((cx - bx) * (y - by) - (cy - by) * (x - bx)) * flip >= 0.0
+        hit &= ((ax - cx) * (y - cy) - (ay - cy) * (x - cx)) * flip >= 0.0
+        out[rows, columns] |= hit
+
+    for corners_of in fills:
+        pts = [(x / rx, y / ry) for x, y in corners_of]
+        for i in range(1, len(pts) - 1):
+            triangle(pts[0][0], pts[0][1], pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1])
     for pts, closed in outlines:
         shapes, joins = triangles([(x / rx, y / ry) for x, y in pts], closed)
-        for ax, ay, bx, by, cx, cy in shapes:
-            area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
-            if abs(area) < 1.0e-12:
-                continue
-            rows, columns = window(min(ax, bx, cx), max(ax, bx, cx), min(ay, by, cy), max(ay, by, cy))
-            x, y = xs[columns][None, :], ys[rows][:, None]
-            if x.size == 0 or y.size == 0:
-                continue
-            flip = 1.0 if area > 0.0 else -1.0
-            hit = ((bx - ax) * (y - ay) - (by - ay) * (x - ax)) * flip >= 0.0
-            hit &= ((cx - bx) * (y - by) - (cy - by) * (x - bx)) * flip >= 0.0
-            hit &= ((ax - cx) * (y - cy) - (ay - cy) * (x - cx)) * flip >= 0.0
-            out[rows, columns] |= hit
+        for shape in shapes:
+            triangle(*shape)
         for jx, jy in joins:
             rows, columns = window(jx - 1.0, jx + 1.0, jy - 1.0, jy + 1.0)
             x, y = xs[columns][None, :], ys[rows][:, None]
@@ -498,7 +529,7 @@ def plan(ch, result, rect, lines, signs, pen):
     if ch == '1':
         # (the pixels of the flag are faint: it would be measured too short, and the character would look like an l)
         box['x1'] = m['x1']
-        box['x0'] = max(0.0, min(m['x0'], m['x1'] - 2.4 * pen['wx']))
+        box['x0'] = max(0.0, min(m['x0'], m['x1'] - 1.9 * pen['wx']))
     if ch in ROUND_TOP and 'y0' in box and 'y1' in box:
         box['y0'] = max(0.0, box['y0'] - OVERSHOOT * (box['y1'] - box['y0']))
     if ch in ROUND_BOTTOM and 'y0' in box and 'y1' in box:
@@ -671,7 +702,10 @@ def main():
         errors = sorted(((r['error'], ch) for ch, r in fit[font].items()), reverse=True)
         print(f'{font}: {picture.width}x{picture.height}, worst {[ch for _, ch in errors[:10]]}')
     with open(os.path.join(mods, 'hd_font', 'mod.ini'), 'w', encoding='utf-8') as f:
-        f.write('name = HD Font\nenabled = true\n')
+        f.write('name = HD Font\nenabled = true\nscript = kerning.rhai\n')
+    os.makedirs(os.path.join(mods, 'hd_font', 'scripts'), exist_ok=True)
+    with open(os.path.join(mods, 'hd_font', 'scripts', 'kerning.rhai'), 'w', encoding='utf-8') as f:
+        f.write(KERNING)
 
 
 if __name__ == '__main__':
