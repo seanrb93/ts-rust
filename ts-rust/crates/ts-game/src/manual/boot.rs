@@ -454,6 +454,12 @@ pub fn present_frame() {
                 if std::env::var_os("TS_EQUIP").is_some() {
                     sw(s + 260, c);
                     sw(s + 376, lh((c << 3) + GUNCOMBOS + 4));
+                    // (the gun it had is deleted, as the game does when it changes guns: left alone it goes on being drawn, with old matrices, across the view)
+                    let old = lw(lw(g::players) + 612);
+                    if old != 0 {
+                        propDelete(old);
+                        sw(lw(g::players) + 612, 0);
+                    }
                     sw(lw(g::players) + 600, 4);
                     let kind = lw(lh((c << 3) + GUNCOMBOS + 4) * 400 + GUNS_TABLE + 16);
                     sw(s + (kind << 2) + 380, 99);
