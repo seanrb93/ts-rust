@@ -5,7 +5,7 @@
 The hands have the skin and sleeve of a character of the game: HANDS_CHARACTER=<number> (the character's number, 0 is Det. Harry Tipper, the default)
 
 The tools it uses are `tools/obdump.py` (a model as an OBJ) and `tools/obedit.py meshes` (an OBJ back into a model).  The hand is put on a part of the gun that does not move on its own
-(the body), or, for the forend of a pump gun, on the part that slides.  Each hand is a rotation, a scale and a place: see WEAPONS.
+(the body), or, for the forend of a pump gun, on the part that slides.  How each hand holds its weapon is in WEAPONS: the hand is turned to the weapon and its fingers bent round it, and the forearm comes in from where it would in real life.
 """
 import math
 import os
@@ -20,47 +20,53 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.join(HERE, '..', '..', 'tools')
 TEX_BASE = 9400
 
-# The weapons: the file of the gun as it is seen in the first person, the part of it that is the body (the part the hands are put on: it does not move on its own), the kind
-# ('one' a hand on the grip, 'two' a hand on the grip and one under the front) and, where the first try is not right, the places (x, y, z in the gun's own space) of the hands:
-# 'grip' and 'fore', and 'fore_part' when the front hand rides on another part (the sliding forend of a pump gun).  The first try is made from the box of the body.
-# where the elbow of each arm is from its hand, in the space of the gun (x right, y up, z forward): the arms come into the view from the bottom of the screen
-GRIP_FROM = (0.5, -0.55, -0.65)
-FORE_FROM = (-0.5, -0.45, -0.7)
-GRIP_ROT = (-90, 0, 90)      # the hand of the grip: the palm is upright, the thumb up, as a hand holds a grip
-FORE_ROT = (-90, 0, 180)     # the hand under the front: the palm up, under the gun, the fingers forward
+# The weapons, held as they are in real life.  The space of a gun: +x is to the left on the screen, y up, z forward (to the muzzle).
+# file: the first person model; part: the part the hands go on (the one that does not move on its own); kind: 'one' or 'two' hands.
+# grip=(y, z): the middle of what the right hand holds; rake: how far the grip leans back from upright (degrees).  The hand lies on the right of it with its knuckles at its front, and the
+# fingers curl round it (how far across it is, is measured from the model).
+# fore=z: how far forward the left hand holds: palm up under the gun, the fingers up its far side, the thumb on the near side; fore_part: the part it rides on (the sliding forend of a pump gun).
+# foregrip=(y, z): an upright grip for the left hand, held as the right hand holds its grip.
+# handle=(x, y, z): a handle that sticks out to the left of the gun, for the left hand.
+# arm: where the elbow of the right arm is, when not GRIP_ARM.
+# palm=(x, y, z) with fingers=(x, y, z) and thumb=(x, y, z): something that is carried rather than gripped, lying on the upturned right palm.
+CURL_LIMIT = 150.0  # how far round the fingers bend, degrees
+THUMB_LIMIT = math.radians(90.0)  # and the thumb
+GRIP_ARM = (-0.35, -0.3, -0.9)  # where the elbow of the right arm is from its wrist: back, down and to the right of the screen, nearly along the gun
+WRIST_ARM = (-0.45, -0.65, -0.6)  # the right arm when the hand is on the wrist of a stock: the elbow is lower
+FORE_ARM = (0.6, -0.45, -0.7)   # and of the left arm, which comes across from the lower left
 WEAPONS = {
-    'pistol': dict(grip_scale=0.9, file='ob/gun1/gun1.raw', part='part3', kind='one', grip=(-0.022, -0.04, -0.04)),
-    'raygun': dict(grip_scale=0.9, file='ob/gun5/gun5.raw', part='part0', kind='one'),
-    'scifi_handgun': dict(grip_scale=0.9, file='ob/gun8/gun8.raw', part='part0', kind='one', grip=(-0.02, -0.06, -0.06)),
-    'mauser': dict(grip_scale=0.9, file='ob/gun10/gun10.raw', part='part0', kind='one', grip=(-0.02, -0.11, 0.05)),
-    'colt': dict(grip_scale=0.9, file='ob/gun24/gun24.raw', part='part0', kind='one', grip=(-0.03, -0.09, -0.04)),
-    'uzi': dict(grip_scale=0.9, file='ob/gun22/gun22.raw', part='part0', kind='one', grip=(-0.02, -0.06, -0.04)),
-    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.06, -0.10, -0.05), fore_abs=(0.03, 0.05, 0.27)),
-    'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(-0.02, -0.06, 0.0), fore_z=0.26, fore_from=(0.3, -0.9, -0.3)),
-    'sniper_rifle': dict(file='ob/gun4/gun4.raw', part='part0', kind='two', fore_z=0.55, fore_from=(0.3, -0.9, -0.3)),
-    'raygun_carbine': dict(file='ob/gun6/gun6.raw', part='part0', kind='two', fore_z=0.22, fore_from=(0.3, -0.9, -0.3)),
-    'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two', fit=None, fore_abs=(0.03, 0.05, 0.18), fore_from=(0.3, -0.9, -0.3)),
-    'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two', fore_z=0.22, fore_from=(0.3, -0.9, -0.3)),
-    'minigun': dict(file='ob/gun11/gun11.raw', part='part0', kind='two', grip=(-0.02, -0.04, 0.08), fore=(0.01, -0.02, 0.3)),
-    'grenade_launcher': dict(file='ob/gun12/gun12.raw', part='part0', kind='two'),
-    'scifi_sniper_rifle': dict(file='ob/gun13/gun13.raw', part='part0', kind='two', fore_z=0.24, fore_from=(0.3, -0.9, -0.3)),
-    'weapon_13': dict(file='ob/gun14/gun14.raw', part='part0', kind='two'),
-    'proximity_mine': dict(file='ob/gun15/gun15.raw', part='part1', kind='one'),
-    'remote_mine': dict(file='ob/gun16/gun16.raw', part='part0', kind='one'),
-    'timed_mine': dict(file='ob/gun17/gun17.raw', part='part2', kind='one'),
-    'weapon_17': dict(file='ob/gun18/gun18.raw', part='part0', kind='one'),
-    'tnt': dict(file='ob/gun19/gun19.raw', part='part0', kind='one', grip=(-0.02, 0.08, 0.0)),
-    'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.06), fore_abs=(0.06, 0.0, 0.34), fore_from=(0.3, -0.9, -0.3)),
-    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.02, -0.08, -0.045), fit_grip={'dy': 0.07}, fore_abs=(0.02, 0.04, 0.36), fore_part='part2'),
-    'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two', grip=(-0.07, -0.05, -0.07), fit_grip={'dy': 0.05}, fore_abs=(-0.06, 0.0, 0.28)),
-    'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip=(-0.02, -0.04, -0.03), fore_abs=(0.0, 0.0, 0.38)),
-    'brick': dict(file='ob/gun26/gun26.raw', part='part0', kind='one', grip=(0.0, -0.1, -0.12)),
+    'pistol': dict(file='ob/gun1/gun1.raw', part='part3', kind='one', grip_scale=0.9, grip=(-0.055, -0.055), rake=25),
+    'raygun': dict(file='ob/gun5/gun5.raw', part='part0', kind='one', grip_scale=0.9, grip=(-0.06, -0.065), rake=25),
+    'scifi_handgun': dict(file='ob/gun8/gun8.raw', part='part0', kind='one', grip_scale=0.9, grip=(-0.07, -0.065), rake=25),
+    'mauser': dict(file='ob/gun10/gun10.raw', part='part0', kind='one', grip_scale=0.9, grip=(-0.11, 0.035), rake=15),
+    'colt': dict(file='ob/gun24/gun24.raw', part='part0', kind='one', grip_scale=0.9, grip=(-0.11, 0.0), rake=30),
+    'uzi': dict(file='ob/gun22/gun22.raw', part='part0', kind='one', grip_scale=0.9, grip=(-0.05, -0.03), rake=5),
+    'm16': dict(file='ob/gun2/gun2.raw', part='part0', kind='two', grip=(-0.05, -0.07), rake=25, fore=0.26),
+    'assault_rifle': dict(file='ob/gun3/gun3.raw', part='part0', kind='two', grip=(0.0, 0.05), rake=10, fore=0.25),
+    'sniper_rifle': dict(file='ob/gun4/gun4.raw', part='part0', kind='two', grip=(-0.06, -0.06), rake=30, fore=0.38),
+    'raygun_carbine': dict(file='ob/gun6/gun6.raw', part='part0', kind='two', grip=(-0.06, -0.035), rake=25, fore=0.2),
+    'scifi_autorifle': dict(file='ob/gun7/gun7.raw', part='part0', kind='two', grip=(-0.05, -0.09), rake=30, fore=0.18),
+    'rocket_launcher': dict(file='ob/gun9/gun9.raw', part='part0', kind='two', grip=(-0.02, -0.02), rake=10, handle=(0.15, 0.05, 0.08)),
+    'minigun': dict(file='ob/gun11/gun11.raw', part='part0', kind='two', grip=(0.015, 0.035), rake=5, fore=0.19),
+    'grenade_launcher': dict(file='ob/gun12/gun12.raw', part='part0', kind='two', grip=(-0.06, -0.07), rake=25, fore=0.27),
+    'scifi_sniper_rifle': dict(file='ob/gun13/gun13.raw', part='part0', kind='two', grip=(-0.04, -0.06), rake=25, fore=0.3),
+    'weapon_13': dict(file='ob/gun14/gun14.raw', part='part0', kind='two', grip=(-0.06, -0.07), rake=25, fore=0.27),
+    'proximity_mine': dict(file='ob/gun15/gun15.raw', part='part1', kind='one', palm=(0.0, 0.0, 0.0), fingers=(0.5, 0.0, 0.85), thumb=(-0.85, 0.0, 0.5)),
+    'remote_mine': dict(file='ob/gun16/gun16.raw', part='part0', kind='one', palm=(0.0, 0.0, 0.0), fingers=(0.5, 0.0, 0.85), thumb=(-0.85, 0.0, 0.5)),
+    'timed_mine': dict(file='ob/gun17/gun17.raw', part='part2', kind='one', palm=(0.0, 0.02, 0.0), fingers=(0.5, 0.0, 0.85), thumb=(-0.85, 0.0, 0.5)),
+    'weapon_17': dict(file='ob/gun18/gun18.raw', part='part0', kind='one', palm=(0.0, 0.0, 0.0), fingers=(0.5, 0.0, 0.85), thumb=(-0.85, 0.0, 0.5)),
+    'tnt': dict(file='ob/gun19/gun19.raw', part='part0', kind='one', palm=(0.0, -0.04, 0.06), fingers=(1.0, 0.0, 0.25), thumb=(-0.25, 0.0, 1.0)),
+    'tommy_gun': dict(file='ob/gun20/gun20.raw', part='part0', kind='two', grip=(-0.06, -0.09), rake=30, foregrip=(-0.05, 0.32)),
+    'assault_shotgun': dict(file='ob/gun21/gun21.raw', part='part0', kind='two', grip=(-0.055, -0.04), rake=20, fore=0.42, fore_part='part2'),
+    'blunderbuss': dict(file='ob/gun23/gun23.raw', part='part0', kind='two', grip_scale=0.75, grip=(0.01, -0.03), rake=30, arm=WRIST_ARM, fore=0.13),
+    'shotgun': dict(file='ob/gun25/gun25.raw', part='part0', kind='two', grip_scale=0.85, grip=(0.0, -0.07), rake=30, arm=WRIST_ARM, fore=0.27),
+    'brick': dict(file='ob/gun26/gun26.raw', part='part0', kind='one', palm=(0.0, -0.09, 0.0), fingers=(0.5, 0.0, 0.85), thumb=(-0.85, 0.0, 0.5)),
 }
 
 
-def body_box(gun_obj, part):
-    v, parts = [], {}
-    cur = None
+def gun_points(gun_obj):
+    """The points of a gun's model, without its muzzle flash (a big shape of a few points)."""
+    v, parts, cur = [], {}, None
     for line in open(gun_obj):
         w = line.split()
         if not w:
@@ -70,9 +76,10 @@ def body_box(gun_obj, part):
         elif w[0] == 'o':
             cur = w[1]
         elif w[0] == 'f':
-            parts.setdefault(cur, []).extend(int(x.split('/')[0]) - 1 for x in w[1:])
-    pts = np.array(v)[np.unique(parts[part])]
-    return pts.min(axis=0), pts.max(axis=0)
+            parts.setdefault(cur, set()).update(int(x.split('/')[0]) - 1 for x in w[1:])
+    v = np.array(v)
+    keep = [sorted(ids) for ids in parts.values() if not (len(ids) <= 12 and np.ptp(v[sorted(ids)], axis=0).max() > 0.15)]
+    return v[sorted({i for ids in keep for i in ids})]
 
 
 def rotation_between(a, b):
@@ -89,46 +96,151 @@ def rotation_between(a, b):
     return np.eye(3) + k + k @ k / (1.0 + c)
 
 
-def under_front(gun_obj, part, z):
-    """Where the hand that holds the front of a gun goes when only how far forward it is is known: on the underside of the body at that distance, on the side of the body (the place of the M16's hand)."""
-    v, parts, cur = [], {}, None
-    for line in open(gun_obj):
-        w = line.split()
-        if not w:
-            continue
-        if w[0] == 'v':
-            v.append([float(x) for x in w[1:4]])
-        elif w[0] == 'o':
-            cur = w[1]
-        elif w[0] == 'f':
-            parts.setdefault(cur, []).extend(int(x.split('/')[0]) - 1 for x in w[1:])
-    pts = np.array(v)[np.unique(parts[part])]
-    window = 0.04
-    near = pts[abs(pts[:, 2] - z) < window]
-    while len(near) < 20 and window < 0.3:
-        window += 0.02
-        near = pts[abs(pts[:, 2] - z) < window]
-    return (near[:, 0].max() - 0.03, near[:, 1].min() + 0.04, z)
+def around(points, y=None, z=None, dy=0.03, dz=0.03):
+    """The points of a gun near a height and a distance forward (with a wider look when there are few)."""
+    for grow in (1, 2, 4, 8):
+        mask = np.ones(len(points), dtype=bool)
+        if y is not None:
+            mask &= abs(points[:, 1] - y) < dy * grow
+        if z is not None:
+            mask &= abs(points[:, 2] - z) < dz * grow
+        if mask.sum() >= 6:
+            return points[mask]
+    return points
+
+
+def side_pose(points, y, z, rake, side):
+    """A hand on the side `side` (-1 the right of the screen, 1 the left) of a grip at (y, z), leaning back by `rake`: its knuckles are at the far edge of the grip, the way the fingers go."""
+    near = around(points, y, z)
+    t = math.radians(rake)
+    along = np.array([0.0, -math.cos(t), -math.sin(t)])  # (down the grip)
+    fingers = np.array([0.0, along[2], -along[1]])
+    point = np.array([0.0, y, z])
+    point = point + fingers * ((near @ fingers).max() - point @ fingers)
+    point[0] = near[:, 0].min() if side < 0 else near[:, 0].max()
+    return dict(kind='side', fingers=tuple(fingers), thumb=tuple(-along), knuckle=tuple(float(v) for v in point), width=float(np.ptp(near[:, 0])))
+
+
+def handle_pose(points, x, y, z):
+    """The left hand on a handle that sticks out to the left of the gun: from behind it, the fingers over the top and forward, the thumb towards the gun."""
+    near = points[(abs(points[:, 0] - x) < 0.03) & (abs(points[:, 2] - z) < 0.05)]
+    return dict(kind='side', fingers=(0.0, 0.85, 0.5), thumb=(-1.0, 0.0, 0.0), knuckle=(x, y + 0.03, z - 0.03), width=0.06, limit=170.0)
+
+
+def under_pose(points, z):
+    """The left hand under the gun at the distance `z`: palm up, the fingers across and forward, up the far side."""
+    near = around(points, None, z)
+    return dict(kind='under', fingers=(-0.75, 0.0, 0.66), thumb=(0.66, 0.0, 0.75), knuckle=(float(near[:, 0].min()), float(near[:, 1].min()), z), width=float(np.ptp(near[:, 1]) / 2.0), limit=100.0)
 
 
 def hands_for(spec, gun_obj):
-    """The hands of a weapon as (part, parts of the character, rotation, scale, place, where the elbow is from the hand, roll): the right hand on the grip with its forearm coming up from
-    below the screen, and for a two handed gun the other hand on the side of the gun that the view sees, its arm coming in from the lower left.  The places that the table does not give are
-    made from the box of the gun's body."""
-    lo, hi = body_box(gun_obj, spec['part'])
-    size = hi - lo
-    grip = spec.get('grip') or (-0.02, lo[1] + (0.09 if spec['kind'] == 'one' else 0.1), lo[2] + 0.25 * size[2])
-    hands = [(spec['part'], CHAINS['grip'], (0, 0, 0), spec.get('grip_scale', 1.0), (grip[0], grip[1] + 0.02, grip[2]), spec.get('grip_from', (0.3, -0.9, -0.3)), spec.get('grip_roll', 0))]
+    """The hands of a weapon as (part, parts of the character, pose, scale, place, where the elbow is from the wrist, roll): the right hand holding it, and for a two handed gun the left hand under the front."""
+    points = gun_points(gun_obj)
+    if 'palm' in spec:
+        pose = dict(kind='palm', fingers=spec['fingers'], thumb=spec['thumb'], under=(spec['palm'][0], float(points[:, 1].min()) + spec['palm'][1], spec['palm'][2]), width=float(min(np.ptp(points[:, 0]), np.ptp(points[:, 2])) / 2.0))
+    else:
+        pose = side_pose(points, spec['grip'][0], spec['grip'][1], spec['rake'], -1)
+    hands = [(spec['part'], CHAINS['grip'], pose, spec.get('grip_scale', 1.0), (0.0, 0.0, 0.0), spec.get('arm', GRIP_ARM), 0)]
     if spec['kind'] == 'two':
-        fore = spec.get('fore_abs') or (under_front(gun_obj, spec['part'], spec['fore_z']) if 'fore_z' in spec else None) or (hi[0] - 0.03, (lo[1] + hi[1]) / 2 + 0.05, lo[2] + 0.6 * size[2])
-        hands.append((spec.get('fore_part', spec['part']), CHAINS['front'], (0, 0, 0), 1.0, tuple(fore), spec.get('fore_from', (0.6, -0.6, -0.5)), spec.get('fore_roll', 0)))
-    if os.environ.get('HANDS_FORE') and spec['kind'] == 'two':
-        # (a try of another place for the front hand: HANDS_FORE=x,y,z  HANDS_FROM=x,y,z  HANDS_ROLL=degrees)
-        h = hands[-1]
-        place = tuple(float(x) for x in os.environ['HANDS_FORE'].split(','))
-        frm = tuple(float(x) for x in os.environ['HANDS_FROM'].split(',')) if os.environ.get('HANDS_FROM') else h[5]
-        hands[-1] = h[:4] + (place, frm, float(os.environ.get('HANDS_ROLL', h[6])))
+        if 'handle' in spec:
+            pose = handle_pose(points, *spec['handle'])
+        elif 'foregrip' in spec:
+            pose = side_pose(points, spec['foregrip'][0], spec['foregrip'][1], 5, 1)
+        else:
+            pose = under_pose(points, spec['fore'])
+        hands.append((spec.get('fore_part', spec['part']), CHAINS['front'], pose, 1.0, (0.0, 0.0, 0.0), FORE_ARM, 0))
     return hands
+
+
+def posed(pose, sources, scale, arm_from, chr_verts, chr_parts, mirror):
+    """How the points of an arm go on a gun: the hand is turned to the pose with its fingers curled, the arm below the wrist is turned to `arm_from` about the wrist.  Gives a function of (point, whether it
+    is of the hand)."""
+    ids = lambda src: sorted({vi for f in chr_parts.get('part' + src, []) for vi, _ in f})
+    # (a part of the chain can be empty in a character's model)
+    sources = [src for src in sources if ids(src) and int(src) not in SEAM_PARTS]
+    whole = len(sources) == 1
+    verts = chr_verts[ids(sources[0])]
+    if whole:
+        # (an arm in one piece: the hand is its lowest sixth, the elbow its highest)
+        by_y = verts[np.argsort(verts[:, 1])]
+        k = max(1, len(by_y) // 6)
+        hand, elbow = by_y[:k], by_y[-k:]
+    else:
+        hand, elbow = verts, chr_verts[ids(sources[-1])]
+    middle, far = hand.mean(axis=0), elbow.mean(axis=0)
+    down = (middle - far) / np.linalg.norm(middle - far)
+    thumb_rest = np.array([0.0, 0.0, 1.0]) - down * down[2]
+    thumb_rest /= np.linalg.norm(thumb_rest)
+    side = 1.0 if middle[0] > 0 else -1.0      # (a left hand is at +x)
+    palm_rest = np.cross(down, thumb_rest) * side
+    along = (hand - middle) @ down
+    wrist_u, tip_u = along.min(), along.max()
+    wrist = middle + down * wrist_u
+    knuckle_u = wrist_u + 0.55 * (tip_u - wrist_u)
+    palm_side = (hand - middle) @ palm_rest
+    palm_face = float(palm_side[along < knuckle_u].max())
+    thumb_side = (hand - middle) @ thumb_rest
+    fingers = np.array(pose['fingers'], dtype=float)
+    fingers /= np.linalg.norm(fingers)
+    thumb = np.array(pose['thumb'], dtype=float)
+    thumb -= fingers * (thumb @ fingers)
+    thumb /= np.linalg.norm(thumb)
+    # (a turn takes down, the thumb and the palm of the rest to the fingers, the thumb and what follows of them)
+    rest = np.column_stack([down, thumb_rest, np.cross(down, thumb_rest)])
+    goal = np.column_stack([fingers, thumb, np.cross(fingers, thumb)])
+    turn = goal @ rest.T
+    radius = max(0.018, min(0.05, pose.get('width', 0.05) / 2.0)) / max(scale, 1e-6)
+    knuckle_rest = middle + down * knuckle_u + palm_rest * palm_face
+    if pose['kind'] == 'palm':
+        # (the middle of the palm under the thing)
+        target = np.array(pose['under']) - turn @ (palm_rest * palm_face) * scale
+        hand_at = target
+    else:
+        hand_at = np.array(pose['knuckle']) - turn @ (knuckle_rest - middle) * scale
+    arm_turn = rotation_between(far - wrist, arm_from)
+    # (the arm is rolled about itself so that its thumb side is the hand's: no twist at the wrist)
+    axis = np.array(arm_from, dtype=float) / np.linalg.norm(arm_from)
+    got = arm_turn @ thumb_rest
+    got -= axis * (got @ axis)
+    want = thumb - axis * (thumb @ axis)
+    if np.linalg.norm(got) > 1e-6 and np.linalg.norm(want) > 1e-6:
+        angle = math.atan2(np.cross(got, want) @ axis, got @ want)
+        k = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
+        arm_turn = (np.eye(3) + math.sin(angle) * k + (1 - math.cos(angle)) * (k @ k)) @ arm_turn
+    wrist_at = hand_at + turn @ (wrist - middle) * scale
+
+    def curl(point):
+        d = point - middle
+        u, n, t = d @ down, d @ palm_rest, d @ thumb_rest
+        # (the fingers fold: each is bent round what is held, the whole of its length on the arc, so that no tip stands out past it)
+        new_u, new_n = u, n
+        if u > knuckle_u:
+            side_of = max(0.0, min(1.0, (t / max(thumb_side.max(), 1e-6) - 0.35) / 0.4))
+            fade = 1.0 - side_of * side_of * (3.0 - 2.0 * side_of)
+            angle = (u - knuckle_u) / max(tip_u - knuckle_u, 1e-6) * math.radians(pose.get('limit', CURL_LIMIT)) * fade
+            reach = palm_face + radius - n
+            new_u = knuckle_u + (u - knuckle_u) * (1.0 - fade) + reach * math.sin(angle)
+            new_n = palm_face + radius - reach * math.cos(angle)
+        # (and the thumb comes round the back of it)
+        new_t = t
+        thumb_from = 0.45 * thumb_side.max()
+        if t > thumb_from:
+            angle = (t - thumb_from) / max(thumb_side.max() - thumb_from, 1e-6) * THUMB_LIMIT
+            reach = palm_face + radius - new_n
+            new_t = thumb_from + reach * math.sin(angle)
+            new_n = palm_face + radius - reach * math.cos(angle)
+        return middle + down * new_u + palm_rest * new_n + thumb_rest * new_t
+
+    def place(point, of_hand):
+        if whole:
+            out = hand_at + arm_turn @ (point - middle) * scale
+        elif of_hand:
+            out = hand_at + turn @ (curl(point) - middle) * scale
+        else:
+            out = wrist_at + arm_turn @ (point - wrist) * scale
+        return out * np.array([-1.0, 1.0, 1.0]) if mirror else out
+
+    return place
 
 
 CHR_MATS = {}
@@ -182,14 +294,6 @@ def load_obj(path):
             parts.setdefault(cur, []).append(corners)
             CHR_MATS.setdefault(cur, []).append(mat)
     return np.array(verts), np.array(colours), np.array(uvs), parts
-
-
-def rotation(rx, ry, rz):
-    a, b, c = (math.radians(d) for d in (rx, ry, rz))
-    Rx = np.array([[1, 0, 0], [0, math.cos(a), -math.sin(a)], [0, math.sin(a), math.cos(a)]])
-    Ry = np.array([[math.cos(b), 0, math.sin(b)], [0, 1, 0], [-math.sin(b), 0, math.cos(b)]])
-    Rz = np.array([[math.cos(c), -math.sin(c), 0], [math.sin(c), math.cos(c), 0], [0, 0, 1]])
-    return Rz @ Ry @ Rx
 
 
 CHR_UVS = None
@@ -259,7 +363,7 @@ def read_blocks(path):
     return v, vt, vn, blocks
 
 
-def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts, fit_front=None, fit_grip=None):
+def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts):
     """An OBJ with only the parts of the gun that carry a hand (the others are left as the game has them), each with its hands added."""
     v, vt, vn, blocks = read_blocks(gun_obj)
     out = ['mtllib hands.mtl']
@@ -294,52 +398,13 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts, fit_front
         for hand_part, sources, rot, scale, place, *arm_from in hands:
             if hand_part != part:
                 continue
-            R = rotation(*rot) * scale
             mirror = len(arm_from) > 2 and arm_from[2] == 'mirror'
-            if arm_from and arm_from[0] is not None:
-                # the arm is turned about its hand so that the elbow is where `arm_from` says
-                hand = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[0], []) for vi, _ in f})]
-                elbow = chr_verts[sorted({vi for f in chr_parts.get('part' + sources[-1], []) for vi, _ in f})]
-                if mirror:
-                    hand = hand * np.array([-1.0, 1.0, 1.0])
-                    elbow = elbow * np.array([-1.0, 1.0, 1.0])
-                if len(sources) == 1:
-                    # (an arm in one piece: the hand is its lowest sixth, the elbow its highest)
-                    by_y = hand[np.argsort(hand[:, 1])]
-                    k = max(1, len(by_y) // 6)
-                    hand, elbow = by_y[:k], by_y[-k:]
-                hand, elbow = hand.mean(axis=0), elbow.mean(axis=0)
-                R = rotation_between(elbow - hand, arm_from[0]) @ R
-                if len(arm_from) > 1 and arm_from[1]:
-                    # (the roll of the hand about the arm, degrees)
-                    t = math.radians(arm_from[1])
-                    ax = np.array(arm_from[0], dtype=float) / np.linalg.norm(arm_from[0])
-                    k = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
-                    R = (np.eye(3) + math.sin(t) * k + (1 - math.cos(t)) * (k @ k)) @ R
-            hand_no = hands.index((hand_part, sources, rot, scale, place, *arm_from))
-            fit_now = fit_front if hand_no > 0 else fit_grip
-            if fit_now and hand_part == part:
-                # (the front hand is put under the gun where it is held: its fingers reach the underside of the forend, and it is as far across as the forend is)
-                gun_pts = np.array([[float(x) for x in l.split()[1:4]] for l in lines if l.startswith('v ')])
-                z0 = place[2]
-                near = gun_pts[abs(gun_pts[:, 2] - z0) < 0.06]
-                if len(near) > 10:
-                    ids = []
-                    for src0 in sources:
-                        if int(src0) not in SEAM_PARTS:
-                            ids = sorted({vi for f in chr_parts.get('part' + src0, []) for vi, _ in f})
-                            if ids:
-                                break
-                    local = (chr_verts[ids] - chr_verts[ids].mean(axis=0)) * (np.array([-1.0, 1.0, 1.0]) if mirror else 1.0)
-                    moved = (R @ local.T).T if len(ids) else np.zeros((1, 3))
-                    top = moved[:, 1].max()
-                    mid_x = (moved[:, 0].max() + moved[:, 0].min()) / 2
-                    place = (float((near[:, 0].max() + near[:, 0].min()) / 2 - mid_x + fit_now.get('dx', 0.0)), float(near[:, 1].min() + fit_now.get('dy', 0.03) - top), place[2])
+            pose_place = posed(rot, sources, scale, arm_from[0], chr_verts, chr_parts, mirror)
             hand_faces = []
             hv, hc, hf = [], [], []
             hand_nv = nv
             nv_before_t, nt_base = nv, nt
-            first, middle = True, None
+            hand_done = False
             for src in sources:
                 if int(src) in SEAM_PARTS:
                     continue
@@ -349,21 +414,15 @@ def add_hands(gun_obj, out_obj, hands, chr_verts, chr_cols, chr_parts, fit_front
                         if vi not in used:
                             used[vi] = len(used)
                             uv_of[vi] = ti
+                if not used:
+                    continue
                 base = nv
                 base_t = nt
-                # (the parts of the character are in the character's own space: the hand is turned about its own middle, which goes to `place`)
-                if first and len(sources) == 1:
-                    low = chr_verts[list(used)]
-                    middle = low[np.argsort(low[:, 1])][:max(1, len(low) // 6)].mean(axis=0)
-                else:
-                    middle = chr_verts[list(used)].mean(axis=0) if first else middle
-                first = False
-                part_middle = R @ ((chr_verts[list(used)].mean(axis=0) - middle) * (np.array([-1.0, 1.0, 1.0]) if mirror else 1.0)) + np.array(place)
+                of_hand = not hand_done
+                hand_done = True
+                part_middle = pose_place(chr_verts[list(used)].mean(axis=0), of_hand)
                 for vi in sorted(used, key=used.get):
-                    local = chr_verts[vi] - middle
-                    if mirror:
-                        local = local * np.array([-1.0, 1.0, 1.0])
-                    p = R @ local + np.array(place)
+                    p = pose_place(chr_verts[vi], of_hand)
                     hv.append(p)
                     hc.append(part_middle)
                     c = chr_cols[vi]
@@ -540,19 +599,15 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
         spec = dict(spec, hands=hands_for(spec, base + '.obj'))
         if character in ARM_SCALE:
             spec = dict(spec, hands=[h[:3] + (h[3] * ARM_SCALE[character],) + h[4:] for h in spec['hands']])
-        if os.environ.get('HANDS_JSON'):
-            import json
-            spec = dict(spec, hands=[tuple(h) for h in json.loads(os.environ['HANDS_JSON'])])
         # (the model with the arms as the gun is held in both hands, and for a two handed gun the one of the left gun when a gun is held in each hand, with the hand on the grip only)
         variants = [(spec['hands'], spec['file'] if character == 0 else spec['file'].replace('.raw', '_c%02d.raw' % character), '')]
         if spec['kind'] == 'two':
             variants.append((spec['hands'][:1], spec['file'].replace('.raw', '_c%02d_l.raw' % character), '_l'))
         # (the gun of the left hand: the hand on its grip is a left hand, the right hand's mirror, its arm coming in from the lower left)
         grip = spec['hands'][0]
-        frm = grip[5] if len(grip) > 5 and grip[5] is not None else (0.3, -0.9, -0.3)
-        variants.append(([grip[:5] + ((-frm[0], frm[1], frm[2]), grip[6] if len(grip) > 6 else 0, 'mirror')], spec['file'].replace('.raw', '_c%02d_m.raw' % character), '_m'))
+        variants.append(([grip[:5] + (grip[5], grip[6], 'mirror')], spec['file'].replace('.raw', '_c%02d_m.raw' % character), '_m'))
         for hands, out_name, tag in variants:
-            add_hands(base + '.obj', base + '_hands%02d%s.obj' % (character, tag), hands, cv, cc, cp, spec.get('fit', {'dy': float(os.environ.get('HANDS_FIT', '0.03'))}) if spec['kind'] == 'two' and not os.environ.get('HANDS_NOFIT') else None, spec.get('fit_grip'))
+            add_hands(base + '.obj', base + '_hands%02d%s.obj' % (character, tag), hands, cv, cc, cp)
             body_faces = {k: len(v) for k, v in read_blocks(base + '.obj')[3].items()}
             groups = {}
             faces, _ = obedit.read_obj(base + '_hands%02d%s.obj' % (character, tag), groups)
