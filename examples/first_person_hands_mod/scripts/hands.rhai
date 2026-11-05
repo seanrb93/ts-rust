@@ -23,7 +23,10 @@ fn variant_of(name) {
 // the files to try for a name, first to last (the game uses the plain one when none is in the packs)
 fn on_file(name) {
     let v = variant_of(name);
-    if v == "" { [] } else { [v] }
+    if v == "" { return []; }
+    // (a character with no arms of its own, one a mod added, has the first character's)
+    let slash = v.index_of("_c");
+    [v, v.sub_string(0, slash) + "_c00.raw"]
 }
 
 // a gun held in both hands: the model that has the hand on the grip only (_m for the left hand's gun, _l for the right's), when the mod has one

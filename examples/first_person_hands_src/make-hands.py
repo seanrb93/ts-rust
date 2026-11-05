@@ -7,6 +7,8 @@ The hands have the skin and sleeve of a character of the game: HANDS_CHARACTER=<
 The tools it uses are `tools/obdump.py` (a model as an OBJ) and `tools/obedit.py meshes` (an OBJ back into a model).  The hand is put on a part of the gun that does not move on its own
 (the body), or, for the forend of a pump gun, on the part that slides.  How each hand holds its weapon is in WEAPONS: the hand is turned to the weapon and its fingers bent round it, and the forearm comes in from where it would in real life.
 """
+import contextlib
+import io
 import math
 import os
 import shutil
@@ -600,7 +602,14 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
     for name in names:
         spec = WEAPONS[name]
         base = os.path.join(work, name)
-        if not os.path.exists(base + '.obj'):
+        # (HANDS_BASE=<a mod's folder>: the guns of that mod, as the Smooth Weapons mod has them, are the ones that get the arms)
+        base_file = os.path.join(os.environ['HANDS_BASE'], 'OB.PAK', spec['file']) if os.environ.get('HANDS_BASE') else None
+        if base_file:
+            base = os.path.join(work, 'based_' + name)
+            obdump_module = __import__('obdump')
+            with contextlib.redirect_stdout(io.StringIO()):
+                obdump_module.write_obj(open(base_file, 'rb').read(), base + '.obj')
+        elif not os.path.exists(base + '.obj'):
             subprocess.check_call([sys.executable, os.path.join(TOOLS, 'obdump.py'), pak, spec['file'], '--obj', base + '.obj'], stdout=subprocess.DEVNULL)
         spec = dict(spec, hands=hands_for(spec, base + '.obj'))
         if character in ARM_SCALE:
@@ -618,7 +627,7 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
             groups = {}
             faces, _ = obedit.read_obj(base + '_hands%02d%s.obj' % (character, tag), groups)
             n, o, sz = [e for e in es if e[0] == spec['file']][0]
-            data = d[o:o + sz]
+            data = open(base_file, 'rb').read() if base_file else d[o:o + sz]
             for part_name, fs in groups.items():
                 if part_name and part_name.startswith('part') and part_name[4:].isdigit():
                     before = data
@@ -637,6 +646,9 @@ def bake_character(pak, mod, character, chr_file, skin_number, names, work):
             out = os.path.join(mod, 'OB.PAK', out_name)
             os.makedirs(os.path.dirname(out), exist_ok=True)
             open(out, 'wb').write(data)
+            # (the first character's has its number too: a mod may replace the plain file, and the arms must not go with it)
+            if character == 0 and not tag:
+                open(out.replace('.raw', '_c00.raw'), 'wb').write(data)
 
 
 def original_strip_faces(f, part):
@@ -787,4 +799,5 @@ def main():
         shutil.copy(os.path.join(HERE, '..', 'first_person_hands_mod', 'scripts', 'hands.rhai'), scripts)
 
 
-main()
+if __name__ == '__main__':
+    main()
