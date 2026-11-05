@@ -2,10 +2,9 @@
 //! display list is a stream of VIF codes that fill VU1's 16 KB data memory (`UNPACK`) and start microprograms
 //! (`MSCAL`).  The microprograms themselves are native Rust (decompiled from the original microcode).
 
-use crate::gif::Gif;
+use crate::gif_link::GifLink;
 use crate::programs;
 use crate::vu::Regs;
-use crate::scene::Frame;
 
 pub const VU_MEM_QW: usize = 1024;
 
@@ -80,7 +79,7 @@ fn rd32(d: &[u8], o: usize) -> u32 {
 }
 
 impl Vif {
-    fn start_program(&mut self, vu: &mut Vu1, regs: &mut Regs, gif: &mut Gif, frame: &mut Frame, entry: u32) {
+    fn start_program(&mut self, vu: &mut Vu1, regs: &mut Regs, gif: &mut GifLink, entry: u32) {
         vu.top = self.tops;
         vu.itop = self.itop;
         self.dbf = !self.dbf;
@@ -100,11 +99,11 @@ impl Vif {
                 tlog!("      vumem[{q:3}] = {:?}", vu.mem[q].iter().map(|w| f32::from_bits(*w)).collect::<Vec<_>>());
             }
         }
-        programs::run(entry, vu, regs, gif, frame);
+        programs::run(entry, vu, regs, gif);
     }
 
     /// Execute a VIF code stream (one DMA packet).
-    pub fn process(&mut self, vu: &mut Vu1, regs: &mut Regs, gif: &mut Gif, frame: &mut Frame, d: &[u8], marks: &[(usize, bool)]) {
+    pub fn process(&mut self, vu: &mut Vu1, regs: &mut Regs, gif: &mut GifLink, d: &[u8], marks: &[(usize, bool)]) {
         let mut p = 0usize;
         let mut mi = 0usize;
         while p + 4 <= d.len() {
@@ -138,8 +137,8 @@ impl Vif {
                 0x05 => self.mode = imm & 3,
                 0x06 | 0x07 => {}
                 0x10 | 0x11 | 0x13 => {}
-                0x14 | 0x15 => self.start_program(vu, regs, gif, frame, imm),
-                0x17 => self.start_program(vu, regs, gif, frame, 0xffff),
+                0x14 | 0x15 => self.start_program(vu, regs, gif, imm),
+                0x17 => self.start_program(vu, regs, gif, 0xffff),
                 0x20 => {
                     self.mask = rd32(d, p);
                     p += 4;
@@ -164,7 +163,7 @@ impl Vif {
                 0x50 | 0x51 => {
                     let n = if imm == 0 { 65536 } else { imm as usize };
                     let end = (p + n * 16).min(d.len());
-                    gif.process(frame, &d[p..end]);
+                    gif.packet(&d[p..end]);
                     p = end;
                 }
                 c if c & 0x60 == 0x60 => {

@@ -7,6 +7,7 @@
 #[macro_use]
 pub mod trace;
 pub mod gif;
+pub mod gif_link;
 pub mod hd;
 pub mod depth;
 pub mod png;
@@ -22,7 +23,7 @@ pub mod vu_ref;
 #[cfg(feature = "vucheck")]
 pub mod vu1_gen_ref;
 
-use gif::Gif;
+use gif_link::GifLink;
 use scene::Frame;
 use ts_rt::*;
 use vif::{Vif, Vu1};
@@ -32,7 +33,7 @@ pub struct Gfx {
     vu: Box<Vu1>,
     regs: Box<Regs>,
     vif: Vif,
-    gif: Gif,
+    gif: GifLink,
     /// decoded textures by key, reused while their texture memory is unchanged
     tex_cache: scene::FastMap<scene::TexKey, std::sync::Arc<scene::DecodedTex>>,
     /// the VIF byte stream of the frame being translated (kept between frames so that it is not allocated every time)
@@ -43,7 +44,7 @@ pub struct Gfx {
 
 impl Default for Gfx {
     fn default() -> Self {
-        Gfx { vu: Vu1::new(), regs: Box::default(), vif: Vif::default(), gif: Gif::new(), tex_cache: Default::default(), stream_buf: Vec::new(), last_sizes: (0, 0) }
+        Gfx { vu: Vu1::new(), regs: Box::default(), vif: Vif::default(), gif: GifLink::new(), tex_cache: Default::default(), stream_buf: Vec::new(), last_sizes: (0, 0) }
     }
 }
 
@@ -136,7 +137,9 @@ impl Gfx {
             tag = next;
         }
         programs::tadd(&programs::STREAM_NS, t_stream);
-        self.vif.process(&mut self.vu, &mut self.regs, &mut self.gif, &mut frame, &stream, &marks);
+        self.gif.begin(frame);
+        self.vif.process(&mut self.vu, &mut self.regs, &mut self.gif, &stream, &marks);
+        let mut frame = self.gif.finish();
         self.stream_buf = stream;
         let t_tex = programs::tstart();
         // snapshot the textures the frame uses (texture memory changes while later frames are built)

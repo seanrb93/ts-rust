@@ -2,6 +2,7 @@
 //! `XGKICK` hands a GIF packet to the vertex stream interpreter.
 
 use crate::gif::Gif;
+use crate::gif_link::GifLink;
 use crate::scene::Frame;
 use crate::vif::{Vu1, VU_MEM_QW};
 use crate::vu::Regs;
@@ -26,16 +27,14 @@ pub fn tadd(counter: &std::sync::atomic::AtomicU64, t: Option<std::time::Instant
 }
 
 /// `XGKICK`: send the GIF packet that starts at quadword `qw` of VU memory.
-pub fn xgkick(vu: &Vu1, gif: &mut Gif, frame: &mut Frame, qw: usize) {
+pub fn xgkick(vu: &Vu1, gif: &mut GifLink, qw: usize) {
     let qw = qw & (VU_MEM_QW - 1);
     note_kick(qw);
     tlog!("    XGKICK {qw:#x}");
     gif.kick = gif.kick.wrapping_add(1);
-    let t = tstart();
     #[cfg(feature = "vucheck")]
     capture(vu, qw);
-    gif.process(frame, vu.bytes_from(qw));
-    tadd(&GIF_NS, t);
+    gif.packet(vu.bytes_from(qw));
 }
 
 fn dump_state(path: &str, vu: &Vu1, r: &Regs, entry: u32, kicks: &[usize]) {
@@ -78,7 +77,7 @@ thread_local! {
     static COUNTER: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
 }
 
-pub fn run(entry: u32, vu: &mut Vu1, regs: &mut Regs, gif: &mut Gif, frame: &mut Frame) {
+pub fn run(entry: u32, vu: &mut Vu1, regs: &mut Regs, gif: &mut GifLink) {
     // Debug aid: TS_VUDUMP=<dir> writes the machine state before/after every program run so an independent reference
     // interpreter can be compared against the generated code.
     let dump = if crate::trace::enabled() { dump_dir() } else { None };
@@ -101,11 +100,11 @@ pub fn run(entry: u32, vu: &mut Vu1, regs: &mut Regs, gif: &mut Gif, frame: &mut
         // the original translation runs on a copy of the state first
         let (mut vu2, mut r2) = (vu.clone(), crate::vu_ref::Regs::from_new(regs));
         CAP.with(|c| c.borrow_mut().clear());
-        crate::vu1_gen_ref::run(&mut vu2, &mut r2, gif, frame, entry as usize);
+        crate::vu1_gen_ref::run(&mut vu2, &mut r2, &mut Gif::new(), &mut Frame::default(), entry as usize);
         (vu2, r2, CAP.with(|c| std::mem::take(&mut *c.borrow_mut())))
     };
     let t0 = tstart();
-    crate::vu1_gen::run(vu, regs, gif, frame, entry as usize);
+    crate::vu1_gen::run(vu, regs, gif, entry as usize);
     #[cfg(feature = "vucheck")]
     check_against(&reference, vu, regs, entry);
     if let Some(t0) = t0 {
