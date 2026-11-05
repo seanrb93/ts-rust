@@ -4,7 +4,7 @@ use crate::*;
 
 /// Draw the text `text` at (`x`, `y`) in colour `colour` with an outline of colour `outline`: the text is drawn first in the outline colour at 2 left, 1 up, 2 right and 1 down of
 /// the place (the font flags 4 and 8 set, so that the drawing leaves the dither and does not reset it), then in its own colour on the place; the dither matrix is set to 2 for all of it and
-/// put back (@ 0x2023b0).
+/// put back (@ 0x2023b0).  An `extensions` build goes round the place in eight steps, at the size of the text, so that the outline is even at a high resolution (in the four when the display list has too little room left for eight).
 pub fn textOutline(x: i32, y: i32, text: i32, colour: i32, outline: i32) {
     let text = button_text_or(text);
     let frame = Frame::new(16);
@@ -16,16 +16,34 @@ pub fn textOutline(x: i32, y: i32, text: i32, colour: i32, outline: i32) {
     sw(sp, x - 2);
     sw(sp + 4, y);
     sb(g::fontflags, flags | 12);
-    textPrint(sp, sp + 4, text, outline);
-    sw(sp, x);
-    sw(sp + 4, y - 1);
-    textPrint(sp, sp + 4, text, outline);
-    sw(sp + 4, y);
-    sw(sp, x + 2);
-    textPrint(sp, sp + 4, text, outline);
-    sw(sp, x);
-    sw(sp + 4, y + 1);
-    textPrint(sp, sp + 4, text, outline);
+    #[cfg(feature = "extensions")]
+    {
+        let size = text_scale() as f32 / 1000.0;
+        // (a character takes 80 bytes each time it is drawn; the buffer of a loading screen is small)
+        let room = lw(g::buflen) - (lw(0x3afe14) - lw(0x3afe0c));
+        let needed = if text != 0 { strlen(text) * 9 * 80 } else { 0 } + 0x4000;
+        for step in (0..8).step_by(if room >= needed { 1 } else { 2 }) {
+            let angle = step as f32 * std::f32::consts::FRAC_PI_4;
+            set_text_nudge((angle.cos() * 32.0 * size).round() as i32, (angle.sin() * 16.0 * size).round() as i32);
+            sw(sp, x);
+            sw(sp + 4, y);
+            textPrint(sp, sp + 4, text, outline);
+        }
+        set_text_nudge(0, 0);
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        textPrint(sp, sp + 4, text, outline);
+        sw(sp, x);
+        sw(sp + 4, y - 1);
+        textPrint(sp, sp + 4, text, outline);
+        sw(sp + 4, y);
+        sw(sp, x + 2);
+        textPrint(sp, sp + 4, text, outline);
+        sw(sp, x);
+        sw(sp + 4, y + 1);
+        textPrint(sp, sp + 4, text, outline);
+    }
     let flags = lbu(g::fontflags);
     sw(sp, x);
     sw(sp + 4, y);

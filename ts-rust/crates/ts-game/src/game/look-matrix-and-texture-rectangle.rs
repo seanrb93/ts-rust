@@ -49,6 +49,7 @@ pub fn matrixLook(m: i32, eye_x: f32, eye_y: f32, eye_z: f32, dir_x: f32, dir_y:
 pub fn dlTextureRectangle(x0: i32, y0: i32, x1: i32, y1: i32, u0: i32, v0: i32, u1: i32, v1: i32) {
     let frame = Frame::new(176);
     let colour = lw(frame.sp() + 176);
+    let (nudge_x, nudge_y) = text_nudge();
     let packet = memdbAlloc(80);
     let depth = dlSetZB(0);
     sb(lw(g::gfxtag) + 3, 48);
@@ -77,9 +78,9 @@ pub fn dlTextureRectangle(x0: i32, y0: i32, x1: i32, y1: i32, u0: i32, v0: i32, 
     at += 4;
     sw(at, 0);
     at += 4;
-    sw(at, (x0 << 4) + 0x6c00);
+    sw(at, (x0 << 4) + nudge_x + 0x6c00);
     at += 4;
-    sw(at, (y0 << 4) + 0x7900);
+    sw(at, (y0 << 4) + nudge_y + 0x7900);
     at += 4;
     sw(at, -1);
     at += 4;
@@ -93,9 +94,9 @@ pub fn dlTextureRectangle(x0: i32, y0: i32, x1: i32, y1: i32, u0: i32, v0: i32, 
     at += 4;
     sw(at, 0);
     at += 4;
-    sw(at, (x1 << 4) + 0x6c00);
+    sw(at, (x1 << 4) + nudge_x + 0x6c00);
     at += 4;
-    sw(at, (y1 << 4) + 0x7900);
+    sw(at, (y1 << 4) + nudge_y + 0x7900);
     at += 4;
     sw(at, -1);
     sw(at + 4, 0);

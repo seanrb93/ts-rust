@@ -165,7 +165,7 @@ pub fn memdbRestart(mode: i32) {
         return;
     }
     let buffer = lw(g::memdbbuffer);
-    let len = if mode == 2 { 0x200000 } else { 0x40000 };
+    let len = if mode == 2 { 0x200000 } else { MEMDB_MENU };
     sw(0x3afe14, buffer);
     sw(g::buflen, len);
     sw(0x3afe10, buffer + len);

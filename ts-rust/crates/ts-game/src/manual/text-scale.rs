@@ -36,6 +36,27 @@ pub fn text_scale() -> i32 {
     }
 }
 
+/// How far the texts drawn now are moved, in sixteenths of a pixel of the field (the outline of a text goes round it in steps smaller than a pixel).
+#[cfg(feature = "extensions")]
+static TEXT_NUDGE: [AtomicI32; 2] = [AtomicI32::new(0), AtomicI32::new(0)];
+
+#[cfg(feature = "extensions")]
+pub fn set_text_nudge(x: i32, y: i32) {
+    TEXT_NUDGE[0].store(x, Ordering::Relaxed);
+    TEXT_NUDGE[1].store(y, Ordering::Relaxed);
+}
+
+pub fn text_nudge() -> (i32, i32) {
+    #[cfg(feature = "extensions")]
+    {
+        (TEXT_NUDGE[0].load(Ordering::Relaxed), TEXT_NUDGE[1].load(Ordering::Relaxed))
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        (0, 0)
+    }
+}
+
 /// `v` times the scale `s` (thousandths), rounded.
 pub fn text_scaled(v: i32, s: i32) -> i32 {
     if s == 1000 {

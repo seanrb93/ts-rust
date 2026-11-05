@@ -6,8 +6,9 @@ Writes <mods folder>/hd_font/MISC.PAK/textures/misc/<font>.png and a mod.ini.  T
 
 Every character is drawn here once, in GLYPHS, as the middle lines of its strokes: straight lines and quarter curves in a box from 0 to 1, as a type designer would lay it out.  What differs between the
 fonts is measured from the game's textures (tools/extract_textures.py): each number in a drawing is moved, and the width of the pen and the squareness of the curves chosen, until the drawing made as small as the
-original gives the original's pixels.  A number used twice in a drawing is one measurement, so a stem stays straight and a bowl stays round whatever the pixels say; the same pen is then used for all the characters
-of a kind in a font, so that the font looks of one piece.  The measuring takes minutes: its result is kept in <extracted textures folder>/hd-font-fit.json (--refit does it again).
+original gives the original's pixels.  A number used twice in a drawing is one measurement, so a stem stays straight and a bowl stays round whatever the pixels say.  The first pass measures each character alone; from all of
+them come the font's pen and its lines (the tops of capitals, digits and small letters, the ascenders, the baseline, the descenders), and the second pass measures each character again on those, so that the font looks of one
+piece and the characters line up.  The game draws a character of h texels over h - 1 of its texture's rows, so the lines are worked out where the characters land on the screen.  The measuring takes minutes: its result is kept in <extracted textures folder>/hd-font-fit.json (--refit does it again).
 
 The pictures have the proportions of the screen: a texel of the game's fonts is 1 of 640 across and 1 of 224 down, so they are stretched more downwards than across.  Where each character is comes from
 tools/hd-font-rects.json (the game's tables of characters).  The marks of accented capitals in squarefont are not characters of a table: they are made bigger from the original.
@@ -26,13 +27,15 @@ SCALE_X = 8
 SCALE_Y = 16
 MEASURE_SAMPLES = 5    # samples across a texel of the original when comparing
 DRAW_SAMPLES = 3       # samples across a pixel of the picture
-ARC_STEPS = 10
+ARC_STEPS = 10         # lines in a curve when measuring (DRAW_STEPS when drawing)
+DRAW_STEPS = 32
 REGULAR = 0.004        # how much a measurement is held to the drawing (against the error of the pixels)
+REACH = 0.18           # and how far it can go from the drawing, so that a shape stays the shape that was drawn
 
 ROUND_O = 'M !.45,0 Ah 1,.3 L 1,!.3 Av !.45,1 L .45,1 Ah 0,!.3 L 0,.3 Av .45,0 Z'
 ELLIPSE = 'M #.5,0 Ah 1,#.5 Av #.5,1 Ah 0,#.5 Av #.5,0 Z'
 ROUND_S = 'M 1,.2 Av !.42,0 L .42,0 Ah 0,.25 Av .42,.5 L !.42,.5 Ah 1,.75 Av !.42,1 L .42,1 Ah 0,!.2'
-# the drawings.  Letters: M move, L line, Ah a quarter curve that starts level, Av one that starts upright, Z close.  y goes down.  0 and 1 are the edges of the character's box and are fixed, #n is a fixed number,
+# the drawings.  Letters: M move, L line, Ah a quarter curve that starts level, Av one that starts upright, C a curve by two control points, Z close.  y goes down.  0 and 1 are the edges of the character's box and are fixed, #n is a fixed number,
 # !n is 1 less the measurement n (for what is the same on both sides).  A character can have several drawings (a list): the first is used unless a later one fits clearly better.
 GLYPHS = {
     '!': 'M #.5,0 L #.5,.7 M #.5,.84 L #.5,1',
@@ -40,7 +43,7 @@ GLYPHS = {
     '#': 'M !.2,0 L .55,1 M !.55,0 L .2,1 M 0,.33 L 1,.33 M 0,!.33 L 1,!.33',
     '$': 'M #.5,0 L #.5,1 M 1,.25 Av !.42,.1 L .42,.1 Ah 0,.3 Av .42,.5 L !.42,.5 Ah 1,.7 Av !.42,.9 L .42,.9 Ah 0,.75',
     '%': ['M .22,0 Ah .42,.25 Av .22,.5 Ah 0,.25 Av .22,0 Z M !.22,.5 Ah 1,.75 Av !.22,1 Ah .58,.75 Av !.22,.5 Z M .85,#-.05 L .15,#1.05'],
-    '&': 'M 1,1 L .2,.36 Av .45,0 L .55,0 Ah .78,.25 Av .55,.5 L .36,.55 Ah 0,.76 Av .36,1 L .55,1 Ah 1,.55',
+    '&': 'M 1,#1.03 L #.3,#.36 C #.16,#.2 #.26,0 #.46,0 C #.66,0 #.74,#.2 #.58,#.34 L #.2,#.6 C #.02,#.72 #.04,1 #.36,1 C #.66,1 #.9,#.8 1,#.52',
     "'": 'M #.5,0 L #.5,1',
     '(': 'M 1,0 Ah 0,#.5 Av 1,1',
     ')': 'M 0,0 Ah 1,#.5 Av 0,1',
@@ -51,11 +54,11 @@ GLYPHS = {
     '.': 'M #.5,0 L #.5,1',
     '/': 'M 0,#1.1 L 1,#-.1',
     '0': [ELLIPSE, ROUND_O],
-    '1': ['M 0,.25 L .6,0 L .6,1', 'M 0,.25 L .55,0 L .55,1 M 0,1 L 1,1'],
-    '2': 'M 0,.28 Av .42,0 L !.42,0 Ah 1,.28 Av .7,.5 L 0,1 L 1,1',
+    '1': ['M 1,0 L 1,1 M 1,#.02 L 0,.3', 'M .55,0 L .55,1 M .55,#.02 L 0,.28 M 0,1 L 1,1'],
+    '2': 'M 0,.28 Av .42,0 L !.42,0 Ah 1,.28 C 1,.5 .6,.62 0,.97 L 0,1 L 1,1',
     '3': 'M 0,.2 Av .42,0 L .6,0 Ah .96,.24 Av .6,.48 L .35,.48 M .6,.48 Ah 1,.74 Av .6,1 L .42,1 Ah 0,!.2',
-    '4': 'M .72,1 L .72,0 L 0,.72 L 1,.72',
-    '5': 'M .95,0 L .1,0 L .03,.48 M .03,.46 L .55,.4 Ah 1,.7 Av .55,1 L .4,1 Ah 0,.82',
+    '4': 'M .74,0 L .74,1 M .74,#-.08 L 0,.72 L 1,.72',
+    '5': 'M .95,0 L .08,0 L .03,.5 C .2,.42 .35,.38 .52,.38 Ah 1,.69 Av .52,1 L .4,1 Ah 0,.82',
     '6': 'M .96,.2 Av .55,0 L .45,0 Ah 0,.35 L 0,.7 Av .45,1 L .58,1 Ah 1,.72 Av .58,.42 L .42,.42 Ah 0,.7',
     '7': 'M 0,0 L 1,0 L .3,#1.1',
     '8': 'M .58,0 Ah .96,.24 Av .58,.48 L !.58,.48 Ah .04,.24 Av !.58,0 Z M .58,.48 Ah 1,.74 Av .58,1 L !.58,1 Ah 0,.74 Av !.58,.48 Z',
@@ -63,14 +66,14 @@ GLYPHS = {
     ':': 'M #.5,0 L #.5,.25 M #.5,!.25 L #.5,1',
     ';': 'M .8,0 L .8,.22 M .8,.58 L .8,.8 L 0,1',
     '<': 'M 1,0 L 0,#.5 L 1,1',
-    '=': 'M 0,.2 L 1,.2 M 0,!.2 L 1,!.2',
+    '=': 'M 0,0 L 1,0 M 0,1 L 1,1',
     '>': 'M 0,0 L 1,#.5 L 0,1',
     '?': 'M 0,.22 Av .42,0 L !.42,0 Ah 1,.25 Av .58,.5 Ah .5,.72 M .5,.86 L .5,1',
-    '@': 'M .62,.72 Ah 1,.45 L 1,.42 Av .55,0 L .45,0 Ah 0,.5 Av .45,1 L .8,1 M .68,.3 L .62,.72 M .68,.32 L .5,.28 Ah .3,.5 Av .45,.72 L .62,.72',
+    '@': 'M #.5,#.28 Ah #.68,#.5 Av #.5,#.72 Ah #.32,#.5 Av #.5,#.28 Z M #.68,#.26 L #.68,#.62 Av #.82,#.74 Ah 1,#.5 Av #.5,0 Ah 0,#.5 Av #.5,1 L #.8,1',
     'A': 'M 0,#1.2 L #.5,#-.15 L 1,#1.2 M .2,.68 L !.2,.68',
-    'B': 'M 0,0 L 0,1 M 0,0 L .7,0 Ah .96,.24 Av .7,.48 L 0,.48 M .7,.48 Ah 1,.74 Av .7,1 L 0,1',
+    'B': 'M 0,1 L 0,0 L .7,0 Ah .96,.24 Av .7,.48 L 0,.48 M .7,.48 Ah 1,.74 Av .7,1 L 0,1 L 0,#.5',
     'C': 'M 1,.22 Av !.45,0 L .45,0 Ah 0,.3 L 0,!.3 Av .45,1 L !.45,1 Ah 1,!.22',
-    'D': 'M 0,0 L .55,0 Ah 1,.3 L 1,!.3 Av .55,1 L 0,1 L 0,0 Z',
+    'D': 'M 0,#.5 L 0,0 L .55,0 Ah 1,.3 L 1,!.3 Av .55,1 L 0,1 L 0,#.5',
     'E': 'M 1,0 L 0,0 L 0,1 L 1,1 M 0,.5 L .9,.5',
     'F': 'M 1,0 L 0,0 L 0,1 M 0,.5 L .85,.5',
     'G': 'M 1,.22 Av !.45,0 L .45,0 Ah 0,.3 L 0,!.3 Av .45,1 L !.45,1 Ah 1,.75 L 1,.55 L .6,.55',
@@ -83,7 +86,7 @@ GLYPHS = {
     'N': 'M 0,1 L 0,0 L 1,1 L 1,0',
     'O': [ELLIPSE, ROUND_O],
     'P': 'M 0,1 L 0,0 L .68,0 Ah 1,.28 Av .68,.56 L 0,.56',
-    'Q': [ELLIPSE + ' M .6,.72 L #1.05,#1.05', ROUND_O + ' M .6,.72 L #1.05,#1.05'],
+    'Q': [ELLIPSE + ' M .6,.72 L #1.25,#1.25', ROUND_O + ' M .6,.72 L #1.25,#1.25'],
     'R': 'M 0,1 L 0,0 L .68,0 Ah 1,.26 Av .68,.52 L 0,.52 M .6,.52 L 1,#1.1',
     'S': ROUND_S,
     'T': 'M 0,0 L 1,0 M #.5,0 L #.5,1',
@@ -130,6 +133,19 @@ GLYPHS = {
     '}': 'M 0,0 L .25,0 Ah .55,.2 L .55,.36 Av .85,#.5 L 1,#.5 M .85,#.5 Ah .55,!.36 L .55,!.2 Av .25,1 L 0,1',
     '~': 'M 0,.85 Av .28,0 Ah .55,.5 Av .78,1 Ah 1,.15',
 }
+# the lines of a font that each character stands on (top, bottom: None is its own)
+TOPS = {**{c: 'cap' for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'}, **{c: 'digit' for c in '0123456789'}, **{c: 'small' for c in 'acegmnopqrsuvwxyz'}, **{c: 'tall' for c in 'bdfhkl'}}
+BOTTOMS = {**{c: 'base' for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefhiklmnorstuvwxz'}, **{c: 'deep' for c in 'gjpqy'}}
+# measurements inside a character that lie on a line: (line, which edge of the stroke)
+ON_LINES = {
+    'b': {'y.3': ('small', 'top')}, 'd': {'y.3': ('small', 'top')}, 'h': {'y.28': ('small', 'top')}, 'k': {'y.25': ('small', 'top')}, 'i': {'y.3': ('small', 'top')}, 'j': {'y.3': ('small', 'top')},
+    'f': {'y.32': ('small', 'top')}, 't': {'y.28': ('small', 'top')}, 'p': {'y.75': ('base', 'bottom')}, 'q': {'y.75': ('base', 'bottom')}, 'g': {'y.75': ('base', 'bottom')},
+}
+# what the lines are measured from: the flat ones, not those whose tips the pixels blur
+LINE_FROM = {'cap': ('top', 'EFHTZLDBPRKN'), 'digit': ('top', '123457'), 'small': ('top', 'xzvwnmur'), 'tall': ('top', 'bdhkl'), 'base': ('bottom', 'EFHLTZDBIKNRxzmnhik'), 'deep': ('bottom', 'pqgy')}
+SNAP = 1.5             # (a character further than this from its line, in texels, is meant to be: font09's J hangs below the baseline)
+
+
 # (font07 and font09 have a percent sign where the dollar should be, and an exclamation mark where the percent should be)
 SWAPPED = {'font07': {'$': '%', '%': '!'}, 'font09': {'$': '%', '%': '!'}}
 
@@ -153,12 +169,13 @@ def parse(text):
         return (None, key, flip)
     params = {}
     commands = []
-    for cmd, args in re.findall(r'(Ah|Av|M|L|Z)\s*([^A-Z]*)', text):
+    for cmd, args in re.findall(r'(Ah|Av|M|L|Z|C)\s*([^A-Z]*)', text):
         if cmd == 'Z':
-            commands.append(('Z', None, None))
-        else:
-            x, y = args.strip().split(',')
-            commands.append((cmd, number(x, 'x', params), number(y, 'y', params)))
+            commands.append(('Z', None, None, None))
+            continue
+        pairs = [pair.split(',') for pair in args.split()]
+        points = [(number(x, 'x', params), number(y, 'y', params)) for x, y in pairs]
+        commands.append((cmd, points[-1][0], points[-1][1], points[:-1]))
     return commands, params
 
 
@@ -176,7 +193,8 @@ def strokes(commands, m):
     span_x, span_y = max(0.0, m['x1'] - m['x0'] - 2 * rx), max(0.0, m['y1'] - m['y0'] - 2 * ry)
     power = 2.0 / m['n']
     paths = []
-    for cmd, xn, yn in commands:
+    steps = m.get('steps', ARC_STEPS)
+    for cmd, xn, yn, controls in commands:
         if cmd == 'M':
             paths.append(dict(points=[], kinds=[], closed=False))
         if cmd == 'Z':
@@ -189,14 +207,31 @@ def strokes(commands, m):
             path['kinds'].append(cmd)
             continue
         x0, y0 = path['points'][-1]
-        for i in range(1, ARC_STEPS + 1):
-            t = (np.pi / 2.0) * i / ARC_STEPS
+        if cmd == 'C':
+            (ax, ay), (bx, by) = [(left + value_of(cx, m) * span_x, top + value_of(cy, m) * span_y) for cx, cy in controls]
+            for i in range(1, steps + 1):
+                t = i / steps
+                c0, c1, c2, c3 = (1 - t) ** 3, 3 * t * (1 - t) ** 2, 3 * t * t * (1 - t), t ** 3
+                path['points'].append((c0 * x0 + c1 * ax + c2 * bx + c3 * x, c0 * y0 + c1 * ay + c2 * by + c3 * y))
+                path['kinds'].append('A')
+            continue
+        for i in range(1, steps + 1):
+            t = (np.pi / 2.0) * i / steps
             s, c = np.sin(t) ** power, np.cos(t) ** power
             if cmd == 'Ah':
                 path['points'].append((x0 + (x - x0) * s, y + (y0 - y) * c))
             else:
                 path['points'].append((x + (x0 - x) * c, y0 + (y - y0) * s))
             path['kinds'].append('A')
+    def to_edge(at, inner):
+        # (a stroke that ends on the edge of the box goes on to the edge: the middle of the pen stops short of it, by half the pen)
+        dx, dy = at[0] - inner[0], at[1] - inner[1]
+        if abs(dx) >= abs(dy):
+            on_edge = min(abs(at[0] - left), abs(at[0] - left - span_x)) < 1.0e-6
+            return (at[0] + (rx if dx > 0 else -rx), at[1]) if on_edge and dx != 0.0 else at
+        on_edge = min(abs(at[1] - top), abs(at[1] - top - span_y)) < 1.0e-6
+        return (at[0], at[1] + (ry if dy > 0 else -ry)) if on_edge else at
+
     segments = []
     corners = []
     for path in paths:
@@ -204,7 +239,9 @@ def strokes(commands, m):
         count = len(pts) - 1
         for i in range(count):
             first, last = (i == 0 and not path['closed']), (i == count - 1 and not path['closed'])
-            segments.append((pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], first, last))
+            a = to_edge(pts[i], pts[i + 1]) if first else pts[i]
+            b = to_edge(pts[i + 1], pts[i]) if last else pts[i + 1]
+            segments.append((a[0], a[1], b[0], b[1], first, last))
             # (a corner between straight lines where one is level or upright is square: the pen's box; a pointed one stays pointed)
             if 0 < i and path['kinds'][i] == 'L' and path['kinds'][i + 1] == 'L':
                 a, b, c = pts[i - 1], pts[i], pts[i + 1]
@@ -236,7 +273,8 @@ def inside(px, py, commands, m):
         out |= near & ((x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2 <= 1.0)
     for cx, cy in corners:
         out |= (np.abs(px - cx) <= rx) & (np.abs(py - cy) <= ry)
-    return out & (px >= m['x0']) & (px <= m['x1']) & (py >= m['y0']) & (py <= m['y1'])
+    # (a tail may go past the box: Q)
+    return out & (px >= m['x0']) & (px <= m['x1']) & (py >= m['y0']) & (py <= m.get('clip', m['y1']))
 
 
 def grid(w, h, samples):
@@ -277,6 +315,14 @@ def refine(target, commands, m, params0, free, sizes):
                         m[key] = max(0.25, m[key])
                     if key == 'n':
                         m[key] = min(6.0, max(2.0, m[key]))
+                    if key in params0:
+                        m[key] = min(params0[key] + REACH, max(params0[key] - REACH, m[key]))
+                    if key in ('x0', 'y0'):
+                        m[key] = max(0.0, m[key])
+                    if key == 'x1':
+                        m[key] = min(float(target.shape[1]), m[key])
+                    if key == 'y1':
+                        m[key] = min(float(target.shape[0]), m[key])
                     e = error_of(target, commands, m, params0, px, py)
                     if e < best - 1.0e-6:
                         best = e
@@ -289,8 +335,8 @@ def refine(target, commands, m, params0, free, sizes):
 
 
 def fit_one(job):
-    """Measure one character: (font, character, the texels of its rectangle, the pen if it is decided already)."""
-    font, ch, target, pen = job
+    """Measure one character: (font, character, the texels of its rectangle, the pen and what the lines fix if they are decided already)."""
+    font, ch, target, pen, fixed = job
     box = tight_box(target)
     if box is None:
         return font, ch, None
@@ -301,7 +347,6 @@ def fit_one(job):
         m.update(box)
         sizes = (1.0, 0.5, 0.25)
         boxes = [(k, 0.25) for k in ('x0', 'x1', 'y0', 'y1')]
-        moves = [(k, 0.08) for k in params0]
         if pen is None:
             # (the pen of this character alone, the first pass: the best of a few widths, then together with the rest)
             m.update(n=2.6)
@@ -314,18 +359,95 @@ def fit_one(job):
                     if start is None or e < start[0]:
                         start = (e, wx, wy)
             m.update(wx=start[1], wy=start[2])
-            free = [('wx', 0.3), ('wy', 0.2), ('n', 0.5)] + boxes + moves
+            free = [('wx', 0.3), ('wy', 0.2), ('n', 0.5)] + boxes + [(k, 0.08) for k in params0]
         else:
             m.update(pen)
-            free = boxes + moves
+            m.update(fixed['box'])
+            span = max(0.01, m['y1'] - m['y0'] - m['wy'])
+            for key, (line, edge) in ON_LINES.get(ch, {}).items():
+                if key in params0:
+                    at = fixed['lines'][line] if line in fixed['lines'] else None
+                    if at is None:
+                        continue
+                    at = texel_of(at, fixed['rect'])
+                    m[key] = (at - m['y0'] - (m['wy'] if edge == 'bottom' else 0.0)) / span
+                    del params0[key]
+            free = [b for b in boxes if b[0] not in fixed['box']] + [(k, 0.08) for k in params0]
+            # (the bars of these signs have their own thickness)
+            if ch in '=-_':
+                free.append(('wy', 0.2))
         e = refine(target, commands, m, params0, free, sizes)
         if best is None or e < best[0] * 0.9:
             best = (e, index, m)
     return font, ch, dict(error=best[0], drawing=best[1], m=best[2])
 
 
+def screen_of(y, rect):
+    """Where a row of the texture lands on the screen, from the top of the line (the game draws h texels over h - 1 rows)."""
+    _, _, _, h, drop = rect
+    return drop + y * h / max(1, h - 1)
+
+
+def texel_of(at, rect):
+    _, _, _, h, drop = rect
+    return (at - drop) * max(1, h - 1) / h
+
+
+def shown(y, rect):
+    """A row kept inside what the game shows of a character's rectangle (a box measured past it is cut off)."""
+    return min(max(y, 0.0), float(max(1, rect[3] - 1)))
+
+
+def font_lines(results, font_rects):
+    """The lines of a font on the screen, from the characters measured alone."""
+    lines = {}
+    for line, (edge, chars) in LINE_FROM.items():
+        ats = []
+        for ch in chars:
+            if ch in results:
+                rect = font_rects[str(ord(ch))]
+                ats.append(screen_of(shown(results[ch]['m']['y0' if edge == 'top' else 'y1'], rect), rect))
+        if ats:
+            lines[line] = float(np.median(ats))
+    return lines
+
+
+def plan(ch, result, rect, lines, signs):
+    """What the lines fix of a character: its box up and down, and the rect and the lines to place what is inside it."""
+    m = result['m']
+    box = {}
+    for name, table in (('y0', TOPS), ('y1', BOTTOMS)):
+        line = table.get(ch)
+        if line in lines:
+            at = shown(texel_of(lines[line], rect), rect)
+            # (J hangs below the baseline in some fonts)
+            if abs(at - m[name]) <= (0.6 if ch == 'J' and name == 'y1' else SNAP):
+                box[name] = at
+    if ch == 'Q' and m['y1'] > box.get('y1', m['y1']):
+        box['clip'] = m['y1']
+    if ch in signs:
+        # (the signs of arithmetic have one middle and, but for =, one height)
+        middle, half = signs[ch]
+        box['y0'] = texel_of(middle - half, rect)
+        box['y1'] = texel_of(middle + half, rect)
+    return dict(box=box, lines=lines, rect=rect)
+
+
+def sign_lines(results, font_rects):
+    out = {}
+    measured = {ch: (screen_of(results[ch]['m']['y0'], font_rects[str(ord(ch))]), screen_of(results[ch]['m']['y1'], font_rects[str(ord(ch))])) for ch in '+<>=-' if ch in results}
+    if not measured:
+        return out
+    middle = float(np.median([(a + b) / 2.0 for ch, (a, b) in measured.items()]))
+    arrows = [(b - a) / 2.0 for ch, (a, b) in measured.items() if ch in '+<>']
+    for ch, (a, b) in measured.items():
+        half = float(np.median(arrows)) if ch in '+<>' and arrows else (b - a) / 2.0
+        out[ch] = (middle, half)
+    return out
+
+
 def kind_of(ch):
-    if ch.isupper():
+    if ch.isupper() or ch in '&?':
         return 'upper'
     if ch.islower():
         return 'lower'
@@ -354,14 +476,19 @@ def measure(src, rects):
     """All the characters of all the fonts, in two passes: each with its own pen, then each with the pen of its kind."""
     atlases = {font: load(src, font) for font in rects}
 
-    def jobs(pens):
+    def jobs(pens, first):
         for font in rects:
-            for ch, (u, v, w, h, _) in glyphs_of(font, rects).items():
-                yield font, ch, atlases[font][v:v + h, u:u + w], (pens[font][kind_of(ch)] if pens else None)
+            for ch, rect in glyphs_of(font, rects).items():
+                u, v, w, h, _ = rect
+                target = atlases[font][v:v + h, u:u + w]
+                if not pens:
+                    yield font, ch, target, None, None
+                elif ch in first[font]:
+                    yield font, ch, target, pens[font][kind_of(ch)], plan(ch, first[font][ch], rect, lines[font], signs[font])
 
     with multiprocessing.Pool() as pool:
         first = {}
-        for font, ch, res in pool.imap_unordered(fit_one, list(jobs(None)), chunksize=4):
+        for font, ch, res in pool.imap_unordered(fit_one, list(jobs(None, None)), chunksize=4):
             if res:
                 first.setdefault(font, {})[ch] = res
         pens = {}
@@ -375,10 +502,20 @@ def measure(src, rects):
                 curved = [r['m']['n'] for ch, r in results.items() if kind_of(ch) == kind and 'A' in ' '.join(drawings_of(font, ch)).replace('A,', '')]
                 pens[font][kind]['n'] = float(np.median(curved)) if curved else 2.6
             print(font, {k: {a: round(b, 2) for a, b in v.items()} for k, v in pens[font].items()})
+        lines = {font: font_lines(results, rects[font]) for font, results in first.items()}
+        signs = {font: sign_lines(results, rects[font]) for font, results in first.items()}
+        print({font: {k: round(v, 2) for k, v in ls.items()} for font, ls in lines.items()})
         second = {}
-        for font, ch, res in pool.imap_unordered(fit_one, list(jobs(pens)), chunksize=4):
+        for font, ch, res in pool.imap_unordered(fit_one, list(jobs(pens, first)), chunksize=4):
             if res:
                 second.setdefault(font, {})[ch] = res
+    for font, results in second.items():
+        # (a character that is one stem is as wide as the pen)
+        for ch in 'Il|':
+            if ch in results:
+                m = results[ch]['m']
+                middle = (m['x0'] + m['x1']) / 2.0
+                m['x0'], m['x1'] = middle - m['wx'] / 2.0, middle + m['wx'] / 2.0
     return second
 
 
@@ -408,7 +545,7 @@ def draw_font(font, atlas, rects, fit):
         xs = (np.arange(tile_w * DRAW_SAMPLES) + 0.5) / (SCALE_X * DRAW_SAMPLES)
         ys = (np.arange(tile_h * DRAW_SAMPLES) + 0.5) / (SCALE_Y * DRAW_SAMPLES)
         px, py = np.meshgrid(xs, ys)
-        ink = inside(px, py, commands, res['m']).reshape(tile_h, DRAW_SAMPLES, tile_w, DRAW_SAMPLES).mean(axis=(1, 3))
+        ink = inside(px, py, commands, dict(res['m'], steps=DRAW_STEPS)).reshape(tile_h, DRAW_SAMPLES, tile_w, DRAW_SAMPLES).mean(axis=(1, 3))
         at_y, at_x = v * SCALE_Y, u * SCALE_X
         place = alpha[at_y:at_y + tile_h, at_x:at_x + tile_w]
         np.maximum(place, ink[:place.shape[0], :place.shape[1]], out=place)

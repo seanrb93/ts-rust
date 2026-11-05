@@ -112,10 +112,16 @@ pub fn specialPropDelete(prop: i32) {
     propDelete(prop);
 }
 
+/// The record of the memory debugger in the menus: the text there takes most of it, and an `extensions` build draws more of it (the outlines: `textOutline`).
+#[cfg(not(feature = "extensions"))]
+pub const MEMDB_MENU: i32 = 0x40000;
+#[cfg(feature = "extensions")]
+pub const MEMDB_MENU: i32 = 0x100000;
+
 /// Get the buffer of the memory debugger of kind `kind` (1 or 2: a record of 0x40000 or, for 2, 0x200000 bytes, with twice that of memory) and restart it (@ 0x201ef8).
 pub fn memdbReset(kind: i32) {
     if ((kind - 1) as u32) < 2 {
-        let length = if (kind ^ 2) == 0 { 0x200000 } else { 0x40000 };
+        let length = if (kind ^ 2) == 0 { 0x200000 } else { MEMDB_MENU };
         sw(g::buflen, length);
         let memory = memAlloc(length << 1, 1);
         sw(g::memdbbuffer, memory);
