@@ -90,6 +90,8 @@ pub fn register_script(mod_name: &str, file: &str, source: String) {
 
 /// A script is running (set while one is loaded, so that the hooks in the game's code cost nothing otherwise).
 static ACTIVE: AtomicBool = AtomicBool::new(false);
+/// How much a script has scaled the height of the view of each character (`chr_view_ratio`; 0: not at all).
+static VIEW_RATIOS: [std::sync::atomic::AtomicU32; 128] = [const { std::sync::atomic::AtomicU32::new(0) }; 128];
 /// The script of the mode chosen was looked for in this game, and those of the mods in this run.
 static TRIED: AtomicBool = AtomicBool::new(false);
 static MODS_TRIED: AtomicBool = AtomicBool::new(false);
@@ -231,6 +233,12 @@ fn register(engine: &mut Engine) {
     engine.register_fn("pokef", |at: i64, value: f64| swc1(at as i32, value as f32));
     // the entry of a character in the game's table of characters (44 bytes): +20 the height of its head standing, +24 crouching, +28 the floor, +32 and +36 sizes of its body, +40 its scale
     engine.register_fn("chr_entry", |c: i64| (CHRS_TABLE + 44 * (c as i32)) as i64);
+    // (the script has scaled the heights of the view of the character by so much: the arm of the fists stays where it is in the view)
+    engine.register_fn("chr_view_ratio", |c: i64, ratio: f64| {
+        if let Some(r) = usize::try_from(c).ok().and_then(|c| VIEW_RATIOS.get(c)) {
+            r.store((ratio as f32).to_bits(), Ordering::Relaxed);
+        }
+    });
     // the pads of the level (the places the computer characters go between)
     engine.register_fn("pad_count", || lw(g::numpads) as i64);
     engine.register_fn("pad_x", |k: i64| lwc1(lw(g::levelpads) + (k as i32) * 28 + 12) as f64);
@@ -522,6 +530,19 @@ pub fn script_pair_listed(single: i32) -> bool {
 /// A set of weapons may have the pair `pair` of the weapon `single` (`allows_pair(pair, single)` of a script; otherwise the set has the single weapon).
 pub fn script_pair_allowed(pair: i32, single: i32) -> bool {
     ACTIVE.load(Ordering::Relaxed) && call_all::<_, bool>("allows_pair", (pair as i64, single as i64)).into_iter().any(|b| b)
+}
+
+/// The height of the eyes that the arm of the fists is placed from, for a character whose view a script has moved (`chr_view_ratio`): the height it has without the script, so that the
+/// arm is where it always is in the view.
+pub fn script_arm_eye(character: i32, eye: f32) -> f32 {
+    let Some(ratio) = usize::try_from(character).ok().and_then(|c| VIEW_RATIOS.get(c)).map(|r| f32::from_bits(r.load(Ordering::Relaxed))) else {
+        return eye;
+    };
+    if ratio <= 0.0 {
+        return eye;
+    }
+    let floor = lwc1(CHRS_TABLE + 44 * character + 28);
+    floor + (eye - floor) / ratio
 }
 
 /// An unarmed player punches with the left fist and the right in turn (`alternate_fists()` of a script).

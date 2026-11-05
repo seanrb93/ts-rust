@@ -30,6 +30,7 @@ fn on_frame() {
         let crouch = peekf(e + 24);
         pokef(e + 20, floor + (stand - floor) * ratio);
         pokef(e + 24, floor + (crouch - floor) * ratio);
+        chr_view_ratio(c, ratio);
         if env_int("TS_HEIGHTLOG", 0) == 1 && (c == 0 || c == 7 || c == 24 || c == 20) { log("character " + c + ": ratio " + ratio + " head " + peekf(e + 20) + " crouching " + peekf(e + 24)); }
     }
 }

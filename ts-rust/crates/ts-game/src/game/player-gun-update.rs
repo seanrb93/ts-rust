@@ -143,7 +143,11 @@ fn remote_hand(a0: i32, sp: i32, s4_1: i32, anim: i32, s0_1: i32) -> i32 {
     let player_data = lw(s5_1 + 356);
     swc1(s3_2 + 48, ps2float::add(lwc1(player_data + 140), lwc1(sp + 64)));
     let f1_13 = lwc1(player_data + 144);
-    swc1(s3_2 + 52, ps2float::add(ps2float::sub(ps2float::add(f1_13, ps2float::sub(lwc1(player_data + 156), f1_13)), lwc1(player_data + 104)), lwc1(sp + 68)));
+    #[cfg(feature = "extensions")]
+    let eye = script_arm_eye(lh(s4_1 + 4), lwc1(player_data + 104));
+    #[cfg(not(feature = "extensions"))]
+    let eye = lwc1(player_data + 104);
+    swc1(s3_2 + 52, ps2float::add(ps2float::sub(ps2float::add(f1_13, ps2float::sub(lwc1(player_data + 156), f1_13)), eye), lwc1(sp + 68)));
     swc1(s3_2 + 56, ps2float::add(lwc1(player_data + 148), lwc1(sp + 72)));
     if curAnim(s3_2, anim) == 0 {
         if (lw(s4_1 + 2708) & 32) != 0 {
