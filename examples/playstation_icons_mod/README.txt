@@ -1,3 +1,0 @@
-PlayStation Icons: the game's PlayStation button pictures at sixteen times the size, drawn again as exact shapes (the circle, cross, triangle and square buttons, L1, L2 and Select).
-They are not an upscale: tools/make-playstation-icons.py works each one out from distances to circles, lines and rounded boxes, with sizes and colours measured from the game's pictures.  No picture of the game and no font is read, so the pictures here are kept in the repository.
-They stand where the game's own pictures do.  With an Xbox or Switch controller or the keyboard, the program's pictures for that device are shown instead.  Switch it on or off from the Mods page (or enabled = true) and start the game again.

@@ -323,24 +323,6 @@ def preview(sets, path):
     sheet.crop((0, 0, width, y)).convert('RGB').save(path)
 
 
-def emit_rust(assets, rust):
-    """The 96 pixel pictures the port draws (the face buttons of the Xbox and Switch and the square key caps) as a Rust table of `include_bytes!`."""
-    entries = []
-    for group in ('xbox', 'switch', 'keys_sq', 'pills'):
-        folder = os.path.join(assets, group)
-        for name in sorted(os.listdir(folder)):
-            if group in ('xbox', 'switch') and name[:-4] not in ('a', 'b', 'x', 'y'):
-                continue
-            entries.append((group + '/' + name[:-4], '../assets/icons/' + group + '/' + name))
-    nl = chr(10)
-    with open(rust, 'w', newline='') as f:
-        f.write('// Written by tools/make-button-icons.py: the pictures of the buttons and keys (96 pixels), by name.' + nl)
-        f.write('pub static ICONS: &[(&str, &[u8])] = &[' + nl)
-        for n, p in entries:
-            f.write('    ("' + n + '", include_bytes!("' + p + '")),' + nl)
-        f.write('];' + nl)
-
-
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -349,23 +331,23 @@ def main():
     for scale in (1, 4):
         sets = build(scale, os.path.join(out, str(24 * scale)))
     preview(sets, os.path.join(out, 'preview.png'))
-    if len(sys.argv) > 3:
-        # (the port's copy: python tools/make-button-icons.py <out> <port assets/icons folder> <port src/icons_data.rs>)
+    if len(sys.argv) > 2:
+        # (the mod's copy: python tools/make-button-icons.py <out> <mods folder>/universal_controller_icons_mod)
         import shutil
-        shutil.rmtree(sys.argv[2], ignore_errors=True)
-        shutil.copytree(os.path.join(out, '96'), sys.argv[2])
-        shutil.rmtree(os.path.join(sys.argv[2], 'keys'), ignore_errors=True)  # (the wide caps are for the preview and for modders; the port draws the square ones)
-        # (the game's 24 x 24 button textures sit in 32 x 32 of texture memory and are addressed that way: a picture that replaces one has to have its 24 x 24 in the top left of a 32 x 32,
+        folder = os.path.join(sys.argv[2], 'button_icons')
+        shutil.rmtree(folder, ignore_errors=True)
+        shutil.copytree(os.path.join(out, '96'), folder)
+        shutil.rmtree(os.path.join(folder, 'keys'), ignore_errors=True)  # (the wide caps are for the preview and for modders)
+        # (the game's 24 x 24 button textures sit in 32 x 32 of texture memory and are addressed that way: a picture that replaces one has to fill that surface,
         # here 96 x 96 in the top left of 128 x 128)
         for group in ('xbox', 'switch', 'keys_sq'):
-            for name in os.listdir(os.path.join(sys.argv[2], group)):
-                path = os.path.join(sys.argv[2], group, name)
+            for name in os.listdir(os.path.join(folder, group)):
+                path = os.path.join(folder, group, name)
                 pic = Image.open(path).convert('RGBA')
                 if pic.size == (96, 96):
                     padded = Image.new('RGBA', (128, 128), (0, 0, 0, 0))
                     padded.paste(pic, (0, 0))
                     padded.save(path)
-        emit_rust(sys.argv[2], sys.argv[3])
     print('icons written to', out, '(' + ', '.join(f'{k}: {len(v)}' for k, v in sets.items()) + ')')
 
 

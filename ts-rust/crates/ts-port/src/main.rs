@@ -785,6 +785,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
     ts_gfx::hd::set_loader(texmod::load_hd);
     icons::init();
     mods::load(&exe_dir());
+    icons::register();
     mods::publish_pack_names();
     ts_game::prop_table_init();
     ts_game::character_table_init();

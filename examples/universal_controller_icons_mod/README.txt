@@ -1,0 +1,4 @@
+Universal Controller Icons: the pictures of the buttons for every device, at high resolution.  All of them are drawn from nothing, so they are kept in the repository.
+PlayStation (MISC.PAK/textures/misc): the circle, cross, triangle and square buttons, L1, L2 and Select at sixteen times the size, made by tools/make-playstation-icons.py from exact shapes, with sizes and colours measured from the game's pictures.  No picture of the game and no font is read.  They stand where the game's own pictures do.
+Xbox, Switch and the keyboard (button_icons): made by tools/make-button-icons.py, in the style of the game's buttons.  They are shown while that device is the one in use; on the keyboard the cap of the key the player gave the button.
+With the mod off, the PlayStation buttons are the game's own and the buttons of the other devices are named in words.  Switch it on or off from the Mods page (or enabled = true) and start the game again.

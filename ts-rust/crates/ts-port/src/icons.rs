@@ -2,12 +2,35 @@
 //!
 //! The game marks a button in its texts as `^1` to `^4` (circle, cross, triangle, square) and draws a picture of the button where the marker is: the textures `mm_button01` to
 //! `mm_button04`, which are PlayStation buttons.  For an Xbox or Switch controller, or the keyboard, the renderer is told to show another picture in their place
-//! (`ts_gfx::hd::register_variant`, which depends on the device in use): the buttons of that controller, or the cap of the key the player gave the button.  The pictures are drawn
-//! by `tools/make-button-icons.py` and carried in the program (`icons_data.rs`).
+//! (`ts_gfx::hd::register_variant`, which depends on the device in use): the buttons of that controller, or the cap of the key the player gave the button.  The pictures are files of a
+//! mod, in its folder `button_icons` (the Universal Controller Icons mod; `tools/make-button-icons.py` draws them).  With no picture for a button the texts name it in words.
 
+use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Mutex;
 
-include!("icons_data.rs");
+/// The pictures of the mods, by name (`xbox/a`).  They stay for as long as the program runs: the renderer keeps them.
+static ICONS: Mutex<Option<HashMap<String, &'static [u8]>>> = Mutex::new(None);
+
+/// The folder `button_icons` of a mod: a folder for each device (`xbox/a.png`).  A mod after it can give a picture of the same name.
+pub fn add_folder(dir: &Path) {
+    let Ok(groups) = std::fs::read_dir(dir) else { return };
+    let mut icons = ICONS.lock().unwrap();
+    let map = icons.get_or_insert_with(HashMap::new);
+    for group in groups.flatten() {
+        let Ok(files) = std::fs::read_dir(group.path()) else { continue };
+        for file in files.flatten() {
+            let path = file.path();
+            if !path.extension().map_or(false, |e| e.eq_ignore_ascii_case("png")) {
+                continue;
+            }
+            let (Some(g), Some(stem)) = (group.file_name().to_str().map(str::to_ascii_lowercase), path.file_stem().and_then(|n| n.to_str()).map(str::to_ascii_lowercase)) else { continue };
+            if let Ok(bytes) = std::fs::read(&path) {
+                map.insert(format!("{g}/{stem}"), Box::leak(bytes.into_boxed_slice()));
+            }
+        }
+    }
+}
 
 /// The texture of the button picture of each marker (`^1` to `^4`).
 const TEXTURES: [&str; 4] = ["textures/misc/mm_button01", "textures/misc/mm_button02", "textures/misc/mm_button03", "textures/misc/mm_button04"];
@@ -16,13 +39,20 @@ const TEXTURES: [&str; 4] = ["textures/misc/mm_button01", "textures/misc/mm_butt
 const PILLS: [&str; 2] = ["textures/misc/mm_cursor13", "textures/misc/mm_cursor14"];
 
 fn icon(name: &str) -> Option<&'static [u8]> {
-    ICONS.iter().find(|(n, _)| *n == name).map(|(_, b)| *b)
+    ICONS.lock().unwrap().as_ref()?.get(name).copied()
 }
 
-/// Start up: the picture reader, and the pictures of the Xbox and Switch buttons (circle, cross, triangle and square are B, A, Y, X on an Xbox and A, B, X, Y on a Switch).
+/// The pictures of the Xbox and Switch buttons (circle, cross, triangle and square are B, A, Y, X on an Xbox and A, B, X, Y on a Switch), with the shoulder buttons of the MapMaker.
+const DEVICES: [(u8, [&str; 4], [&str; 2]); 2] = [(1u8, ["xbox/b", "xbox/a", "xbox/y", "xbox/x"], ["pills/xbox_lb", "pills/xbox_lt"]), (2u8, ["switch/a", "switch/b", "switch/x", "switch/y"], ["pills/switch_l", "pills/switch_zl"])];
+
+/// Start up: the picture reader.
 pub fn init() {
     ts_gfx::hd::set_bytes_loader(crate::texmod::load_hd_bytes);
-    for (style, names, pills) in [(1u8, ["xbox/b", "xbox/a", "xbox/y", "xbox/x"], ["pills/xbox_lb", "pills/xbox_lt"]), (2u8, ["switch/a", "switch/b", "switch/x", "switch/y"], ["pills/switch_l", "pills/switch_zl"])] {
+}
+
+/// The mods are loaded: the pictures they have for the Xbox and Switch buttons replace the game's while that device is in use.
+pub fn register() {
+    for (style, names, pills) in DEVICES {
         for (code, name) in names.iter().enumerate() {
             if let Some(bytes) = icon(name) {
                 ts_gfx::hd::register_variant(TEXTURES[code], style, bytes);
@@ -86,7 +116,15 @@ pub fn update(style: u8) {
     let changed = seen.as_ref().map_or(true, |(s, l)| *s != style || *l != labels);
     let mut mask = 0u8;
     match style {
-        1 | 2 => mask = 0b1111,
+        1 | 2 => {
+            if let Some((_, names, _)) = DEVICES.iter().find(|d| d.0 == style) {
+                for (code, name) in names.iter().enumerate() {
+                    if icon(name).is_some() {
+                        mask |= 1 << code;
+                    }
+                }
+            }
+        }
         3 => {
             if changed {
                 ts_gfx::hd::clear_variants(3);

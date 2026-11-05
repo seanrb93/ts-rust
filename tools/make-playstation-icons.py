@@ -1,8 +1,8 @@
-"""Make the PlayStation Icons mod: the game's PlayStation button pictures drawn again from nothing, as exact shapes, at many times the size.
+"""The PlayStation part of the Universal Controller Icons mod: the game's PlayStation button pictures drawn again from nothing, as exact shapes, at many times the size.
 
     python tools/make-playstation-icons.py <mods folder>
 
-Writes <mods folder>/playstation_icons_mod/MISC.PAK/textures/misc/<texture>.png and a mod.ini.  No picture of the game and no font is read: each picture is worked out from distances to circles, lines and rounded
+Writes <mods folder>/universal_controller_icons_mod/MISC.PAK/textures/misc/<texture>.png and a mod.ini.  No picture of the game and no font is read: each picture is worked out from distances to circles, lines and rounded
 boxes, whose sizes and colours were measured from the game's pictures, so the edges are clean at any size.  The textures are 24 by 24 and 32 by 32 (the shoulder buttons) in a surface of 32 by 32, and a picture replaces the
 whole surface: the part the game draws is at the top left and the rest is empty.
 """
@@ -221,13 +221,13 @@ def main():
     if len(sys.argv) != 2:
         print(__doc__)
         sys.exit(1)
-    mod = os.path.join(sys.argv[1], 'playstation_icons_mod')
+    mod = os.path.join(sys.argv[1], 'universal_controller_icons_mod')
     out = os.path.join(mod, 'MISC.PAK', 'textures', 'misc')
     os.makedirs(out, exist_ok=True)
     for name, make in PICTURES.items():
         make().save(os.path.join(out, name + '.png'))
     with open(os.path.join(mod, 'mod.ini'), 'w', encoding='utf-8') as f:
-        f.write('name = PlayStation Icons\nenabled = true\n')
+        f.write('name = Universal Controller Icons\nenabled = true\n')
 
 
 if __name__ == '__main__':
