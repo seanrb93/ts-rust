@@ -384,6 +384,9 @@ fn compile(name: &str, source: &str, of_mode: bool) -> Option<Host> {
 /// A new game starts: the script of the last mode and what the scripts asked for are put away.
 pub fn script_reset() {
     HOSTS.with(|h| h.borrow_mut().retain(|host| !host.of_mode));
+    for i in 0..32 {
+        sw(GUN_DIPS + 4 * i, 0);
+    }
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         s.fx.clear();
@@ -791,8 +794,16 @@ fn read_name(at: i32) -> String {
     String::from_utf8_lossy(&text).to_string()
 }
 
+/// The time of the dip of the gun in the right hand of each player while its model changes (`script_gun_refit`), in the game's memory so that it goes back with the game; 0: no dip.
+const GUN_DIPS: i32 = BASE + 0x18_8000;
+
+fn gun_dip_at() -> i32 {
+    GUN_DIPS + 4 * lw(lw(g::currentplayer)).clamp(0, 15)
+}
+
 /// The gun in the right hand stays when the weapon changes to the pair of the same gun, or back (the game makes a gun only when its number changes), so the model it was made with can
-/// be the wrong one: a two handed gun would keep its front hand beside the second gun.  It is made again, in the same place in the slot `slot`, from the right model (a script's, `on_gun_model`).
+/// be the wrong one: a two handed gun would keep its front hand beside the second gun.  The gun dips out of the view by the game's own moves for putting a gun away and raising it, and at the
+/// bottom it is made again, in the same place in the slot `slot`, from the right model (a script's, `on_gun_model`), so that no hand is seen to go.
 pub fn script_gun_refit(slot: i32, gun: i32, pair: bool) {
     let view = lw(slot + 12);
     if view == 0 || gun < 0 || !ACTIVE.load(Ordering::Relaxed) || !has("on_gun_model") {
@@ -806,9 +817,26 @@ pub fn script_gun_refit(slot: i32, gun: i32, pair: bool) {
     }
     // (a gun with no such model, as every gun of one hand: the plain one is right)
     let wanted = if pair { gun_model_of(prop, false).unwrap_or(plain) } else { plain };
+    let dip = gun_dip_at();
+    let time = lwc1(dip);
+    let (down, up) = (lwc1(0x3ad3d0), lwc1(0x3ad3e4));
     if model == wanted {
         return;
     }
+    if time < down {
+        // (going down: it is swapped at the bottom)
+        if time == 0.0 {
+            swc1(dip, 1.0e-3);
+        }
+        return;
+    }
+    if time > down + 1.0e-3 && lw(dip + 64) != 0 {
+        // (it was swapped and the weapon changed back on the way up: down again from where it is)
+        swc1(dip, (down + up - time) / up * down);
+        sw(dip + 64, 0);
+        return;
+    }
+    sw(dip + 64, 1);
     let new = if pair { script_gun_new(prop, false) } else { gunNew(prop, 0.0_f32, -1e+02_f32, 0.0_f32, 0.0_f32) };
     for at in [12, 16, 136, 140] {
         sw(new + at, lw(view + at));
@@ -816,6 +844,35 @@ pub fn script_gun_refit(slot: i32, gun: i32, pair: bool) {
     obInstSetAnim(lw(new + 32), 1, 0.0_f32);
     propDelete(view);
     sw(slot + 12, new);
+}
+
+/// At the end of the update of the gun in the right hand: the gun is where the dip has it (a part of the way to where the game puts it away; only the picture moves, what the gun does does not change).
+pub fn script_gun_dip(slot: i32) {
+    let dip = gun_dip_at();
+    let time = lwc1(dip);
+    if time == 0.0 {
+        return;
+    }
+    let view = lw(slot + 12);
+    if view == 0 || lw(slot) != 1 {
+        swc1(dip, 0.0);
+        sw(dip + 64, 0);
+        return;
+    }
+    let (down, up) = (lwc1(0x3ad3d0), lwc1(0x3ad3e4));
+    let (fraction, drop) = if time < down { (time / down, lwc1(0x3ad3d4)) } else { (((down + up - time) / up).max(0.0), lwc1(0x3ad3e8)) };
+    swc1(view + 52, lwc1(view + 52) - fraction * drop);
+    swc1(view + 72, lwc1(view + 72) + fraction * 6.0e1);
+    let next = time + lwc1(g::updateframesf) / 6.0e1;
+    if next >= down + up {
+        swc1(dip, 0.0);
+        sw(dip + 64, 0);
+    } else if time < down && next >= down && lw(dip + 64) == 0 {
+        // (stays at the bottom until the model is changed, in the next update)
+        swc1(dip, down);
+    } else {
+        swc1(dip, next);
+    }
 }
 
 /// `gunNew` for a gun held in both hands: a script may give another model for it (`on_gun_model(file name of the gun's model, left hand)`: the name of a file of the packs, or ""), which is loaded

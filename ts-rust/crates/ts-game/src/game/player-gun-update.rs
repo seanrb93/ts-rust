@@ -528,6 +528,10 @@ pub fn gunUpdate(a0: i32, a1: i32) {
         }
     }
     #[cfg(feature = "extensions")]
+    if a1 == 0 {
+        script_gun_dip(a0);
+    }
+    #[cfg(feature = "extensions")]
     hands_puppet_tick(a0, a1, s4_1);
 }
 
