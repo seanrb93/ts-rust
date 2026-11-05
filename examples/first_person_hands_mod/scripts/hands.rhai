@@ -3,9 +3,6 @@
 // The models are the mod's own files (OB.PAK/ob/gun<N>/gun<N>_c<CC>.raw, a set for each character, and _l and _m for a gun that is held in both hands, with the hand on the grip only),
 // made by examples/first_person_hands_src/make-hands.py.  This script says which of them the game loads: the one of the first player's character, and the plain model when there is none.
 
-// the arm of the fists: the hand is a fist that goes straight along the forearm, not the open hand of the character's model hanging from its wrist
-fn fist_hand() { true }
-
 // the game asks about the names of the files that start so
 fn file_prefixes() { ["ob/gun"] }
 

@@ -90,8 +90,6 @@ pub fn register_script(mod_name: &str, file: &str, source: String) {
 
 /// A script is running (set while one is loaded, so that the hooks in the game's code cost nothing otherwise).
 static ACTIVE: AtomicBool = AtomicBool::new(false);
-/// A script wants the hand of the arm of the fists to be a fist (`fist_hand()`).
-static FIST_HAND: AtomicBool = AtomicBool::new(false);
 /// The script of the mode chosen was looked for in this game, and those of the mods in this run.
 static TRIED: AtomicBool = AtomicBool::new(false);
 static MODS_TRIED: AtomicBool = AtomicBool::new(false);
@@ -459,7 +457,6 @@ pub fn script_frame() {
     if ACTIVE.load(Ordering::Relaxed) {
         let _: Vec<()> = call_all("on_frame", ());
         FISTS.store(call_all::<_, bool>("alternate_fists", ()).into_iter().any(|b| b), Ordering::Relaxed);
-        FIST_HAND.store(call_all::<_, bool>("fist_hand", ()).into_iter().any(|b| b), Ordering::Relaxed);
     }
 }
 
@@ -528,11 +525,6 @@ pub fn script_pair_allowed(pair: i32, single: i32) -> bool {
 }
 
 /// An unarmed player punches with the left fist and the right in turn (`alternate_fists()` of a script).
-pub fn script_fist_hand() -> bool {
-    ACTIVE.load(Ordering::Relaxed) && FIST_HAND.load(Ordering::Relaxed)
-}
-
-/// Does a script want the fists to take turns?
 pub fn script_alternate_fists() -> bool {
     ACTIVE.load(Ordering::Relaxed) && FISTS.load(Ordering::Relaxed)
 }

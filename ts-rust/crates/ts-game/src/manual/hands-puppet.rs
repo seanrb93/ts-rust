@@ -35,64 +35,6 @@ pub fn hands_reset() {
     for p in &PUPPETS {
         p.store(0, Ordering::Relaxed);
     }
-    for s in &FIST_SLOTS {
-        s.store(0, Ordering::Relaxed);
-    }
-}
-
-/// The gun slot of each player that has the arm of the fists (0: none yet).
-static FIST_SLOTS: [AtomicI32; 4] = [AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0), AtomicI32::new(0)];
-/// A fist is the hand at this size along each of its axes: short along the fingers (its x), and thick.  `TS_FISTSIZE=<x>,<y>,<z>` sets them by hand.
-const FIST_SIZE: [f32; 3] = [0.5, 1.3, 1.3];
-const HUMAN_HAND_BONE: i32 = 14;
-
-/// The arm of the fists of the player `number` is in the gun slot `slot` (`remote_hand`).
-pub fn hands_fist_slot(number: i32, slot: i32) {
-    if (0..4).contains(&number) {
-        FIST_SLOTS[number as usize].store(slot, Ordering::Relaxed);
-    }
-}
-
-/// After `animMtxTick`, when a script asks for it (`fist_hand()`): the arm of the fists is the character's own, whose hand is open and hangs from the wrist in the swipe.  The wrist and the
-/// hand get the turn of the forearm, so that the punch goes straight along it, and the hand is made short and thick as a fist.
-pub fn hands_fist_matrices() {
-    #[cfg(not(feature = "extensions"))]
-    return;
-    #[cfg(feature = "extensions")]
-    if !script_fist_hand() {
-        return;
-    }
-    for n in 0..4usize {
-        let slot = FIST_SLOTS[n].load(Ordering::Relaxed);
-        if slot == 0 || lw(slot) != 0 {
-            continue;
-        }
-        let prop = lw(slot + 12);
-        if prop == 0 {
-            continue;
-        }
-        let inst = lw(prop + 32);
-        let list = lw(inst + 8 + 4 * n as i32);
-        let hand_bone = lw(lw(inst + 92) + 28);
-        // (only the skeleton of the humans: in the others, such as the robots, the two bones before the hand are not its wrist and forearm)
-        if list == 0 || hand_bone != HUMAN_HAND_BONE {
-            continue;
-        }
-        let (forearm, wrist, hand) = (list + ((hand_bone - 2) << 6), list + ((hand_bone - 1) << 6), list + (hand_bone << 6));
-        // (a bone goes along its own x.  The hand and the wrist are at one point, and the hand's axes are the forearm's turned half way round that x, tilted a little in the swipe: the
-        // tilt is taken out, whichever way round the axes of the model are, and the hand made short along x)
-        let column = |m: i32, c: i32| [lwc1(m + 16 * c), lwc1(m + 16 * c + 4), lwc1(m + 16 * c + 8)];
-        let sizes = env_list("TS_FISTSIZE", 3).unwrap_or(FIST_SIZE.to_vec());
-        for c in 0..3 {
-            let (along, own) = (column(forearm, c), column(hand, c));
-            let same_way = along[0] * own[0] + along[1] * own[1] + along[2] * own[2] >= 0.0;
-            let sign = if same_way { 1.0 } else { -1.0 };
-            for k in 0..3 {
-                swc1(wrist + 16 * c + 4 * k, along[k as usize] * sign);
-                swc1(hand + 16 * c + 4 * k, along[k as usize] * sign * sizes[c as usize]);
-            }
-        }
-    }
 }
 
 /// How a gun is held: the animation, the turn about the height (degrees) and the place (across, up, forward) of the character.
