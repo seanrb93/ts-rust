@@ -30,7 +30,6 @@ TEX_BASE = 9400
 # arm: where the elbow of the right arm is, when not GRIP_ARM.
 # palm=(x, y, z) with fingers=(x, y, z) and thumb=(x, y, z): something that is carried rather than gripped, lying on the upturned right palm.
 CURL_LIMIT = 150.0  # how far round the fingers bend, degrees
-THUMB_LIMIT = math.radians(90.0)  # and the thumb
 GRIP_ARM = (-0.35, -0.3, -0.9)  # where the elbow of the right arm is from its wrist: back, down and to the right of the screen, nearly along the gun
 WRIST_ARM = (-0.45, -0.65, -0.6)  # the right arm when the hand is on the wrist of a stock: the elbow is lower
 FORE_ARM = (0.6, -0.45, -0.7)   # and of the left arm, which comes across from the lower left
@@ -221,15 +220,7 @@ def posed(pose, sources, scale, arm_from, chr_verts, chr_parts, mirror):
             reach = palm_face + radius - n
             new_u = knuckle_u + (u - knuckle_u) * (1.0 - fade) + reach * math.sin(angle)
             new_n = palm_face + radius - reach * math.cos(angle)
-        # (and the thumb comes round the back of it)
-        new_t = t
-        thumb_from = 0.45 * thumb_side.max()
-        if t > thumb_from:
-            angle = (t - thumb_from) / max(thumb_side.max() - thumb_from, 1e-6) * THUMB_LIMIT
-            reach = palm_face + radius - new_n
-            new_t = thumb_from + reach * math.sin(angle)
-            new_n = palm_face + radius - reach * math.cos(angle)
-        return middle + down * new_u + palm_rest * new_n + thumb_rest * new_t
+        return middle + down * new_u + palm_rest * new_n + thumb_rest * t
 
     def place(point, of_hand):
         if whole:
