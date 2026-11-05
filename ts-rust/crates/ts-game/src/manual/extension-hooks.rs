@@ -1150,12 +1150,17 @@ pub fn level_instances() -> i32 {
     }
 }
 
+/// The lists of rooms by distance of the extended build: 25 distances of 1024 bytes, after everything else the port keeps in this memory (at BASE + 0x11_0000 they overwrote the table of props,
+/// and with it the models of the characters that the rows at each 1024 bytes belong to).
+#[cfg(feature = "extended-tables")]
+const ROOM_LISTS: i32 = 0x240_0000 + 0x18_0000;
+
 /// The room `room` is `index` rooms deep in the list of the rooms at the distance `distance` (`bgGfx`): a byte for each room of the game's
-/// level of 200 rooms, a halfword for each of the port's 480 (at BASE + 0x11_0000, after the tables of the players).
+/// level of 200 rooms, a halfword for each of the port's 480.
 #[inline]
 pub fn room_slot_write(index: i32, distance: i32, room: i32) {
     #[cfg(feature = "extended-tables")]
-    sh((index << 1) + distance * 1024 + 0x2510000, room);
+    sh((index << 1) + distance * 1024 + ROOM_LISTS, room);
     #[cfg(not(feature = "extended-tables"))]
     sb(index + distance * 200 + 0x1fc4a78, room);
 }
@@ -1165,7 +1170,7 @@ pub fn room_slot_write(index: i32, distance: i32, room: i32) {
 pub fn room_slot_read(distance: i32, index: i32) -> i32 {
     #[cfg(feature = "extended-tables")]
     {
-        lhu(distance * 1024 + (index << 1) + 0x2510000)
+        lhu(distance * 1024 + (index << 1) + ROOM_LISTS)
     }
     #[cfg(not(feature = "extended-tables"))]
     {
