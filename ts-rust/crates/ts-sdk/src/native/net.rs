@@ -195,6 +195,8 @@ struct Session {
     reports: Vec<Vec<Option<u32>>>,
     /// a dropped player and the tick from which their pad is nothing pressed: the most pads of theirs that any machine has
     dropped: Vec<Option<u32>>,
+    /// for each machine, how many pads of each player given up on it has said it has: what it has need not be passed on to it again
+    relay_have: Vec<Vec<u32>>,
     /// the game has been told the player is out
     told: Vec<bool>,
     /// when packets were last sent, and how many of this machine's pads they had (a packet is sent when there is something new, or now and then)
@@ -252,6 +254,7 @@ pub fn start(cfg: Config) -> Result<(), String> {
         suspect: vec![false; n],
         reports: vec![vec![None; n]; n],
         dropped: vec![None; n],
+        relay_have: vec![vec![0; n]; n],
         told: vec![false; n],
         last_sent: Instant::now(),
         sent_to: 0,
@@ -380,7 +383,15 @@ impl Session {
             let gone: Vec<usize> = (0..self.n()).filter(|&q| q != mine && self.suspect[q]).collect();
             b.push(gone.len() as u8);
             for &q in &gone {
-                let last: Vec<(&u32, &[u8; PAD_BYTES])> = self.pads[q].iter().rev().take(RELAY_PADS).collect();
+                // (only what that machine lacks, and nothing once it has them all: a match goes on for a long time after a player has left)
+                let told = self.reports[p][q];
+                let seen = self.relay_have[p][q].max(told.unwrap_or(0));
+                let last: Vec<(&u32, &[u8; PAD_BYTES])> = match (self.dropped[q], told) {
+                    (Some(out), _) if seen >= out => Vec::new(),
+                    (Some(out), Some(_)) => self.pads[q].range(seen..out).take(RELAY_PADS).collect(),
+                    (None, Some(_)) => self.pads[q].range(seen..).take(RELAY_PADS).collect(),
+                    _ => self.pads[q].iter().rev().take(RELAY_PADS).collect(),
+                };
                 b.push(q as u8);
                 b.push(last.len() as u8);
                 for (t, pad) in last {
@@ -392,6 +403,7 @@ impl Session {
             for &q in &gone {
                 b.push(q as u8);
                 b.extend_from_slice(&self.reports[mine][q].unwrap_or(self.have[q]).to_le_bytes());
+                b.extend_from_slice(&self.have[q].to_le_bytes());
             }
             let _ = self.sock.send_to(&b, self.peers[p]);
             SENT_BYTES.fetch_add(b.len() as u64 + 28, std::sync::atomic::Ordering::Relaxed);
@@ -490,13 +502,14 @@ impl Session {
         let Some(&reported) = b.get(at) else { return };
         at += 1;
         for _ in 0..reported {
-            let (Some(&q), Some(have)) = (b.get(at), u32_at(at + 1)) else { return };
-            at += 5;
+            let (Some(&q), Some(have), Some(has_now)) = (b.get(at), u32_at(at + 1), u32_at(at + 5)) else { return };
+            at += 9;
             let q = q as usize;
             if q >= self.n() || q == self.local || q == who {
                 continue;
             }
             self.reports[who][q].get_or_insert(have);
+            self.relay_have[who][q] = self.relay_have[who][q].max(has_now);
             self.give_up(q);
         }
     }
