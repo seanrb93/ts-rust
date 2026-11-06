@@ -35,6 +35,8 @@ pub fn frontTick() {
         menu_pointer_apply();
         #[cfg(feature = "extensions")]
         network_stats_open_aid();
+        #[cfg(feature = "extensions")]
+        av_net_background();
         count = lw(lw(g::front) + 20);
     }
     if count == 0 {

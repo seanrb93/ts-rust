@@ -505,7 +505,7 @@ pub fn chrplayer_pageTick(a0: i32) {
                                                         let front_now = lw(g::front);
                                                         let handicaps = lw(g::gv_handicaps);
                                                         sw((lw(front_now) << 2) + 0x1fc12a8, 0);
-                                                        if handicaps == 0 {
+                                                        if handicaps == 0 || netflow_on_or() {
                                                             break 'b7;
                                                         }
                                                         menu = g::chrselect_handicap_menu;
@@ -691,7 +691,7 @@ pub fn chrplayer_pageTick(a0: i32) {
                                     }
                                 }
                                 let mut front_now = lw(g::front);
-                                if lw(g::gv_teamplay) != 0 {
+                                if lw(g::gv_teamplay) != 0 && !netflow_on_or() {
                                     let only = onlyoneselectableteam();
                                     front_now = lw(g::front);
                                     if only == 0 {
@@ -714,6 +714,12 @@ pub fn chrplayer_pageTick(a0: i32) {
                         let pressed = joyNewBut(lw(front_now));
                         if (pressed & 16) == 0 {
                             menu = g::chrselect_ready_waiting;
+                            // (a network match: the host starts it when everybody is ready, and the others wait)
+                            let network_menu = netflow_ready_menu_or();
+                            if network_menu != 0 {
+                                menu = network_menu;
+                                break 'done;
+                            }
                             if lw(lw(g::front)) != 0 {
                                 break 'done;
                             }
@@ -748,7 +754,7 @@ pub fn chrplayer_pageTick(a0: i32) {
                             menu = g::chrselect_ready_go;
                             break 'done;
                         }
-                        if lw(g::gv_teamplay) != 0 {
+                        if lw(g::gv_teamplay) != 0 && !netflow_on_or() {
                             let only = onlyoneselectableteam();
                             if only != 0 {
                                 break 'b2;
@@ -761,7 +767,7 @@ pub fn chrplayer_pageTick(a0: i32) {
                             return;
                         }
                     }
-                    if lw(g::gv_handicaps) == 0 {
+                    if lw(g::gv_handicaps) == 0 || netflow_on_or() {
                         break 'b2;
                     }
                     soundStart(142, 0);

@@ -793,6 +793,66 @@ pub fn netlink_return_pending_or() -> bool {
     }
 }
 
+/// The random numbers before a network game's machine draws its view, and putting them back after it.
+#[inline]
+pub fn netlink_random_keep_or() -> Option<(i64, i32)> {
+    #[cfg(feature = "extensions")]
+    {
+        netlink_active().then(|| (ld(g::newrndseedval), lw(g::rndcount)))
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        None
+    }
+}
+
+#[inline]
+pub fn netlink_random_put_or(kept: Option<(i64, i32)>) {
+    if let Some((seed, count)) = kept {
+        sd(g::newrndseedval, seed);
+        sw(g::rndcount, count);
+    }
+}
+
+/// The front end's pages are being used to set up a network match (the arcade pages, the character select).
+#[inline]
+pub fn netflow_on_or() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        netflow_on()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}
+
+/// Back from a network match, the host goes on from the arcade page to the match settings at once.
+#[inline]
+pub fn netflow_take_hop_or() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        netflow_take_hop()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}
+
+/// The menu of the character select page once a player of a network match has chosen (0: not a network match).
+#[inline]
+pub fn netflow_ready_menu_or() -> i32 {
+    #[cfg(feature = "extensions")]
+    {
+        netflow_ready_menu()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        0
+    }
+}
+
 /// A network game: the player has no in-game menu open, so the check for leaving the pause does not wait for it.
 #[inline]
 pub fn netlink_no_menu_or(player: i32) -> bool {

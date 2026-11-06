@@ -495,6 +495,8 @@ pub fn netlink_reseed() {
     #[cfg(feature = "extensions")]
     if RESEED.swap(false, std::sync::atomic::Ordering::Relaxed) {
         newrndseed(0);
+        // (nothing is left of the last match's statistics: the kills in its end screens, where each machine went on by itself, are not the same on every machine, and the times of a player's last kills stay after a level's own start)
+        memset(g::matchstats, 0, 14 * 1368);
         sw(g::tickframenum, 0);
         sw(g::gameframe, 0);
     }
@@ -503,6 +505,10 @@ pub fn netlink_reseed() {
 /// The sign-on profiles that the players had before a network game from the front end's pages (given back when it is over).
 #[cfg(feature = "extensions")]
 static PROFILES: std::sync::Mutex<Option<[i32; 10]>> = std::sync::Mutex::new(None);
+/// Which controller each player had before a network game from the front end's pages.
+#[cfg(feature = "extensions")]
+static CONTROLLERS: std::sync::Mutex<Option<[i32; 10]>> = std::sync::Mutex::new(None);
+
 /// The profiles made for the players of a network game from the front end's pages (their records go when it is over).
 #[cfg(feature = "extensions")]
 static TEMPS: std::sync::Mutex<Vec<i32>> = std::sync::Mutex::new(Vec::new());
@@ -575,6 +581,7 @@ pub fn netlink_start_match(level: &str, players: usize) {
     }
     let before: [i32; 10] = std::array::from_fn(|i| signonGet(i as i32));
     *PROFILES.lock().unwrap() = Some(before);
+    *CONTROLLERS.lock().unwrap() = Some(std::array::from_fn(|i| lw(g::playercontrollers + 4 * i as i32)));
     let names = if setup.names.is_empty() { (1..=players).map(|i| format!("Player {i}")).collect() } else { setup.names.clone() };
     // (a test aid, TS_NETEXTRAPROFILES=<n>: this machine has that many more profiles, as machines with other saves have)
     for _ in 0..std::env::var("TS_NETEXTRAPROFILES").ok().and_then(|v| v.parse::<i32>().ok()).unwrap_or(0) {
@@ -887,6 +894,12 @@ pub fn netlink_boundary() {
             }
             let local = ts_sdk::net::local_player();
             ts_sdk::net::stop();
+            // (the players' controllers were made the records the pads are written into: the front end reads this machine's own again)
+            if let Some(kept) = CONTROLLERS.lock().unwrap().take() {
+                for (i, c) in kept.iter().enumerate() {
+                    sw(g::playercontrollers + 4 * i as i32, *c);
+                }
+            }
             let temps = std::mem::take(&mut *TEMPS.lock().unwrap());
             if let Some(before) = PROFILES.lock().unwrap().take() {
                 // (the statistics this machine's player made are added to the profile that was signed in: the players played with profiles of their own, which have the game's

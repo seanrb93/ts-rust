@@ -1463,7 +1463,8 @@ pub fn arcadeoptions_pageTick(a0: i32) {
             }
         }
         if go {
-            if checkOkToGo() == 0 {
+            // (a network match has the players of the other machines, who take the teams in turn)
+            if !netflow_on_or() && checkOkToGo() == 0 {
                 soundStart(142, 0);
                 break 'buttons;
             }

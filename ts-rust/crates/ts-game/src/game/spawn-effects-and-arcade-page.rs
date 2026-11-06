@@ -187,6 +187,13 @@ pub fn arcade_pageTick(a0: i32) {
     sw(((lw(0x3aff2c) - 1) << 3) + 0x1fc1308, 0);
     pageSet(lw(lw(table) + 484), g::arcade_page);
     frontfxTick(0);
+    // (back from a network match: the host's next page is the match settings of the same mode)
+    if netflow_take_hop_or() {
+        sw((lw(0x3aff2c) << 3) + 0x1fc1308, lw(lw((lw(g::cur_language) << 2) + g::languages) + 1008));
+        frontPageSet(0, g::arcadeoptions_page);
+        pageIn(a0);
+        return;
+    }
     let front = lw(g::front);
     if lw(front + 20) >= 2 {
         if lw(lw(front + 4) + 16) == g::arcade_mmload_page {
@@ -360,7 +367,7 @@ pub fn arcade_pageTick(a0: i32) {
         }
         // (the modes that mods add, after the game's: each is a way to play one of the six)
         #[cfg(feature = "extensions")]
-        if setup != 0 {
+        if setup != 0 && !netflow_on() {
             let allowed = lw(setup);
             for entry in arcade_extra_modes(allowed, few_players != 0, lw(state + 56)) {
                 sh(item + 6, y);
@@ -392,13 +399,18 @@ pub fn arcade_pageTick(a0: i32) {
         let strings = lw((language << 2) + g::languages);
         sh(item + 10, flags_item & 0xbdbf);
         sw(item, lw(strings + 1632));
-        let second = item + 32;
-        let row = if (flags & 1) == 0 { y - 1 + lw(lw(g::curfont) + 12) } else { y - 1 + (lw(lw(g::curfont) + 12) >> 1) };
-        sh(second + 6, (row << 16) >> 16);
-        count += 2;
-        let label = lw(lw((language << 2) + g::languages) + 1636);
-        sh(second + 10, lhu(second + 10) & 0xbdbf);
-        sw(second, label);
+        // (a network match has only the maps there are: Create Map is for the arcade)
+        if netflow_on_or() {
+            count += 1;
+        } else {
+            let second = item + 32;
+            let row = if (flags & 1) == 0 { y - 1 + lw(lw(g::curfont) + 12) } else { y - 1 + (lw(lw(g::curfont) + 12) >> 1) };
+            sh(second + 6, (row << 16) >> 16);
+            count += 2;
+            let label = lw(lw((language << 2) + g::languages) + 1636);
+            sh(second + 10, lhu(second + 10) & 0xbdbf);
+            sw(second, label);
+        }
     }
     let picked = if lhu(a0 + 4) < count + 3 {
         lhu(a0 + 4)
@@ -416,11 +428,11 @@ pub fn arcade_pageTick(a0: i32) {
     }
     'input: {
         sw(items + 32 * (slots + 3), text);
-        let cheats = cheatsArcade();
-        let option = cheatOption(cheats);
+        let cheats = if netflow_on_or() { 0 } else { cheatsArcade() };
+        let option = if netflow_on_or() { 0 } else { cheatOption(cheats) };
         sw(items + 32 * (slots + 4), option);
         if (joyNewBut(0) & 32) != 0 {
-            let cheats = cheatsArcade();
+            let cheats = if netflow_on_or() { 0 } else { cheatsArcade() };
             let state = 0x1fc11f8;
             if cheats != 0 {
                 sw(state + 4, lw(state + 4) | 64);

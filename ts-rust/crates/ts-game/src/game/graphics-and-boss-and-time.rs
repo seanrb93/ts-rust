@@ -337,11 +337,14 @@ pub fn bossMainLoop() {
     dlSetZB(1);
     dlClearFB(0, 0, 640, 224, lvGetBgCol());
     dlSetZB(3);
+    // (what is drawn must not move the random numbers in a network game: each machine draws its own player's view)
+    let random_numbers = netlink_random_keep_or();
     let mut local = ilinkGetStartLocalPlayerNum();
     while local < ilinkGetStartLocalPlayerNum() + ilinkGetNumLocalPlayers() {
         draw_player_window(local);
         local += 1;
     }
+    netlink_random_put_or(random_numbers);
     // With 3 players the fourth window is cleared (unless the background is the black one).
     let local_players = ilinkGetNumLocalPlayers();
     if local_players == 3 {

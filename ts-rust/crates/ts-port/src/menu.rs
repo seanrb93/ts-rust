@@ -248,10 +248,6 @@ impl ts_game::AvOptions for PortAv {
         crate::netmenu::rows()
     }
 
-    fn net_set(&self, row: usize, index: usize) {
-        crate::netmenu::set(row, index);
-    }
-
     fn net_action(&self, row: usize) {
         crate::netmenu::action(row);
     }
@@ -268,12 +264,16 @@ impl ts_game::AvOptions for PortAv {
         crate::netmenu::hint(editing)
     }
 
-    fn net_square_label(&self, row: usize) -> String {
-        crate::netmenu::square_label(row)
+    fn net_background(&self) {
+        crate::netmenu::background();
     }
 
-    fn net_square(&self, row: usize) {
-        crate::netmenu::square(row);
+    fn net_ready_line(&self) -> (String, bool) {
+        crate::netmenu::ready_line()
+    }
+
+    fn net_start(&self) {
+        crate::netmenu::start_now();
     }
 
     fn net_char(&self, c: char) {

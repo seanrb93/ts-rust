@@ -400,7 +400,7 @@ pub fn characterselect_pageTick(a0: i32) {
     pageSet(0, g::characterselect_page);
     let arcade = cheatsArcade();
     let select = cheatsChrSelect();
-    sw(g::allowedcheats, arcade & select);
+    sw(g::allowedcheats, if netflow_on_or() { 0 } else { arcade & select });
     frontfxTick(2);
     if lbu(lw(lw(g::front)) + 0x3aff28) == 1 {
         fxSelectCharReset();

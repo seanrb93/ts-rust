@@ -5,3 +5,5 @@ Test scripts for network play. Each starts several instances of the port on one 
 * `net-match-front-end-Nup.sh`: the front end has the number of players of a local game (2up, 3up, 4up) before the Network pages open; the match has its own players.
 * `net-match-end-front-end-*.sh`: a one-kill limit ends the match, and button presses go through the end screens; the log shows the front end's number of players when the match is over.
 * `net-match-end-baseline*.sh`: the same with an exe built from an earlier commit in `build/cargo-netbase` (to tell a new problem from an old one).
+
+The presses of these scripts are those of the older Network pages (a page of rows for the host, Host before Join) and need changing to the pages of `docs/networking.md`: X, Down to Host Game and X; the level, the mode and Go on the arcade pages; X on a character; X to start.

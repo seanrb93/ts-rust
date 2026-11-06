@@ -89,6 +89,13 @@ pub trait AvOptions: Send + Sync {
         String::new()
     }
     fn net_square(&self, _row: usize) {}
+    /// Each tick of the front end, on any page: the network is looked at (when the lobby is open).
+    fn net_background(&self) {}
+    /// What the character select page says when the character is chosen, and whether this player can start the match now; starting it.
+    fn net_ready_line(&self) -> (String, bool) {
+        (String::new(), false)
+    }
+    fn net_start(&self) {}
     fn net_char(&self, _c: char) {}
     fn net_delete(&self) {}
 }
@@ -827,9 +834,15 @@ pub fn av_menu(page: i32) -> i32 {
     if mode() == Mode::Net {
         // (back from one of the game's own pages)
         NET_SUB.store(false, Ordering::Relaxed);
+        NET_FLOW.store(false, Ordering::Relaxed);
         NET_SEEN.store(ts_sdk::frame_count() as u64, Ordering::Relaxed);
         if let Some(p) = PROVIDER.get() {
             p.net_tick();
+        }
+        // (back from a match the page goes on by itself)
+        let wanted = NET_PAGE_WANTED.swap(0, Ordering::Relaxed);
+        if wanted != 0 {
+            open_game_page(page, wanted);
         }
     }
     let mut prev = PREV.lock().unwrap();
@@ -1692,19 +1705,88 @@ static NET_SUB: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::n
 /// Open one of the game's own pages over the Network Game page: the weapon page (1), the bot set page (2) or the page of the maps (3).
 fn open_game_page(page: i32, which: i32) {
     NET_SUB.store(true, Ordering::Relaxed);
-    if which == 3 {
-        // (the page of the maps is opened as the arcade page opens it: on top of the pages there are, after the directory is read afresh)
-        mmfileDirReset();
-        frontPageSet(lw(lw(g::front) + 20), g::arcade_mmload_page);
-        sb(0x3aff78, 0);
-        return;
+    NET_FLOW.store(true, Ordering::Relaxed);
+    // (the level and the mode as in the arcade; the character select, which goes back to this page; or, back from a match, the arcade page and at once the match settings)
+    if which == 2 {
+        setStates(1);
+        frontPageSet(0, g::characterselect_page);
+    } else {
+        NET_HOP.store(which == 3, Ordering::Relaxed);
+        frontPageSet(0, g::arcade_page);
     }
-    let target = if which == 1 { g::weapons_page } else { g::chrsets_page };
-    frontPageSet(0, target);
     pageIn(page);
 }
 
-/// The lobby asks for the weapon page (1), the bot set page (2) or the maps (3).
+/// The pages of the game are being used for a network match: what is not for such a match is left out of them.
+static NET_FLOW: AtomicBool = AtomicBool::new(false);
+static NET_HOP: AtomicBool = AtomicBool::new(false);
+
+pub fn netflow_on() -> bool {
+    NET_FLOW.load(Ordering::Relaxed)
+}
+
+pub fn netflow_end() {
+    NET_FLOW.store(false, Ordering::Relaxed);
+}
+
+pub fn netflow_take_hop() -> bool {
+    NET_HOP.swap(false, Ordering::Relaxed)
+}
+
+/// The character this machine's player has chosen (-1: no profile yet).
+pub fn netflow_my_char() -> i32 {
+    if lw(g::signonarray) == 0 || signonGet(0) < 0 {
+        return -1;
+    }
+    lw(lw(g::signonarray) + signonGet(0) * 2936 + 32 + 84)
+}
+
+/// The player has confirmed the character on the character select page.
+pub fn netflow_chr_ready() -> bool {
+    lbu(0x3aff28) == 5
+}
+
+/// The match starts from the character select page: as the page itself does it.
+pub fn netflow_leave_chr() {
+    animStopImmediately();
+    setStates(6);
+}
+
+/// The host has gone: back from the character select page to the page that opened it.
+pub fn netflow_back_out() {
+    sb(0x3aff28, 2);
+    pageOut();
+}
+
+/// Where the character select's "ready" menu is copied, with what the lobby has to say on it.
+const NET_READY_AT: i32 = BASE + 0x9400;
+const NET_READY_TEXT_AT: i32 = BASE + 0x9480;
+
+/// The menu of the character select page when the character is chosen in a network match: what the match waits for; on the host, the button that starts it.
+pub fn netflow_ready_menu() -> i32 {
+    if !netflow_on() {
+        return 0;
+    }
+    let Some(p) = PROVIDER.get() else { return 0 };
+    let (text, can_start) = p.net_ready_line();
+    copy(NET_READY_AT, if can_start { g::chrselect_ready_go } else { g::chrselect_ready_waiting }, 0x50);
+    let mut at = NET_READY_TEXT_AT;
+    sw(NET_READY_AT + 16, put_str(&mut at, &text));
+    if can_start && joyNewBut(0) & 2112 != 0 {
+        soundStart(143, 0);
+        p.net_start();
+    }
+    NET_READY_AT
+}
+
+/// Each tick of the front end, on whatever page: the lobby keeps talking to the others.
+pub fn av_net_background() {
+    if let Some(p) = PROVIDER.get() {
+        p.net_background();
+    }
+}
+
+/// The lobby asks for the arcade page (1), the character select (2), or the arcade page and the match settings (3).
 static NET_PAGE_WANTED: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
 
 pub fn netsetup_open_page(kind: i32) {
