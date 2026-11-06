@@ -75,6 +75,10 @@ fn state_sum() -> u32 {
     feed(lw(g::gameframe) as u32);
     // the match: the scores and the like
     for i in 0..(14 * 1368 / 4) {
+        // (what `StatsCalc` works out from the others: the statistics page of a player's pause menu does that when it is drawn, on the machine of that player only, and the end of the match does it again before they are read)
+        if matches!(i % (1368 / 4), 10 | 11 | 18..=22 | 43..=45 | 59) {
+            continue;
+        }
         feed(lw(g::matchstats + 4 * i) as u32);
     }
     for i in 0..28 {
@@ -297,10 +301,12 @@ struct Rollback {
     used: std::collections::BTreeMap<u32, (Vec<[u8; ts_sdk::net::PAD_BYTES]>, u8)>,
     /// the checksums of the state after a tick, waiting until the tick is certain
     pending: std::collections::BTreeMap<u32, u32>,
+    /// where the option pages were at the start of each tick (outside the game's memory, so the journal does not keep it)
+    menus: std::collections::BTreeMap<u32, AvMenuState>,
 }
 
 #[cfg(feature = "extensions")]
-static ROLLBACK: std::sync::Mutex<Rollback> = std::sync::Mutex::new(Rollback { started: false, tick: 0, verified: 0, used: std::collections::BTreeMap::new(), pending: std::collections::BTreeMap::new() });
+static ROLLBACK: std::sync::Mutex<Rollback> = std::sync::Mutex::new(Rollback { started: false, tick: 0, verified: 0, used: std::collections::BTreeMap::new(), pending: std::collections::BTreeMap::new(), menus: std::collections::BTreeMap::new() });
 
 /// Between a tick's picture and the time of the next tick (a network game with rollback at more than 60 pictures a second): as many pictures as fit.  Each is the game's
 /// frame for the part of a tick that has passed since the tick, played from the state the tick left and then undone with the journal, so that only the tick changes the game.
@@ -713,10 +719,14 @@ fn go_back(rb: &mut Rollback, e: u32, k: u32) {
     // (what is being drawn must be finished before the memory changes)
     ts_sdk::present_sync();
     ts_rt::journal::undo(n + 1);
+    if let Some(m) = rb.menus.get(&e) {
+        av_menu_state_put(m);
+    }
     ts_sdk::net::set_replaying(true);
     for t in e..k {
         ts_sdk::net::replay_tick(t);
         ts_rt::journal::begin_tick();
+        rb.menus.insert(t, av_menu_state());
         let (mut pads, mask) = best_pads(t);
         if WRONG_PADS.load(std::sync::atomic::Ordering::Relaxed) {
             for (p, pad) in pads.iter_mut().enumerate() {
@@ -739,6 +749,7 @@ fn go_back(rb: &mut Rollback, e: u32, k: u32) {
     ts_sdk::net::set_replaying(false);
     ts_sdk::net::set_tick(k);
     ts_rt::journal::begin_tick();
+    rb.menus.insert(k, av_menu_state());
     ts_sdk::net::note_rollback(n as u32);
 }
 
@@ -762,6 +773,7 @@ pub fn netlink_boundary() {
             rb.started = false;
             rb.used.clear();
             rb.pending.clear();
+            rb.menus.clear();
             RAN.store(true, std::sync::atomic::Ordering::Relaxed);
         }
         // (the screen after the level: the machines do not exchange pads any more, and each player's own pad is the one that player's buttons read, so that each can go on)
@@ -811,6 +823,7 @@ pub fn netlink_boundary() {
             return;
         }
         ts_rt::journal::enable(KEEP);
+        av_menu_state_clear();
         rb.started = true;
         rb.tick = 0;
         rb.verified = 0;
@@ -858,6 +871,7 @@ pub fn netlink_boundary() {
     }
     // (what is stored from here is the record of this tick: going back to it undoes the pads written below too)
     ts_rt::journal::begin_tick();
+    rb.menus.insert(k, av_menu_state());
     // (a test aid, TS_REPLAYCHECK=1: the tick before is played again from the memory before it, and what differs from the first time is told, which finds what the game reads
     // that is not in its memory)
     if std::env::var_os("TS_REPLAYCHECK").is_some() && k >= 40 && k % 25 == 0 && ts_rt::journal::depth() >= 3 {
@@ -948,6 +962,7 @@ pub fn netlink_boundary() {
         ts_sdk::net::prune_before(k.saturating_sub(48));
         let keep_from = k.saturating_sub(48);
         rb.used = rb.used.split_off(&keep_from);
+        rb.menus = rb.menus.split_off(&keep_from);
     }
     ts_sdk::net::note_boundary(k, waited_from.elapsed());
 }

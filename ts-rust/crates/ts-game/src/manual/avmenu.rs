@@ -471,7 +471,70 @@ enum Src {
 static PREV: Mutex<(Vec<usize>, Vec<Src>)> = Mutex::new((Vec::new(), Vec::new()));
 static PREV_MODE: AtomicU8 = AtomicU8::new(255);
 
+/// What this machine's own settings hear of a page.  In a network match every machine plays every player's menu, and plays ticks again when it goes back, but the picture, the sound and the controls of this machine are for this machine's player, once.
+fn own_settings() -> bool {
+    #[cfg(feature = "extensions")]
+    if ts_sdk::net::active() && in_game() {
+        return !ts_sdk::net::replaying() && lw(lw(g::currentplayer)) == ts_sdk::net::local_player();
+    }
+    true
+}
+
+/// The place of the pages that lives outside the game's memory, which a network game must put back when it goes back.
+#[cfg(feature = "extensions")]
+pub struct AvMenuState {
+    mode: u8,
+    page: usize,
+    edit: i32,
+    prev: (Vec<usize>, Vec<Src>),
+    prev_mode: u8,
+    asked: bool,
+    confirm: bool,
+    confirm_game: bool,
+    pause_font: Option<(u64, i32)>,
+}
+
+#[cfg(feature = "extensions")]
+pub fn av_menu_state() -> AvMenuState {
+    let o = Ordering::Relaxed;
+    AvMenuState {
+        mode: MODE.load(o),
+        page: PAGE.load(o),
+        edit: EDIT.load(o),
+        prev: PREV.lock().unwrap().clone(),
+        prev_mode: PREV_MODE.load(o),
+        asked: ASKED.load(o),
+        confirm: CONFIRM.load(o),
+        confirm_game: CONFIRM_GAME.load(o),
+        pause_font: *PAUSE_FONT.lock().unwrap(),
+    }
+}
+
+#[cfg(feature = "extensions")]
+pub fn av_menu_state_put(s: &AvMenuState) {
+    let o = Ordering::Relaxed;
+    MODE.store(s.mode, o);
+    PAGE.store(s.page, o);
+    EDIT.store(s.edit, o);
+    *PREV.lock().unwrap() = s.prev.clone();
+    PREV_MODE.store(s.prev_mode, o);
+    ASKED.store(s.asked, o);
+    CONFIRM.store(s.confirm, o);
+    CONFIRM_GAME.store(s.confirm_game, o);
+    *PAUSE_FONT.lock().unwrap() = s.pause_font;
+}
+
+/// A match begins: every machine starts with the pages closed, whatever its player did in the front end before.
+#[cfg(feature = "extensions")]
+pub fn av_menu_state_clear() {
+    let pause_font = *PAUSE_FONT.lock().unwrap();
+    av_menu_state_put(&AvMenuState { mode: 1, page: 0, edit: 0, prev: (Vec::new(), Vec::new()), prev_mode: 255, asked: false, confirm: false, confirm_game: false, pause_font });
+}
+
 fn apply(src: Src, value: usize) {
+    if !matches!(src, Src::Prof(_) | Src::Custom(_)) && !own_settings() {
+        return;
+    }
     match (src, PROVIDER.get()) {
         (Src::Video(r), Some(p)) => p.set(r, value),
         (Src::Game(r), Some(p)) => p.set_game(r, value),
@@ -1055,7 +1118,7 @@ fn navigate(page: i32, n: usize) {
     if editing() != 0 {
         if pressed & (16 | 64) != 0 {
             EDIT.store(0, order);
-            if let (Some(p), true) = (PROVIDER.get(), id >= FIRST_ID && mode() == Mode::Video) {
+            if let (Some(p), true) = (PROVIDER.get(), id >= FIRST_ID && mode() == Mode::Video && own_settings()) {
                 if pressed & 64 != 0 {
                     p.commit((id - FIRST_ID) as usize);
                 } else {
@@ -1584,8 +1647,9 @@ pub fn av_confirm_pressed(page: i32) -> bool {
         return false;
     }
     match lhu(page + 4) {
-        2 => std::process::exit(0),
-        1 => {
+        // (in a network match a player leaves on the machine of that player only; the other machines go on)
+        2 if own_settings() => std::process::exit(0),
+        1 | 2 => {
             outPage(player, g::mainsetup_page);
             joyClearAll(player);
             true

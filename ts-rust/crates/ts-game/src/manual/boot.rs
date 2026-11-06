@@ -268,6 +268,9 @@ static SUBFRAME: AtomicBool = AtomicBool::new(false);
 /// One picture in between two ticks of a network game: the frame as the main loop makes it but standing for the part `f` of a tick (no whole tick: only what moves
 /// smoothly moves), shown.  The caller puts the game's memory back as it was.
 pub fn sub_frame(f: f32) {
+    // (the caller puts the memory back; the place of the option pages lives outside it)
+    #[cfg(feature = "extensions")]
+    let menus = av_menu_state();
     // (the buttons newly pressed or let go belong to the tick: they are not pressed again in a picture between ticks)
     for p in 0..lw(g::lvnumplayers).min(MAX_MATCH_PLAYERS) {
         let record = g::controllers + (8 + p) * 384;
@@ -300,6 +303,8 @@ pub fn sub_frame(f: f32) {
         present_frame();
     }
     SUBFRAME.store(false, Ordering::Relaxed);
+    #[cfg(feature = "extensions")]
+    av_menu_state_put(&menus);
 }
 
 pub fn present_frame() {
