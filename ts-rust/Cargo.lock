@@ -2695,6 +2695,7 @@ name = "ts-sdk"
 version = "0.1.0"
 dependencies = [
  "libm",
+ "miniz_oxide 0.8.9",
  "ts-audio",
  "ts-rt",
 ]

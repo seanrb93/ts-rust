@@ -299,6 +299,11 @@ fn apply_pads(pads: &[[u8; ts_sdk::net::PAD_BYTES]], gone: u8) {
 /// The checksums say the machines have parted: the player is told, once, and the log has it.
 fn check_out_of_step() {
     static TOLD: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    // (a game with rollback comes back into step by itself; the message is for when that has not worked)
+    #[cfg(feature = "extensions")]
+    if ts_sdk::net::rollback() && !RS.lock().unwrap().given_up {
+        return;
+    }
     if ts_sdk::net::out_of_step() && TOLD.swap(1, std::sync::atomic::Ordering::Relaxed) == 0 {
         sw(0x240_0000 + 0xd700, 0);
         let text = b"Out of step with the others";
@@ -315,6 +320,254 @@ fn check_out_of_step() {
 /// The ticks the journal goes back (more than the game may run ahead with guessed pads).
 #[cfg(feature = "extensions")]
 const KEEP: usize = 24;
+
+/// How the machines come back into step.  The game's memory is compared with what it was when the level began, as each machine has it: what a machine changed since then is what the match has
+/// done there.  The machine in charge sends what it changed, and each of the others puts back what it changed itself and takes what it is sent.  What was the same on a machine since the level
+/// began is left alone, so what differs between the machines from the start (where a machine's profiles are, what it had in memory before) stays as it is on each.
+#[cfg(feature = "extensions")]
+struct Resync {
+    /// the game's memory when the level began
+    start: Option<Vec<u8>>,
+    /// when the last ones were, and that too many came too quickly to go on
+    times: Vec<std::time::Instant>,
+    given_up: bool,
+}
+
+#[cfg(feature = "extensions")]
+static RS: std::sync::Mutex<Resync> = std::sync::Mutex::new(Resync { start: None, times: Vec::new(), given_up: false });
+
+/// The part of the memory that is the game's.
+#[cfg(feature = "extensions")]
+const RS_MEMORY: usize = 0x400_0000;
+/// The ticks ahead a resync is named for: the machines must have heard of it before they get there.
+#[cfg(feature = "extensions")]
+const RS_AHEAD: u32 = 90;
+/// More resyncs than this in a minute have not helped.
+#[cfg(feature = "extensions")]
+const RS_MOST: usize = 5;
+
+/// The parts of the memory that are each machine's own, which a resync leaves alone: what is being drawn, the stacks of the threads, the machine's profiles, where its buffers are.
+#[cfg(feature = "extensions")]
+struct RsOwn {
+    ranges: Vec<(usize, usize)>,
+}
+
+#[cfg(feature = "extensions")]
+fn rs_own() -> RsOwn {
+    let span = |at: i32, len: i32| (at.max(0) as usize, (at.max(0) + len.max(0)) as usize);
+    let mut ranges = vec![
+        // (the lists of what is drawn, in the place of the original's program; the stacks of the threads)
+        (0x10_0000, 0x2e_f000),
+        (0x1e9_1f80, 0x1ef_0000),
+        // (the two buffers that the lists use; the profiles, as many as the game can have)
+        span(lw(g::memdbbuffer), lw(g::buflen) * 2),
+        span(lw(g::signonarray), 2936 * 64),
+    ];
+    // (the variables of the drawing, the frame's timing and the music)
+    for at in [g::dbinfo, g::dbinfo + 4, g::dbinfo + 8, g::dbinfo + 12, g::dbinfo + 16, g::dbinfo + 20, g::curcpudmabuf, g::curgsdmabuf, g::ucodetris, g::bgtris, g::bgcurtris, g::bgroomsdrawn, g::gfxtag, g::dballoc, g::mtappollcount, g::demandbuf_138, g::v_155, g::tunenum, g::front, g::flashalpha, g::mnum, g::currentplayer, g::CurrentAddIndex, g::gs_simagenum, g::framenum, g::lastcpustarttime, g::lastcpustarttime + 4, g::cpuendtime - 4, g::cpuendtime, 0x3afe0c, 0x3afe10, 0x3afe14] {
+        ranges.push(span(at, 4));
+    }
+    // (the addresses a player and a character have of what differs between the machines: see `state_sum`)
+    let players = lw(g::lvnumplayers);
+    for p in 0..players {
+        let at = lw(g::players) + p * 1820;
+        ranges.push(span(at + 24, 4));
+        ranges.push(span(at + 1760, 16));
+    }
+    for c in 0..players + lw(g::numactivechars) {
+        ranges.push(span(lw(g::chrinfo) + c * 0x1210 + 16, 4));
+    }
+    ranges.sort_unstable();
+    RsOwn { ranges }
+}
+
+#[cfg(feature = "extensions")]
+impl RsOwn {
+    fn has(&self, at: usize) -> bool {
+        let i = self.ranges.partition_point(|r| r.0 <= at);
+        // (ranges of a few words inside the wide ones: the widest ones come first in their turn, so look back over all that start before it)
+        self.ranges[..i].iter().rev().take(64).any(|r| at < r.1)
+    }
+}
+
+/// The words a match has changed on this machine: (address, value).
+#[cfg(feature = "extensions")]
+fn rs_changed(start: &[u8]) -> Vec<(u32, u32)> {
+    let now = ts_rt::host_slice_ro(0, RS_MEMORY);
+    let own = rs_own();
+    let mut v = Vec::new();
+    for page in (0..RS_MEMORY).step_by(4096) {
+        if now[page..page + 4096] == start[page..page + 4096] {
+            continue;
+        }
+        for at in (page..page + 4096).step_by(4) {
+            if now[at..at + 4] != start[at..at + 4] && !own.has(at) {
+                v.push((at as u32, u32::from_le_bytes([now[at], now[at + 1], now[at + 2], now[at + 3]])));
+            }
+        }
+    }
+    v
+}
+
+/// Words as runs: (address, count, the values).
+#[cfg(feature = "extensions")]
+fn rs_pack(words: &[(u32, u32)]) -> Vec<u8> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < words.len() {
+        let mut j = i + 1;
+        while j < words.len() && words[j].0 == words[j - 1].0 + 4 {
+            j += 1;
+        }
+        out.extend_from_slice(&words[i].0.to_le_bytes());
+        out.extend_from_slice(&((j - i) as u32).to_le_bytes());
+        for w in &words[i..j] {
+            out.extend_from_slice(&w.1.to_le_bytes());
+        }
+        i = j;
+    }
+    out
+}
+
+/// This machine takes what was sent.
+#[cfg(feature = "extensions")]
+fn rs_apply(start: &[u8], data: &[u8]) {
+    let mem = ts_rt::host_slice(0, RS_MEMORY);
+    // (first what this machine changed goes back; what the other machine changed then comes on top)
+    for (at, _) in rs_changed(start) {
+        let at = at as usize;
+        mem[at..at + 4].copy_from_slice(&start[at..at + 4]);
+    }
+    let mut i = 0;
+    while i + 8 <= data.len() {
+        let at = u32::from_le_bytes([data[i], data[i + 1], data[i + 2], data[i + 3]]) as usize;
+        let n = u32::from_le_bytes([data[i + 4], data[i + 5], data[i + 6], data[i + 7]]) as usize;
+        i += 8;
+        if at + 4 * n > RS_MEMORY || i + 4 * n > data.len() {
+            return;
+        }
+        mem[at..at + 4 * n].copy_from_slice(&data[i..i + 4 * n]);
+        i += 4 * n;
+    }
+}
+
+/// A test aid (`TS_RSDUMP=<file>`): what this machine has changed, at each resync, for comparing the machines.
+#[cfg(feature = "extensions")]
+fn rs_dump(start: &[u8], k: u32) {
+    let Ok(file) = std::env::var("TS_RSDUMP") else { return };
+    let mut out = Vec::new();
+    for (a, v) in rs_changed(start) {
+        out.extend_from_slice(&a.to_le_bytes());
+        out.extend_from_slice(&v.to_le_bytes());
+    }
+    let _ = std::fs::write(format!("{file}.{k}"), out);
+}
+
+/// The machines are at the tick that was named: every pad up to it is made certain, and the machine in charge sends its game.  False when this was given up for now.
+#[cfg(feature = "extensions")]
+fn rs_stop(rb: &mut Rollback, k: u32) -> bool {
+    use std::time::{Duration, Instant};
+    let began = Instant::now();
+    let limit = Duration::from_secs(20);
+    // every pad up to here, and the game played with them
+    loop {
+        if !ts_sdk::net::poll(began.elapsed()) {
+            ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
+            return false;
+        }
+        if ts_sdk::net::rs_tick() != Some(k) {
+            return false;
+        }
+        let from = rb.verified;
+        if let Some(e) = first_wrong(rb, from, k) {
+            go_back(rb, e, k);
+            continue;
+        }
+        while rb.verified < k && (0..ts_sdk::net::num_players() as usize).all(|p| ts_sdk::net::pad(p, rb.verified).is_some()) {
+            rb.verified += 1;
+        }
+        if rb.verified >= k && ts_sdk::net::confirmed() >= k {
+            break;
+        }
+        if began.elapsed() > limit {
+            ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
+            return false;
+        }
+        std::thread::sleep(Duration::from_micros(300));
+    }
+    // (what is being drawn must be finished before the memory changes)
+    ts_sdk::present_sync();
+    let mut rs = RS.lock().unwrap();
+    let Some(start) = rs.start.take() else { return false };
+    rs_dump(&start, k);
+    let in_charge = ts_sdk::net::rs_in_charge();
+    let mut sent = 0;
+    if in_charge {
+        // (a machine that had heard too late says so: another tick is named, further on)
+        loop {
+            if !ts_sdk::net::poll(began.elapsed()) || began.elapsed() > limit {
+                ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
+                return false;
+            }
+            if ts_sdk::net::rs_take_late() {
+                ts_sdk::net::rs_name_tick(k + RS_AHEAD);
+                rs.start = Some(start);
+                return false;
+            }
+            if ts_sdk::net::rs_all_acked() {
+                break;
+            }
+            std::thread::sleep(Duration::from_micros(300));
+        }
+        let data = rs_pack(&rs_changed(&start));
+        sent = ts_sdk::net::rs_send(&data);
+        while !ts_sdk::net::rs_all_done() {
+            if !ts_sdk::net::poll(began.elapsed()) || began.elapsed() > limit {
+                ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
+                return false;
+            }
+            std::thread::sleep(Duration::from_micros(300));
+        }
+    } else {
+        loop {
+            if !ts_sdk::net::poll(began.elapsed()) || began.elapsed() > limit {
+                ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
+                return false;
+            }
+            if ts_sdk::net::rs_tick() != Some(k) {
+                rs.start = Some(start);
+                return false;
+            }
+            if let Some(data) = ts_sdk::net::rs_received() {
+                sent = data.len();
+                rs_apply(&start, &data);
+                break;
+            }
+            std::thread::sleep(Duration::from_micros(300));
+        }
+    }
+    rs.start = Some(start);
+    drop(rs);
+    ts_sdk::net::rs_finish(k.saturating_sub(1));
+    // (the memory is new, so nothing before it can be gone back to: the pads up to here are certain on every machine)
+    ts_rt::journal::enable(KEEP);
+    ts_rt::journal::begin_tick();
+    rb.used.clear();
+    rb.pending.clear();
+    rb.menus.clear();
+    rb.menus.insert(k, av_menu_state());
+    rb.verified = k;
+    eprintln!("[net] back in step at tick {k}: {} bytes, {} ms", sent, began.elapsed().as_millis());
+    // (every machine does this for every player, so it leaves them the same)
+    let text = b"Back in step";
+    for (i, c) in text.iter().chain(std::iter::once(&0)).enumerate() {
+        sb(0x240_0000 + 0xd700 + i as i32, *c as i32);
+    }
+    for p in 0..lw(g::lvnumplayers) {
+        hudMessage(p, 0x240_0000 + 0xd700);
+    }
+    true
+}
 
 #[cfg(feature = "extensions")]
 struct Rollback {
@@ -870,6 +1123,7 @@ pub fn netlink_boundary() {
     }
     if !in_level() {
         if rb.started {
+            RS.lock().unwrap().start = None;
             ts_rt::journal::disable();
             rb.started = false;
             rb.used.clear();
@@ -931,6 +1185,12 @@ pub fn netlink_boundary() {
         }
         ts_rt::journal::enable(KEEP);
         av_menu_state_clear();
+        {
+            let mut rs = RS.lock().unwrap();
+            rs.start = Some(ts_rt::host_slice_ro(0, RS_MEMORY).to_vec());
+            rs.times.clear();
+            rs.given_up = false;
+        }
         rb.started = true;
         rb.tick = 0;
         rb.verified = 0;
@@ -1017,6 +1277,34 @@ pub fn netlink_boundary() {
             ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
             return;
         }
+    }
+    // the machines have parted: the one in charge names a tick for them to come back into step at (just after a checksum's, which then shows that they have)
+    if ts_sdk::net::rs_in_charge() && ts_sdk::net::rs_tick().is_none() {
+        let forced = std::env::var("TS_RSFORCE").ok().and_then(|v| v.parse::<u32>().ok()) == Some(k);
+        let mut rs = RS.lock().unwrap();
+        if forced || (ts_sdk::net::out_of_step() && !rs.given_up) {
+            rs.times.retain(|t| t.elapsed().as_secs() < 60);
+            if rs.times.len() >= RS_MOST {
+                rs.given_up = true;
+                eprintln!("[net] {RS_MOST} resyncs in a minute have not kept the machines in step; no more are tried");
+            } else {
+                rs.times.push(std::time::Instant::now());
+                let every = ts_sdk::net::SUM_EVERY;
+                ts_sdk::net::rs_name_tick((k + RS_AHEAD) / every * every + every + 1);
+            }
+        }
+    }
+    // (a test aid, TS_NETBREAK=<tick>[,<ticks>]: this machine's game is made to differ from that tick, for a second or for as long as is said)
+    if let Ok(v) = std::env::var("TS_NETBREAK") {
+        let mut w = v.split(',').map(|x| x.parse::<u32>().unwrap_or(0));
+        let t = w.next().unwrap_or(0);
+        if (t..t + w.next().unwrap_or(60)).contains(&k) {
+            newrnd();
+        }
+    }
+    if ts_sdk::net::rs_tick() == Some(k) {
+        let rb_ref: &mut Rollback = &mut rb;
+        rs_stop(rb_ref, k);
     }
     // the checksum of the state after the last tick
     if k >= 1 && (k - 1) % ts_sdk::net::SUM_EVERY == 0 {

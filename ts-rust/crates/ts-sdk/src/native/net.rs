@@ -18,7 +18,17 @@ pub const PAD_BYTES: usize = 20;
 /// The checksum is compared every this many ticks.
 pub const SUM_EVERY: u32 = 30;
 
-const MAGIC: u32 = 0x5453_4e36; // "TSN6"
+const MAGIC: u32 = 0x5453_4e37; // "TSN7"
+/// The packets of a resync (see `Resync`), which go beside the others on the same socket.
+const RS_MAGIC: u32 = 0x5453_5253; // "TSRS"
+const RS_ANNOUNCE: u8 = 1;
+const RS_ACK: u8 = 2;
+const RS_LATE: u8 = 3;
+const RS_CHUNK: u8 = 4;
+const RS_HAVE: u8 = 5;
+const RS_DONE: u8 = 6;
+/// The bytes of a resync in one packet.
+const RS_PIECE: usize = 1100;
 /// The form of the packets: machines that differ in it cannot play together.
 pub const PROTOCOL: u32 = MAGIC;
 /// the most pads a packet carries
@@ -219,6 +229,28 @@ struct Session {
     sum_sends: u32,
     /// the packet being made (kept, so that a packet needs no new memory)
     out: Vec<u8>,
+    rs: Resync,
+    /// the checksums of ticks before this one are not compared (they were of the state before a resync)
+    sum_floor: u32,
+}
+
+/// Bringing the machines back into step: the machine in charge names a tick, every machine stops there with all the pads up to it known, and the machine in charge sends what its game's memory has.
+#[derive(Default)]
+struct Resync {
+    /// the number of the resync (a later one replaces an earlier one), and the tick to stop at
+    generation: u32,
+    tick: Option<u32>,
+    /// the last one this machine has finished
+    finished: u32,
+    /// (in charge) who has said they will stop there, who have said they were past it, who have it all, and what each has
+    acked: Vec<bool>,
+    late: bool,
+    done: Vec<bool>,
+    have: Vec<Vec<u8>>,
+    pieces: Vec<Vec<u8>>,
+    /// (the others) what has come
+    got: Vec<Option<Vec<u8>>>,
+    last_send: Option<Instant>,
 }
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
@@ -270,6 +302,8 @@ pub fn start(cfg: Config) -> Result<(), String> {
         received: 0,
         sum_sends: 0,
         out: Vec::with_capacity(512),
+        rs: Resync { acked: vec![false; n], done: vec![false; n], have: vec![Vec::new(); n], ..Default::default() },
+        sum_floor: 0,
     });
     ACTIVE.store(true, std::sync::atomic::Ordering::Relaxed);
     Ok(())
@@ -414,6 +448,7 @@ impl Session {
             SENT_PACKETS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         }
         self.out = b;
+        self.rs_pump();
         let mut buf = [0u8; 2048];
         while let Ok((len, from)) = self.sock.recv_from(&mut buf) {
             // (not by turns: the packets of the others come in turn, and that would lose all those of one machine)
@@ -442,6 +477,10 @@ impl Session {
 
     fn take(&mut self, b: &[u8], from: SocketAddr) {
         let u32_at = |i: usize| b.get(i..i + 4).map(|x| u32::from_le_bytes([x[0], x[1], x[2], x[3]]));
+        if u32_at(0) == Some(RS_MAGIC) {
+            self.rs_take(b);
+            return;
+        }
         if b.len() < 14 || u32_at(0) != Some(MAGIC) {
             return;
         }
@@ -567,6 +606,9 @@ impl Session {
 
     /// Compare the checksums of the tick `t`, when everyone's are there.
     fn compare(&mut self, t: u32) {
+        if t < self.sum_floor {
+            return;
+        }
         let Some(&mine) = self.sums[self.local].get(&t) else { return };
         let before = self.desyncs;
         let mut compared = false;
@@ -595,6 +637,154 @@ impl Session {
         }
         for m in self.sums.iter_mut() {
             *m = m.split_off(&below.saturating_sub(120));
+        }
+    }
+
+    /// The machine that brings the others back into step: the first one still playing.
+    fn in_charge(&self) -> usize {
+        (0..self.n()).find(|&p| p == self.local || (!self.suspect[p] && self.dropped[p].is_none())).unwrap_or(self.local)
+    }
+
+    fn rs_head(&self, kind: u8) -> Vec<u8> {
+        let mut b = RS_MAGIC.to_le_bytes().to_vec();
+        b.push(self.local as u8);
+        b.push(kind);
+        b.extend_from_slice(&self.rs.generation.to_le_bytes());
+        b
+    }
+
+    fn rs_to(&self, p: usize, b: &[u8]) {
+        let _ = self.sock.send_to(b, self.peers[p]);
+        SENT_BYTES.fetch_add(b.len() as u64, std::sync::atomic::Ordering::Relaxed);
+        SENT_PACKETS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    /// What goes out for a resync: every 10 ms, what each machine is still to be told.
+    fn rs_pump(&mut self) {
+        let Some(tick) = self.rs.tick else { return };
+        if self.rs.last_send.map_or(false, |t| t.elapsed() < Duration::from_millis(10)) {
+            return;
+        }
+        let charge = self.in_charge();
+        // (what has come is told ten times a second: more would have pieces on their way sent again)
+        if charge != self.local && !self.rs.got.is_empty() && self.rs.last_send.map_or(false, |t| t.elapsed() < Duration::from_millis(100)) {
+            return;
+        }
+        self.rs.last_send = Some(Instant::now());
+        if charge != self.local {
+            // (what has come, as one bit for each piece)
+            let mut b = self.rs_head(if self.rs.got.is_empty() { RS_ACK } else { RS_HAVE });
+            if !self.rs.got.is_empty() {
+                let mut bits = vec![0u8; self.rs.got.len().div_ceil(8)];
+                for (i, g) in self.rs.got.iter().enumerate() {
+                    if g.is_some() {
+                        bits[i / 8] |= 1 << (i % 8);
+                    }
+                }
+                b.extend_from_slice(&bits);
+            }
+            self.rs_to(charge, &b);
+            return;
+        }
+        for p in 0..self.n() {
+            if p == self.local || self.suspect[p] || self.dropped[p].is_some() || self.rs.done[p] {
+                continue;
+            }
+            if self.rs.pieces.is_empty() {
+                let mut b = self.rs_head(RS_ANNOUNCE);
+                b.extend_from_slice(&tick.to_le_bytes());
+                self.rs_to(p, &b);
+                continue;
+            }
+            // (up to 16 pieces of what the machine lacks: 1.7 MB a second, which the bits that come back correct when the network loses some)
+            let total = self.rs.pieces.len();
+            let mut sent = 0;
+            for i in 0..total {
+                let has = self.rs.have[p].get(i / 8).map_or(false, |x| x & (1 << (i % 8)) != 0);
+                if has {
+                    continue;
+                }
+                let mut b = self.rs_head(RS_CHUNK);
+                b.extend_from_slice(&tick.to_le_bytes());
+                b.extend_from_slice(&(i as u32).to_le_bytes());
+                b.extend_from_slice(&(total as u32).to_le_bytes());
+                b.extend_from_slice(&self.rs.pieces[i]);
+                self.rs_to(p, &b);
+                // (it is taken as sent until the machine says otherwise, so that the next round sends the next pieces)
+                if self.rs.have[p].len() <= i / 8 {
+                    self.rs.have[p].resize(i / 8 + 1, 0);
+                }
+                self.rs.have[p][i / 8] |= 1 << (i % 8);
+                sent += 1;
+                if sent == 16 {
+                    break;
+                }
+            }
+        }
+    }
+
+    fn rs_take(&mut self, b: &[u8]) {
+        if b.len() < 10 {
+            return;
+        }
+        let who = b[4] as usize;
+        let kind = b[5];
+        let generation = u32::from_le_bytes([b[6], b[7], b[8], b[9]]);
+        if who >= self.n() || who == self.local {
+            return;
+        }
+        self.last[who] = Instant::now();
+        self.last_heard = Instant::now();
+        let word = |at: usize| b.get(at..at + 4).map(|x| u32::from_le_bytes([x[0], x[1], x[2], x[3]]));
+        match kind {
+            RS_ANNOUNCE | RS_CHUNK => {
+                let Some(tick) = word(10) else { return };
+                if who != self.in_charge() || generation <= self.rs.finished {
+                    // (it did not hear that this machine has finished)
+                    if generation == self.rs.finished && generation != 0 {
+                        let mut r = RS_MAGIC.to_le_bytes().to_vec();
+                        r.push(self.local as u8);
+                        r.push(RS_DONE);
+                        r.extend_from_slice(&generation.to_le_bytes());
+                        self.rs_to(who, &r);
+                    }
+                    return;
+                }
+                if generation > self.rs.generation || self.rs.tick.is_none() {
+                    self.rs.generation = generation;
+                    self.rs.got.clear();
+                    // (this machine is past that tick: it says so, and another is named)
+                    if self.tick > tick {
+                        self.rs.tick = None;
+                        let r = self.rs_head(RS_LATE);
+                        self.rs_to(who, &r);
+                        return;
+                    }
+                    self.rs.tick = Some(tick);
+                }
+                if kind == RS_CHUNK && generation == self.rs.generation {
+                    let (Some(i), Some(total)) = (word(14), word(18)) else { return };
+                    let (i, total) = (i as usize, total as usize);
+                    if self.rs.got.len() != total {
+                        self.rs.got = vec![None; total];
+                    }
+                    if i < total {
+                        self.rs.got[i] = Some(b[22..].to_vec());
+                    }
+                }
+            }
+            _ if generation != self.rs.generation || self.rs.tick.is_none() => {}
+            RS_ACK => self.rs.acked[who] = true,
+            RS_LATE => self.rs.late = true,
+            RS_HAVE => {
+                self.rs.acked[who] = true;
+                // (the bits of what has come: what was sent a moment ago may still be on its way, so a piece is sent again only after a while)
+                if self.rs.last_send.is_some() {
+                    self.rs.have[who] = b[10..].to_vec();
+                }
+            }
+            RS_DONE => self.rs.done[who] = true,
+            _ => {}
         }
     }
 }
@@ -975,6 +1165,91 @@ pub fn submit_sum(t: u32, sum: u32) {
         let mine = s.local;
         s.sums[mine].insert(t, sum);
         s.sum_sends = SUM_SENDS;
+    }
+}
+
+// ---- bringing the machines back into step (`netlink_boundary`) ------------------------------------------------------------------------------------------------
+
+/// This machine is the one that sends its game to the others.
+pub fn rs_in_charge() -> bool {
+    SESSION.lock().unwrap().as_ref().map_or(false, |s| s.in_charge() == s.local)
+}
+
+/// The machines are to stop at the tick (a later call replaces it).
+pub fn rs_name_tick(tick: u32) {
+    if let Some(s) = SESSION.lock().unwrap().as_mut() {
+        s.rs.generation += 1;
+        s.rs.tick = Some(tick);
+        s.rs.late = false;
+        s.rs.pieces.clear();
+        let n = s.n();
+        s.rs.acked = vec![false; n];
+        s.rs.done = vec![false; n];
+        s.rs.have = vec![Vec::new(); n];
+    }
+}
+
+/// The tick the machines are to stop at, when one has been named.
+pub fn rs_tick() -> Option<u32> {
+    SESSION.lock().unwrap().as_ref().and_then(|s| s.rs.tick)
+}
+
+/// (in charge) A machine was past the tick that was named (once).
+pub fn rs_take_late() -> bool {
+    SESSION.lock().unwrap().as_mut().map_or(false, |s| std::mem::take(&mut s.rs.late))
+}
+
+/// (in charge) Every machine still playing has said it will stop at the tick.
+pub fn rs_all_acked() -> bool {
+    SESSION.lock().unwrap().as_ref().map_or(true, |s| (0..s.n()).all(|p| p == s.local || s.suspect[p] || s.dropped[p].is_some() || s.rs.acked[p]))
+}
+
+/// (in charge) What is sent: `data` in pieces, packed.
+pub fn rs_send(data: &[u8]) -> usize {
+    let packed = miniz_oxide::deflate::compress_to_vec(data, 1);
+    let mut g = SESSION.lock().unwrap();
+    let Some(s) = g.as_mut() else { return 0 };
+    s.rs.pieces = packed.chunks(RS_PIECE).map(|c| c.to_vec()).collect();
+    packed.len()
+}
+
+/// (in charge) Every machine still playing has it all.  A piece the network lost is asked for again by the bits a machine keeps sending.
+pub fn rs_all_done() -> bool {
+    SESSION.lock().unwrap().as_ref().map_or(true, |s| (0..s.n()).all(|p| p == s.local || s.suspect[p] || s.dropped[p].is_some() || s.rs.done[p]))
+}
+
+/// (the others) What has been sent, once all of it has come.
+pub fn rs_received() -> Option<Vec<u8>> {
+    let g = SESSION.lock().unwrap();
+    let s = g.as_ref()?;
+    if s.rs.got.is_empty() || s.rs.got.iter().any(|p| p.is_none()) {
+        return None;
+    }
+    let packed: Vec<u8> = s.rs.got.iter().flatten().flatten().copied().collect();
+    miniz_oxide::inflate::decompress_to_vec(&packed).ok()
+}
+
+/// The resync is over on this machine: the checksums start again from `floor`.
+pub fn rs_finish(floor: u32) {
+    if let Some(s) = SESSION.lock().unwrap().as_mut() {
+        if s.in_charge() != s.local {
+            let mut r = s.rs_head(RS_DONE);
+            r.truncate(10);
+            let charge = s.in_charge();
+            for _ in 0..3 {
+                s.rs_to(charge, &r);
+            }
+        }
+        s.rs.finished = s.rs.generation;
+        s.rs.tick = None;
+        s.rs.pieces.clear();
+        s.rs.got.clear();
+        s.sum_floor = floor;
+        s.streak = 0;
+        s.compared.clear();
+        for m in s.sums.iter_mut() {
+            *m = m.split_off(&floor);
+        }
     }
 }
 
