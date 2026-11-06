@@ -58,6 +58,10 @@ fn state_sum() -> u32 {
         if (1760..1776).contains(&(i * 4 % 1820)) {
             continue;
         }
+        // (the address of the player's preferences: the profiles made for the match come after the ones a machine has saved, and machines have saved different numbers of them)
+        if i * 4 % 1820 == 24 {
+            continue;
+        }
         feed(lw(from + 4 * i) as u32);
     }
     let chars = lw(g::chrinfo);
@@ -65,6 +69,10 @@ fn state_sum() -> u32 {
     for i in 0..(count * 0x1210 / 4) {
         // (the floats that a player's firing stores here differ between the machines, the machine of the player having more of them; nothing that is played depends on them.  They were taken for a desync with four players)
         if (448..512).contains(&(i * 4 % 0x1210)) {
+            continue;
+        }
+        // (and the same address in the character)
+        if i * 4 % 0x1210 == 16 {
             continue;
         }
         feed(lw(chars + 4 * i) as u32);
@@ -568,6 +576,13 @@ pub fn netlink_start_match(level: &str, players: usize) {
     let before: [i32; 10] = std::array::from_fn(|i| signonGet(i as i32));
     *PROFILES.lock().unwrap() = Some(before);
     let names = if setup.names.is_empty() { (1..=players).map(|i| format!("Player {i}")).collect() } else { setup.names.clone() };
+    // (a test aid, TS_NETEXTRAPROFILES=<n>: this machine has that many more profiles, as machines with other saves have)
+    for _ in 0..std::env::var("TS_NETEXTRAPROFILES").ok().and_then(|v| v.parse::<i32>().ok()).unwrap_or(0) {
+        let text = ts_sdk::malloc(4);
+        sb(text, 88);
+        sb(text + 1, 0);
+        signonNew(text);
+    }
     let mut temps = Vec::new();
     for (player, n) in names.iter().take(MAX_MATCH_PLAYERS as usize).enumerate() {
         let text = ts_sdk::malloc(16);

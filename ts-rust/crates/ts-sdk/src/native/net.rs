@@ -18,7 +18,7 @@ pub const PAD_BYTES: usize = 20;
 /// The checksum is compared every this many ticks.
 pub const SUM_EVERY: u32 = 30;
 
-const MAGIC: u32 = 0x5453_4e34; // "TSN4"
+const MAGIC: u32 = 0x5453_4e35; // "TSN5"
 /// The form of the packets: machines that differ in it cannot play together.
 pub const PROTOCOL: u32 = MAGIC;
 /// the most pads a packet carries
