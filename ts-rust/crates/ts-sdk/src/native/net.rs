@@ -18,7 +18,7 @@ pub const PAD_BYTES: usize = 20;
 /// The checksum is compared every this many ticks.
 pub const SUM_EVERY: u32 = 30;
 
-const MAGIC: u32 = 0x5453_4e33; // "TSN3"
+const MAGIC: u32 = 0x5453_4e34; // "TSN4"
 /// The form of the packets: machines that differ in it cannot play together.
 pub const PROTOCOL: u32 = MAGIC;
 /// the most pads a packet carries
@@ -123,6 +123,8 @@ pub struct Setup {
     pub weapons: Option<(i32, [i32; 5])>,
     /// the name of each player
     pub names: Vec<String>,
+    /// the control settings of each player's profile, as `netlink_my_prefs` tells them
+    pub prefs: Vec<Vec<u8>>,
     /// ticks between a pad being read and being used: more hides longer stalls of the network and makes the controls lag
     pub delay: u32,
     /// the parameters of the match as the game's own pages make them (28 words), when the host set the match up with them
@@ -135,7 +137,7 @@ pub struct Setup {
 
 impl Default for Setup {
     fn default() -> Setup {
-        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, names: Vec::new(), delay: 2, block: Vec::new(), gvs: Vec::new(), map: Vec::new() }
+        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, prefs: Vec::new(), names: Vec::new(), delay: 2, block: Vec::new(), gvs: Vec::new(), map: Vec::new() }
     }
 }
 

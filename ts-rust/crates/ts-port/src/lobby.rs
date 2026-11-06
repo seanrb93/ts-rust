@@ -123,6 +123,9 @@ pub struct Lobby {
     my_name: String,
     names: std::collections::HashMap<SocketAddr, String>,
     roster_names: Vec<String>,
+    /// the control settings of the other machines' players (host) and of every player (client)
+    prefs: std::collections::HashMap<SocketAddr, Vec<u8>>,
+    roster_prefs: Vec<Vec<u8>>,
     // client: the host, this machine's player and the roster as last heard
     host: Option<SocketAddr>,
     my_index: usize,
@@ -298,6 +301,8 @@ impl Lobby {
             my_name: default_name(),
             names: std::collections::HashMap::new(),
             roster_names: Vec::new(),
+            prefs: std::collections::HashMap::new(),
+            roster_prefs: Vec::new(),
             host: None,
             my_index: 0,
             roster: Vec::new(),
@@ -580,12 +585,22 @@ impl Lobby {
         v
     }
 
+    /// The control settings of the players as the host has them (this machine's first).
+    fn host_prefs(&self) -> Vec<Vec<u8>> {
+        let mut v = vec![ts_game::netlink_my_prefs()];
+        for a in &self.others {
+            v.push(self.prefs.get(a).cloned().unwrap_or_default());
+        }
+        v
+    }
+
     /// The match as it stands: the options, the bots and the character of each player.
     fn match_setup(&self, players: usize) -> ts_sdk::net::Setup {
         let mut s = self.setup.clone();
         let chr = |i: usize| self.chars.get(i % self.chars.len().max(1)).map_or(0, |c| c.0);
         s.chars = (0..players).map(|p| chr(self.picks.get(p).copied().unwrap_or(0))).collect();
         s.names = if self.screen == Screen::Host { self.host_names() } else { self.roster_names.clone() };
+        s.prefs = if self.screen == Screen::Host { self.host_prefs() } else { self.roster_prefs.clone() };
         // (the bots are characters the players are not: the next ones of the list)
         // (the statistics of a match have 14 places, for the players and the bots together)
         s.bots = (0..self.bots.min(14usize.saturating_sub(players))).map(|b| chr(8 + 3 * b)).collect();
@@ -635,6 +650,11 @@ impl Lobby {
         for n in self.host_names() {
             b.push(n.len() as u8);
             b.extend_from_slice(n.as_bytes());
+        }
+        // the players' control settings
+        for p in self.host_prefs() {
+            b.push(p.len() as u8);
+            b.extend_from_slice(&p);
         }
         // the game variables the host set, and the parameters of the match once they are made
         let n = self.gvs.len().min(16);
@@ -915,6 +935,13 @@ impl Lobby {
                                 if let Some(n) = b.get(10..10 + len as usize) {
                                     self.names.insert(from, clean_name(&String::from_utf8_lossy(n)));
                                 }
+                                // (the player's control settings come after the name)
+                                let at = 10 + len as usize;
+                                if let Some(&size) = b.get(at) {
+                                    if let Some(p) = b.get(at + 1..at + 1 + size as usize) {
+                                        self.prefs.insert(from, p.to_vec());
+                                    }
+                                }
                             }
                             if !self.others.contains(&from) && self.others.len() + 1 < MAX_PLAYERS && self.starting.is_none() {
                                 self.others.push(from);
@@ -1055,6 +1082,15 @@ impl Lobby {
                     }
                     if names.len() == self.n_players {
                         self.roster_names = names;
+                        // the players' control settings
+                        let mut prefs = Vec::new();
+                        for _ in 0..self.n_players {
+                            let Some(&len) = b.get(o) else { break };
+                            let Some(p) = b.get(o + 1..o + 1 + len as usize) else { break };
+                            prefs.push(p.to_vec());
+                            o += 1 + len as usize;
+                        }
+                        self.roster_prefs = prefs;
                         // the host's variables and, once it is starting, the parameters of the match
                         if let Some(&n) = b.get(o) {
                             let mut gvs = Vec::new();
@@ -1154,6 +1190,9 @@ impl Lobby {
                     b.extend_from_slice(&self.compat.to_le_bytes());
                     b.push(self.my_name.len() as u8);
                     b.extend_from_slice(self.my_name.as_bytes());
+                    let prefs = ts_game::netlink_my_prefs();
+                    b.push(prefs.len() as u8);
+                    b.extend_from_slice(&prefs);
                     if let Some(s) = &self.sock {
                         let _ = s.send_to(&b, host);
                         // (the map is here)

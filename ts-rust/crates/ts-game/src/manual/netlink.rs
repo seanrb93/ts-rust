@@ -502,6 +502,59 @@ static TEMPS: std::sync::Mutex<Vec<i32>> = std::sync::Mutex::new(Vec::new());
 #[cfg(feature = "extensions")]
 static RAN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+/// The words of a profile's preferences: the configuration and its switches, the buttons of a custom one, the weapon change.
+#[cfg(feature = "extensions")]
+const PREFS_WORDS: i32 = 24;
+
+/// The control settings of the profile signed in on this machine, for the other machines: a mask of the words that differ from a new profile's, then those words (nearly always only a few).  Empty when there is nothing to tell.
+#[cfg(feature = "extensions")]
+pub fn netlink_my_prefs() -> Vec<u8> {
+    if lw(g::signonarray) == 0 {
+        return Vec::new();
+    }
+    let frame = Frame::new(96);
+    let new = frame.sp();
+    playerprefsNew(new);
+    let id = signonGet(0);
+    let from = if id >= 0 { lw(g::signonarray) + id * 2936 + 32 } else { new };
+    let mut words: Vec<i32> = (0..PREFS_WORDS).map(|i| lw(from + 4 * i)).collect();
+    // (a test aid, TS_NETPREFS=<configuration>,<switches>: this machine's player has these settings)
+    if let Some((config, flags)) = std::env::var("TS_NETPREFS").ok().and_then(|v| v.split_once(',').and_then(|(a, b)| Some((a.parse::<i32>().ok()?, b.parse::<i32>().ok()?)))) {
+        words[0] = config & 0xffff | flags << 16;
+    }
+    let mut mask = 0u32;
+    let mut out = Vec::new();
+    for i in 0..PREFS_WORDS {
+        if words[i as usize] != lw(new + 4 * i) {
+            mask |= 1 << i;
+            out.extend_from_slice(&words[i as usize].to_le_bytes());
+        }
+    }
+    let mut b = mask.to_le_bytes().to_vec();
+    b.extend_from_slice(&out);
+    b
+}
+
+#[cfg(not(feature = "extensions"))]
+pub fn netlink_my_prefs() -> Vec<u8> {
+    Vec::new()
+}
+
+/// Put what `netlink_my_prefs` told into the preferences at `prefs`, which are those of a new profile.
+#[cfg(feature = "extensions")]
+fn netlink_put_prefs(prefs: i32, told: &[u8]) {
+    let Some(head) = told.get(0..4) else { return };
+    let mask = u32::from_le_bytes([head[0], head[1], head[2], head[3]]);
+    let mut at = 4;
+    for i in 0..PREFS_WORDS {
+        if mask & (1 << i) != 0 {
+            let Some(w) = told.get(at..at + 4) else { return };
+            sw(prefs + 4 * i, i32::from_le_bytes([w[0], w[1], w[2], w[3]]));
+            at += 4;
+        }
+    }
+}
+
 /// Start the network match of the lobby from the front end's pages: the players get profiles of their own (named as the lobby says), the level is started with the players'
 /// number and the mode; the session (`ts_sdk::net::start`) and the match's setup (`set_setup`) have been made.  The game is a game of the machine again when the level is left.
 #[cfg(feature = "extensions")]
@@ -525,6 +578,14 @@ pub fn netlink_start_match(level: &str, players: usize) {
         if own >= 0 {
             signonSet(player as i32, own);
             temps.push(own);
+            // (the player's own controls: every machine plays every player, so they all use the same settings for them)
+            let prefs = lw(g::signonarray) + own * 2936 + 32;
+            if let Some(told) = setup.prefs.get(player) {
+                netlink_put_prefs(prefs, told);
+            }
+            if std::env::var_os("TS_NETLOG").is_some() {
+                eprintln!("[net] player {player} configuration {} switches {} weapon change {}", lhu(prefs), lhu(prefs + 2), lw(prefs + 88));
+            }
         }
     }
     *TEMPS.lock().unwrap() = temps;
