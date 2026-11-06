@@ -101,4 +101,26 @@ A full shot of the Shotgun (6 pellets of 0.5) is 3 full health bars if all pelle
 | Shotgun | 2.4 | Assault Shotgun | 3.2 |
 | Blunderbuss | 1.0 | Rocket Launcher, Grenade Launcher | 1.0 |
 
-The stock damage per second of a full hit on the body (damage times the bullets of the shot times the rate) runs from 0.5 (Sniper Rifle, Rocket Launcher) and 0.8 (Colt) to 1.6 to 2.3 (the automatics and rifles) and 5.8 and 7.2 for the Assault Shotgun and the Shotgun, which is why the shotguns feel so strong.  `examples/balance_mod` rescales the damage by these rates.
+The second trigger has its own damage (`alt_damage`, +208) and its own rate, and the rates above are for the first trigger.  Measured the same way (a trigger held, then pulsed so that the weapon reloads; 60 frames a second):
+
+| Weapon | First trigger, shots per second | Second trigger, shots per second, damage | Reload (frames) |
+|---|---|---|---|
+| Pistol | 3.0 | 3.0, 0.30 | 71 |
+| Mauser Pistol | 5.0 | 2.8, 0.30 | 71 |
+| Scifi Handgun | 7.6 | 5.0, 0.80 | 47 |
+| Colt Pistol | 1.5 | 1.5, 0.50 | 56 |
+| Uzi | 10.0 | 10.0, 0.20 | 65 |
+| Tommy Gun | 8.6 | 3.9, 0.20 | 71 |
+| M16, Assault Rifle | 8.6 | 8.6, as the first | 57 |
+| Scifi Autorifle | 7.6 | 1.5, 0.30 and a blast | 67 |
+| Raygun Carbine | 7.6 | 9.9, 0.15 | 71 |
+| Raygun | 4.0 | 6.0, 0.20 | 60 |
+| Minigun | 10.0 | 14.2, 0.20 | 51 |
+| Shotgun | 2.4 | 1.0, 0.50 a pellet | 98 |
+| Assault Shotgun | 3.0 | 3.0, 0.30 a pellet | 71 |
+| Blunderbuss | 1.0 | 0.7, 0.20 a pellet | none |
+| Sniper Rifle, Scifi Sniper Rifle | 1.0 | 1.0, as the first | not measured |
+
+A trigger held down stops when the clip is empty: the weapon reloads when the trigger is let go and pressed again.  Pressing it again quickly also fires the slow weapons faster than holding it (a sniper rifle 1.5 shots a second when pressed every half second, 1.0 when held).
+
+The stock damage per second of a full hit on the body (damage times the bullets of the shot times the rate) runs from 0.5 (Sniper Rifle, Rocket Launcher) and 0.8 (Colt) to 1.6 to 2.3 (the automatics and rifles) and 5.8 and 7.2 for the Assault Shotgun and the Shotgun, which is why the shotguns feel so strong.  `examples/balance_mod` sets the damage of both triggers from these rates and the reloads.
