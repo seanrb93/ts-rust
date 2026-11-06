@@ -43,9 +43,9 @@ pub fn bulletReset() {
     bulletRestart();
 }
 
-/// Get memory for the characters (4 records of 0x1210 bytes on level 102, else 108) and restart them (@ 0x284ff8).
+/// Get memory for the characters (`chr_records` records of 0x1210 bytes) and restart them (@ 0x284ff8).
 pub fn chrReset() {
-    let size = (if (lw(g::lvlevelnum) ^ 102) == 0 { 4 } else { 108 }) * 0x1210;
+    let size = chr_records() * 0x1210;
     let memory = memAlloc(size, 1);
     sw(g::chrinfo, memory);
     chrRestart();

@@ -12,10 +12,20 @@ pub fn chrResetAmmo(chr: i32) {
     memset(chr + 620, 0, 60);
 }
 
-/// Clear the character records (0x1210 bytes each): 4 of them in the level 102, else 108 (@ 0x284fc8).
+/// How many character records a level has: 4 in the level 102, else 108.  The last four are for the players' arms (slot 104 and on, one for each player), so a match of more than four players has more of them: the arm of the fifth player was made past the end of the table, on the pads of the level that lie after it, and a bot that then looked for a route between the spoiled pads never came back.
+pub fn chr_records() -> i32 {
+    if (lw(g::lvlevelnum) ^ 102) == 0 {
+        return 4;
+    }
+    #[cfg(feature = "extensions")]
+    return 104 + lw(g::lvnumplayers).max(4);
+    #[cfg(not(feature = "extensions"))]
+    108
+}
+
+/// Clear the character records (0x1210 bytes each), `chr_records` of them (@ 0x284fc8).
 pub fn chrRestart() {
-    let records = if (lw(g::lvlevelnum) ^ 102) == 0 { 4 } else { 108 };
-    memset(lw(g::chrinfo), 0, records * 0x1210);
+    memset(lw(g::chrinfo), 0, chr_records() * 0x1210);
 }
 
 /// Set the four state bytes at 0x3aff28 to the low byte of `value` (@ 0x2300a8).
