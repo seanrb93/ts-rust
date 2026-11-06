@@ -56,7 +56,12 @@ pub fn on() -> bool {
 #[inline(always)]
 pub fn touch(a: i32, n: usize) {
     if on() {
-        touch_slow(a as u32, n);
+        // (nearly every store is to a page that this tick has already kept)
+        let u = a as u32;
+        if u < RAM_SIZE && (u & 0xfff) as usize + n <= PAGE && unsafe { *MARKS.add((u >> 12) as usize) } == NOW.load(Ordering::Relaxed) {
+            return;
+        }
+        touch_slow(u, n);
     }
 }
 

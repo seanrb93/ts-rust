@@ -63,6 +63,10 @@ fn state_sum() -> u32 {
     let chars = lw(g::chrinfo);
     let count = players + lw(g::numactivechars);
     for i in 0..(count * 0x1210 / 4) {
+        // (the floats that a player's firing stores here differ between the machines, the machine of the player having more of them; nothing that is played depends on them.  They were taken for a desync with four players)
+        if (448..512).contains(&(i * 4 % 0x1210)) {
+            continue;
+        }
         feed(lw(chars + 4 * i) as u32);
     }
     feed(ld(g::newrndseedval) as u32);
@@ -217,6 +221,24 @@ fn local_pad() -> [u8; ts_sdk::net::PAD_BYTES] {
     if mouse_look_active() {
         local[16..18].copy_from_slice(&((dx * 8.0).round().clamp(-32000.0, 32000.0) as i16).to_le_bytes());
         local[18..20].copy_from_slice(&((dy * 8.0).round().clamp(-32000.0, 32000.0) as i16).to_le_bytes());
+    }
+    // (a test aid, TS_NETPADS=<seed>: the pad is made from the tick and the player, so that the same match is played whatever the timing, and the checksums of certain ticks can be compared between builds)
+    static TEST_PADS: std::sync::OnceLock<Option<u32>> = std::sync::OnceLock::new();
+    if let Some(seed) = *TEST_PADS.get_or_init(|| std::env::var("TS_NETPADS").ok().and_then(|v| v.parse().ok())) {
+        let t = ts_sdk::net::tick();
+        let mix = |k: u32| {
+            let mut x = (k / 8).wrapping_mul(0x9e37_79b1) ^ seed ^ (ts_sdk::net::local_player() as u32).wrapping_mul(0x85eb_ca77);
+            x ^= x >> 15;
+            x = x.wrapping_mul(0xc2b2_ae3d);
+            x ^ (x >> 13)
+        };
+        // (not Select and Start, which open menus; with TS_NETMENUS=1 Start too, to test a player's own menu in a rollback)
+        let keep = if std::env::var_os("TS_NETMENUS").is_some() { !0x0100u16 } else { !0x0900u16 };
+        let (now, before) = (mix(t) as u16 & keep, mix(t.wrapping_sub(1)) as u16 & keep);
+        local[0..2].copy_from_slice(&now.to_le_bytes());
+        local[4..6].copy_from_slice(&(now & !before).to_le_bytes());
+        local[6..8].copy_from_slice(&(before & !now).to_le_bytes());
+        local[8..12].copy_from_slice(&(mix(t) >> 3).to_le_bytes());
     }
     if netlink_local_menu_open() {
         // (the game goes on while this player's pause menu is open, and the menu reads the same pad: its buttons go on, the sticks do not move the character)
@@ -599,6 +621,87 @@ fn first_wrong(rb: &Rollback, from: u32, to: u32) -> Option<u32> {
     None
 }
 
+/// A test aid (`TS_NETDUMP=<tick>`): the words of the state that the checksum covers, to find which differ between machines (the last dump of a tick is the one that counts: it may be played again).
+#[cfg(feature = "extensions")]
+fn dump_state() {
+    eprintln!("[dump] begin");
+    // (and TS_NETMEM=<file>: the whole memory, to compare two runs)
+    if let Ok(file) = std::env::var("TS_NETMEM") {
+        let bytes: Vec<u8> = all_memory().into_iter().flat_map(|(_, m)| m.iter().copied()).collect();
+        std::fs::write(file, bytes).ok();
+    }
+    for i in 0..lw(g::lvnumplayers) {
+        for w in 0..455 {
+            eprintln!("[dump] P{i} +{} {:08x}", w * 4, lw(lw(g::players) + i * 1820 + w * 4));
+        }
+    }
+    eprintln!("[dump] R seed {:016x}", ld(g::newrndseedval));
+    eprintln!("[dump] R count {}", lw(g::rndcount));
+    eprintln!("[dump] R frame {}", lw(g::gameframe));
+    let count = lw(g::lvnumplayers) + lw(g::numactivechars);
+    for i in 0..count {
+        for w in 0..(0x1210 / 4) {
+            eprintln!("[dump] C{i} +{} {:08x}", w * 4, lw(lw(g::chrinfo) + i * 0x1210 + w * 4));
+        }
+    }
+    for w in 0..(14 * 1368 / 4) {
+        eprintln!("[dump] M +{} {:08x}", w * 4, lw(g::matchstats + 4 * w));
+    }
+    for w in 0..28 {
+        eprintln!("[dump] G +{} {:08x}", w * 4, lw(g::curgameparms + 4 * w));
+    }
+}
+
+/// A test aid (`TS_ROLLCHECK=<every n ticks>`): the last ticks are played with wrong pads and undone, which must leave nothing behind.  Memory is compared after the undo (what differs was stored
+/// past the journal) and after the ticks are played again with the right pads (what differs came from something outside the memory that the wrong ticks changed).
+#[cfg(feature = "extensions")]
+static WRONG_PADS: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(feature = "extensions")]
+fn all_memory() -> Vec<(i32, &'static [u8])> {
+    // (the game's memory and the port's tables, the stack, the scratchpad)
+    vec![(0, ts_rt::host_slice_ro(0, 0x400_0000)), (0xfe0_0000, ts_rt::host_slice_ro(0xfe0_0000, 0x20_0000)), (0x7000_0000, ts_rt::host_slice_ro(0x7000_0000, 0x4000))]
+}
+
+#[cfg(feature = "extensions")]
+fn tell_differences(what: &str, k: u32, before: &[Vec<u8>]) {
+    let mut out = Vec::new();
+    let mut total = 0;
+    for ((at, now), old) in all_memory().into_iter().zip(before) {
+        for (i, (a, b)) in now.chunks_exact(4).zip(old.chunks_exact(4)).enumerate() {
+            if a != b {
+                total += 1;
+                if out.len() < 40 {
+                    out.push(format!("{:x}:{:08x}>{:08x}", at + 4 * i as i32, u32::from_le_bytes(b.try_into().unwrap()), u32::from_le_bytes(a.try_into().unwrap())));
+                }
+            }
+        }
+    }
+    eprintln!("[rollcheck] tick {k} {what}: {total} words differ {out:?}");
+}
+
+#[cfg(feature = "extensions")]
+fn roll_check(rb: &mut Rollback, k: u32) {
+    const BACK: u32 = 4;
+    if k < 40 || ts_rt::journal::depth() < BACK as usize + 2 {
+        return;
+    }
+    let copy = || all_memory().into_iter().map(|(_, m)| m.to_vec()).collect::<Vec<_>>();
+    // (the ticks played again with the right pads, as the measure)
+    go_back(rb, k - BACK, k);
+    let right = copy();
+    // (and now wrong, and right again)
+    WRONG_PADS.store(true, std::sync::atomic::Ordering::Relaxed);
+    go_back(rb, k - BACK, k);
+    WRONG_PADS.store(false, std::sync::atomic::Ordering::Relaxed);
+    ts_sdk::present_sync();
+    let wrong_state = copy();
+    // (undo by hand, to look at the memory straight after)
+    go_back(rb, k - BACK, k);
+    tell_differences("right pads after wrong ones", k, &right);
+    let _ = wrong_state;
+}
+
 /// Go back to the tick `e` and play the frames up to `k` (not including it) again with the pads as they are known now.  The journal is left with the record of the tick `k`.
 #[cfg(feature = "extensions")]
 fn go_back(rb: &mut Rollback, e: u32, k: u32) {
@@ -614,10 +717,21 @@ fn go_back(rb: &mut Rollback, e: u32, k: u32) {
     for t in e..k {
         ts_sdk::net::replay_tick(t);
         ts_rt::journal::begin_tick();
-        let (pads, mask) = best_pads(t);
+        let (mut pads, mask) = best_pads(t);
+        if WRONG_PADS.load(std::sync::atomic::Ordering::Relaxed) {
+            for (p, pad) in pads.iter_mut().enumerate() {
+                let x = (t ^ (p as u32) << 3).wrapping_mul(0x9e37_79b1);
+                pad[0..2].copy_from_slice(&((x >> 16) as u16 & !9).to_le_bytes());
+                pad[4..6].copy_from_slice(&((x >> 16) as u16 & !9).to_le_bytes());
+                pad[8..12].copy_from_slice(&x.to_le_bytes());
+            }
+        }
         apply_pads(&pads, mask);
         rb.used.insert(t, (pads, mask));
         sim_frame();
+        if std::env::var("TS_NETDUMP").ok().and_then(|v| v.parse::<u32>().ok()) == Some(t) {
+            dump_state();
+        }
         if t % ts_sdk::net::SUM_EVERY == 0 {
             rb.pending.insert(t, state_sum());
         }
@@ -756,6 +870,11 @@ pub fn netlink_boundary() {
         let diff: Vec<String> = (0..a.len()).filter(|&i| a[i] != b[i]).take(30).map(|i| format!("{:x}", block_address(i))).collect();
         eprintln!("[replay] tick {} played again: {} blocks differ{}", k - 1, (0..a.len()).filter(|&i| a[i] != b[i]).count(), if diff.is_empty() { String::new() } else { format!(", the first at {diff:?}") });
     }
+    if let Some(n) = std::env::var("TS_ROLLCHECK").ok().and_then(|v| v.parse::<u32>().ok()) {
+        if k % n.max(1) == 0 {
+            roll_check(&mut rb, k);
+        }
+    }
     loop {
         if !ts_sdk::net::poll(waited_from.elapsed()) {
             ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
@@ -803,25 +922,7 @@ pub fn netlink_boundary() {
             }
         }
         if std::env::var("TS_NETDUMP").ok().and_then(|v| v.parse::<u32>().ok()) == Some(k - 1) {
-            // test aid: the words of the state that the checksum covers, at this tick, to find which differ between machines
-            for i in 0..lw(g::lvnumplayers) {
-                for w in 0..455 {
-                    eprintln!("[dump] P{i} +{} {:08x}", w * 4, lw(lw(g::players) + i * 1820 + w * 4));
-                }
-            }
-            eprintln!("[dump] R seed {:016x} count {} frame {}", ld(g::newrndseedval), lw(g::rndcount), lw(g::gameframe));
-            let count = lw(g::lvnumplayers) + lw(g::numactivechars);
-            for i in 0..count {
-                for w in 0..(0x1210 / 4) {
-                    eprintln!("[dump] C{i} +{} {:08x}", w * 4, lw(lw(g::chrinfo) + i * 0x1210 + w * 4));
-                }
-            }
-            for w in 0..(14 * 1368 / 4) {
-                eprintln!("[dump] M +{} {:08x}", w * 4, lw(g::matchstats + 4 * w));
-            }
-            for w in 0..28 {
-                eprintln!("[dump] G +{} {:08x}", w * 4, lw(g::curgameparms + 4 * w));
-            }
+            dump_state();
         }
         rb.pending.insert(k - 1, sum);
     }

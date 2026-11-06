@@ -18,7 +18,7 @@ pub const PAD_BYTES: usize = 20;
 /// The checksum is compared every this many ticks.
 pub const SUM_EVERY: u32 = 30;
 
-const MAGIC: u32 = 0x5453_4e50; // "TSNP"
+const MAGIC: u32 = 0x5453_4e32; // "TSN2"
 /// the most pads a packet carries
 const MAX_PADS: u32 = 24;
 /// how long a tick waits for a pad before the link is given up (the first tick waits longer: the other machines may still be loading)
@@ -27,6 +27,54 @@ const FIRST_TIMEOUT: Duration = Duration::from_secs(90);
 /// how long a machine that has been heard from may stay silent, while this one waits for it, before it is given up
 const DROP_AFTER_DEFAULT: Duration = Duration::from_secs(4);
 
+/// The pad that the first pad of a packet is told as a difference from: nothing pressed, and the centre zone that the game uses.
+fn base_pad() -> [u8; PAD_BYTES] {
+    let mut b = neutral();
+    b[12..16].copy_from_slice(&0.25f32.to_le_bytes());
+    b
+}
+
+/// The fields of a pad as they change together: the buttons, the buttons newly pressed and let go, the sticks, the centre zone, the mouse.
+const PAD_FIELDS: [(usize, usize); 7] = [(0, 2), (2, 4), (4, 6), (6, 8), (8, 12), (12, 16), (16, 20)];
+
+/// A pad as it travels: a byte that says which fields differ from `before`, then those fields.  A held stick or button costs one byte, and a packet needs nothing from any other packet.
+fn encode_pad(out: &mut Vec<u8>, pad: &[u8; PAD_BYTES], before: &[u8; PAD_BYTES]) {
+    let mut mask = 0u8;
+    for (i, &(a, b)) in PAD_FIELDS.iter().enumerate() {
+        if pad[a..b] != before[a..b] {
+            mask |= 1 << i;
+        }
+    }
+    out.push(mask);
+    for (i, &(a, b)) in PAD_FIELDS.iter().enumerate() {
+        if mask & (1 << i) != 0 {
+            out.extend_from_slice(&pad[a..b]);
+        }
+    }
+}
+
+/// The pad at `at` of `b` and where what follows it starts; `None` when the packet ends in it.
+fn decode_pad(b: &[u8], mut at: usize, before: &[u8; PAD_BYTES]) -> Option<([u8; PAD_BYTES], usize)> {
+    let mask = *b.get(at)?;
+    at += 1;
+    let mut pad = *before;
+    for (i, &(x, y)) in PAD_FIELDS.iter().enumerate() {
+        if mask & (1 << i) != 0 {
+            pad[x..y].copy_from_slice(b.get(at..at + (y - x))?);
+            at += y - x;
+        }
+    }
+    Some((pad, at))
+}
+
+/// What is sent, for `net-stats.txt`: the bytes (with the 28 of the IP and UDP headers) and the packets.
+static SENT_BYTES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static SENT_PACKETS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// A network game is on (`active` is asked at every turn of the game: this needs no lock).
+static ACTIVE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+/// How many more rounds of packets carry the newest checksum: a checksum comes every half second, so it need not be in every packet, and a few tries get it there.
+const SUM_SENDS: u32 = 12;
+
 /// How long a machine may be silent before the others drop it (a test aid, `TS_NETDROP=<seconds>`, for tests of many machines on one PC).
 fn drop_after() -> Duration {
     static D: std::sync::OnceLock<Duration> = std::sync::OnceLock::new();
@@ -34,8 +82,8 @@ fn drop_after() -> Duration {
 }
 /// how many of a given-up player's last pads each packet passes on, so the machines that are left all end up with the same ones
 const RELAY_PADS: usize = 16;
-/// how long before the packets are sent again when nothing new has come up
-const RESEND: Duration = Duration::from_millis(5);
+/// how long before the packets are sent again when nothing new has come up: more than a tick, so that a game that is running sends one packet a tick, with its new pad, and only a machine that waits sends the old ones again
+const RESEND: Duration = Duration::from_millis(25);
 
 /// What to do when the link is lost: told the reason (the port shows it and ends the game).
 static ON_LOST: Mutex<Option<fn(&str)>> = Mutex::new(None);
@@ -158,6 +206,13 @@ struct Session {
     compared: std::collections::BTreeSet<u32>,
     lag: Duration,
     inbox: std::collections::VecDeque<(Instant, Vec<u8>, SocketAddr)>,
+    /// a test aid, `TS_NETLOSS=<n>`: one in n of the packets that come is dropped
+    loss: u32,
+    received: u32,
+    /// the rounds of packets that will still carry the newest checksum
+    sum_sends: u32,
+    /// the packet being made (kept, so that a packet needs no new memory)
+    out: Vec<u8>,
 }
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
@@ -204,7 +259,12 @@ pub fn start(cfg: Config) -> Result<(), String> {
         compared: std::collections::BTreeSet::new(),
         lag: Duration::from_millis(std::env::var("TS_NETLAG").ok().and_then(|v| v.parse().ok()).unwrap_or(0)),
         inbox: std::collections::VecDeque::new(),
+        loss: std::env::var("TS_NETLOSS").ok().and_then(|v| v.parse().ok()).unwrap_or(0),
+        received: 0,
+        sum_sends: 0,
+        out: Vec::with_capacity(512),
     });
+    ACTIVE.store(true, std::sync::atomic::Ordering::Relaxed);
     Ok(())
 }
 
@@ -217,6 +277,7 @@ pub fn neutral() -> [u8; PAD_BYTES] {
 
 /// The network game is over: the session is closed (its socket too) and the game is a game of this machine again.
 pub fn stop() {
+    ACTIVE.store(false, std::sync::atomic::Ordering::Relaxed);
     *SESSION.lock().unwrap() = None;
     *SETUP.lock().unwrap() = None;
     *SOUNDS.lock().unwrap() = None;
@@ -225,8 +286,9 @@ pub fn stop() {
     set_muted(false);
 }
 
+#[inline]
 pub fn active() -> bool {
-    SESSION.lock().unwrap().is_some()
+    ACTIVE.load(std::sync::atomic::Ordering::Relaxed)
 }
 
 pub fn local_player() -> i32 {
@@ -280,6 +342,11 @@ impl Session {
             self.sent_to = have_to;
             self.last_sent = Instant::now();
         }
+        let newest_sum = if fresh && self.sum_sends > 0 { self.sums[mine].iter().next_back().map(|(t, s)| (*t, *s)) } else { None };
+        if fresh {
+            self.sum_sends = self.sum_sends.saturating_sub(1);
+        }
+        let mut b = std::mem::take(&mut self.out);
         for p in 0..self.n() {
             if !fresh {
                 break;
@@ -290,20 +357,22 @@ impl Session {
             let first = self.acked[p];
             let last = have_to.min(first + MAX_PADS);
             let count = last.saturating_sub(first);
-            let mut b = Vec::with_capacity(32 + count as usize * PAD_BYTES);
+            b.clear();
             b.extend_from_slice(&MAGIC.to_le_bytes());
             b.push(mine as u8);
             // the first tick of the sender's that this machine still needs of the receiver
             b.extend_from_slice(&self.next_needed(p).to_le_bytes());
             b.extend_from_slice(&first.to_le_bytes());
             b.push(count as u8);
+            let mut before = base_pad();
             for t in first..last {
-                b.extend_from_slice(self.pads[mine].get(&t).unwrap_or(&neutral()));
+                let pad = self.pads[mine].get(&t).copied().unwrap_or_else(neutral);
+                encode_pad(&mut b, &pad, &before);
+                before = pad;
             }
-            // the recent checksums of this machine
-            let recent: Vec<(u32, u32)> = self.sums[mine].iter().rev().take(4).map(|(t, s)| (*t, *s)).collect();
-            b.push(recent.len() as u8);
-            for (t, s) in recent {
+            // the newest checksum of this machine, while it is new
+            b.push(newest_sum.is_some() as u8);
+            if let Some((t, s)) = newest_sum {
                 b.extend_from_slice(&t.to_le_bytes());
                 b.extend_from_slice(&s.to_le_bytes());
             }
@@ -325,9 +394,17 @@ impl Session {
                 b.extend_from_slice(&self.reports[mine][q].unwrap_or(self.have[q]).to_le_bytes());
             }
             let _ = self.sock.send_to(&b, self.peers[p]);
+            SENT_BYTES.fetch_add(b.len() as u64 + 28, std::sync::atomic::Ordering::Relaxed);
+            SENT_PACKETS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         }
+        self.out = b;
         let mut buf = [0u8; 2048];
         while let Ok((len, from)) = self.sock.recv_from(&mut buf) {
+            // (not by turns: the packets of the others come in turn, and that would lose all those of one machine)
+            self.received = self.received.wrapping_mul(1664525).wrapping_add(1013904223);
+            if self.loss != 0 && (self.received >> 8) % self.loss == 0 {
+                continue;
+            }
             if self.lag.is_zero() {
                 self.take(&buf[..len], from);
             } else {
@@ -369,12 +446,12 @@ impl Session {
         let count = b[13] as usize;
         self.acked[who] = self.acked[who].max(wants);
         let mut at = 14;
+        let mut before = base_pad();
         for i in 0..count {
-            let Some(rec) = b.get(at..at + PAD_BYTES) else { return };
-            let mut r = [0u8; PAD_BYTES];
-            r.copy_from_slice(rec);
+            let Some((r, next)) = decode_pad(b, at, &before) else { return };
             self.pads[who].insert(first + i as u32, r);
-            at += PAD_BYTES;
+            before = r;
+            at = next;
         }
         while self.pads[who].contains_key(&self.have[who]) {
             self.have[who] += 1;
@@ -603,7 +680,11 @@ fn note_wait(wait: Duration, tick: u32) {
         st.waited += 1;
     }
     if tick % 300 == 0 && st.frames > 0 {
+        let (sent, packets) = (SENT_BYTES.swap(0, std::sync::atomic::Ordering::Relaxed), SENT_PACKETS.swap(0, std::sync::atomic::Ordering::Relaxed));
         let line = format!(
+            "tick {tick}: sent {} bytes in {packets} packets; ",
+            sent
+        ) + &format!(
             "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms, {} rollbacks ({} ticks played again), the longest silence from the others {:.0} ms, {:.1} extra pictures a tick ({} wanted, {} ticks without for the state of the game, {} for lack of time), sound commands: {} in ticks, {} new and {} left out in ticks played again
 ",
             st.frame_total / st.frames as f64,
@@ -876,5 +957,66 @@ pub fn submit_sum(t: u32, sum: u32) {
     if let Some(s) = SESSION.lock().unwrap().as_mut() {
         let mine = s.local;
         s.sums[mine].insert(t, sum);
+        s.sum_sends = SUM_SENDS;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// What is told goes back to the same pads, a packet that ends early is noticed, and pads that do not change cost a byte each.
+    #[test]
+    fn pads_travel() {
+        let mut seed = 5u32;
+        let mut r = move |m: u32| {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            (seed >> 8) % m
+        };
+        for _ in 0..2000 {
+            let mut pads = vec![base_pad()];
+            for _ in 0..r(24) {
+                let mut p = *pads.last().unwrap();
+                for _ in 0..r(4) {
+                    let i = r(PAD_BYTES as u32) as usize;
+                    p[i] = r(256) as u8;
+                }
+                pads.push(p);
+            }
+            let mut b = Vec::new();
+            let mut before = base_pad();
+            for p in &pads {
+                encode_pad(&mut b, p, &before);
+                before = *p;
+            }
+            let (mut at, mut before) = (0, base_pad());
+            for p in &pads {
+                let (got, next) = decode_pad(&b, at, &before).unwrap();
+                assert_eq!(got, *p);
+                before = got;
+                at = next;
+            }
+            assert_eq!(at, b.len());
+            if !b.is_empty() {
+                let cut = &b[..b.len() - 1];
+                let (mut at, mut before, mut whole) = (0, base_pad(), true);
+                for _ in &pads {
+                    match decode_pad(cut, at, &before) {
+                        Some((got, next)) => {
+                            before = got;
+                            at = next;
+                        }
+                        None => {
+                            whole = false;
+                            break;
+                        }
+                    }
+                }
+                assert!(!whole, "a packet cut short went unnoticed");
+            }
+        }
+        let mut b = Vec::new();
+        encode_pad(&mut b, &base_pad(), &base_pad());
+        assert_eq!(b.len(), 1);
     }
 }

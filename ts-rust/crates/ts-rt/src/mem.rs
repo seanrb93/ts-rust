@@ -69,6 +69,8 @@ fn ptr_slow(a: u32) -> *mut u8 {
 
 /// Raw pointer to a game address (for bulk copies from native services such as file I/O).
 pub fn host_ptr(a: i32) -> *mut u8 {
+    #[cfg(any(feature = "calltrace", feature = "watch"))]
+    crate::watch::check(a, 1, 0xffff);
     ptr(a)
 }
 
@@ -79,6 +81,8 @@ pub fn host_slice_ro(a: i32, len: usize) -> &'static [u8] {
 }
 
 pub fn host_slice(a: i32, len: usize) -> &'static mut [u8] {
+    #[cfg(any(feature = "calltrace", feature = "watch"))]
+    crate::watch::check(a, len, 0);
     let _ = ptr(a.wrapping_add(len.saturating_sub(1) as i32));
     #[cfg(feature = "journal")]
     crate::journal::touch(a, len);
@@ -152,6 +156,8 @@ pub fn swc1(a: i32, v: f32) {
 }
 
 pub fn memcpy_game(dst: i32, src: i32, n: usize) {
+    #[cfg(any(feature = "calltrace", feature = "watch"))]
+    crate::watch::check(dst, n, src as u64);
     #[cfg(feature = "trace")]
     crate::trace::record_bulk(dst, n);
     #[cfg(feature = "journal")]
@@ -160,6 +166,8 @@ pub fn memcpy_game(dst: i32, src: i32, n: usize) {
 }
 
 pub fn memset_game(dst: i32, c: u8, n: usize) {
+    #[cfg(any(feature = "calltrace", feature = "watch"))]
+    crate::watch::check(dst, n, c as u64);
     #[cfg(feature = "trace")]
     crate::trace::record_bulk(dst, n);
     #[cfg(feature = "journal")]
