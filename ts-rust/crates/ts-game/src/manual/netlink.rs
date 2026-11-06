@@ -207,13 +207,31 @@ pub fn netlink_unpause() -> bool {
 }
 
 /// This machine's pad as it travels: the controller record, with the look sensitivity (the others have no way to know it) and the mouse's movement.
+/// A byte of a stick that turns or looks, with the look sensitivity `k`: the same effect as the slower speed of a game without a network.  `zone` is the centre zone (a share of the push), and `starts` is the share of what is beyond it where the game starts to count the axis.
+fn scale_look(byte: u8, k: f32, zone: f32, starts: f32) -> u8 {
+    let v = (byte as f32 - 128.0) / 127.0;
+    let axis = (v.abs() - zone) / (1.0 - zone);
+    if axis <= starts {
+        return byte;
+    }
+    let scaled = (starts + (axis - starts) * k).min(1.0);
+    (128.0 + (zone + scaled * (1.0 - zone)) * v.signum() * 127.0).round().clamp(0.0, 255.0) as u8
+}
+
 fn local_pad() -> [u8; ts_sdk::net::PAD_BYTES] {
     let mut local = pad_bytes(g::controllers + LOCAL_PAD * 384);
     // (the look sensitivity and the mouse are part of the pad: the others have no way to know them)
+    // (the stick that turns and the stick that looks up and down are the player's Configuration's: the axes the player's record names.  What is scaled is how far the push is beyond where each starts to count, so that a slow setting is slow and not dead)
     let k = ts_sdk::pad::look_sensitivity();
-    if k != 1.0 {
-        for i in [8, 9] {
-            local[i] = (128.0 + (local[i] as f32 - 128.0) * k).round().clamp(0.0, 255.0) as u8;
+    let me = lw(g::players) + ts_sdk::net::local_player() * 1820;
+    if k != 1.0 && lw(g::players) != 0 {
+        let zone = f32::from_le_bytes([local[12], local[13], local[14], local[15]]).clamp(0.0, 0.95);
+        // (axes 0 to 3 are these bytes: see `joyGetAxis`; looking up and down starts at half the axis: `stick_dead_zone`)
+        const AXIS_BYTE: [usize; 4] = [8, 10, 9, 11];
+        for (axis, starts) in [(lw(me + 80), 0.0), (lw(me + 76), 0.5)] {
+            if let Some(&i) = AXIS_BYTE.get(axis as usize) {
+                local[i] = scale_look(local[i], k, zone, starts);
+            }
         }
     }
     let (mut dx, mut dy) = ts_sdk::pad::mouse_take();
