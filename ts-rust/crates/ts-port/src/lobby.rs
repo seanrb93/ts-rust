@@ -148,6 +148,8 @@ pub struct Lobby {
     wset: usize,
     /// what the machines must have in common (the build, the game's files, the mods)
     compat: u32,
+    /// the parts of `compat`: the program, the game's packs, the mods
+    compat_parts: [u32; 3],
     /// the character each player chose (this machine's own at `my_index`; the host keeps its clients' here)
     picks: Vec<usize>,
     /// host: the socket the announcements go out of; client: the one they come in on
@@ -312,6 +314,7 @@ impl Lobby {
             wsets,
             wset: 0,
             // (a test aid: a machine that is not like the others)
+            compat_parts: [0; 3],
             compat: compat ^ std::env::var("TS_LOBBY_COMPAT_XOR").ok().and_then(|v| v.parse::<u32>().ok()).unwrap_or(0),
             picks: vec![0; MAX_PLAYERS],
             alevels: Vec::new(),
@@ -700,6 +703,10 @@ impl Lobby {
     }
 
     /// The titles of the mods that are on here are given to the lobby (it tells the others, and shows the host's).
+    pub fn set_compat_parts(&mut self, parts: [u32; 3]) {
+        self.compat_parts = parts;
+    }
+
     pub fn set_mods(&mut self, mods: Vec<String>) {
         self.mods = mods;
     }
@@ -896,6 +903,9 @@ impl Lobby {
                             let mut r = MAGIC.to_le_bytes().to_vec();
                             r.push(T_REJECT);
                             put_mods(&mut r, &self.mods);
+                            for part in self.compat_parts {
+                                r.extend_from_slice(&part.to_le_bytes());
+                            }
                             if let Some(s) = &self.sock {
                                 let _ = s.send_to(&r, from);
                             }
@@ -968,8 +978,21 @@ impl Lobby {
                 for (b, from) in &got {
                     if b.len() >= 5 && u32::from_le_bytes([b[0], b[1], b[2], b[3]]) == MAGIC && b[4] == T_REJECT && from.ip() == host.ip() {
                         self.sock = None;
-                        let theirs = get_mods(b, 5).0;
-                        self.status = format!("The host has other game files or mods. Host mods: {}. Yours: {}", mods_text(&theirs), mods_text(&self.mods));
+                        let (theirs, at) = get_mods(b, 5);
+                        // (what differs, when the host says)
+                        let part = |i: usize| b.get(at + 4 * i..at + 4 * i + 4).map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]));
+                        let mine = self.compat_parts;
+                        let mut what = Vec::new();
+                        if part(0) != Some(mine[0]) {
+                            what.push("another version of the program");
+                        }
+                        if part(1).is_some() && part(1) != Some(mine[1]) {
+                            what.push("other game files");
+                        }
+                        if part(2).is_some() && part(2) != Some(mine[2]) {
+                            what.push("other mods, or other versions of them");
+                        }
+                        self.status = format!("The host has {}. Host mods: {}. Yours: {}", what.join(" and "), mods_text(&theirs), mods_text(&self.mods));
                         return;
                     }
                 }
@@ -1255,7 +1278,7 @@ impl Lobby {
                     v.push(info("Looking for games on this network ..."));
                 }
                 for f in &self.found {
-                    let other = if f.2 == self.compat { "" } else { "   (other files or mods)" };
+                    let other = if f.2 == self.compat { "" } else { "   (another version, other files or mods)" };
                     v.push(action(format!("{}   {} player{}   {}{}", f.0.ip(), f.3, if f.3 == 1 { "" } else { "s" }, f.4, other)));
                 }
                 v.push(info(format!("Address: {}_", self.addr_text)));
@@ -1512,7 +1535,7 @@ impl Lobby {
                         s += "   (none yet)\n";
                     }
                     for (i, f) in self.found.iter().enumerate() {
-                        let same = if f.2 == self.compat { "" } else { "   (other game files or mods)" };
+                        let same = if f.2 == self.compat { "" } else { "   (another version, other game files or mods)" };
                         s += &format!(" {} {}   {} player{}   {}{}\n", if i == self.found_sel { ">" } else { " " }, f.0.ip(), f.3, if f.3 == 1 { "" } else { "s" }, f.4, same);
                     }
                     s += &format!("\n Host address:  {}_\n\n {}\n\n Up/Down: pick a game   Enter: connect      Esc: back\n", self.addr_text, self.status);

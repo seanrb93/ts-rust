@@ -1033,52 +1033,85 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
 pub(crate) fn new_lobby() -> lobby::Lobby {
     let mut l = lobby::Lobby::new(ts_game::netlink_level_names(), ts_game::netlink_characters(), compat_hash(&exe_dir()), ts_game::netlink_weapon_sets());
     // (the mods that are on: the others are told, and a host's are shown to those who join)
-    l.set_mods(mods::list().into_iter().filter(|m| m.enabled && m.loaded).map(|m| m.title).collect());
+    l.set_mods(mods::list().into_iter().filter(|m| m.loaded).map(|m| m.title).collect());
+    l.set_compat_parts(compat_parts(&exe_dir()));
     l
 }
 
-fn compat_hash(game_dir: &std::path::Path) -> u32 {
-    let mut h: u32 = 0x811c_9dc5;
-    let mut feed = |bytes: &[u8]| {
+/// What two machines must share to play together, in three parts so that a machine can be told which differs: the program, the game's packs, and the mods that are running.
+fn compat_parts(game_dir: &std::path::Path) -> [u32; 3] {
+    fn feed(h: &mut u32, bytes: &[u8]) {
         for b in bytes {
-            h = (h ^ *b as u32).wrapping_mul(0x0100_0193);
-        }
-    };
-    feed(env!("CARGO_PKG_VERSION").as_bytes());
-    feed(&[cfg!(feature = "extensions") as u8, cfg!(feature = "extended-tables") as u8]);
-    // (the game's packs: their names and sizes)
-    if let Ok(rd) = std::fs::read_dir(game_dir.join("PAK")) {
-        let mut v: Vec<_> = rd.flatten().filter_map(|e| Some((e.file_name().to_string_lossy().to_ascii_uppercase(), e.metadata().ok()?.len()))).collect();
-        v.sort();
-        for (n, l) in v {
-            feed(n.as_bytes());
-            feed(&l.to_le_bytes());
+            *h = (*h ^ *b as u32).wrapping_mul(0x0100_0193);
         }
     }
-    // (the mods that are on: their files and sizes)
-    fn walk(dir: &std::path::Path, prefix: &str, out: &mut Vec<(String, u64)>) {
+    const START: u32 = 0x811c_9dc5;
+    let mut program = START;
+    feed(&mut program, env!("CARGO_PKG_VERSION").as_bytes());
+    feed(&mut program, &[cfg!(feature = "extensions") as u8, cfg!(feature = "extended-tables") as u8]);
+    feed(&mut program, &ts_sdk::net::PROTOCOL.to_le_bytes());
+    // (the game's packs: their names and sizes)
+    let mut packs = START;
+    if let Ok(rd) = std::fs::read_dir(game_dir.join("PAK")) {
+        let mut v: Vec<_> = rd
+            .flatten()
+            .filter_map(|e| Some((e.file_name().to_string_lossy().to_ascii_uppercase(), e.metadata().ok()?.len())))
+            .filter(|(n, _)| n.ends_with(".PAK"))
+            .collect();
+        v.sort();
+        for (n, l) in v {
+            feed(&mut packs, n.as_bytes());
+            feed(&mut packs, &l.to_le_bytes());
+        }
+    }
+    // (the mods that are running: what in them changes the game.  A README does not, nor the way a text file ends its lines, nor the name or the switch in mod.ini, which the Mods page rewrites)
+    fn walk(dir: &std::path::Path, prefix: &str, out: &mut Vec<(String, std::path::PathBuf, u64)>) {
         let Ok(rd) = std::fs::read_dir(dir) else { return };
         for e in rd.flatten() {
             let name = format!("{prefix}/{}", e.file_name().to_string_lossy());
             match e.metadata() {
                 Ok(m) if m.is_dir() => walk(&e.path(), &name, out),
-                Ok(m) => out.push((name, m.len())),
+                Ok(m) => out.push((name, e.path(), m.len())),
                 _ => {}
             }
         }
     }
-    let mut mods: Vec<_> = mods::list().into_iter().filter(|m| m.enabled && m.loaded).map(|m| m.name).collect();
-    mods.sort();
-    for m in mods {
+    let mut mods = START;
+    let mut running: Vec<_> = mods::list().into_iter().filter(|m| m.loaded).map(|m| m.name).collect();
+    running.sort();
+    for m in running {
+        feed(&mut mods, m.as_bytes());
         let mut files = Vec::new();
-        walk(&game_dir.join("mods").join(&m), &m, &mut files);
+        walk(&game_dir.join("mods").join(&m), "", &mut files);
+        let mut files: Vec<_> = files.into_iter().map(|(n, p, l)| (n.to_ascii_lowercase(), p, l)).collect();
         files.sort();
-        for (n, l) in files {
-            feed(n.as_bytes());
-            feed(&l.to_le_bytes());
+        for (n, path, l) in files {
+            let file = n.rsplit('/').next().unwrap_or("").to_string();
+            if file.starts_with("readme") {
+                continue;
+            }
+            feed(&mut mods, n.as_bytes());
+            if file.ends_with(".ini") || file.ends_with(".txt") || file.ends_with(".rhai") {
+                let text = String::from_utf8_lossy(&std::fs::read(&path).unwrap_or_default()).into_owned();
+                for line in text.lines() {
+                    let key = line.replace(' ', "").to_ascii_lowercase();
+                    if file == "mod.ini" && (key.starts_with("enabled=") || key.starts_with("name=")) {
+                        continue;
+                    }
+                    feed(&mut mods, line.trim_end().as_bytes());
+                    feed(&mut mods, b"\n");
+                }
+            } else {
+                feed(&mut mods, &l.to_le_bytes());
+            }
         }
     }
-    h
+    [program, packs, mods]
+}
+
+fn compat_hash(game_dir: &std::path::Path) -> u32 {
+    let [a, b, c] = compat_parts(game_dir);
+    a.rotate_left(1) ^ b.rotate_left(11) ^ c.rotate_left(21)
 }
 
 /// The link of a network game is lost.
