@@ -364,7 +364,7 @@ fn compile(name: &str, source: &str, of_mode: bool, mod_dir: Option<std::path::P
     engine.set_max_operations(5_000_000);
     engine.set_max_expr_depths(256, 128);
     register(&mut engine);
-    // the mod's settings (`settings.ini` in its folder): yes / no as true / false, numbers as numbers, anything else as text; `()` for a setting that is not there
+    // the mod's settings (`[settings]` of its `mod.ini`): yes / no as true / false, numbers as numbers, anything else as text; `()` for a setting that is not there
     let settings = settings.or_else(|| mod_dir.as_ref().map(|d| crate::ModSettings::read(d).0)).unwrap_or_default();
     let value = |s: &crate::ModSettings, name: &str| -> Option<rhai::Dynamic> {
         let v = s.get(name)?;

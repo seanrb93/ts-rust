@@ -92,9 +92,13 @@ Each variant is listed as a mode on the Select Level page, after the game's own 
 
 ## Settings a player can change
 
-A mod can have a `settings.ini` of named values, so that a player changes what the mod does without reading its tables.  Write a line of explanation over each:
+A mod can have settings: named values in a `[settings]` section at the end of its `mod.ini`, so that a player changes what the mod does without reading its tables.  Write a line of explanation over each:
 
 ```
+name = Weapon Balance
+enabled = true
+
+[settings]
 # How strong the explosions are, in percent of this mod's.
 explosion_strength = 100
 
@@ -116,9 +120,11 @@ else
 end
 ```
 
-`if` takes a setting (`if name`, `if not name`) or a comparison (`if name = word`, `!=`, `<`, `<=`, `>`, `>=`), and the blocks can be put inside each other.  A setting that is a word, in braces on its own, goes in as that word.  A line that uses a setting that is missing or is not a number is left out, and the log names the lines, so a wrong value in `settings.ini` never writes a wrong value into the game.  A script reads a setting with `setting("name", default)` (`docs/scripting.md`).
+`name`, `enabled` and `script` are read only above the first section, so a setting may have any name.  (A `settings.ini` of `name = value` lines in the mod's folder is read too, for mods made that way; `mod.ini` wins where both have a setting.)
 
-All the machines of a network game need the same settings: a machine with other values cannot join (the lobby says "other game files or mods").  `examples/balance_mod`, `bots_punch_mod`, `brick_throw_mod`, `virus_mode`, `first_person_hands_mod` and `dual_wield_everything_mod` have one.
+`if` takes a setting (`if name`, `if not name`) or a comparison (`if name = word`, `!=`, `<`, `<=`, `>`, `>=`), and the blocks can be put inside each other.  A setting that is a word, in braces on its own, goes in as that word.  A line that uses a setting that is missing or is not a number is left out, and the log names the lines, so a wrong value in the settings never writes a wrong value into the game.  A script reads a setting with `setting("name", default)` (`docs/scripting.md`).
+
+All the machines of a network game need the same settings: a machine with other values cannot join (the lobby says "other game files or mods").  `examples/balance_mod`, `bots_punch_mod`, `brick_throw_mod`, `virus_mode`, `first_person_hands_mod` and `dual_wield_everything_mod` have settings.
 
 ## Replace sounds, music and textures
 

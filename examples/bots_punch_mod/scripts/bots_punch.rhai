@@ -1,6 +1,6 @@
 // Bots Punch: bots that have no weapon (Always start with gun: No, and none to pick up) go after their target and punch it, instead of standing still.
 
-// (the numbers are in settings.ini, and these are what they are when it does not have them)
+// (the numbers are in [settings] of mod.ini, and these are what they are when it does not have them)
 fn reach() { setting("reach", 2.5) }        // how near a bot has to be to hit
 fn height() { setting("height", 1.5) }      // and how near in height (the same floor)
 fn damage_done() { setting("damage", 0.5) } // of a character's health (a pistol shot is 0.3)

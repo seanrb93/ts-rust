@@ -34,7 +34,7 @@ The default `cargo build` is the original game: 60 Hz, 4:3, the original's logic
 
 A mod is a folder in `mods/` with a `mod.ini` (`name = ...`, `enabled = true`); the Mods page switches them on and off. Mods can add levels, characters, weapons,
 game modes, sounds, music and HD textures, and can turn on features (Unlock Everything, Dual Wield Everything, Bots Punch: see `examples/`).
-A mod's choices are in its `settings.ini` (a value and a line saying what it does, e.g. `explosion_strength = 100` in Weapon Balance): change one and start the game again.
+A mod's choices are in the `[settings]` section of its `mod.ini` (a value and a line saying what it does, e.g. `explosion_strength = 100` in Weapon Balance): change one and start the game again.
 `tools/modkit.exe` makes them from menus. See `docs/modding-guide.md`.
 
 ## Verification

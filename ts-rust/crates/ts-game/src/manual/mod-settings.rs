@@ -1,7 +1,11 @@
-//! The settings of a mod: a `settings.ini` in its folder, of named values a player can change without knowing the game's tables.
+//! The settings of a mod: the `[settings]` section of its `mod.ini`, of named values a player can change without knowing the game's tables.
 //!
 //! ```text
-//! # settings.ini
+//! # mod.ini
+//! name = Weapon Balance
+//! enabled = true
+//!
+//! [settings]
 //! # How strong explosions are: 1 is the game's, 0.5 half as strong.
 //! explosion_strength = 0.8
 //! # Balance the shotguns too (yes or no).
@@ -22,6 +26,7 @@
 //!
 //! `if` takes a setting (`if name`, `if not name`) or a comparison of it (`if name = word`, `!=`, `<`, `<=`, `>`, `>=`), and the blocks can be inside each other.
 //! A script reads a setting with `setting("name")` (`docs/scripting.md`).  Lines that are left out stay as blank lines, so the line numbers of complaints are the file's.
+//! A `settings.ini` in the mod's folder, as the first mods with settings had, is read too (the `mod.ini` wins where both have a setting).
 
 use std::path::Path;
 
@@ -49,11 +54,28 @@ impl ModSettings {
 
     /// Read the text of a `settings.ini`: `name = value` lines, `#` starting a note.  The complaints have line numbers.
     pub fn parse(text: &str) -> (ModSettings, Vec<String>) {
+        Self::parse_lines(text, false)
+    }
+
+    /// Read the `[settings]` section of the text of a `mod.ini` (the lines from `[settings]` to the next `[...]`).
+    pub fn parse_mod_ini(text: &str) -> (ModSettings, Vec<String>) {
+        Self::parse_lines(text, true)
+    }
+
+    fn parse_lines(text: &str, in_section_only: bool) -> (ModSettings, Vec<String>) {
         let mut s = ModSettings::default();
         let mut errors = Vec::new();
+        let mut reading = !in_section_only;
         for (n, line) in text.lines().enumerate() {
             let line = line.split('#').next().unwrap_or("").trim();
             if line.is_empty() {
+                continue;
+            }
+            if line.starts_with('[') {
+                reading = !in_section_only || line.trim_matches(|c| c == '[' || c == ']').trim().eq_ignore_ascii_case("settings");
+                continue;
+            }
+            if !reading {
                 continue;
             }
             let Some((k, v)) = line.split_once('=') else {
@@ -74,17 +96,32 @@ impl ModSettings {
         (s, errors)
     }
 
-    /// The `settings.ini` of the mod folder `dir` (none: no settings).
+    /// The settings of the mod folder `dir`: the `[settings]` of its `mod.ini`, and a `settings.ini` if it has one (none: no settings).  The complaints
+    /// start with the name of the file.
     pub fn read(dir: &Path) -> (ModSettings, Vec<String>) {
-        match std::fs::read_to_string(dir.join("settings.ini")) {
-            Ok(text) => ModSettings::parse(&text),
-            Err(_) => (ModSettings::default(), Vec::new()),
+        let mut s = ModSettings::default();
+        let mut errors = Vec::new();
+        if let Ok(text) = std::fs::read_to_string(dir.join("settings.ini")) {
+            let (old, e) = ModSettings::parse(&text);
+            s = old;
+            errors.extend(e.into_iter().map(|e| format!("settings.ini {e}")));
         }
+        if let Ok(text) = std::fs::read_to_string(dir.join("mod.ini")) {
+            let (new, e) = ModSettings::parse_mod_ini(&text);
+            for (k, v) in new.values {
+                match s.values.iter_mut().find(|(name, _)| *name == k) {
+                    Some(e) => e.1 = v,
+                    None => s.values.push((k, v)),
+                }
+            }
+            errors.extend(e.into_iter().map(|e| format!("mod.ini {e}")));
+        }
+        (s, errors)
     }
 
     /// Is a setting yes (a number not 0, or a word other than no / off / false)?
     fn truthy(&self, name: &str) -> Result<bool, String> {
-        let v = self.get(name).ok_or_else(|| format!("the setting `{name}` is not in settings.ini"))?;
+        let v = self.get(name).ok_or_else(|| format!("the setting `{name}` is not in [settings] of mod.ini"))?;
         Ok(match setting_number(v) {
             Some(f) => f != 0.0,
             None => !v.is_empty(),
@@ -100,7 +137,7 @@ impl ModSettings {
         for op in ["!=", "<=", ">=", "=", "<", ">"] {
             if let Some((name, want)) = words.split_once(op) {
                 let (name, want) = (name.trim(), want.trim().trim_matches('"'));
-                let have = self.get(name).ok_or_else(|| format!("the setting `{name}` is not in settings.ini"))?;
+                let have = self.get(name).ok_or_else(|| format!("the setting `{name}` is not in [settings] of mod.ini"))?;
                 return match op {
                     "=" | "!=" => {
                         let same = match (setting_number(have), setting_number(want)) {
@@ -179,7 +216,7 @@ impl ModSettings {
         match tok {
             Tok::Num(v) => Ok(v),
             Tok::Name(n) => {
-                let v = self.get(&n).ok_or_else(|| format!("the setting `{n}` is not in settings.ini"))?;
+                let v = self.get(&n).ok_or_else(|| format!("the setting `{n}` is not in [settings] of mod.ini"))?;
                 setting_number(v).ok_or_else(|| format!("the setting `{n}` is {v}, not a number"))
             }
             Tok::Op('-') => Ok(-self.unit(t, at)?),
@@ -358,6 +395,13 @@ mod tests {
         assert_eq!(s.get("a"), Some("1"));
         assert_eq!(s.get("b"), Some("two"));
         assert_eq!(e.len(), 2);
+    }
+
+    #[test]
+    fn reads_the_section_of_mod_ini() {
+        let (s, e) = ModSettings::parse_mod_ini("name = A Mod\nenabled = true\nscript = a.rhai\n\n[settings]\n# a note\nstrength = 2\n[other]\nx = 1\n");
+        assert!(e.is_empty(), "{e:?}");
+        assert_eq!(s.values, vec![("strength".to_string(), "2".to_string())]);
     }
 
     #[test]

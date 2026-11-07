@@ -4,7 +4,7 @@
 // that model: it poses the arms of the character on the gun and gives the triangles to the program (`model_add`), which adds them to the gun in the packs, whichever mod that gun comes from.  The folder arms beside this script has
 // the arms of each character and how each gun is held, made by examples/first_person_hands_src/make-hands.py.
 
-fn curl_limit() { setting("finger_curl", 150.0) }   // how far round the fingers bend, in degrees (settings.ini)
+fn curl_limit() { setting("finger_curl", 150.0) }   // how far round the fingers bend, in degrees ([settings] of mod.ini)
 fn wrist_bend() { setting("wrist_bend", 0.14) }      // how much of the arm the bend at the wrist takes
 
 // the game asks about the names of the files that start so

@@ -36,7 +36,7 @@ pub struct ModeVariant {
     /// the script of the variant (`script <file>` in `modes.txt`): the name of the file, and its text once the loader has read it
     pub script_file: String,
     pub script_source: String,
-    /// the settings of the mod it comes from (`settings.ini`), which its script reads with `setting`
+    /// the settings of the mod it comes from (`[settings]` of its `mod.ini`), which its script reads with `setting`
     pub script_settings: super::ModSettings,
 }
 

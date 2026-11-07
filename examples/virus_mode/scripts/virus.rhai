@@ -3,7 +3,7 @@
 // A free for all: everyone is a survivor but one, who starts infected.  An infected character that touches a survivor for a moment infects him.  The last survivor wins.
 // Computer characters never shoot: the survivors run from the infected and spread out, the infected go after the survivors on foot.
 
-// the numbers to play with (seconds, and parts of the characters' own speed): they are in settings.ini, and these are what they are when it does not have them
+// the numbers to play with (seconds, and parts of the characters' own speed): they are in [settings] of mod.ini, and these are what they are when it does not have them
 fn grace() { setting("grace", 30.0) }                    // nobody can be infected in the first seconds of the match
 fn contact_time() { setting("contact_time", 0.0) }       // how long a touch has to last (0: infected at the first touch)
 fn immune() { setting("immune", 6.0) }                   // a character just infected cannot infect for this long

@@ -1,5 +1,5 @@
 # Weapon Balance: every weapon of the game, both triggers and the blasts, set from scratch (see README.txt).
-# The choices are in settings.ini: change them there, not here.
+# The choices are in [settings] of mod.ini: change them there, not here.
 # The figures are hits on the body from full health at gun_damage 100; a hit on the head is 5 times, an arm or a leg 0.4.
 
 weapon 0   # Pistol (sidearm): 4 hits in 1.00 s; second trigger 4 in 1.00 s

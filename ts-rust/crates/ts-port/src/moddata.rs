@@ -575,13 +575,13 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
     (presets, variants, errors)
 }
 
-/// Read a data file of a mod with the mod's settings put in (`settings.ini` of its folder: see `ts_game::mod_settings`); the complaints go to the log.
+/// Read a data file of a mod with the mod's settings put in (`[settings]` of its `mod.ini`: see `ts_game::mod_settings`); the complaints go to the log.
 pub fn read_with_settings(mod_name: &str, path: &Path) -> Option<String> {
     let text = std::fs::read_to_string(path).ok()?;
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
     let (settings, errors) = ts_game::ModSettings::read(dir);
     for e in &errors {
-        eprintln!("[mods] {mod_name}/settings.ini {e}");
+        eprintln!("[mods] {mod_name}/{e}");
     }
     let (text, errors) = ts_game::expand_settings(&text, &settings);
     let file = path.file_name().map_or(String::new(), |f| f.to_string_lossy().into_owned());

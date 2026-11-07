@@ -1093,9 +1093,11 @@ fn compat_parts(game_dir: &std::path::Path) -> [u32; 3] {
             feed(&mut mods, n.as_bytes());
             if file.ends_with(".ini") || file.ends_with(".txt") || file.ends_with(".rhai") {
                 let text = String::from_utf8_lossy(&std::fs::read(&path).unwrap_or_default()).into_owned();
-                for line in text.lines() {
+                // (the name and the switch only above the sections of mod.ini: the settings below them count)
+                let head_lines = if file == "mod.ini" { mods::ini_head(&text).lines().count() } else { 0 };
+                for (i, line) in text.lines().enumerate() {
                     let key = line.replace(' ', "").to_ascii_lowercase();
-                    if file == "mod.ini" && (key.starts_with("enabled=") || key.starts_with("name=")) {
+                    if i < head_lines && (key.starts_with("enabled=") || key.starts_with("name=")) {
                         continue;
                     }
                     feed(&mut mods, line.trim_end().as_bytes());

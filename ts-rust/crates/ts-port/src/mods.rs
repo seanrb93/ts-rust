@@ -23,9 +23,21 @@ struct Mod {
     dir: PathBuf,
 }
 
+/// The lines of a `mod.ini` before its first section (`[settings]`, the mod's settings, comes after them): `name`, `enabled` and `script` are read only from here.
+pub fn ini_head(ini: &str) -> &str {
+    let mut at = 0;
+    for line in ini.split_inclusive('\n') {
+        if line.trim_start().starts_with('[') {
+            return &ini[..at];
+        }
+        at += line.len();
+    }
+    ini
+}
+
 /// Is the mod switched off by its `mod.ini` (`enabled = false`, `0` or `no`)?
 fn switched_off(ini: &str) -> bool {
-    ini.lines().any(|l| {
+    ini_head(ini).lines().any(|l| {
         let l = l.replace(' ', "").to_ascii_lowercase();
         l == "enabled=false" || l == "enabled=0" || l == "enabled=no"
     })
@@ -102,7 +114,7 @@ fn readable(folder: &str) -> String {
 
 /// The `name = ...` line of a `mod.ini`.
 fn ini_name(ini: &str) -> Option<String> {
-    ini.lines().find_map(|l| {
+    ini_head(ini).lines().find_map(|l| {
         let (k, v) = l.split_once('=')?;
         let v = v.trim().trim_matches('"');
         (k.trim().eq_ignore_ascii_case("name") && !v.is_empty()).then(|| v.to_string())
@@ -116,10 +128,13 @@ pub fn set_enabled(name: &str, on: bool) {
     let old = std::fs::read_to_string(&path).unwrap_or_default();
     let line = format!("enabled = {on}");
     let mut done = false;
+    // (only the lines before the sections: a setting of the mod is never taken for the switch, and a switch that is added goes before them)
+    let head_lines = ini_head(&old).lines().count();
     let mut out: Vec<String> = old
         .lines()
-        .map(|l| {
-            if l.replace(' ', "").to_ascii_lowercase().starts_with("enabled=") {
+        .enumerate()
+        .map(|(i, l)| {
+            if i < head_lines && l.replace(' ', "").to_ascii_lowercase().starts_with("enabled=") {
                 done = true;
                 line.clone()
             } else {
@@ -128,7 +143,7 @@ pub fn set_enabled(name: &str, on: bool) {
         })
         .collect();
     if !done {
-        out.push(line);
+        out.insert(head_lines.min(out.len()), line);
     }
     let _ = std::fs::write(&path, out.join("
 ") + "
@@ -405,7 +420,7 @@ fn stamp(files: &BTreeMap<String, PathBuf>) -> String {
 fn apply_features(mods: &[Mod]) {
     for m in mods {
         let ini = std::fs::read_to_string(m.dir.join("mod.ini")).unwrap_or_default();
-        for line in ini.lines() {
+        for line in ini_head(&ini).lines() {
             let line = line.split('#').next().unwrap_or("");
             let Some((k, v)) = line.split_once('=') else { continue };
             if k.trim().eq_ignore_ascii_case("script") {
@@ -773,5 +788,20 @@ fn parse_num(s: &str) -> Option<i64> {
         i64::from_str_radix(h, 16).ok().map(|v| -v)
     } else {
         s.parse().ok()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn head_of_mod_ini() {
+        let ini = "name = A\nenabled = false\nscript = a.rhai\n\n[settings]\nenabled = yes\nname = other\n";
+        assert_eq!(ini_head(ini), "name = A\nenabled = false\nscript = a.rhai\n\n");
+        assert!(switched_off(ini));
+        assert_eq!(ini_name(ini).as_deref(), Some("A"));
+        assert!(!switched_off("name = A\n[settings]\nenabled = false\n"));
+        assert_eq!(ini_head("name = A\n"), "name = A\n");
     }
 }
