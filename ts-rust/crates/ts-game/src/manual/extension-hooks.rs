@@ -821,6 +821,15 @@ pub fn netlink_ping_draw_or() {
     netlink_ping_draw();
 }
 
+/// The time a packet takes to a player's machine, on that player's row of the table of results.
+#[inline]
+pub fn netlink_score_ping_or(record: i32, x: i32, y: i32) {
+    #[cfg(feature = "extensions")]
+    netlink_score_ping(record, x, y);
+    #[cfg(not(feature = "extensions"))]
+    let _ = (record, x, y);
+}
+
 /// The front end's pages are being used to set up a network match (the arcade pages, the character select).
 #[inline]
 pub fn netflow_on_or() -> bool {

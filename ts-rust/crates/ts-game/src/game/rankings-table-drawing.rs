@@ -181,6 +181,11 @@ pub fn drawRankingsTable(kind: i32) {
                         name = lw(lw(sp + 1084) + 16);
                     }
                     textOutline(name_x, y, name, colour, lw(sp + 1088));
+                    // (a network game: how long a packet takes to that player's machine)
+                    // (a row of a team has no one machine)
+                    if (lw(g::curgameparms + 80) & 1) == 0 || mode_now != 3 {
+                        netlink_score_ping_or(lw(sp + 1084), lw(sp + 1080) - 150, y);
+                    }
                     let text;
                     let game_mode = lw(g::curgameparms + 72);
                     let shown = lw(sp + 1056);

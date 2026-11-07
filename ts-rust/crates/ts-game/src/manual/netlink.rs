@@ -482,22 +482,47 @@ fn held_picture(text: &str) {
     ts_rt::journal::undo(1);
 }
 
-/// In the corner of the view, how long a packet takes to the machine that takes longest: green, yellow from 100 ms, red from 180 ms.
+/// A time in milliseconds as text for the screen, and its colour: green, yellow from 100 ms, red from 180 ms.
+#[cfg(feature = "extensions")]
+fn ping_text(ms: u32) -> (i32, i32) {
+    const TEXT_AT: i32 = 0x240_0000 + 0xd800;
+    let text = format!("{ms} ms");
+    for (i, c) in text.bytes().chain(std::iter::once(0)).enumerate() {
+        sb(TEXT_AT + i as i32, c as i32);
+    }
+    (TEXT_AT, if ms >= 180 { 0x8020_2080u32 as i32 } else if ms >= 100 { 0x8080_2080u32 as i32 } else { 0x2080_2080 })
+}
+
+/// On a player's row of the table of results, how long a packet takes to that player's machine (nothing for this machine's player, for a bot, or for a player who is out).
+#[cfg(feature = "extensions")]
+pub fn netlink_score_ping(record: i32, x: i32, y: i32) {
+    if !ts_sdk::net::active() {
+        return;
+    }
+    let chrinfo = lw(g::chrinfo);
+    if record < chrinfo || (record - chrinfo) % 0x1210 != 0 {
+        return;
+    }
+    let p = ((record - chrinfo) / 0x1210) as usize;
+    if p >= lw(g::lvnumplayers) as usize {
+        return;
+    }
+    let Some(Some(ms)) = ts_sdk::net::pings().get(p).copied() else { return };
+    let (text, colour) = ping_text(ms);
+    textOutline(x, y, text, colour, 0x5080);
+}
+
+/// In the corner of the view, how long a packet takes to the machine that takes longest.
 #[cfg(feature = "extensions")]
 pub fn netlink_ping_draw() {
     if !ts_sdk::net::active() || !ts_sdk::net::rollback() {
         return;
     }
     let Some(ms) = ts_sdk::net::pings().into_iter().flatten().max() else { return };
-    const TEXT_AT: i32 = 0x240_0000 + 0xd800;
-    let text = format!("{ms} ms");
-    for (i, c) in text.bytes().chain(std::iter::once(0)).enumerate() {
-        sb(TEXT_AT + i as i32, c as i32);
-    }
+    let (text, colour) = ping_text(ms);
     let font = textSelect(1);
     let dither = dlSetDitherMatrix(2);
-    let colour = if ms >= 180 { 0x8020_2080u32 as i32 } else if ms >= 100 { 0x8080_2080u32 as i32 } else { 0x2080_2080 };
-    textOutline(lw(g::window) + 24, lw(g::window + 24) - 24, TEXT_AT, colour, 0x5080);
+    textOutline(lw(g::window) + 24, lw(g::window + 24) - 24, text, colour, 0x5080);
     textSelect(font);
     dlSetDitherMatrix(dither);
 }
