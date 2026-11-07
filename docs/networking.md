@@ -72,6 +72,20 @@ ts-rust.exe --level Prison --players 2 --net local=1,peers=192.168.1.10:7000/192
 on its own entry), `seed` and `delay` are the same everywhere.  On one PC use different ports (`127.0.0.1:7000/127.0.0.1:7001`).  `TS_NETLOG=1` prints a
 line with the checksum and where the players are every 30 ticks, to compare the machines.
 
+## Coming back after losing the connection
+
+A machine that hears nothing from a player for 4 seconds gives them up, and when all have agreed the player is out: their character falls and the others play on.
+
+A machine that has given up all the others holds the game, shows "Connection lost. Waiting for the others" with the seconds left, and says five times a second that it is there (`wait_for_others`, `RS_HELLO`).  With two players both machines do this.  The first machine still playing, on hearing from a player who is out, brings them back with a resync (below) that names the player: the machine coming back takes the game at the tick the others stop at, whatever tick it had, and from that tick its pads count again and it gets the others' (`rs_welcome`).  Its character is as the others have it, so a player who fell presses a button to come back to life.  "Player 2 is back" shows to everybody.  After a minute with nobody answering, or when the player presses triangle, the match is over for that machine and it goes back to its Network page.
+
+A machine that quit or crashed comes back by the Join Game page: while a player is out the host shows its game there ("under way"), and answers a JOIN with what its lobby told that player when the match began (`Rejoin`, `rejoin_take`), which is the slot of the same name if there is one, and otherwise of a player who is out.  The machine starts the level as at the beginning, with that player's character (a different one would load another model and move everything in memory after it), holds at its first tick and asks to come back as above.  This needs the host to be there still, and does not work for a Map Maker level, whose map would have to be sent as well.
+
+Test aid: `TS_NETCUT=<tick>,<seconds>` cuts a machine off from that tick for that long; `TS_RSSTART=<file>` writes the memory at the start of the level, to compare machines.  Tried with 2 and 3 machines, and with a machine that quit and started again; nothing out of step in the thousands of ticks after.
+
+## How long a packet takes
+
+The machines ask each other twice a second (`RS_PING`), and the view of a match shows, at the lower left, the time to the machine that takes longest: green, yellow from 100 ms, red from 180 ms.  Game Details shows each player's time to the host (from the lobby's JOIN and roster messages), and the host's character select shows the longest when it can start.
+
 ## Rollback
 
 A game started from the lobby plays with rollback (`TS_LOCKSTEP=1` asks for the lockstep above instead; `--net ...,rollback=1` for a hand start).  The game does not wait

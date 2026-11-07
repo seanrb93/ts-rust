@@ -39,6 +39,8 @@ const MODES: [(i32, &str); 4] = [(3, "Deathmatch"), (1, "Bag Tag"), (2, "Capture
 /// What the lobby decided.
 #[derive(Clone, Debug)]
 pub struct Outcome {
+    /// this machine quit the match and is coming back into it
+    pub rejoin: bool,
     pub level: String,
     pub players: usize,
     pub local: usize,
@@ -189,6 +191,14 @@ pub struct Lobby {
     /// host: the players who have chosen their characters, and when each was last heard
     ready: std::collections::HashSet<SocketAddr>,
     heard: std::collections::HashMap<SocketAddr, Instant>,
+    /// a player: the host's game is under way, and this machine is coming back into it
+    rejoining: bool,
+    /// the host: the time in each player's last JOIN, and how long a packet takes to each and back; a player: when it was sent, how long it takes to the host, and each player's as the host says
+    join_times: std::collections::HashMap<SocketAddr, (u32, Instant)>,
+    host_pings: std::collections::HashMap<SocketAddr, u16>,
+    began: Instant,
+    my_ping: u16,
+    roster_pings: Vec<u16>,
     /// a player: on the character select page; the host has closed its game
     in_chr: bool,
     host_gone: bool,
@@ -296,6 +306,12 @@ impl Lobby {
             pages: false,
             ready: std::collections::HashSet::new(),
             heard: std::collections::HashMap::new(),
+            rejoining: false,
+            join_times: std::collections::HashMap::new(),
+            host_pings: std::collections::HashMap::new(),
+            began: Instant::now(),
+            my_ping: 0,
+            roster_pings: Vec::new(),
             in_chr: false,
             host_gone: false,
             host: None,
@@ -468,9 +484,9 @@ impl Lobby {
                         self.found_sel = 0;
                         self.status = "Pick a game that was found, or type the host's address, and press Enter".into();
                     }
-                    _ => self.done = Some(Outcome { level: String::new(), players: 0, local: 0, bind: "0.0.0.0:0".parse().unwrap(), peers: Vec::new(), seed: 0, setup: Default::default() }),
+                    _ => self.done = Some(Outcome { rejoin: false, level: String::new(), players: 0, local: 0, bind: "0.0.0.0:0".parse().unwrap(), peers: Vec::new(), seed: 0, setup: Default::default() }),
                 },
-                Key::Back => self.done = Some(Outcome { level: String::new(), players: 0, local: 0, bind: "0.0.0.0:0".parse().unwrap(), peers: Vec::new(), seed: 0, setup: Default::default() }),
+                Key::Back => self.done = Some(Outcome { rejoin: false, level: String::new(), players: 0, local: 0, bind: "0.0.0.0:0".parse().unwrap(), peers: Vec::new(), seed: 0, setup: Default::default() }),
                 _ => {}
             },
             Screen::Host => match k {
@@ -683,6 +699,15 @@ impl Lobby {
         } else {
             b.push(0);
         }
+        // the time in this player's last message, sent back, and how long a packet takes between each player and the host
+        let a = if to_index >= 1 { self.others.get(to_index - 1) } else { None };
+        // (and how long the host has had it, which is no part of the time a packet takes)
+        let told = a.and_then(|a| self.join_times.get(a)).copied();
+        b.extend_from_slice(&told.map_or(0, |t| t.0).to_le_bytes());
+        b.extend_from_slice(&told.map_or(0, |t| t.1.elapsed().as_millis().min(9999) as u16).to_le_bytes());
+        for a in &self.others {
+            b.extend_from_slice(&self.host_pings.get(a).copied().unwrap_or(0).to_le_bytes());
+        }
         b
     }
 
@@ -777,7 +802,9 @@ impl Lobby {
     fn player_lines(&self, names: &[String]) -> Vec<String> {
         let chr = |i: usize| self.chars.get(self.picks[i.min(MAX_PLAYERS - 1)]).map_or("?", |c| c.1.as_str());
         if names.len() <= 6 {
-            return names.iter().enumerate().map(|(i, n)| format!("Player {}: {}   {}", i + 1, n, chr(i))).collect();
+            // (how long a packet takes between the player and the host)
+            let ping = |i: usize| self.roster_pings.get(i).filter(|p| **p > 0).map_or(String::new(), |p| format!("   {p} ms"));
+            return names.iter().enumerate().map(|(i, n)| format!("Player {}: {}   {}{}", i + 1, n, chr(i), ping(i))).collect();
         }
         names.chunks(2).enumerate().map(|(k, pair)| pair.iter().enumerate().map(|(j, n)| format!("{}: {} ({})", 2 * k + j + 1, n, chr(2 * k + j))).collect::<Vec<_>>().join("    ")).collect()
     }
@@ -933,6 +960,11 @@ impl Lobby {
                             // (after the settings: the player's character, and whether it is chosen)
                             let tail = b.get(9).map(|&len| 10 + len as usize).and_then(|at| b.get(at).map(|&size| at + 1 + size as usize));
                             if let (Some(t), Some(i)) = (tail, self.others.iter().position(|a| *a == from)) {
+                                // (and the time, and how long a packet takes)
+                                if let (Some(s), Some(p)) = (b.get(t + 2..t + 6), b.get(t + 6..t + 8)) {
+                                    self.join_times.insert(from, (u32::from_le_bytes([s[0], s[1], s[2], s[3]]), Instant::now()));
+                                    self.host_pings.insert(from, u16::from_le_bytes([p[0], p[1]]));
+                                }
                                 if let (Some(&pick), Some(&ready)) = (b.get(t), b.get(t + 1)) {
                                     self.picks[i + 1] = pick as usize % self.chars.len().max(1);
                                     if ready != 0 {
@@ -995,6 +1027,7 @@ impl Lobby {
                         let mut peers = vec!["127.0.0.1:0".parse().unwrap()];
                         peers.extend(self.others.iter().copied());
                         self.done = Some(Outcome {
+                            rejoin: self.rejoining,
                             level: self.levels.get(self.level).cloned().unwrap_or_default(),
                             players: peers.len(),
                             local: 0,
@@ -1064,6 +1097,7 @@ impl Lobby {
                         continue;
                     }
                     let starting = b[5] != 0;
+                    self.rejoining = b[5] == 2;
                     self.my_index = b[6] as usize;
                     self.n_players = b[7] as usize;
                     self.seed = i32::from_le_bytes([b[8], b[9], b[10], b[11]]);
@@ -1143,6 +1177,19 @@ impl Lobby {
                                 } else {
                                     self.map_wanted = None;
                                 }
+                                // how long a packet takes: the time this machine sent, come back, and what the host has for everybody
+                                let tail = end + if b.get(end) == Some(&1) { 5 } else { 1 };
+                                if let Some(t) = b.get(tail..tail + 4) {
+                                    let sent = u32::from_le_bytes([t[0], t[1], t[2], t[3]]);
+                                    let held = b.get(tail + 4..tail + 6).map_or(0, |x| u16::from_le_bytes([x[0], x[1]])) as u32;
+                                    if sent != 0 {
+                                        self.my_ping = (self.began.elapsed().as_millis() as u32).wrapping_sub(sent).saturating_sub(held).min(9999) as u16;
+                                    }
+                                    // (the host has none to itself; its own place is the first)
+                                    let mut pings = vec![0u16];
+                                    pings.extend((0..self.n_players.saturating_sub(1)).filter_map(|i| b.get(tail + 6 + 2 * i..tail + 8 + 2 * i).map(|x| u16::from_le_bytes([x[0], x[1]]))));
+                                    self.roster_pings = pings;
+                                }
                             }
                         }
                     }
@@ -1161,7 +1208,8 @@ impl Lobby {
                         self.setup.friendly = m[3] != 0;
                         self.bots = m[4] as usize;
                         for p in 0..self.n_players.min(MAX_PLAYERS) {
-                            if p != self.my_index {
+                            // (a machine coming back has the character its player has in the match)
+                            if p != self.my_index || self.rejoining {
                                 self.picks[p] = m[5 + p] as usize;
                             }
                         }
@@ -1187,6 +1235,7 @@ impl Lobby {
                         peers[self.my_index] = bind;
                     }
                     self.done = Some(Outcome {
+                            rejoin: self.rejoining,
                         level: self.levels.get(self.level).cloned().unwrap_or_default(),
                         players: self.n_players,
                         local: self.my_index,
@@ -1210,6 +1259,8 @@ impl Lobby {
                     b.extend_from_slice(&prefs);
                     b.push(self.picks[self.my_index.min(MAX_PLAYERS - 1)] as u8);
                     b.push((self.in_chr && ts_game::netflow_chr_ready()) as u8);
+                    b.extend_from_slice(&((self.began.elapsed().as_millis() as u32).max(1)).to_le_bytes());
+                    b.extend_from_slice(&self.my_ping.to_le_bytes());
                     if let Some(s) = &self.sock {
                         let _ = s.send_to(&b, host);
                         // (the map is here)
@@ -1455,7 +1506,35 @@ impl Lobby {
         if let Some(why) = self.cannot_start() {
             return (why, false);
         }
-        (format!("Start Game: {} players", 1 + self.others.len()), true)
+        let worst = self.others.iter().filter_map(|a| self.host_pings.get(a)).max().copied().unwrap_or(0);
+        (if worst > 0 { format!("Start Game: {} players, {worst} ms", 1 + self.others.len()) } else { format!("Start Game: {} players", 1 + self.others.len()) }, true)
+    }
+
+    /// What a machine that has quit needs to come back into the match that is starting, which this host keeps during it.
+    pub fn rejoin_data(&self) -> Option<ts_sdk::net::Rejoin> {
+        if self.screen != Screen::Host || !self.map.is_empty() {
+            return None;
+        }
+        let packets = (0..1 + self.others.len())
+            .map(|i| {
+                let mut p = self.roster_packet(i, true);
+                p[5] = 2;
+                p
+            })
+            .collect();
+        let level = if self.level_name.is_empty() { self.levels.get(self.level).cloned().unwrap_or_default() } else { self.level_name.clone() };
+        let mut beacon = MAGIC.to_le_bytes().to_vec();
+        beacon.push(T_BEACON);
+        beacon.extend_from_slice(&self.compat.to_le_bytes());
+        beacon.push((1 + self.others.len()) as u8);
+        beacon.push(level.len().min(60) as u8);
+        beacon.extend_from_slice(&level.as_bytes()[..level.len().min(60)]);
+        let mode = format!("{} (under way)", ts_game::netsetup_mode_name(self.setup.mode));
+        for text in [&self.my_name, &mode] {
+            beacon.push(text.len().min(40) as u8);
+            beacon.extend_from_slice(&text.as_bytes()[..text.len().min(40)]);
+        }
+        Some(ts_sdk::net::Rejoin { compat: self.compat, names: self.host_names(), packets, beacon })
     }
 
     /// The host starts the match, if it can.

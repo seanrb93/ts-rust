@@ -463,14 +463,100 @@ fn rs_dump(start: &[u8], k: u32) {
     let _ = std::fs::write(format!("{file}.{k}"), out);
 }
 
+/// A word on the screen while the game is held: a picture of the game as it stands, with the text, that leaves nothing behind.
+#[cfg(feature = "extensions")]
+fn held_picture(text: &str) {
+    ts_rt::journal::begin_tick();
+    ts_sdk::net::set_muted(true);
+    const TEXT_AT: i32 = 0x240_0000 + 0xd600;
+    for (i, c) in text.bytes().chain(std::iter::once(0)).enumerate() {
+        sb(TEXT_AT + i as i32, c as i32);
+    }
+    let me = ts_sdk::net::local_player().min(lw(g::lvnumplayers) - 1);
+    hudMessage(me, TEXT_AT);
+    // (past the time it takes to slide in)
+    sw(me * 352 + g::hudparms + 348, 60);
+    sub_frame(0.0);
+    ts_sdk::net::set_muted(false);
+    ts_sdk::present_sync();
+    ts_rt::journal::undo(1);
+}
+
+/// In the corner of the view, how long a packet takes to the machine that takes longest: green, yellow from 100 ms, red from 180 ms.
+#[cfg(feature = "extensions")]
+pub fn netlink_ping_draw() {
+    if !ts_sdk::net::active() || !ts_sdk::net::rollback() {
+        return;
+    }
+    let Some(ms) = ts_sdk::net::pings().into_iter().flatten().max() else { return };
+    const TEXT_AT: i32 = 0x240_0000 + 0xd800;
+    let text = format!("{ms} ms");
+    for (i, c) in text.bytes().chain(std::iter::once(0)).enumerate() {
+        sb(TEXT_AT + i as i32, c as i32);
+    }
+    let font = textSelect(1);
+    let dither = dlSetDitherMatrix(2);
+    let colour = if ms >= 180 { 0x8020_2080u32 as i32 } else if ms >= 100 { 0x8080_2080u32 as i32 } else { 0x2080_2080 };
+    textOutline(lw(g::window) + 24, lw(g::window + 24) - 24, TEXT_AT, colour, 0x5080);
+    textSelect(font);
+    dlSetDitherMatrix(dither);
+}
+
+/// How long a machine on its own waits for the others.
+#[cfg(feature = "extensions")]
+const RS_WAIT_SECONDS: u64 = 60;
+
+/// All the other machines have been given up: the game is held, this machine says it is there, and it goes on when one answers.  When nobody has answered for a minute, or the player presses
+/// triangle, the match is over for this machine.
+#[cfg(feature = "extensions")]
+fn wait_for_others(rb: &mut Rollback, k: &mut u32) {
+    use std::time::{Duration, Instant};
+    let began = Instant::now();
+    let mut drawn = Instant::now() - Duration::from_secs(1);
+    eprintln!("[net] on its own at tick {k}: waiting for the others");
+    while ts_sdk::net::rs_alone() {
+        ts_sdk::net::poll(Duration::ZERO);
+        if let Some(p) = ts_sdk::net::rs_in_charge().then(ts_sdk::net::rs_take_wanting).flatten() {
+            eprintln!("[net] player {p} is back");
+            ts_sdk::net::rs_name_tick(*k);
+        }
+        if ts_sdk::net::rs_tick().is_some() {
+            if ts_sdk::net::rs_coming_back() {
+                let t = ts_sdk::net::rs_tick().unwrap_or(*k);
+                if rs_stop(rb, t) {
+                    *k = t;
+                }
+            } else if ts_sdk::net::rs_tick() == Some(*k) {
+                rs_stop(rb, *k);
+            }
+            continue;
+        }
+        let left = RS_WAIT_SECONDS.saturating_sub(began.elapsed().as_secs());
+        joyTick();
+        let leave = joyNewButLOCAL(0) & 16 != 0 || lhu(g::controllers + 292) & 16 != 0;
+        if left == 0 || leave {
+            eprintln!("[net] nobody came back: the match is over here");
+            ts_sdk::net::rs_give_up_waiting();
+            gameLevelQuit();
+            return;
+        }
+        if drawn.elapsed() > Duration::from_millis(33) {
+            drawn = Instant::now();
+            held_picture(&format!("Connection lost. Waiting for the others: {left}"));
+        }
+        std::thread::sleep(Duration::from_millis(2));
+    }
+}
+
 /// The machines are at the tick that was named: every pad up to it is made certain, and the machine in charge sends its game.  False when this was given up for now.
 #[cfg(feature = "extensions")]
 fn rs_stop(rb: &mut Rollback, k: u32) -> bool {
     use std::time::{Duration, Instant};
     let began = Instant::now();
     let limit = Duration::from_secs(20);
-    // every pad up to here, and the game played with them
-    loop {
+    let coming_back = ts_sdk::net::rs_coming_back();
+    // every pad up to here, and the game played with them (a machine coming back has no part in that: its game is about to be replaced)
+    while !coming_back {
         if !ts_sdk::net::poll(began.elapsed()) {
             ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
             return false;
@@ -503,6 +589,7 @@ fn rs_stop(rb: &mut Rollback, k: u32) -> bool {
     let in_charge = ts_sdk::net::rs_in_charge();
     let mut sent = 0;
     if in_charge {
+        let back_from = Instant::now();
         // (a machine that had heard too late says so: another tick is named, further on)
         loop {
             if !ts_sdk::net::poll(began.elapsed()) || began.elapsed() > limit {
@@ -517,11 +604,20 @@ fn rs_stop(rb: &mut Rollback, k: u32) -> bool {
             if ts_sdk::net::rs_all_acked() {
                 break;
             }
+            // (a machine coming back that does not answer is left out: the others have stopped for nothing, and go on with this)
+            if ts_sdk::net::rs_back().is_some() && back_from.elapsed() > Duration::from_secs(3) {
+                ts_sdk::net::rs_forget_back();
+                ts_sdk::net::rs_name_tick(k);
+            }
             std::thread::sleep(Duration::from_micros(300));
         }
         let data = rs_pack(&rs_changed(&start));
         sent = ts_sdk::net::rs_send(&data);
+        let send_from = Instant::now();
         while !ts_sdk::net::rs_all_done() {
+            if send_from.elapsed() > Duration::from_secs(8) {
+                ts_sdk::net::rs_stop_waiting_for_back();
+            }
             if !ts_sdk::net::poll(began.elapsed()) || began.elapsed() > limit {
                 ts_sdk::net::lost("The other players have stopped answering, so the network game ends.");
                 return false;
@@ -548,7 +644,9 @@ fn rs_stop(rb: &mut Rollback, k: u32) -> bool {
     }
     rs.start = Some(start);
     drop(rs);
+    let back = ts_sdk::net::rs_back();
     ts_sdk::net::rs_finish(k.saturating_sub(1));
+    ts_sdk::net::set_tick(k);
     // (the memory is new, so nothing before it can be gone back to: the pads up to here are certain on every machine)
     ts_rt::journal::enable(KEEP);
     ts_rt::journal::begin_tick();
@@ -557,11 +655,12 @@ fn rs_stop(rb: &mut Rollback, k: u32) -> bool {
     rb.menus.clear();
     rb.menus.insert(k, av_menu_state());
     rb.verified = k;
-    eprintln!("[net] back in step at tick {k}: {} bytes, {} ms", sent, began.elapsed().as_millis());
+    rb.tick = k;
+    eprintln!("[net] back in step at tick {k}: {} bytes, {} ms{}", sent, began.elapsed().as_millis(), back.map_or(String::new(), |p| format!(", player {p} is back")));
     // (every machine does this for every player, so it leaves them the same)
-    let text = b"Back in step";
-    for (i, c) in text.iter().chain(std::iter::once(&0)).enumerate() {
-        sb(0x240_0000 + 0xd700 + i as i32, *c as i32);
+    let text = back.map_or("Back in step".to_string(), |p| format!("Player {} is back", p + 1));
+    for (i, c) in text.bytes().chain(std::iter::once(0)).enumerate() {
+        sb(0x240_0000 + 0xd700 + i as i32, c as i32);
     }
     for p in 0..lw(g::lvnumplayers) {
         hudMessage(p, 0x240_0000 + 0xd700);
@@ -1188,6 +1287,10 @@ pub fn netlink_boundary() {
         {
             let mut rs = RS.lock().unwrap();
             rs.start = Some(ts_rt::host_slice_ro(0, RS_MEMORY).to_vec());
+            // (a test aid: the memory at the start of the level, to compare the machines)
+            if let Ok(file) = std::env::var("TS_RSSTART") {
+                let _ = std::fs::write(file, rs.start.as_deref().unwrap_or(&[]));
+            }
             rs.times.clear();
             rs.given_up = false;
         }
@@ -1195,7 +1298,14 @@ pub fn netlink_boundary() {
         rb.tick = 0;
         rb.verified = 0;
     }
-    let k = rb.tick;
+    let mut k = rb.tick;
+    if ts_sdk::net::rs_alone() {
+        wait_for_others(&mut rb, &mut k);
+        if lw(g::gamestate) != 3 {
+            return;
+        }
+        k = rb.tick;
+    }
     ts_sdk::net::set_tick(k);
     #[cfg(any(feature = "watch", feature = "calltrace"))]
     if k == 200 && std::env::var_os("TS_WRITELOG").is_some() {
@@ -1269,8 +1379,8 @@ pub fn netlink_boundary() {
         while rb.verified < k && (0..ts_sdk::net::num_players() as usize).all(|p| ts_sdk::net::pad(p, rb.verified).is_some()) {
             rb.verified += 1;
         }
-        // (the game does not run on for ever with guessed pads)
-        if k < ts_sdk::net::confirmed().saturating_add(ts_sdk::net::MAX_AHEAD) {
+        // (the game does not run on for ever with guessed pads; and with nobody left it waits for them at the next tick)
+        if k < ts_sdk::net::confirmed().saturating_add(ts_sdk::net::MAX_AHEAD) || ts_sdk::net::rs_alone() {
             break;
         }
         if !ts_sdk::net::wait_known(k.saturating_sub(ts_sdk::net::MAX_AHEAD), std::time::Duration::from_secs(10)) {
@@ -1282,14 +1392,18 @@ pub fn netlink_boundary() {
     if ts_sdk::net::rs_in_charge() && ts_sdk::net::rs_tick().is_none() {
         let forced = std::env::var("TS_RSFORCE").ok().and_then(|v| v.parse::<u32>().ok()) == Some(k);
         let mut rs = RS.lock().unwrap();
-        if forced || (ts_sdk::net::out_of_step() && !rs.given_up) {
+        let every = ts_sdk::net::SUM_EVERY;
+        // (a machine that lost the others or quit is there again: the same, with the player coming back at the tick)
+        if let Some(p) = ts_sdk::net::rs_take_wanting() {
+            eprintln!("[net] player {p} wants to come back");
+            ts_sdk::net::rs_name_tick((k + RS_AHEAD) / every * every + every + 1);
+        } else if forced || (ts_sdk::net::out_of_step() && !rs.given_up) {
             rs.times.retain(|t| t.elapsed().as_secs() < 60);
             if rs.times.len() >= RS_MOST {
                 rs.given_up = true;
                 eprintln!("[net] {RS_MOST} resyncs in a minute have not kept the machines in step; no more are tried");
             } else {
                 rs.times.push(std::time::Instant::now());
-                let every = ts_sdk::net::SUM_EVERY;
                 ts_sdk::net::rs_name_tick((k + RS_AHEAD) / every * every + every + 1);
             }
         }

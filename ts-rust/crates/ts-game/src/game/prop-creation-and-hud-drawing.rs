@@ -365,6 +365,7 @@ pub fn hudGfx() {
                 player = lw(g::currentplayer);
             }
             hudMessageDraw(lw(player));
+            netlink_ping_draw_or();
             let player = lw(g::currentplayer);
             let mut radar_row = 0;
             if lw(player + 296) != 4 {

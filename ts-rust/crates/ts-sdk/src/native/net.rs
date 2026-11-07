@@ -18,7 +18,7 @@ pub const PAD_BYTES: usize = 20;
 /// The checksum is compared every this many ticks.
 pub const SUM_EVERY: u32 = 30;
 
-const MAGIC: u32 = 0x5453_4e37; // "TSN7"
+const MAGIC: u32 = 0x5453_4e38; // "TSN8"
 /// The packets of a resync (see `Resync`), which go beside the others on the same socket.
 const RS_MAGIC: u32 = 0x5453_5253; // "TSRS"
 const RS_ANNOUNCE: u8 = 1;
@@ -27,6 +27,14 @@ const RS_LATE: u8 = 3;
 const RS_CHUNK: u8 = 4;
 const RS_HAVE: u8 = 5;
 const RS_DONE: u8 = 6;
+/// a machine that has lost the others, or has come back after it quit, says it is there
+const RS_HELLO: u8 = 7;
+/// how long a packet takes there and back: a machine sends the time, and the other sends it back
+const RS_PING: u8 = 8;
+const RS_PONG: u8 = 9;
+/// a machine asking to come back, in the messages of the lobby
+const LOBBY_MAGIC: u32 = 0x4c42_5354; // "TSBL"
+const LOBBY_JOIN: u8 = 1;
 /// The bytes of a resync in one packet.
 const RS_PIECE: usize = 1100;
 /// The form of the packets: machines that differ in it cannot play together.
@@ -168,6 +176,8 @@ pub fn setup() -> Option<Setup> {
 
 /// How to start a session.
 pub struct Config {
+    /// this machine quit the match and is coming back into it
+    pub rejoin: bool,
     /// this machine's player (0 to `peers.len() - 1`)
     pub local: usize,
     /// the address of every player's machine (the others use these to send to this machine too: this machine's own is where they find it)
@@ -232,6 +242,19 @@ struct Session {
     rs: Resync,
     /// the checksums of ticks before this one are not compared (they were of the state before a resync)
     sum_floor: u32,
+    rejoin: Option<Rejoin>,
+    last_beacon: Instant,
+    /// nobody came back, and this machine has left the match
+    stop_waiting: bool,
+    /// when each player last came back
+    welcomed: Vec<Option<Instant>>,
+    /// how long a packet takes to each player and back (milliseconds, smoothed), and when this machine last asked
+    pings: Vec<Option<f32>>,
+    began: Instant,
+    last_ping: Instant,
+    /// a test aid, `TS_NETCUT=<tick>,<seconds>`: from that tick this machine neither sends nor hears anything for that long
+    cut: Option<(u32, u32)>,
+    cut_until: Option<Instant>,
 }
 
 /// Bringing the machines back into step: the machine in charge names a tick, every machine stops there with all the pads up to it known, and the machine in charge sends what its game's memory has.
@@ -251,6 +274,23 @@ struct Resync {
     /// (the others) what has come
     got: Vec<Option<Vec<u8>>>,
     last_send: Option<Instant>,
+    /// the machine that named the tick
+    charge: usize,
+    /// the player who comes back at the tick, and from where
+    back: Option<(usize, SocketAddr)>,
+    /// a machine that has said it is there and wants to come back
+    wanting: Option<(usize, SocketAddr)>,
+    last_hello: Option<Instant>,
+}
+
+/// What a machine that has quit needs to come back into the match: what the host's lobby told each player when the match began.
+pub struct Rejoin {
+    pub compat: u32,
+    pub names: Vec<String>,
+    /// for each player, the lobby's message that starts the match
+    pub packets: Vec<Vec<u8>>,
+    /// the lobby's announcement of a game
+    pub beacon: Vec<u8>,
 }
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
@@ -304,7 +344,26 @@ pub fn start(cfg: Config) -> Result<(), String> {
         out: Vec::with_capacity(512),
         rs: Resync { acked: vec![false; n], done: vec![false; n], have: vec![Vec::new(); n], ..Default::default() },
         sum_floor: 0,
+        rejoin: None,
+        last_beacon: Instant::now(),
+        stop_waiting: false,
+        welcomed: vec![None; n],
+        pings: vec![None; n],
+        began: Instant::now(),
+        last_ping: Instant::now(),
+        cut: std::env::var("TS_NETCUT").ok().and_then(|v| v.split_once(',').and_then(|(a, b)| Some((a.parse().ok()?, b.parse().ok()?)))),
+        cut_until: None,
     });
+    // (a machine coming back knows of nobody yet, and asks)
+    if cfg.rejoin {
+        if let Some(s) = SESSION.lock().unwrap().as_mut() {
+            for p in 0..n {
+                if p != cfg.local {
+                    s.suspect[p] = true;
+                }
+            }
+        }
+    }
     ACTIVE.store(true, std::sync::atomic::Ordering::Relaxed);
     Ok(())
 }
@@ -375,6 +434,21 @@ impl Session {
 
     /// Send what the others still need, and take in what arrived.
     fn pump(&mut self) {
+        if let Some((t, secs)) = self.cut {
+            if self.tick >= t {
+                self.cut = None;
+                self.cut_until = Some(Instant::now() + Duration::from_secs(secs as u64));
+                eprintln!("[net] the test cuts this machine off for {secs} seconds");
+            }
+        }
+        if let Some(until) = self.cut_until {
+            if Instant::now() < until {
+                let mut buf = [0u8; 2048];
+                while self.sock.recv_from(&mut buf).is_ok() {}
+                return;
+            }
+            self.cut_until = None;
+        }
         let mine = self.local;
         let have_to = self.pads[mine].keys().next_back().map_or(0, |t| t + 1);
         // (this is called many times a second while a tick waits: a packet goes out when there is a new pad, and otherwise every few milliseconds in case one was lost)
@@ -478,7 +552,11 @@ impl Session {
     fn take(&mut self, b: &[u8], from: SocketAddr) {
         let u32_at = |i: usize| b.get(i..i + 4).map(|x| u32::from_le_bytes([x[0], x[1], x[2], x[3]]));
         if u32_at(0) == Some(RS_MAGIC) {
-            self.rs_take(b);
+            self.rs_take(b, from);
+            return;
+        }
+        if u32_at(0) == Some(LOBBY_MAGIC) {
+            self.rejoin_take(b, from);
             return;
         }
         if b.len() < 14 || u32_at(0) != Some(MAGIC) {
@@ -549,6 +627,10 @@ impl Session {
             at += 9;
             let q = q as usize;
             if q >= self.n() || q == self.local || q == who {
+                continue;
+            }
+            // (a machine that has not yet got to the tick a player came back at still says they are gone)
+            if self.welcomed[q].map_or(false, |t| t.elapsed() < Duration::from_secs(3)) {
                 continue;
             }
             self.reports[who][q].get_or_insert(have);
@@ -640,6 +722,74 @@ impl Session {
         }
     }
 
+    /// A machine that has quit asks to join: if a player is out, it is told how the match began, and starts the level as if it were beginning.
+    fn rejoin_take(&mut self, b: &[u8], from: SocketAddr) {
+        if b.len() < 10 || b[4] != LOBBY_JOIN {
+            return;
+        }
+        let Some(r) = self.rejoin.as_ref() else { return };
+        if u32::from_le_bytes([b[5], b[6], b[7], b[8]]) != r.compat {
+            return;
+        }
+        let name = b.get(10..10 + b[9] as usize).map_or(String::new(), |n| String::from_utf8_lossy(n).to_string());
+        let out: Vec<usize> = (0..self.n()).filter(|&p| p != self.local && self.dropped[p].is_some()).collect();
+        let Some(&slot) = out.iter().find(|&&p| r.names.get(p) == Some(&name)).or(out.first()) else { return };
+        if let Some(packet) = r.packets.get(slot) {
+            let _ = self.sock.send_to(packet, from);
+        }
+    }
+
+    /// All the other machines have been given up: this one can only wait for them.
+    fn alone(&self) -> bool {
+        (0..self.n()).all(|p| p == self.local || self.suspect[p])
+    }
+
+    /// The player comes back from the tick: on every machine their pads start again there, and the machine that comes back starts again from there with everyone's.
+    fn rs_welcome(&mut self, p: usize, tick: u32) {
+        let first = tick + self.delay;
+        self.welcomed[p] = Some(Instant::now());
+        for t in tick..first {
+            self.pads[p].insert(t, neutral());
+        }
+        self.pads[p].retain(|t, _| *t < first);
+        self.have[p] = first;
+        self.suspect[p] = false;
+        self.dropped[p] = None;
+        self.told[p] = false;
+        self.last[p] = Instant::now();
+        self.heard[p] = true;
+        for r in 0..self.n() {
+            self.reports[r][p] = None;
+            self.reports[p][r] = None;
+            self.relay_have[r][p] = 0;
+            self.relay_have[p][r] = 0;
+        }
+        if p == self.local {
+            for q in 0..self.n() {
+                if q == p {
+                    continue;
+                }
+                // (this machine knows nothing of them now: a player who is really out is told of again by the others)
+                self.acked[q] = first;
+                self.suspect[q] = false;
+                self.dropped[q] = None;
+                self.told[q] = false;
+                self.pads[q].retain(|t, _| *t < tick);
+                self.have[q] = tick;
+                self.last[q] = Instant::now();
+                self.heard[q] = true;
+                self.welcomed[q] = Some(Instant::now());
+                for r in 0..self.n() {
+                    self.reports[r][q] = None;
+                    self.reports[q][r] = None;
+                }
+            }
+            self.sent_to = 0;
+        } else {
+            self.acked[p] = tick;
+        }
+    }
+
     /// The machine that brings the others back into step: the first one still playing.
     fn in_charge(&self) -> usize {
         (0..self.n()).find(|&p| p == self.local || (!self.suspect[p] && self.dropped[p].is_none())).unwrap_or(self.local)
@@ -661,11 +811,40 @@ impl Session {
 
     /// What goes out for a resync: every 10 ms, what each machine is still to be told.
     fn rs_pump(&mut self) {
+        // (the host tells the network that a place has come free in its game)
+        if self.rejoin.is_some() && self.last_beacon.elapsed() > Duration::from_secs(1) && self.dropped.iter().any(|d| d.is_some()) {
+            self.last_beacon = Instant::now();
+            if let Some(r) = &self.rejoin {
+                let _ = self.sock.set_broadcast(true);
+                let _ = self.sock.send_to(&r.beacon, ("255.255.255.255", 7778));
+            }
+        }
+        // (twice a second, how long a packet takes)
+        if self.last_ping.elapsed() > Duration::from_millis(500) {
+            self.last_ping = Instant::now();
+            let mut b = self.rs_head(RS_PING);
+            b.extend_from_slice(&(self.began.elapsed().as_millis() as u32).to_le_bytes());
+            for p in 0..self.n() {
+                if p != self.local && !self.suspect[p] {
+                    self.rs_to(p, &b);
+                }
+            }
+        }
+        // (a machine on its own says that it is there, five times a second)
+        if self.alone() && self.rs.tick.is_none() && self.rs.last_hello.map_or(true, |t| t.elapsed() > Duration::from_millis(200)) {
+            self.rs.last_hello = Some(Instant::now());
+            let b = self.rs_head(RS_HELLO);
+            for p in 0..self.n() {
+                if p != self.local {
+                    self.rs_to(p, &b);
+                }
+            }
+        }
         let Some(tick) = self.rs.tick else { return };
         if self.rs.last_send.map_or(false, |t| t.elapsed() < Duration::from_millis(10)) {
             return;
         }
-        let charge = self.in_charge();
+        let charge = self.rs.charge;
         // (what has come is told ten times a second: more would have pieces on their way sent again)
         if charge != self.local && !self.rs.got.is_empty() && self.rs.last_send.map_or(false, |t| t.elapsed() < Duration::from_millis(100)) {
             return;
@@ -687,12 +866,21 @@ impl Session {
             return;
         }
         for p in 0..self.n() {
-            if p == self.local || self.suspect[p] || self.dropped[p].is_some() || self.rs.done[p] {
+            if p == self.local || !self.rs_counts(p) || self.rs.done[p] {
                 continue;
             }
             if self.rs.pieces.is_empty() {
                 let mut b = self.rs_head(RS_ANNOUNCE);
                 b.extend_from_slice(&tick.to_le_bytes());
+                // (who comes back, and where they are now)
+                match self.rs.back {
+                    Some((q, SocketAddr::V4(a))) => {
+                        b.push(q as u8);
+                        b.extend_from_slice(&a.ip().octets());
+                        b.extend_from_slice(&a.port().to_le_bytes());
+                    }
+                    _ => b.push(255),
+                }
                 self.rs_to(p, &b);
                 continue;
             }
@@ -723,7 +911,12 @@ impl Session {
         }
     }
 
-    fn rs_take(&mut self, b: &[u8]) {
+    /// The machine is part of this resync: it is still playing, or it is the one coming back.
+    fn rs_counts(&self, p: usize) -> bool {
+        (!self.suspect[p] && self.dropped[p].is_none()) || self.rs.back.map_or(false, |b| b.0 == p)
+    }
+
+    fn rs_take(&mut self, b: &[u8], from: SocketAddr) {
         if b.len() < 10 {
             return;
         }
@@ -737,9 +930,34 @@ impl Session {
         self.last_heard = Instant::now();
         let word = |at: usize| b.get(at..at + 4).map(|x| u32::from_le_bytes([x[0], x[1], x[2], x[3]]));
         match kind {
+            RS_PING => {
+                let mut r = self.rs_head(RS_PONG);
+                r.extend_from_slice(b.get(10..14).unwrap_or(&[0; 4]));
+                self.rs_to(who, &r);
+            }
+            RS_PONG => {
+                if let Some(sent) = word(10) {
+                    let ms = (self.began.elapsed().as_millis() as u32).wrapping_sub(sent) as f32;
+                    self.pings[who] = Some(self.pings[who].map_or(ms, |old| old * 0.7 + ms * 0.3));
+                }
+            }
+            RS_HELLO => {
+                // (the numbers go on from the highest any machine has used)
+                self.rs.generation = self.rs.generation.max(generation).max(self.rs.finished);
+                // (of two machines that are each on their own, the first takes charge)
+                if self.in_charge() == self.local && (!self.alone() || who > self.local) {
+                    if !self.suspect[who] {
+                        self.give_up(who);
+                    }
+                    self.settle();
+                    if self.dropped[who].is_some() {
+                        self.rs.wanting = Some((who, from));
+                    }
+                }
+            }
             RS_ANNOUNCE | RS_CHUNK => {
                 let Some(tick) = word(10) else { return };
-                if who != self.in_charge() || generation <= self.rs.finished {
+                if generation <= self.rs.finished || (generation == self.rs.generation && self.rs.tick.is_some() && who != self.rs.charge) {
                     // (it did not hear that this machine has finished)
                     if generation == self.rs.finished && generation != 0 {
                         let mut r = RS_MAGIC.to_le_bytes().to_vec();
@@ -753,14 +971,31 @@ impl Session {
                 if generation > self.rs.generation || self.rs.tick.is_none() {
                     self.rs.generation = generation;
                     self.rs.got.clear();
+                    self.rs.charge = who;
+                    self.peers[who] = from;
+                    if kind == RS_ANNOUNCE {
+                        self.rs.back = match (b.get(14), b.get(15..21)) {
+                            (Some(&q), Some(a)) if (q as usize) < self.n() => Some((q as usize, SocketAddr::from(([a[0], a[1], a[2], a[3]], u16::from_le_bytes([a[4], a[5]]))))),
+                            _ => None,
+                        };
+                        if let Some((q, a)) = self.rs.back {
+                            if q != self.local {
+                                self.peers[q] = a;
+                            }
+                        }
+                    }
+                    let coming_back = self.rs.back.map_or(false, |x| x.0 == self.local);
                     // (this machine is past that tick: it says so, and another is named)
-                    if self.tick > tick {
+                    if self.tick > tick && !coming_back {
                         self.rs.tick = None;
                         let r = self.rs_head(RS_LATE);
                         self.rs_to(who, &r);
                         return;
                     }
                     self.rs.tick = Some(tick);
+                }
+                if kind == RS_ANNOUNCE && generation == self.rs.generation {
+                    return;
                 }
                 if kind == RS_CHUNK && generation == self.rs.generation {
                     let (Some(i), Some(total)) = (word(14), word(18)) else { return };
@@ -1037,6 +1272,8 @@ pub fn submit(tick: u32, pad: [u8; PAD_BYTES]) {
 
 /// Take in what has come and send what is new; see who has stopped answering.  False: nobody else is left.
 pub fn poll(waiting: Duration) -> bool {
+    // (a game with rollback waits for the others to come back: see `rs_alone`)
+    let keep_on = ROLLBACK.load(std::sync::atomic::Ordering::Relaxed);
     let mut g = SESSION.lock().unwrap();
     let Some(s) = g.as_mut() else { return false };
     s.pump();
@@ -1047,7 +1284,7 @@ pub fn poll(waiting: Duration) -> bool {
     }
     s.settle();
     s.check_sums();
-    !(0..s.n()).all(|p| p == s.local || s.suspect[p])
+    keep_on || !(0..s.n()).all(|p| p == s.local || s.suspect[p])
 }
 
 /// Every other machine has been heard from.
@@ -1172,14 +1409,71 @@ pub fn submit_sum(t: u32, sum: u32) {
 
 /// This machine is the one that sends its game to the others.
 pub fn rs_in_charge() -> bool {
-    SESSION.lock().unwrap().as_ref().map_or(false, |s| s.in_charge() == s.local)
+    SESSION.lock().unwrap().as_ref().map_or(false, |s| s.in_charge() == s.local && s.rs.charge_is_me(s.local))
+}
+
+/// Nobody came back: this machine stops waiting.
+pub fn rs_give_up_waiting() {
+    if let Some(s) = SESSION.lock().unwrap().as_mut() {
+        s.stop_waiting = true;
+    }
+}
+
+/// All the other machines have been given up: the game cannot go on, and this machine keeps saying that it is there.
+pub fn rs_alone() -> bool {
+    SESSION.lock().unwrap().as_ref().map_or(false, |s| ROLLBACK.load(std::sync::atomic::Ordering::Relaxed) && s.alone() && !s.stop_waiting)
+}
+
+/// This machine is the one coming back at the tick that has been named.
+pub fn rs_coming_back() -> bool {
+    SESSION.lock().unwrap().as_ref().map_or(false, |s| s.rs.tick.is_some() && s.rs.back.map_or(false, |b| b.0 == s.local))
+}
+
+/// (in charge) A machine has said it is there and wants to come back (once).
+pub fn rs_take_wanting() -> Option<usize> {
+    let mut g = SESSION.lock().unwrap();
+    let s = g.as_mut()?;
+    let (p, a) = s.rs.wanting.take()?;
+    s.rs.back = Some((p, a));
+    // (a machine that has started again has another port)
+    s.peers[p] = a;
+    Some(p)
+}
+
+/// (in charge) The machine that was coming back has not answered: the others go on without it.
+pub fn rs_forget_back() {
+    if let Some(s) = SESSION.lock().unwrap().as_mut() {
+        s.rs.back = None;
+    }
+}
+
+/// The player is coming back (for a test or a message).
+pub fn rs_back() -> Option<usize> {
+    SESSION.lock().unwrap().as_ref().and_then(|s| s.rs.back.map(|b| b.0))
+}
+
+/// (in charge) The machine coming back has it all, or has been waited for long enough.
+pub fn rs_stop_waiting_for_back() {
+    if let Some(s) = SESSION.lock().unwrap().as_mut() {
+        if let Some((p, _)) = s.rs.back {
+            s.rs.done[p] = true;
+        }
+    }
+}
+
+/// What a machine needs to come back after it quit: the host keeps it for the match.
+pub fn set_rejoin(r: Rejoin) {
+    if let Some(s) = SESSION.lock().unwrap().as_mut() {
+        s.rejoin = Some(r);
+    }
 }
 
 /// The machines are to stop at the tick (a later call replaces it).
 pub fn rs_name_tick(tick: u32) {
     if let Some(s) = SESSION.lock().unwrap().as_mut() {
-        s.rs.generation += 1;
+        s.rs.generation = s.rs.generation.max(s.rs.finished) + 1;
         s.rs.tick = Some(tick);
+        s.rs.charge = s.local;
         s.rs.late = false;
         s.rs.pieces.clear();
         let n = s.n();
@@ -1201,7 +1495,7 @@ pub fn rs_take_late() -> bool {
 
 /// (in charge) Every machine still playing has said it will stop at the tick.
 pub fn rs_all_acked() -> bool {
-    SESSION.lock().unwrap().as_ref().map_or(true, |s| (0..s.n()).all(|p| p == s.local || s.suspect[p] || s.dropped[p].is_some() || s.rs.acked[p]))
+    SESSION.lock().unwrap().as_ref().map_or(true, |s| (0..s.n()).all(|p| p == s.local || !s.rs_counts(p) || s.rs.acked[p]))
 }
 
 /// (in charge) What is sent: `data` in pieces, packed.
@@ -1215,7 +1509,7 @@ pub fn rs_send(data: &[u8]) -> usize {
 
 /// (in charge) Every machine still playing has it all.  A piece the network lost is asked for again by the bits a machine keeps sending.
 pub fn rs_all_done() -> bool {
-    SESSION.lock().unwrap().as_ref().map_or(true, |s| (0..s.n()).all(|p| p == s.local || s.suspect[p] || s.dropped[p].is_some() || s.rs.done[p]))
+    SESSION.lock().unwrap().as_ref().map_or(true, |s| (0..s.n()).all(|p| p == s.local || !s.rs_counts(p) || s.rs.done[p]))
 }
 
 /// (the others) What has been sent, once all of it has come.
@@ -1232,13 +1526,21 @@ pub fn rs_received() -> Option<Vec<u8>> {
 /// The resync is over on this machine: the checksums start again from `floor`.
 pub fn rs_finish(floor: u32) {
     if let Some(s) = SESSION.lock().unwrap().as_mut() {
-        if s.in_charge() != s.local {
+        let tick = s.rs.tick.unwrap_or(s.tick);
+        if s.rs.charge != s.local {
             let mut r = s.rs_head(RS_DONE);
             r.truncate(10);
-            let charge = s.in_charge();
+            let charge = s.rs.charge;
             for _ in 0..3 {
                 s.rs_to(charge, &r);
             }
+        }
+        if let Some((p, a)) = s.rs.back.take() {
+            if p != s.local {
+                s.peers[p] = a;
+            }
+            s.rs_welcome(p, tick);
+            s.tick = tick;
         }
         s.rs.finished = s.rs.generation;
         s.rs.tick = None;
@@ -1250,6 +1552,18 @@ pub fn rs_finish(floor: u32) {
         for m in s.sums.iter_mut() {
             *m = m.split_off(&floor);
         }
+    }
+}
+
+/// How long a packet takes to each player and back, in milliseconds, for those still playing.
+pub fn pings() -> Vec<Option<u32>> {
+    SESSION.lock().unwrap().as_ref().map_or(Vec::new(), |s| (0..s.n()).map(|p| if s.suspect[p] { None } else { s.pings[p].map(|m| m.round() as u32) }).collect())
+}
+
+impl Resync {
+    /// This machine is not following another's resync.
+    fn charge_is_me(&self, local: usize) -> bool {
+        self.tick.is_none() || self.charge == local
     }
 }
 

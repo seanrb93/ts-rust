@@ -814,6 +814,13 @@ pub fn netlink_random_put_or(kept: Option<(i64, i32)>) {
     }
 }
 
+/// The time a packet takes, on the view of a network game.
+#[inline]
+pub fn netlink_ping_draw_or() {
+    #[cfg(feature = "extensions")]
+    netlink_ping_draw();
+}
+
 /// The front end's pages are being used to set up a network match (the arcade pages, the character select).
 #[inline]
 pub fn netflow_on_or() -> bool {

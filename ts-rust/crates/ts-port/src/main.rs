@@ -734,7 +734,7 @@ fn main() {
             // network play (a test form until there is a lobby): local=<player>,peers=<ip:port>/<ip:port>[/...],seed=<n>,delay=<ticks>
             "--net" => {
                 let spec = it.next().unwrap_or_default();
-                let mut cfg = ts_sdk::net::Config { local: 0, peers: Vec::new(), bind: "0.0.0.0:0".parse().unwrap(), seed: 1, delay: 3 };
+                let mut cfg = ts_sdk::net::Config { rejoin: false, local: 0, peers: Vec::new(), bind: "0.0.0.0:0".parse().unwrap(), seed: 1, delay: 3 };
                 for part in spec.split(',') {
                     match part.split_once('=') {
                         Some(("local", v)) => cfg.local = v.parse().unwrap_or(0),
@@ -957,7 +957,7 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
         let (level, players) = match LOBBY_OUTCOME.lock().unwrap().take() {
             Some(o) => {
                 if o.players >= 2 {
-                    let cfg = ts_sdk::net::Config { local: o.local, peers: o.peers.clone(), bind: o.bind, seed: o.seed, delay: o.setup.delay };
+                    let cfg = ts_sdk::net::Config { rejoin: o.rejoin, local: o.local, peers: o.peers.clone(), bind: o.bind, seed: o.seed, delay: o.setup.delay };
                     if let Err(e) = ts_sdk::net::start(cfg) {
                         fatal(&format!("The network game cannot start: {e}"));
                     }

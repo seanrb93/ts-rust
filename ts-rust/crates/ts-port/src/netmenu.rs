@@ -80,6 +80,7 @@ pub fn tick() {
 
 /// Once a tick of the front end on any page: the network is looked at; when the match is decided the session and the level are started.
 pub fn background() {
+    let mut rejoin = None;
     let (outcome, back_out) = {
         let mut g = LOBBY.lock().unwrap();
         let Some(l) = g.as_mut() else { return };
@@ -97,6 +98,7 @@ pub fn background() {
         match l.finished() {
             Some(o) if o.players >= 2 => {
                 note("start");
+                rejoin = l.rejoin_data();
                 if l.choosing_character() {
                     ts_game::netflow_leave_chr();
                 }
@@ -117,6 +119,9 @@ pub fn background() {
     }
     if let Some(o) = outcome {
         start(o);
+        if let Some(r) = rejoin {
+            ts_sdk::net::set_rejoin(r);
+        }
     }
 }
 
@@ -131,7 +136,7 @@ pub fn start_now() {
 }
 
 fn start(o: crate::lobby::Outcome) {
-    let cfg = ts_sdk::net::Config { local: o.local, peers: o.peers.clone(), bind: o.bind, seed: o.seed, delay: o.setup.delay };
+    let cfg = ts_sdk::net::Config { rejoin: o.rejoin, local: o.local, peers: o.peers.clone(), bind: o.bind, seed: o.seed, delay: o.setup.delay };
     if let Err(e) = ts_sdk::net::start(cfg) {
         eprintln!("[net] The network game cannot start: {e}");
         open();
