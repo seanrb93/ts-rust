@@ -917,6 +917,10 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
                 continue;
             }
             let n = ts_sdk::frame_count();
+            // (a network game that holds the pictures while it waits for the others is not stuck: see `waiting_on_purpose`)
+            if n == last && ts_sdk::net::waiting_on_purpose(std::time::Duration::from_secs(1)) {
+                continue;
+            }
             let stuck_frames = n == last;
             last = n;
             let state = ts_rt::lw(g::gamestate);

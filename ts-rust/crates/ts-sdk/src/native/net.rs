@@ -398,6 +398,23 @@ pub fn active() -> bool {
     ACTIVE.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// When the packets were last read (milliseconds from `PUMP_EPOCH`): every wait of a network game reads them while it waits.
+static LAST_PUMP: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static PUMP_EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+
+fn note_pumped() {
+    let ms = PUMP_EPOCH.get_or_init(Instant::now).elapsed().as_millis() as u64;
+    LAST_PUMP.store(ms.max(1), std::sync::atomic::Ordering::Relaxed);
+}
+
+/// A network game is running and has read its packets within `within`: when no picture comes, it is waiting for the others on purpose (a player who
+/// dropped, a resync, a slow link), with time limits of its own that end the game, and not stuck (the watchdog of the program leaves it alone).
+pub fn waiting_on_purpose(within: Duration) -> bool {
+    let last = LAST_PUMP.load(std::sync::atomic::Ordering::Relaxed);
+    let Some(epoch) = PUMP_EPOCH.get() else { return false };
+    active() && last != 0 && epoch.elapsed().as_millis() as u64 <= last + within.as_millis() as u64
+}
+
 pub fn local_player() -> i32 {
     SESSION.lock().unwrap().as_ref().map_or(0, |s| s.local as i32)
 }
@@ -441,6 +458,7 @@ impl Session {
 
     /// Send what the others still need, and take in what arrived.
     fn pump(&mut self) {
+        note_pumped();
         if let Some((t, secs)) = self.cut {
             if self.tick >= t {
                 self.cut = None;
