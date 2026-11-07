@@ -18,7 +18,7 @@ pub const PAD_BYTES: usize = 20;
 /// The checksum is compared every this many ticks.
 pub const SUM_EVERY: u32 = 30;
 
-const MAGIC: u32 = 0x5453_4e38; // "TSN8"
+const MAGIC: u32 = 0x5453_4e39; // "TSN9"
 /// The packets of a resync (see `Resync`), which go beside the others on the same socket.
 const RS_MAGIC: u32 = 0x5453_5253; // "TSRS"
 const RS_ANNOUNCE: u8 = 1;
@@ -143,6 +143,8 @@ pub struct Setup {
     pub names: Vec<String>,
     /// the control settings of each player's profile, as `netlink_my_prefs` tells them
     pub prefs: Vec<Vec<u8>>,
+    /// the team of each player (0 to 3), as chosen on the character select pages
+    pub teams: Vec<i32>,
     /// ticks between a pad being read and being used: more hides longer stalls of the network and makes the controls lag
     pub delay: u32,
     /// the parameters of the match as the game's own pages make them (28 words), when the host set the match up with them
@@ -155,7 +157,7 @@ pub struct Setup {
 
 impl Default for Setup {
     fn default() -> Setup {
-        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, prefs: Vec::new(), names: Vec::new(), delay: 2, block: Vec::new(), gvs: Vec::new(), map: Vec::new() }
+        Setup { mode: 3, time: 0, limit: 20, friendly: true, bots: Vec::new(), chars: Vec::new(), weapons: None, prefs: Vec::new(), teams: Vec::new(), names: Vec::new(), delay: 2, block: Vec::new(), gvs: Vec::new(), map: Vec::new() }
     }
 }
 

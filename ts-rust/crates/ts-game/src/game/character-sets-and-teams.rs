@@ -13,6 +13,10 @@ pub fn selectableTeam(team: i32) -> i32 {
     if lbu(team + (menu + 60) - 1) == 0 {
         return 0;
     }
+    // (a network game: the other players are on other machines, so any team the level has can be chosen)
+    if netflow_on_or() {
+        return 1;
+    }
     let entries = lw(0x3aff20);
     let mut others = 0;
     let mut skipped = 0;

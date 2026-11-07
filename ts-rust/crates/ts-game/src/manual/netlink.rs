@@ -1009,6 +1009,10 @@ pub fn netlink_start_match(level: &str, players: usize) {
         }
     }
     *TEMPS.lock().unwrap() = temps;
+    // (the teams the players chose: every machine has them, as the game's parameters have no room for them all with many players)
+    for (p, t) in setup.teams.iter().take(MAX_MATCH_PLAYERS as usize).enumerate() {
+        sw(TEAMS + 4 * p as i32, *t);
+    }
     let name = ts_sdk::malloc(level.len() as i32 + 1);
     for (i, b) in level.bytes().chain(std::iter::once(0)).enumerate() {
         sb(name + i as i32, b as i32);

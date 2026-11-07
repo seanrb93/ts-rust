@@ -369,7 +369,7 @@ pub fn netsetup_capture(block: i32) -> bool {
 }
 
 /// The parameters of the match the game would start with the choices made, for this number of players (their profiles must be made: the game reads their characters).
-pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
+pub fn netsetup_block(players: i32, teams: &[i32]) -> Option<Vec<i32>> {
     let front_state = lw(STATE);
     // (the players that are not here yet have the first player's profile while the game reads them)
     let profiles: Vec<i32> = (0..MAX_MATCH_PLAYERS).map(signonGet).collect();
@@ -383,12 +383,13 @@ pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
     let front_players = lw(0x3aff20);
     sw(0x3aff20, players);
     sh(g::gametype_page + 8, 2);
-    // (the teams of a team game: the players take turns, as do the bots; both teams are in use)
+    // (the teams of a team game: the ones the players chose, or else they take turns)
     for i in 0..MAX_MATCH_PLAYERS {
-        sw(TEAMS + 4 * i, i & 1);
+        sw(TEAMS + 4 * i, teams.get(i as usize).copied().filter(|t| (0..4).contains(t)).unwrap_or(i & 1));
     }
-    sb(0x1fc1234, 1);
-    sb(0x1fc1234 + 1, 1);
+    for i in 0..players.min(MAX_MATCH_PLAYERS) {
+        sb(0x1fc1234 + lw(TEAMS + 4 * i), 1);
+    }
     // the bots: the characters of the set, the first of them as many as the match has
     botsetInit(chrset_read());
     // (which bots play, and their teams, are what the Setup Bots page has them: they stay as they are)
@@ -425,6 +426,35 @@ pub fn netsetup_block(players: i32) -> Option<Vec<i32>> {
     block[0] = players;
     block[1] = players;
     Some(block)
+}
+
+/// The team this machine's player chose on the character select page.
+pub fn netflow_my_team() -> i32 {
+    lw(TEAMS)
+}
+
+/// The name of a team, as the character select page has them (the game's own names are those of a match under way).
+pub fn netsetup_team_name(team: i32) -> String {
+    ["Red", "Blue", "Yellow", "Green"].get(team as usize).map_or_else(|| format!("Team {}", team + 1), |n| n.to_string())
+}
+
+/// A machine that joined is about to choose its character: the level, the mode and the options are made the host's here, so that its character select offers
+/// the teams the match can have (the match itself is set up from the host's in any case).
+pub fn netsetup_follow_host(level: &str, mode: i32, values: &[(i32, i32)], map: &[u8]) {
+    if !map.is_empty() && netsetup_map_install(map) {
+        sw(STATE + 36, 18);
+        sw(STATE + 40, MAPMAKER);
+        sw(STATE + 48, mode);
+        netsetup_apply(values, mode);
+        netsetup_prepare_map(mode);
+        return;
+    }
+    if let Some(l) = netsetup_levels().iter().find(|l| l.1 == level) {
+        netsetup_select_level(l.2);
+    }
+    sw(STATE + 48, mode);
+    netsetup_apply(values, mode);
+    allow_teams();
 }
 
 /// The name of the profile signed in on this machine (the name the network game goes by).

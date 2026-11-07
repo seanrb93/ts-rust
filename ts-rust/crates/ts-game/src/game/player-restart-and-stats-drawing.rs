@@ -691,7 +691,7 @@ pub fn chrplayer_pageTick(a0: i32) {
                                     }
                                 }
                                 let mut front_now = lw(g::front);
-                                if lw(g::gv_teamplay) != 0 && !netflow_on_or() {
+                                if lw(g::gv_teamplay) != 0 {
                                     let only = onlyoneselectableteam();
                                     front_now = lw(g::front);
                                     if only == 0 {
@@ -754,7 +754,7 @@ pub fn chrplayer_pageTick(a0: i32) {
                             menu = g::chrselect_ready_go;
                             break 'done;
                         }
-                        if lw(g::gv_teamplay) != 0 && !netflow_on_or() {
+                        if lw(g::gv_teamplay) != 0 {
                             let only = onlyoneselectableteam();
                             if only != 0 {
                                 break 'b2;
@@ -917,7 +917,7 @@ pub fn decalNewDecal(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) {
 fn player_team(player: i32) -> i32 {
     #[cfg(feature = "extensions")]
     if ts_sdk::net::active() {
-        return 1 + (player & 1);
+        return 1 + lw(TEAMS + 4 * player);
     }
     lbu(g::curgameparms + 35 + player)
 }

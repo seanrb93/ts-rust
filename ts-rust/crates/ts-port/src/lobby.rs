@@ -199,6 +199,9 @@ pub struct Lobby {
     began: Instant,
     my_ping: u16,
     roster_pings: Vec<u16>,
+    /// the host: the team each player chose; a player: each player's, as the host says
+    teams: std::collections::HashMap<SocketAddr, i32>,
+    roster_teams: Vec<i32>,
     /// a player: on the character select page; the host has closed its game
     in_chr: bool,
     host_gone: bool,
@@ -312,6 +315,8 @@ impl Lobby {
             began: Instant::now(),
             my_ping: 0,
             roster_pings: Vec::new(),
+            teams: std::collections::HashMap::new(),
+            roster_teams: Vec::new(),
             in_chr: false,
             host_gone: false,
             host: None,
@@ -622,6 +627,9 @@ impl Lobby {
         s.chars = (0..players).map(|p| chr(self.picks.get(p).copied().unwrap_or(0))).collect();
         s.names = if self.screen == Screen::Host { self.host_names() } else { self.roster_names.clone() };
         s.prefs = if self.screen == Screen::Host { self.host_prefs() } else { self.roster_prefs.clone() };
+        // (a player who has not chosen takes the teams in turn)
+        let chosen = if self.screen == Screen::Host { self.host_teams() } else { self.roster_teams.clone() };
+        s.teams = (0..players).map(|p| chosen.get(p).copied().filter(|t| (0..4).contains(t)).unwrap_or(p as i32 & 1)).collect();
         // (the bots are characters the players are not: the next ones of the list)
         // (the statistics of a match have 14 places, for the players and the bots together)
         s.bots = (0..self.bots.min(14usize.saturating_sub(players))).map(|b| chr(8 + 3 * b)).collect();
@@ -707,6 +715,10 @@ impl Lobby {
         b.extend_from_slice(&told.map_or(0, |t| t.1.elapsed().as_millis().min(9999) as u16).to_le_bytes());
         for a in &self.others {
             b.extend_from_slice(&self.host_pings.get(a).copied().unwrap_or(0).to_le_bytes());
+        }
+        // the team each player chose (255: none yet)
+        for t in self.host_teams() {
+            b.push(if (0..4).contains(&t) { t as u8 } else { 255 });
         }
         b
     }
@@ -804,7 +816,12 @@ impl Lobby {
         if names.len() <= 6 {
             // (how long a packet takes between the player and the host)
             let ping = |i: usize| self.roster_pings.get(i).filter(|p| **p > 0).map_or(String::new(), |p| format!("   {p} ms"));
-            return names.iter().enumerate().map(|(i, n)| format!("Player {}: {}   {}{}", i + 1, n, chr(i), ping(i))).collect();
+            // (in a team game, the team each has chosen)
+            let team = |i: usize| match self.roster_teams.get(i) {
+                Some(&t) if self.team_game() && t >= 0 => format!("   {}", ts_game::netsetup_team_name(t)),
+                _ => String::new(),
+            };
+            return names.iter().enumerate().map(|(i, n)| format!("Player {}: {}   {}{}{}", i + 1, n, chr(i), team(i), ping(i))).collect();
         }
         names.chunks(2).enumerate().map(|(k, pair)| pair.iter().enumerate().map(|(j, n)| format!("{}: {} ({})", 2 * k + j + 1, n, chr(2 * k + j))).collect::<Vec<_>>().join("    ")).collect()
     }
@@ -826,7 +843,7 @@ impl Lobby {
         if self.alevels.is_empty() {
             return;
         }
-        self.block = ts_game::netsetup_block(1 + self.others.len() as i32).unwrap_or_default();
+        self.block = ts_game::netsetup_block(1 + self.others.len() as i32, &self.host_teams()).unwrap_or_default();
     }
 
     /// The hosts announce themselves on the local network once a second; a machine looking for a game listens and keeps the list.
@@ -961,6 +978,14 @@ impl Lobby {
                             let tail = b.get(9).map(|&len| 10 + len as usize).and_then(|at| b.get(at).map(|&size| at + 1 + size as usize));
                             if let (Some(t), Some(i)) = (tail, self.others.iter().position(|a| *a == from)) {
                                 // (and the time, and how long a packet takes)
+                                match b.get(t + 8) {
+                                    Some(&team) if team < 4 => {
+                                        self.teams.insert(from, team as i32);
+                                    }
+                                    _ => {
+                                        self.teams.remove(&from);
+                                    }
+                                }
                                 if let (Some(s), Some(p)) = (b.get(t + 2..t + 6), b.get(t + 6..t + 8)) {
                                     self.join_times.insert(from, (u32::from_le_bytes([s[0], s[1], s[2], s[3]]), Instant::now()));
                                     self.host_pings.insert(from, u16::from_le_bytes([p[0], p[1]]));
@@ -1189,6 +1214,8 @@ impl Lobby {
                                     let mut pings = vec![0u16];
                                     pings.extend((0..self.n_players.saturating_sub(1)).filter_map(|i| b.get(tail + 6 + 2 * i..tail + 8 + 2 * i).map(|x| u16::from_le_bytes([x[0], x[1]]))));
                                     self.roster_pings = pings;
+                                    let at = tail + 6 + 2 * self.n_players.saturating_sub(1);
+                                    self.roster_teams = (0..self.n_players).map(|i| b.get(at + i).map_or(-1, |&t| if t < 4 { t as i32 } else { -1 })).collect();
                                 }
                             }
                         }
@@ -1261,6 +1288,7 @@ impl Lobby {
                     b.push((self.in_chr && ts_game::netflow_chr_ready()) as u8);
                     b.extend_from_slice(&((self.began.elapsed().as_millis() as u32).max(1)).to_le_bytes());
                     b.extend_from_slice(&self.my_ping.to_le_bytes());
+                    b.push(if self.in_chr && ts_game::netflow_chr_ready() { ts_game::netflow_my_team() as u8 } else { 255 });
                     if let Some(s) = &self.sock {
                         let _ = s.send_to(&b, host);
                         // (the map is here)
@@ -1424,6 +1452,7 @@ impl Lobby {
             }
             View::Joined => {
                 if row == 0 && !self.roster.is_empty() {
+                    ts_game::netsetup_follow_host(&self.level_name, self.setup.mode, &self.gvs, &self.map);
                     self.in_chr = true;
                     ts_game::netsetup_open_page(2);
                 }
@@ -1535,6 +1564,18 @@ impl Lobby {
             beacon.extend_from_slice(&text.as_bytes()[..text.len().min(40)]);
         }
         Some(ts_sdk::net::Rejoin { compat: self.compat, names: self.host_names(), packets, beacon })
+    }
+
+    /// The team each player chose (the host's first); -1 where a player has not chosen.
+    fn host_teams(&self) -> Vec<i32> {
+        let mut v = vec![ts_game::netflow_my_team()];
+        v.extend(self.others.iter().map(|a| self.teams.get(a).copied().unwrap_or(-1)));
+        v
+    }
+
+    /// The match is a team game.
+    fn team_game(&self) -> bool {
+        self.gvs.iter().any(|g| g.0 == ts_game::g::gv_teamplay && g.1 != 0)
     }
 
     /// The host starts the match, if it can.
