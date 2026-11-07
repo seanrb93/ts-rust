@@ -6,6 +6,7 @@
 //!   clip 15
 //!   ammo_kind 1
 //!   max_ammo 250          # the most of its kind of ammo that can be carried (it is kept per kind of ammo, so it changes the other weapons of the kind too)
+//!   blast 0.5             # how strong the blast of the weapon's shot is, as a factor of the game's (2.3 at its middle, which kills); alt_blast for the second trigger
 //!   throw_lift 0.07       # added to the upward speed of the weapon's shot (units a frame, as bullet_speed): a thrown weapon that goes up and comes down again
 //!   bullet_type 3
 //!   flags 0x4
@@ -53,6 +54,8 @@ pub enum Value {
 pub enum Op {
     Put { addr: i32, kind: Kind, value: Value },
     MaxAmmo { weapon: i32, value: i64 },
+    /// the strength of the blast of the weapon's first or second shot (found by its kind of bullet when the writes are made)
+    Blast { weapon: i32, alt: bool, value: f32 },
 }
 
 /// A field with a name: its place in the entry, how it is stored, the lowest and highest value.
@@ -245,6 +248,13 @@ pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<ts_game::NewWeapon>, Vec<
             }
             continue;
         }
+        if which == "weapon" && (key == "blast" || key == "alt_blast") {
+            match words.get(1).and_then(|w| w.parse::<f32>().ok()) {
+                Some(v) if (0.001..=10.0).contains(&v) => ops.push(Op::Blast { weapon: item, alt: key == "alt_blast", value: v }),
+                _ => errors.push(format!("line {n}: `{key}` needs a number from 0.001 to 10 (a factor of the game's blast)")),
+            }
+            continue;
+        }
         if which == "weapon" && key == "max_ammo" {
             match words.get(1).and_then(|w| parse_int(w)) {
                 Some(v) if (0..=65535).contains(&v) => ops.push(Op::MaxAmmo { weapon: item, value: v }),
@@ -253,7 +263,7 @@ pub fn parse(which: &str, text: &str) -> (Vec<Op>, Vec<ts_game::NewWeapon>, Vec<
             continue;
         }
         let Some(field) = fields.iter().find(|f| f.name == key) else {
-            let extra = if which == "weapon" { ", max_ammo" } else { "" };
+            let extra = if which == "weapon" { ", max_ammo, blast, alt_blast, throw_lift" } else { "" };
             errors.push(format!("line {n}: unknown field `{key}` (the fields are {}{extra}, raw)", names(&fields)));
             continue;
         };
@@ -320,6 +330,13 @@ pub fn apply(ops: &[Op]) {
                 let kind = lw(GUNS + weapon * GUN_SIZE + 16);
                 if (0..AMMO_KINDS).contains(&kind) {
                     sw(AMMOINFO + 8 * kind, value as i32);
+                }
+            }
+            Op::Blast { weapon, alt, value } => {
+                // (the blast belongs to the kind of bullet, so every weapon that shoots that kind has it)
+                let kind = lw(GUNS + weapon * GUN_SIZE + if alt { 188 } else { 52 });
+                if (0..64).contains(&kind) {
+                    swc1(ts_game::BLAST_SCALE + 4 * kind, value);
                 }
             }
         }

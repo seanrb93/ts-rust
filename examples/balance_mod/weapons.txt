@@ -57,8 +57,9 @@ weapon 2   # Assault Rifle (rifle)
 
 weapon 6   # Scifi Autorifle (rifle)
   damage 0.15
-  alt_damage 0.3
+  alt_damage 0.25
   ammo_reserve 75
+  alt_blast 0.35   # the grenade of the second trigger: a third of the blast of the game, so it kills only near a direct hit (it shares the plentiful plasma and fires 1.5 a second)
   raw +60 w 8   # the bots' pause between shots, in frames: the rate a player is held to
 
 weapon 5   # Raygun Carbine (rifle)
@@ -88,9 +89,10 @@ weapon 24   # Shotgun (shotgun)
   raw +60 w 25   # the bots' pause between shots, in frames: the rate a player is held to
 
 weapon 20   # Assault Shotgun (shotgun)
-  damage 0.09
-  alt_damage 0.09
+  damage 0.07
+  alt_damage 0.07
   ammo_reserve 16
+  spread 0.04
   raw +60 w 20   # the bots' pause between shots, in frames: the rate a player is held to
 
 weapon 22   # Blunderbuss (shotgun)

@@ -9,12 +9,13 @@ Every weapon has a job.  The numbers are for hits on the body, from full health 
   Submachine guns (0.8 to 0.9 seconds, wide at range):
     Uzi 10 hits, Tommy Gun 8 (its second trigger is slower, harder and very accurate)
   Rifles (0.6 to 0.8 seconds, and the most damage over time):
-    M16 7 hits and the most accurate, Assault Rifle 6 and less accurate, Scifi Autorifle 7 with the big clip, Raygun Carbine 7, Raygun 4
+    M16 7 hits and the most accurate, Assault Rifle 6 and less accurate, Scifi Autorifle 7 with the big clip (its second trigger's grenade has a third of the game's blast, so it kills only near a direct hit: it shares the plentiful plasma and fires 1.5 a second), Raygun Carbine 7, Raygun 4
   Minigun (0.7 seconds): the most ammunition, the second trigger sprays faster for less each
   Shotguns (the quickest kills, near only):
-    Shotgun 1 shot when nearly every pellet hits, with a long reload; Assault Shotgun 2 shots; Blunderbuss 1 shot, only very near
+    Shotgun 1 shot when nearly every pellet hits, with a long reload; Assault Shotgun 3 shots and wider; Blunderbuss 1 shot, only very near
   Snipers: 2 hits on the body, 1 on the head
-  Rocket Launcher, Grenade Launcher: the blast is what kills, so their damage is as it was and they are scarce (at most 12 rounds)
+  Rocket Launcher, Grenade Launcher: the blast is what kills, so their blast is as it was and they are scarce (at most 12 rounds)
+  The blast of a weapon is set with blast and alt_blast in weapons.txt (an extensions build): a factor of the game's
 
 The most that can be carried: pistol ammunition 500 -> 240, rifle 200 -> 180, shotgun 100 -> 48, plasma 200 -> 180, rockets 30 -> 12, grenades 20 -> 12.  The kinds are shared by their weapons.
 

@@ -84,7 +84,7 @@ A full shot of the Shotgun (6 pellets of 0.5) is 3 full health bars if all pelle
 
 ## What a mod can change
 
-`weapons.txt`: `damage` (the fraction of a bar for each bullet; the pellets, the multipliers and the explosions are code and are not in it).  The handicap and challenge tables are data and can be changed by `patches.txt` (`<symbol>+offset <f> value`).
+`weapons.txt`: `damage` and `alt_damage` (the fraction of a bar for each bullet; the pellets and the multipliers are code), and `blast` and `alt_blast` (extensions): a factor for the strength of every stage of the explosion of the weapon's shot, 1 being the game's (2.3 at the middle).  The blast belongs to the kind of bullet, so a weapon that shoots the same kind shares it.  The handicap and challenge tables are data and can be changed by `patches.txt` (`<symbol>+offset <f> value`).
 
 ## Rates of fire (measured)
 

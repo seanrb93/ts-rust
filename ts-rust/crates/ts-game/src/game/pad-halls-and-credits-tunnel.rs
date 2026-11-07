@@ -657,6 +657,14 @@ pub fn explosionDamage(_a0: i32, a1: i32, a2: i32, a3: i32, _a4: i32, a5: i32, f
         }
         let random = random_as_float();
         let strength = ps2float::mul(strength, ps2float::add(ps2float::mul(ps2float::mul(random, 2.3283064e-10_f32), lwc1(0x3acdcc)), lwc1(0x3acdd0)));
+        // (a mod can make the blast of a kind of shot weaker or stronger: `blast` in weapons.txt)
+        #[cfg(feature = "extensions")]
+        let strength = ps2float::mul(strength, blast_scale(a2));
+        // (a test aid, TS_BLASTLOG=1: the strength of each stage of a blast that does damage)
+        #[cfg(feature = "extensions")]
+        if strength > 0.0 && std::env::var_os("TS_BLASTLOG").is_some() {
+            eprintln!("[blast] kind {a2} stage {} strength {strength:.3}", age.wrapping_div(30));
+        }
         if !(strength <= 0.0_f32) {
             let shrink = lwc1(0x3acdd4);
             let mut list = 0;
