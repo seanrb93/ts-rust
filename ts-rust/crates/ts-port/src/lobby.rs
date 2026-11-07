@@ -781,6 +781,13 @@ impl Lobby {
         if begin {
             self.alevels = ts_game::netsetup_levels();
             ts_game::netsetup_begin();
+            // (a test aid: the level that `TS_LOBBY_AUTO=host,<players>,<level>` names, on the pages too)
+            if let (Some(Auto::Host(_)), Ok(a)) = (&self.auto, std::env::var("TS_LOBBY_AUTO")) {
+                let name = a.split(',').nth(2).unwrap_or("");
+                if let Some(l) = self.alevels.iter().find(|l| l.1.eq_ignore_ascii_case(name)) {
+                    ts_game::netsetup_select_level(l.2);
+                }
+            }
         }
         if self.alevels.is_empty() {
             return;
@@ -799,6 +806,11 @@ impl Lobby {
         self.wrow = Some(ts_game::netsetup_weapon_row());
         self.brow = Some(ts_game::netsetup_botset_row());
         self.gvs = ts_game::netsetup_gv_values();
+        if std::env::var_os("TS_LOBBY_TEAMS").is_some() {
+            for g in self.gvs.iter_mut().filter(|g| g.0 == ts_game::g::gv_teamplay) {
+                g.1 = 1;
+            }
+        }
         self.bots = ts_game::netsetup_bots() as usize;
         self.setup.mode = ts_game::netsetup_mode();
         // the weapon set: the custom ones are the host's own
@@ -1573,6 +1585,10 @@ impl Lobby {
 
     /// The team each player chose (the host's first); -1 where a player has not chosen.
     fn host_teams(&self) -> Vec<i32> {
+        // (a test aid: `TS_LOBBY_TEAMS=<team>/<team>/...`, the teams of the players in a team game)
+        if let Ok(t) = std::env::var("TS_LOBBY_TEAMS") {
+            return t.split('/').filter_map(|x| x.parse().ok()).collect();
+        }
         let mut v = vec![ts_game::netflow_my_team()];
         v.extend(self.others.iter().map(|a| self.teams.get(a).copied().unwrap_or(-1)));
         v

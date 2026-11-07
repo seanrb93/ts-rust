@@ -399,6 +399,16 @@ pub fn netsetup_block(players: i32, teams: &[i32]) -> Option<Vec<i32>> {
             sw(0x1fc2a88 + 16 * i + 12, 0);
         }
     }
+    // (test aids: `TS_NETBOTS=<n>` the first n bots of the page play, and with `TS_LOBBY_TEAMS` the mode is played in teams)
+    if let Some(n) = std::env::var("TS_NETBOTS").ok().and_then(|v| v.parse::<i32>().ok()) {
+        for i in 0..10 {
+            sw(0x1fc2a88 + 16 * i + 12, (i < n) as i32);
+        }
+    }
+    if std::env::var_os("TS_LOBBY_TEAMS").is_some() {
+        sw(g::gv_teamplay, 1);
+        storeGameModeOptions(netsetup_mode());
+    }
     // (the game stores what this machine has unlocked while it makes the parameters; the machines of a match must not differ in it, so it is given back)
     let kept: Vec<(i32, i32)> = (0..4).map(|i| 0x3affa0 + 4 * i).chain((0..8).map(|i| 0x1fc33b0 + 4 * i)).map(|a| (a, lw(a))).collect();
     if std::env::var_os("TS_NETLOG").is_some() {

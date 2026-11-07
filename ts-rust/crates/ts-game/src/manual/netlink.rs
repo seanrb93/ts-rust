@@ -1103,6 +1103,10 @@ pub fn netlink_start_match(level: &str, players: usize) {
     sw(at + 80, 2);
     // (the match's options are written into the game's records, which the level reads when it is set up; the random numbers and the counts the game draws from are made the
     // same on every machine when the level begins to be set up, `netlink_reseed`: the machines have been in the front end for different times)
+    if !setup.gvs.is_empty() {
+        // (variables a test start set, such as the teams of the mode: the records of the mode are made from them first)
+        netsetup_apply(&setup.gvs, setup.mode);
+    }
     netlink_options();
     RESEED.store(true, std::sync::atomic::Ordering::Relaxed);
     gameDeferedReset(at);

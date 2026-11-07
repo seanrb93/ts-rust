@@ -698,7 +698,7 @@ fn main() {
                 }
             }
             "--headless" => headless = true,
-            // the match the lobby decides (a test form): mode=<n>,time=<minutes>,limit=<points>,friendly=<0|1>,bots=<chr>/<chr>,chars=<chr>/<chr>
+            // the match the lobby decides (a test form): mode=<n>,time=<minutes>,limit=<points>,friendly=<0|1>,bots=<chr>/<chr>,chars=<chr>/<chr>,teams=<t>/<t>,teamplay=<0|1>
             "--setup" => {
                 let spec = it.next().unwrap_or_default();
                 let mut st = ts_sdk::net::Setup::default();
@@ -711,6 +711,9 @@ fn main() {
                         Some(("friendly", v)) => st.friendly = v != "0",
                         Some(("bots", v)) => st.bots = list(v),
                         Some(("chars", v)) => st.chars = list(v),
+                        // (the team of each player, and the teams of the mode switched on)
+                        Some(("teams", v)) => st.teams = list(v),
+                        Some(("teamplay", v)) => st.gvs.push((ts_game::g::gv_teamplay, v.parse().unwrap_or(1))),
                         _ => {}
                     }
                 }

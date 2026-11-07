@@ -53,6 +53,8 @@ A host announces its game once a second to the local network (UDP broadcast to p
 
 For tests without a window: `TS_LOBBY_AUTO=host,3,Prison` (starts when 3 players are there) and `TS_LOBBY_AUTO=join,127.0.0.1:7777`, with `--lobby --headless`.
 
+The `--lobby` start and `--setup` start the level from its name, not from the parameters the game's pages make: the bots of `--setup` stand still, and `--lobby` has none.  A match as the Network pages start it, with the bots and the teams of the game's own pages, comes from `TS_NETPAGES=1` (the lobby of the pages opens as soon as the front end runs, and `TS_LOBBY_AUTO` then hosts or joins as above, the host on the level it names) with a save folder that has a profile; `TS_NETBOTS=<n>` has the first n bots of the Setup Bots page play, and `TS_LOBBY_TEAMS=0/0` plays the mode in teams with both players in the first.  `--setup` takes `teams=<t>/<t>` and `teamplay=1` too.
+
 The host's rows (Up/Down to move, Left/Right to change): Level, Mode (Deathmatch, Bag Tag, Capture the Bag, Knockout), Time limit (minutes), Score limit
 (the kills of Deathmatch, the goal of Capture the Bag and Knockout), Bots (0 to 6), Friendly fire and Your character.  A player who has joined picks
 their own character with Left/Right and the others see it.  These are the options of the game's own Options page for the mode, written into the game's records

@@ -80,6 +80,12 @@ pub fn tick() {
 
 /// Once a tick of the front end on any page: the network is looked at; when the match is decided the session and the level are started.
 pub fn background() {
+    // (a test aid: `TS_NETPAGES=1` opens the lobby of the pages once the front end runs, so that `TS_LOBBY_AUTO` starts a match as the Network pages do, with the bots and the
+    // teams of the game's own pages)
+    static AUTO_OPENED: AtomicBool = AtomicBool::new(false);
+    if std::env::var_os("TS_NETPAGES").is_some() && LOBBY.lock().unwrap().is_none() && !AUTO_OPENED.swap(true, Ordering::Relaxed) {
+        open();
+    }
     let mut rejoin = None;
     let (outcome, back_out) = {
         let mut g = LOBBY.lock().unwrap();
