@@ -178,18 +178,12 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
         p.config.desired_maximum_frame_latency = if cfg.vsync { 1 } else { 2 };
         p.surface.configure(p.renderer.device(), &p.config);
     }
-    // (the frame rate: the FPS Counter row of Game Options; the graph of the frame times: its own row, or TS_FRAMEGRAPH=1 for a test)
-    let graph = cfg.frame_graph || std::env::var_os("TS_FRAMEGRAPH").is_some();
-    let mut text = if cfg.show_fps { ts_sdk::perf::fps() } else { String::new() };
-    if graph {
-        if !text.is_empty() {
-            text.push('\n');
-        }
-        text.push_str(&ts_sdk::perf::pace_text());
-    }
-    p.renderer.overlay_text = text;
-    p.renderer.overlay_graph = if graph { ts_sdk::perf::frame_times() } else { Vec::new() };
-    p.renderer.overlay_period_ms = 1000.0 / p.monitor_hz.unwrap_or(60.0).max(1.0);
+    // (the frame rate: the FPS Counter row of Game Options)
+    p.renderer.overlay_text = if cfg.show_fps {
+        ts_sdk::perf::fps()
+    } else {
+        String::new()
+    };
     if let Some(f) = frame {
         p.renderer.render_scene((size.width, size.height), f);
         ts_sdk::perf::set_gpu(p.renderer.gpu_ms);

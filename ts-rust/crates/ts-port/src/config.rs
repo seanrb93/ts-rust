@@ -63,8 +63,6 @@ pub struct Config {
     pub debug_menu: bool,
     /// the frame rate and timing figures are drawn over the picture
     pub show_fps: bool,
-    /// a graph of the time between the last pictures is drawn over the picture
-    pub frame_graph: bool,
     /// the input delay of a network game this machine hosts, in ticks (-1: from how long a packet takes)
     pub net_input_delay: i32,
     /// turning speed of the right stick as a factor
@@ -106,7 +104,6 @@ impl Default for Config {
             mouse_sensitivity: 1.0,
             debug_menu: false,
             show_fps: false,
-            frame_graph: false,
             net_input_delay: -1,
             look_sensitivity: 1.0,
             mapmaker_unlimited: false,
@@ -165,9 +162,6 @@ debug_menu = false
 
 # the frame rate drawn in a corner of the picture; also a row of the Game Options page
 show_fps = false
-
-# a graph of the time each of the last pictures took, with its figures; also a row of the Game Options page
-frame_graph = false
 
 # the input delay of a network game this machine hosts: auto (from how long a packet takes to the players) or 0 to 6 ticks of 1/60 s
 net_input_delay = auto
@@ -274,7 +268,6 @@ impl Config {
             // (retired: these are mods now, `mod.ini` of a mod says `unlock_all`, `dual_wield_all` or `bots_punch` = true; an old settings file may still have them)
             "unlock_all" | "dual_wield_all" | "bots_punch" => {}
             "show_fps" => self.show_fps = parse_bool(value).ok_or_else(bad)?,
-            "frame_graph" => self.frame_graph = parse_bool(value).ok_or_else(bad)?,
             "net_input_delay" => {
                 self.net_input_delay = if value.trim().eq_ignore_ascii_case("auto") { -1 } else { value.trim().parse::<i32>().map_err(|_| bad())?.clamp(0, 6) }
             }
@@ -525,7 +518,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 45] = [
+        let vals: [(&str, String); 44] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -547,7 +540,6 @@ impl Config {
             ("mouse_sensitivity", format!("{}", self.mouse_sensitivity)),
             ("debug_menu", self.debug_menu.to_string()),
             ("show_fps", self.show_fps.to_string()),
-            ("frame_graph", self.frame_graph.to_string()),
             ("net_input_delay", if self.net_input_delay < 0 { "auto".to_string() } else { self.net_input_delay.to_string() }),
             ("look_sensitivity", format!("{}", self.look_sensitivity)),
             ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),

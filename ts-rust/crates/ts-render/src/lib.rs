@@ -390,9 +390,6 @@ pub struct Renderer {
     overlay: Option<overlay::Overlay>,
     /// Debug text drawn over the finished frame (empty = nothing).
     pub overlay_text: String,
-    /// the time each of the last pictures took, in milliseconds, for the graph of the overlay (empty: no graph), and the monitor's period
-    pub overlay_graph: Vec<f32>,
-    pub overlay_period_ms: f32,
     /// Debug: clamp texture alpha to 1.0 (the first version's behaviour) for A/B comparisons.
     pub legacy_alpha: bool,
     /// Debug: do not apply the half-pixel position shift.
@@ -639,8 +636,6 @@ impl Renderer {
             stats: RenderStats::default(),
             overlay: None,
             overlay_text: String::new(),
-            overlay_graph: Vec::new(),
-            overlay_period_ms: 1000.0 / 60.0,
             legacy_alpha: false,
             no_shift: false,
             gpu_name: gpu_name.clone(),
@@ -1940,12 +1935,12 @@ impl Renderer {
             pass.set_bind_group(0, &scene.blit_bind, &[]);
             pass.draw(0..3, 0..1);
         }
-        if !self.overlay_text.is_empty() || !self.overlay_graph.is_empty() {
+        if !self.overlay_text.is_empty() {
             if self.overlay.is_none() {
                 self.overlay = Some(overlay::Overlay::new(&self.device, &self.queue, self.format));
             }
             if let Some(o) = &self.overlay {
-                o.draw(&self.device, &mut enc, target, wsize, &self.overlay_text, &self.overlay_graph, self.overlay_period_ms);
+                o.draw(&self.device, &mut enc, target, wsize, &self.overlay_text);
             }
         }
         self.queue.submit(Some(enc.finish()));
@@ -1972,7 +1967,7 @@ impl Renderer {
             self.overlay = Some(overlay::Overlay::new(&self.device, &self.queue, self.format));
         }
         if let Some(o) = &self.overlay {
-            o.draw(&self.device, &mut enc, &target_view, wsize, text, &[], 1000.0 / 60.0);
+            o.draw(&self.device, &mut enc, &target_view, wsize, text);
         }
         self.queue.submit(Some(enc.finish()));
     }

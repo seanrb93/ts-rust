@@ -1,4 +1,4 @@
-//! Tiny debug text overlay (FPS counter) and a graph of the frame times, drawn on top of the finished frame in window pixels.
+//! Tiny debug text overlay (FPS counter), drawn on top of the finished frame in window pixels.
 
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
@@ -127,7 +127,7 @@ impl Overlay {
     }
 
     /// Draw `text` (lines separated by newlines) in the top-left corner of a `size` pixel target.
-    pub fn draw(&self, device: &wgpu::Device, enc: &mut wgpu::CommandEncoder, target: &wgpu::TextureView, size: (u32, u32), text: &str, graph: &[f32], period_ms: f32) {
+    pub fn draw(&self, device: &wgpu::Device, enc: &mut wgpu::CommandEncoder, target: &wgpu::TextureView, size: (u32, u32), text: &str) {
         let scale = (size.1 as f32 / 720.0).max(1.0);
         let mut verts: Vec<V> = Vec::new();
         let (x0, y0) = (8.0 * scale, 6.0 * scale);
@@ -139,27 +139,8 @@ impl Overlay {
                 verts.push(V { pos: [px + dx, py + dy], uv: [u, v], color: c });
             }
         };
-        let solid = [2.0 / ATLAS_W as f32, 110.0 / ATLAS_H as f32, 8.0 / ATLAS_W as f32, 124.0 / ATLAS_H as f32];
-        // the graph of the frame times: a bar for each of the last pictures, up from the lower left, with lines at one and two periods of the monitor
-        // (a bar is green within a quarter over the period, yellow up to two periods, red beyond, and is cut at four)
-        if !graph.is_empty() {
-            let (bar, gap) = (2.0 * scale, 1.0 * scale);
-            let unit = 24.0 * scale;
-            let (gx, gy) = (8.0 * scale, size.1 as f32 - 8.0 * scale);
-            let width = graph.len() as f32 * (bar + gap);
-            quad(&mut verts, gx - 4.0 * scale, gy - 4.0 * unit - 4.0 * scale, width + 8.0 * scale, 4.0 * unit + 8.0 * scale, solid, [0.0, 0.0, 0.0, 0.5]);
-            for k in 1..=2 {
-                quad(&mut verts, gx, gy - k as f32 * unit, width, 1.0 * scale, solid, [1.0, 1.0, 1.0, 0.5]);
-            }
-            for (i, ms) in graph.iter().enumerate() {
-                let periods = ms / period_ms.max(0.1);
-                let h = (periods * unit).min(4.0 * unit).max(1.0);
-                let c = if periods <= 1.25 { [0.2, 0.9, 0.2, 0.9] } else if periods <= 2.0 { [0.95, 0.85, 0.1, 0.9] } else { [0.95, 0.2, 0.15, 0.9] };
-                quad(&mut verts, gx + i as f32 * (bar + gap), gy - h, bar, h, solid, c);
-            }
-        }
         // dark backdrop behind the whole block so the text stays readable over the game
-        if !text.is_empty() {
+        {
             let (mut cols, mut rows, mut cur) = (0usize, 1usize, 0usize);
             for ch in text.chars() {
                 if ch == '\n' {
@@ -170,6 +151,7 @@ impl Overlay {
                     cols = cols.max(cur);
                 }
             }
+            let solid = [2.0 / ATLAS_W as f32, 110.0 / ATLAS_H as f32, 8.0 / ATLAS_W as f32, 124.0 / ATLAS_H as f32];
             let pad = 6.0 * scale;
             quad(&mut verts, x0 - pad, y0 - pad * 0.5, cols as f32 * CELL_W * scale + 2.0 * pad, rows as f32 * CELL_H * scale + pad, solid, [0.0, 0.0, 0.0, 0.55]);
         }
