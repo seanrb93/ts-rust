@@ -470,7 +470,7 @@ pub fn load(game_dir: &Path) {
                 level_lists.push((m.name.clone(), host));
                 continue;
             }
-            if lower == "mod.ini" || lower == "patches.txt" || lower.ends_with(".md") || lower == "readme.txt" || (lower.ends_with(".txt") && !lower.contains('/')) {
+            if lower == "mod.ini" || lower == "settings.ini" || lower == "patches.txt" || lower.ends_with(".md") || lower == "readme.txt" || (lower.ends_with(".txt") && !lower.contains('/')) {
                 if lower == "patches.txt" {
                     patches.push((m.name.clone(), host.to_string_lossy().into_owned()));
                 } else if lower == "weapons.txt" {
@@ -710,7 +710,7 @@ fn apply_patches(patches: &[(String, String)]) {
     }
     let symbols = ts_rt::loader::embedded_symbols();
     for (name, file) in patches {
-        let text = std::fs::read_to_string(file).unwrap_or_default();
+        let text = crate::moddata::read_with_settings(name, Path::new(file)).unwrap_or_default();
         for (n, line) in text.lines().enumerate() {
             let line = line.split('#').next().unwrap_or("").trim();
             if line.is_empty() {

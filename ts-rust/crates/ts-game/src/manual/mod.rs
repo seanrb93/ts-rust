@@ -40,6 +40,8 @@ pub mod text_scale;
 pub mod network_stats;
 #[path = "throw-lift.rs"]
 pub mod throw_lift;
+#[path = "mod-settings.rs"]
+pub mod mod_settings;
 #[path = "hands-puppet.rs"]
 pub mod hands_puppet;
 #[path = "mode-presets.rs"]
@@ -55,6 +57,7 @@ pub use arcadeopts::*;
 pub use text_scale::*;
 pub use network_stats::*;
 pub use throw_lift::*;
+pub use mod_settings::*;
 pub use hands_puppet::*;
 pub use restart::*;
 #[cfg(feature = "extensions")]

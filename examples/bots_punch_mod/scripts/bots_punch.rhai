@@ -1,9 +1,10 @@
 // Bots Punch: bots that have no weapon (Always start with gun: No, and none to pick up) go after their target and punch it, instead of standing still.
 
-fn reach() { 2.5 }       // how near a bot has to be to hit
-fn height() { 1.5 }      // and how near in height (the same floor)
-fn damage_done() { 0.5 } // of a character's health (a pistol shot is 0.3)
-fn wait() { 45.0 }       // frames of 60 to the second between two blows of a bot
+// (the numbers are in settings.ini, and these are what they are when it does not have them)
+fn reach() { setting("reach", 2.5) }        // how near a bot has to be to hit
+fn height() { setting("height", 1.5) }      // and how near in height (the same floor)
+fn damage_done() { setting("damage", 0.5) } // of a character's health (a pistol shot is 0.3)
+fn wait() { setting("wait", 0.75) * 60.0 }  // frames of 60 to the second between two blows of a bot (the setting is in seconds)
 
 fn on_start() {
     this.cool = [];

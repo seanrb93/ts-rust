@@ -3,13 +3,13 @@
 // A free for all: everyone is a survivor but one, who starts infected.  An infected character that touches a survivor for a moment infects him.  The last survivor wins.
 // Computer characters never shoot: the survivors run from the infected and spread out, the infected go after the survivors on foot.
 
-// the numbers to play with (seconds, and parts of the characters' own speed)
-fn grace() { 30.0 }          // nobody can be infected in the first seconds of the match
-fn contact_time() { 0.0 }    // how long a touch has to last (0: infected at the first touch)
-fn immune() { 6.0 }          // a character just infected cannot infect for this long
-fn touch() { 1.3 }           // how close the infected has to be (a player is bigger: 0.3 more)
-fn infected_speed() { 0.8 }  // computer characters that are infected run slower than the survivors
-fn start_infected() { 1 }    // how many start infected
+// the numbers to play with (seconds, and parts of the characters' own speed): they are in settings.ini, and these are what they are when it does not have them
+fn grace() { setting("grace", 30.0) }                    // nobody can be infected in the first seconds of the match
+fn contact_time() { setting("contact_time", 0.0) }       // how long a touch has to last (0: infected at the first touch)
+fn immune() { setting("immune", 6.0) }                   // a character just infected cannot infect for this long
+fn touch() { setting("touch", 1.3) }                     // how close the infected has to be (a player is bigger: 0.3 more)
+fn infected_speed() { setting("infected_speed", 0.8) }   // computer characters that are infected run slower than the survivors
+fn start_infected() { setting("start_infected", 1) }     // how many start infected
 
 fn SURV() { 1 }
 fn INF() { 2 }

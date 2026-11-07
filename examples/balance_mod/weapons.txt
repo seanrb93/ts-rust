@@ -1,140 +1,223 @@
 # Weapon Balance: every weapon of the game, both triggers and the blasts, set from scratch (see README.txt).
-# The figures are hits on the body from full health; a hit on the head is 5 times, an arm or a leg 0.4.
+# The choices are in settings.ini: change them there, not here.
+# The figures are hits on the body from full health at gun_damage 100; a hit on the head is 5 times, an arm or a leg 0.4.
 
 weapon 0   # Pistol (sidearm): 4 hits in 1.00 s; second trigger 4 in 1.00 s
-  damage 0.26
-  alt_damage 0.26
+  damage {0.26 * gun_damage / 100}
+  alt_damage {0.26 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 20
   max_ammo 240   # the most of this kind of ammunition that can be carried; its weapons share it
+end
+if bots_fire_like_players
   raw +60 w 20   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 9   # Mauser Pistol (sidearm): 5 hits in 0.80 s; second trigger 3 in 0.71 s
-  damage 0.21
-  alt_damage 0.34
+  damage {0.21 * gun_damage / 100}
+  alt_damage {0.34 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 30
+end
+if bots_fire_like_players
   raw +60 w 12   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 7   # Scifi Handgun (sidearm): 8 hits in 0.92 s; second trigger 5 in 0.80 s
-  damage 0.13
-  alt_damage 0.21
+  damage {0.13 * gun_damage / 100}
+  alt_damage {0.21 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 40
+end
+if bots_fire_like_players
   raw +60 w 8   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 23   # Colt Pistol (sidearm): 2 hits in 0.67 s; second trigger 2 in 0.67 s
-  damage 0.51
-  alt_damage 0.51
+  damage {0.51 * gun_damage / 100}
+  alt_damage {0.51 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 12
+end
+if bots_fire_like_players
   raw +60 w 40   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 21   # Uzi (smg): 8 hits in 0.70 s; second trigger 8 in 0.70 s
-  damage 0.14
-  alt_damage 0.14
-  ammo_reserve 40
+  damage {0.14 * gun_damage / 100}
+  alt_damage {0.14 * gun_damage / 100}
   spread 0.02
   alt_spread 0.02
+if limit_ammo
+  ammo_reserve 40
+end
+if bots_fire_like_players
   raw +60 w 6   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 19   # Tommy Gun (smg): 7 hits in 0.70 s; second trigger 4 in 0.77 s
-  damage 0.15
-  alt_damage 0.26
-  ammo_reserve 64
+  damage {0.15 * gun_damage / 100}
+  alt_damage {0.26 * gun_damage / 100}
   spread 0.015
+if limit_ammo
+  ammo_reserve 64
+end
+if bots_fire_like_players
   raw +60 w 7   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 1   # M16 (rifle): 7 hits in 0.70 s; second trigger 7 in 0.70 s
-  damage 0.15
-  alt_damage 0.15
+  damage {0.15 * gun_damage / 100}
+  alt_damage {0.15 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 60
   max_ammo 180   # the most of this kind of ammunition that can be carried; its weapons share it
+end
+if bots_fire_like_players
   raw +60 w 7   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 2   # Assault Rifle (rifle): 6 hits in 0.58 s; second trigger 6 in 0.58 s
-  damage 0.17
-  alt_damage 0.17
-  ammo_reserve 60
+  damage {0.17 * gun_damage / 100}
+  alt_damage {0.17 * gun_damage / 100}
   spread 0.015
   alt_spread 0.015
+if limit_ammo
+  ammo_reserve 60
+end
+if bots_fire_like_players
   raw +60 w 7   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 6   # Scifi Autorifle (rifle): 7 hits in 0.79 s; second trigger 4 in 2.00 s
-  damage 0.15
-  alt_damage 0.25
+  damage {0.15 * gun_damage / 100}
+  alt_damage {0.25 * gun_damage / 100}
+  alt_blast {0.35 * explosion_strength / 100}   # the grenade of the second trigger: at most 0.8 at the middle, so it kills only with a direct hit (it shares the plentiful plasma)
+if limit_ammo
   ammo_reserve 75
-  alt_blast 0.35   # the grenade of the second trigger: at most 0.8 at the middle, so it kills only with a direct hit (it shares the plentiful plasma)
+end
+if bots_fire_like_players
   raw +60 w 8   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 5   # Raygun Carbine (rifle): 7 hits in 0.79 s; second trigger 9 in 0.81 s
-  damage 0.15
-  alt_damage 0.12
+  damage {0.15 * gun_damage / 100}
+  alt_damage {0.12 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 40
+end
+if bots_fire_like_players
   raw +60 w 8   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 4   # Raygun (rifle): 4 hits in 0.75 s; second trigger 6 in 0.83 s
-  damage 0.3
-  alt_damage 0.17
+  damage {0.3 * gun_damage / 100}
+  alt_damage {0.17 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 40
   max_ammo 180   # the most of this kind of ammunition that can be carried; its weapons share it
+end
+if bots_fire_like_players
   raw +60 w 15   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 10   # Minigun (heavy): 8 hits in 0.70 s; second trigger 12 in 0.77 s
-  damage 0.13
-  alt_damage 0.09
+  damage {0.13 * gun_damage / 100}
+  alt_damage {0.09 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 120
+end
+if bots_fire_like_players
   raw +60 w 6   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
+if balance_shotguns
 weapon 24   # Shotgun (shotgun): 1 hits in 0.00 s; second trigger 1 in 0.00 s
-  damage 0.19
-  alt_damage 0.19
+  damage {0.19 * gun_damage / 100}
+  alt_damage {0.19 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 8
   max_ammo 48   # the most of this kind of ammunition that can be carried; its weapons share it
+end
+if bots_fire_like_players
   raw +60 w 25   # the bots' pause between shots, in frames: the rate a player is held to
+end
+end
 
+if balance_shotguns
 weapon 20   # Assault Shotgun (shotgun): 2 hits in 0.33 s; second trigger 2 in 0.33 s
-  damage 0.085
-  alt_damage 0.085
-  ammo_reserve 16
+  damage {0.085 * gun_damage / 100}
+  alt_damage {0.085 * gun_damage / 100}
   spread 0.04
+if limit_ammo
+  ammo_reserve 16
+end
+if bots_fire_like_players
   raw +60 w 20   # the bots' pause between shots, in frames: the rate a player is held to
+end
+end
 
+if balance_shotguns
 weapon 22   # Blunderbuss (shotgun): 1 hits in 0.00 s; second trigger 1 in 0.00 s
-  damage 0.18
-  alt_damage 0.18
+  damage {0.18 * gun_damage / 100}
+  alt_damage {0.18 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 8
+end
+if bots_fire_like_players
   raw +60 w 60   # the bots' pause between shots, in frames: the rate a player is held to
+end
+end
 
 weapon 3   # Sniper Rifle (sniper): 2 hits in 1.00 s; second trigger 2 in 1.00 s
-  damage 0.6
-  alt_damage 0.6
+  damage {0.6 * gun_damage / 100}
+  alt_damage {0.6 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 10
+end
+if bots_fire_like_players
   raw +60 w 60   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
 weapon 12   # Scifi Sniper Rifle (sniper): 2 hits in 1.00 s; second trigger 2 in 1.00 s
-  damage 0.51
-  alt_damage 0.51
+  damage {0.51 * gun_damage / 100}
+  alt_damage {0.51 * gun_damage / 100}
+if limit_ammo
   ammo_reserve 10
+end
+if bots_fire_like_players
   raw +60 w 60   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
-weapon 8   # Rocket Launcher: a rocket kills within 1.4 units; the 3 rockets of the second trigger have 0.6 each, so one kills only on a direct hit and two together do
-  blast 1.0
-  alt_blast 0.6
+weapon 8   # Rocket Launcher: a rocket kills within 1.4 units; the 3 rockets of the second trigger have 0.6 each, so one kills only on a direct hit and two together do (at explosion_strength 100)
+  blast {1.0 * explosion_strength / 100}
+  alt_blast {0.6 * explosion_strength / 100}
+if limit_ammo
   ammo_reserve 6
   max_ammo 12
+end
+if bots_fire_like_players
   raw +60 w 60   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
-weapon 11   # Grenade Launcher: kills within 1.6 units; a grenade that hits a character directly kills by itself
-  blast 0.9
-  alt_blast 0.9
+weapon 11   # Grenade Launcher: kills within 1.6 units; a grenade that hits a character directly kills by itself (at explosion_strength 100)
+  blast {0.9 * explosion_strength / 100}
+  alt_blast {0.9 * explosion_strength / 100}
+if limit_ammo
   ammo_reserve 8
   max_ammo 12
+end
+if bots_fire_like_players
   raw +60 w 60   # the bots' pause between shots, in frames: the rate a player is held to
+end
 
-weapon 14   # Proximity Mine: kills within 1.6 units of the mine
-  blast 0.8
+weapon 14   # Proximity Mine: kills within 1.6 units of the mine (at explosion_strength 100)
+  blast {0.8 * explosion_strength / 100}
 
-weapon 15   # Remote Mine: kills within 1.6 units of the mine
-  blast 0.8
+weapon 15   # Remote Mine: kills within 1.6 units of the mine (at explosion_strength 100)
+  blast {0.8 * explosion_strength / 100}
 
-weapon 16   # Timed Mine: kills within 1.6 units of the mine (weapon 17 shoots the same mine and shares it)
-  blast 0.8
+weapon 16   # Timed Mine: kills within 1.6 units of the mine (weapon 17 shoots the same mine and shares it) (at explosion_strength 100)
+  blast {0.8 * explosion_strength / 100}
 
 # TNT (weapon 18) keeps the full blast of the game: it is thrown, slow and has to be set off.

@@ -10,4 +10,4 @@ fn lists_pair(single) { true }
 fn allows_pair(pair, single) { true }
 
 // an unarmed player punches with the left fist and the right in turn
-fn alternate_fists() { true }
+fn alternate_fists() { setting("both_fists", true) }

@@ -36,6 +36,8 @@ pub struct ModeVariant {
     /// the script of the variant (`script <file>` in `modes.txt`): the name of the file, and its text once the loader has read it
     pub script_file: String,
     pub script_source: String,
+    /// the settings of the mod it comes from (`settings.ini`), which its script reads with `setting`
+    pub script_settings: super::ModSettings,
 }
 
 /// The option of the Options page that `hide` names in `modes.txt`: the address of its value in the game.
@@ -105,15 +107,15 @@ pub fn active_hidden(mode: i32) -> Vec<i32> {
     VARIANTS.lock().unwrap().iter().filter(|v| v.kind == mode).nth(choice - 1).map_or(Vec::new(), |v| v.hidden.clone())
 }
 
-/// The script of the variant that is being played: its file name and its text.
-pub fn active_script(mode: i32) -> Option<(String, String)> {
+/// The script of the variant that is being played: its file name, its text and the settings of its mod.
+pub fn active_script(mode: i32) -> Option<(String, String, super::ModSettings)> {
     let choice = super::arcadeopts::variant_choice(mode);
     if choice == 0 {
         return None;
     }
     let all = VARIANTS.lock().unwrap();
     let v = all.iter().filter(|v| v.kind == mode).nth(choice - 1)?;
-    (!v.script_source.is_empty()).then(|| (v.script_file.clone(), v.script_source.clone()))
+    (!v.script_source.is_empty()).then(|| (v.script_file.clone(), v.script_source.clone(), v.script_settings.clone()))
 }
 
 /// The names of the variants of a mode.

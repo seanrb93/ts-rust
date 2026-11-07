@@ -499,7 +499,7 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
             if name.is_empty() {
                 errors.push(format!("line {n}: `variant` needs a name"));
             } else {
-                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new(), rules: Vec::new(), hidden: Vec::new(), script_file: String::new(), script_source: String::new() });
+                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new(), rules: Vec::new(), hidden: Vec::new(), script_file: String::new(), script_source: String::new(), script_settings: Default::default() });
                 in_variant = true;
             }
             continue;
@@ -575,9 +575,49 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
     (presets, variants, errors)
 }
 
+/// Read a data file of a mod with the mod's settings put in (`settings.ini` of its folder: see `ts_game::mod_settings`); the complaints go to the log.
+pub fn read_with_settings(mod_name: &str, path: &Path) -> Option<String> {
+    let text = std::fs::read_to_string(path).ok()?;
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let (settings, errors) = ts_game::ModSettings::read(dir);
+    for e in &errors {
+        eprintln!("[mods] {mod_name}/settings.ini {e}");
+    }
+    let (text, errors) = ts_game::expand_settings(&text, &settings);
+    let file = path.file_name().map_or(String::new(), |f| f.to_string_lossy().into_owned());
+    for e in group_lines(&errors) {
+        eprintln!("[mods] {mod_name}/{file} {e}");
+    }
+    Some(text)
+}
+
+/// Complaints that are the same but for the line are told once, with all their lines ("lines 6, 7, 17: ..."), as one wrong setting is used on many lines.
+fn group_lines(errors: &[String]) -> Vec<String> {
+    let mut groups: Vec<(String, Vec<String>)> = Vec::new();
+    for e in errors {
+        let (line, why) = match e.strip_prefix("line ").and_then(|r| r.split_once(": ")) {
+            Some((n, why)) => (Some(n.to_string()), why.to_string()),
+            None => (None, e.clone()),
+        };
+        match (line, groups.iter_mut().find(|g| g.0 == why)) {
+            (Some(n), Some(g)) => g.1.push(n),
+            (Some(n), None) => groups.push((why, vec![n])),
+            (None, _) => groups.push((why, Vec::new())),
+        }
+    }
+    groups
+        .into_iter()
+        .map(|(why, lines)| match lines.len() {
+            0 => why,
+            1 => format!("line {}: {why}", lines[0]),
+            _ => format!("lines {}: {why}", lines.join(", ")),
+        })
+        .collect()
+}
+
 /// Read and apply the file `path` of the mod `mod_name`; the complaints go to the log.
 pub fn load_file(mod_name: &str, which: &str, path: &Path) {
-    let Ok(text) = std::fs::read_to_string(path) else { return };
+    let Some(text) = read_with_settings(mod_name, path) else { return };
     let (text, new_characters) = if which == "character" {
         let (rest, chars, errors) = split_new_characters(&text);
         for e in &errors {
@@ -597,8 +637,11 @@ pub fn load_file(mod_name: &str, which: &str, path: &Path) {
         }
         let mut variants = variants;
         // (the scripts of the variants are files of the mod, in its `scripts` folder or next to `modes.txt`)
+        let mod_dir = path.parent().unwrap_or_else(|| Path::new("."));
+        let settings = ts_game::ModSettings::read(mod_dir).0;
         for v in variants.iter_mut().filter(|v| !v.script_file.is_empty()) {
-            let dir = path.parent().unwrap_or_else(|| Path::new("."));
+            let dir = mod_dir;
+            v.script_settings = settings.clone();
             match std::fs::read_to_string(dir.join("scripts").join(&v.script_file)).or_else(|_| std::fs::read_to_string(dir.join(&v.script_file))) {
                 Ok(text) => v.script_source = text,
                 Err(e) => eprintln!("[mods] {mod_name}: the script {} of the variant {:?}: {e}", v.script_file, v.name),

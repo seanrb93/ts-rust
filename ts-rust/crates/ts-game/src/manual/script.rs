@@ -359,11 +359,41 @@ fn pain_voice(i: i64) {
     soundDelayStartEx(sounds[(newrnd() as u32 as usize) % sounds.len()], p + 48, 20, 0);
 }
 
-fn compile(name: &str, source: &str, of_mode: bool, mod_dir: Option<std::path::PathBuf>) -> Option<Host> {
+fn compile(name: &str, source: &str, of_mode: bool, mod_dir: Option<std::path::PathBuf>, settings: Option<crate::ModSettings>) -> Option<Host> {
     let mut engine = Engine::new();
     engine.set_max_operations(5_000_000);
     engine.set_max_expr_depths(256, 128);
     register(&mut engine);
+    // the mod's settings (`settings.ini` in its folder): yes / no as true / false, numbers as numbers, anything else as text; `()` for a setting that is not there
+    let settings = settings.or_else(|| mod_dir.as_ref().map(|d| crate::ModSettings::read(d).0)).unwrap_or_default();
+    let value = |s: &crate::ModSettings, name: &str| -> Option<rhai::Dynamic> {
+        let v = s.get(name)?;
+        Some(match v.to_ascii_lowercase().as_str() {
+            "yes" | "on" | "true" => true.into(),
+            "no" | "off" | "false" => false.into(),
+            _ => match (v.parse::<i64>(), v.parse::<f64>()) {
+                (Ok(i), _) => i.into(),
+                (_, Ok(f)) => f.into(),
+                _ => v.to_string().into(),
+            },
+        })
+    };
+    let (s1, s2) = (settings.clone(), settings);
+    engine.register_fn("setting", move |name: &str| value(&s1, name).unwrap_or(rhai::Dynamic::UNIT));
+    // (with a default, a number comes back of the default's kind, so `setting("reach", 2.5)` is a float when the file says 3)
+    engine.register_fn("setting", move |name: &str, default: rhai::Dynamic| {
+        let Some(v) = value(&s2, name) else { return default };
+        if default.is::<f64>() {
+            if let Ok(i) = v.as_int() {
+                return (i as f64).into();
+            }
+        } else if default.is::<i64>() {
+            if let Ok(f) = v.as_float() {
+                return (f.round() as i64).into();
+            }
+        }
+        v
+    });
     // the mod's own files, by their place in its folder
     let in_mod = move |file: &str| -> Option<std::path::PathBuf> {
         if file.contains("..") {
@@ -429,15 +459,15 @@ fn load() {
     if !MODS_TRIED.swap(true, Ordering::Relaxed) {
         let scripts = MOD_SCRIPTS.lock().unwrap().clone();
         for (m, file, source, dir) in scripts {
-            if let Some(host) = compile(&format!("{m}/{file}"), &source, false, Some(dir)) {
+            if let Some(host) = compile(&format!("{m}/{file}"), &source, false, Some(dir), None) {
                 eprintln!("[script] {m}/{file}");
                 HOSTS.with(|h| h.borrow_mut().push(host));
             }
         }
     }
     if lw(g::gamestate) == 3 && !TRIED.swap(true, Ordering::Relaxed) {
-        if let Some((name, source)) = active_script(lw(g::curgameparms + 72)) {
-            if let Some(host) = compile(&name, &source, true, None) {
+        if let Some((name, source, settings)) = active_script(lw(g::curgameparms + 72)) {
+            if let Some(host) = compile(&name, &source, true, None, Some(settings)) {
                 eprintln!("[script] a script is running");
                 HOSTS.with(|h| h.borrow_mut().push(host));
             }

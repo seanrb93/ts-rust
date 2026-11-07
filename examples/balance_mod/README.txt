@@ -1,5 +1,7 @@
 Weapon Balance: every weapon of the game set again from scratch, both triggers and the blasts, by data only (weapons.txt).  The blasts need an extensions build; the rest works in any build.
 
+The choices are in settings.ini: how hard the guns hit (gun_damage, in percent), how strong the explosions are (explosion_strength, in percent), whether the shotguns are balanced, whether less ammunition can be carried, and whether the bots fire no faster than a player.  Change a value, save the file and start the game again.  The numbers below are for the settings as they come.
+
 The figures are hits on the body from full health (1.0), at the measured rates of fire (docs/damage.md).  A hit on the head is worth 5 times and an arm or a leg 0.4.
 
 The rules

@@ -90,6 +90,36 @@ Each variant is listed as a mode on the Select Level page, after the game's own 
 
 `tools/convert-level.bat` (double-click it on Windows; or `python tools/obj2level.py`) asks for a map (Blender, glTF, OBJ, a Source or GoldSrc map) and installs it as a mod.  See `docs/level-converter.md`.  Keep the level to what the game's tables hold (the converter warns, and `--original-limits` keeps to the game's own).
 
+## Settings a player can change
+
+A mod can have a `settings.ini` of named values, so that a player changes what the mod does without reading its tables.  Write a line of explanation over each:
+
+```
+# How strong the explosions are, in percent of this mod's.
+explosion_strength = 100
+
+# Balance the shotguns too (yes or no).
+balance_shotguns = yes
+```
+
+The player changes a value, saves the file and starts the game again.  The data files of the mod (`weapons.txt`, `characters.txt`, `modes.txt`, `patches.txt`) use the values:
+
+```
+weapon 8
+  blast {explosion_strength / 100}         # in braces: a setting, a number, or a sum of them with + - * / and brackets
+  alt_blast {0.6 * explosion_strength / 100}
+if balance_shotguns                        # read only when the setting is yes, or a number other than 0
+weapon 24
+  damage 0.19
+else
+  # (the game's own)
+end
+```
+
+`if` takes a setting (`if name`, `if not name`) or a comparison (`if name = word`, `!=`, `<`, `<=`, `>`, `>=`), and the blocks can be put inside each other.  A setting that is a word, in braces on its own, goes in as that word.  A line that uses a setting that is missing or is not a number is left out, and the log names the lines, so a wrong value in `settings.ini` never writes a wrong value into the game.  A script reads a setting with `setting("name", default)` (`docs/scripting.md`).
+
+All the machines of a network game need the same settings: a machine with other values cannot join (the lobby says "other game files or mods").  `examples/balance_mod`, `bots_punch_mod`, `brick_throw_mod`, `virus_mode`, `first_person_hands_mod` and `dual_wield_everything_mod` have one.
+
 ## Replace sounds, music and textures
 
 Put a file in the mod under the pack's name: `SFX.PAK/sfx/<name>.mp3` (or `.ogg`, `.flac`, `.m4a`, `.wav`, `.opus`) replaces a sound, `MUSIC/<name>.mp3` (or the same formats) a track, `MISC.PAK/textures/<number>.png` a texture.  See `examples/sample_mod/`.
