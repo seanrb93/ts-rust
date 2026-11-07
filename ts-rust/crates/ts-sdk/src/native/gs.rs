@@ -81,6 +81,19 @@ pub fn display_hz() -> f32 {
     f32::from_bits(DISPLAY_HZ.load(std::sync::atomic::Ordering::Relaxed))
 }
 
+/// The next tick of the clock comes `d` later than it would (a network game keeps its machines in time with each other with this).
+pub fn delay_clock(d: Duration) {
+    if let Some(l) = VSYNC.lock().unwrap().as_mut() {
+        *l += d;
+    }
+}
+
+/// (a test aid, TS_CLOCKSKEW=<factor>: this machine's clock runs that much fast, as two machines' clocks never quite agree)
+fn skew() -> f64 {
+    static SKEW: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *SKEW.get_or_init(|| std::env::var("TS_CLOCKSKEW").ok().and_then(|v| v.parse::<f64>().ok()).filter(|f| *f > 0.5 && *f < 2.0).unwrap_or(1.0))
+}
+
 /// When the next tick of the 60 Hz clock is due (the time `wait_vsync` waits for).
 pub fn next_vsync() -> Instant {
     let g = VSYNC.lock().unwrap();
@@ -154,7 +167,7 @@ pub fn wait_frame(hz: f64) -> f64 {
             timeBeginPeriod(1);
         });
     }
-    let period = Duration::from_secs_f64(1.0 / hz);
+    let period = Duration::from_secs_f64(1.0 / hz / skew());
     let mut g = VSYNC.lock().unwrap();
     // the frame grid of the 60 Hz clock does not fit: start a new one
     if !HIRATE_CLOCK.swap(true, std::sync::atomic::Ordering::Relaxed) {
@@ -209,7 +222,7 @@ pub fn wait_vsync() -> u32 {
         perf::add_ticks(1);
         return 1;
     }
-    let period = Duration::from_secs_f64(1.0 / VBLANK_HZ);
+    let period = Duration::from_secs_f64(1.0 / VBLANK_HZ / skew());
     let mut g = VSYNC.lock().unwrap();
     if HIRATE_CLOCK.swap(false, std::sync::atomic::Ordering::Relaxed) {
         *g = Some(Instant::now());

@@ -18,7 +18,7 @@ pub const PAD_BYTES: usize = 20;
 /// The checksum is compared every this many ticks.
 pub const SUM_EVERY: u32 = 30;
 
-const MAGIC: u32 = 0x5453_4e39; // "TSN9"
+const MAGIC: u32 = 0x5453_4e41; // "TSNA"
 /// The packets of a resync (see `Resync`), which go beside the others on the same socket.
 const RS_MAGIC: u32 = 0x5453_5253; // "TSRS"
 const RS_ANNOUNCE: u8 = 1;
@@ -252,6 +252,9 @@ struct Session {
     welcomed: Vec<Option<Instant>>,
     /// how long a packet takes to each player and back (milliseconds, smoothed), and when this machine last asked
     pings: Vec<Option<f32>>,
+    /// how many ticks this machine is ahead of the furthest behind of the others (smoothed), and how much the clock was held back in all
+    ahead: f64,
+    held_ms: f64,
     began: Instant,
     last_ping: Instant,
     /// a test aid, `TS_NETCUT=<tick>,<seconds>`: from that tick this machine neither sends nor hears anything for that long
@@ -351,6 +354,8 @@ pub fn start(cfg: Config) -> Result<(), String> {
         stop_waiting: false,
         welcomed: vec![None; n],
         pings: vec![None; n],
+        ahead: 0.0,
+        held_ms: 0.0,
         began: Instant::now(),
         last_ping: Instant::now(),
         cut: std::env::var("TS_NETCUT").ok().and_then(|v| v.split_once(',').and_then(|(a, b)| Some((a.parse().ok()?, b.parse().ok()?)))),
@@ -1124,10 +1129,12 @@ fn note_wait(wait: Duration, tick: u32) {
         st.waited += 1;
     }
     if tick % 300 == 0 && st.frames > 0 {
+        let (ahead, held) = time_sync_state();
         let (sent, packets) = (SENT_BYTES.swap(0, std::sync::atomic::Ordering::Relaxed), SENT_PACKETS.swap(0, std::sync::atomic::Ordering::Relaxed));
         let line = format!(
-            "tick {tick}: sent {} bytes in {packets} packets; ",
-            sent
+            "tick {tick}: sent {} bytes in {packets} packets; input delay {}; ahead of the others {ahead:.2} ticks, clock held back {held:.0} ms in all; ",
+            sent,
+            delay()
         ) + &format!(
             "tick {tick}: {:.1} ms a tick (worst {:.0}), waiting for the others {:.1} ms a tick (worst {:.0}), {} of {} ticks waited more than 2 ms, {} rollbacks ({} ticks played again), the longest silence from the others {:.0} ms, {:.1} extra pictures a tick ({} wanted, {} ticks without for the state of the game, {} for lack of time), sound commands: {} in ticks, {} new and {} left out in ticks played again
 ",
@@ -1555,6 +1562,36 @@ pub fn rs_finish(floor: u32) {
             *m = m.split_off(&floor);
         }
     }
+}
+
+/// Keeping the machines in time with each other: called once a tick, it gives how long to hold this machine's clock back.  A machine knows the
+/// newest tick of each other's pads (its tick then plus the input delay) and how long a packet takes, so it can tell where each other machine is now;
+/// one that is ahead of the furthest behind holds its clock back a little each tick until it is not (at most 1.5 ms a tick, a tenth of a tick), as
+/// rollback lets the machine ahead run on with guesses and the one behind then has to play more ticks again.
+pub fn time_sync() -> std::time::Duration {
+    let mut g = SESSION.lock().unwrap();
+    let Some(s) = g.as_mut() else { return Duration::ZERO };
+    let tick_ms = 1000.0 / 60.0;
+    let mut behind_most: Option<f64> = None;
+    for p in 0..s.n() {
+        if p == s.local || s.suspect[p] || s.dropped[p].is_some() || s.have[p] == 0 {
+            continue;
+        }
+        let their_tick = s.have[p] as f64 - 1.0 - s.delay as f64 + s.pings[p].map_or(0.0, |m| m as f64 / 2.0 / tick_ms);
+        let ahead = s.tick as f64 - their_tick;
+        behind_most = Some(behind_most.map_or(ahead, |b: f64| b.max(ahead)));
+    }
+    let Some(a) = behind_most else { return Duration::ZERO };
+    s.ahead = s.ahead * 0.95 + a * 0.05;
+    // (half a tick ahead is in the noise of when packets come)
+    let hold = ((s.ahead - 0.5) * 0.1 * tick_ms).clamp(0.0, 1.5);
+    s.held_ms += hold;
+    Duration::from_secs_f64(hold / 1000.0)
+}
+
+/// How far ahead this machine is (ticks, smoothed) and how much it has held its clock back (ms), for the log.
+pub fn time_sync_state() -> (f64, f64) {
+    SESSION.lock().unwrap().as_ref().map_or((0.0, 0.0), |s| (s.ahead, s.held_ms))
 }
 
 /// How long a packet takes to each player and back, in milliseconds, for those still playing.

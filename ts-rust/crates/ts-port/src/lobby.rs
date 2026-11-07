@@ -720,6 +720,8 @@ impl Lobby {
         for t in self.host_teams() {
             b.push(if (0..4).contains(&t) { t as u8 } else { 255 });
         }
+        // the input delay of the match (every machine must have the same)
+        b.push(self.setup.delay as u8);
         b
     }
 
@@ -1216,6 +1218,9 @@ impl Lobby {
                                     self.roster_pings = pings;
                                     let at = tail + 6 + 2 * self.n_players.saturating_sub(1);
                                     self.roster_teams = (0..self.n_players).map(|i| b.get(at + i).map_or(-1, |&t| if t < 4 { t as i32 } else { -1 })).collect();
+                                    if let Some(&d) = b.get(at + self.n_players) {
+                                        self.setup.delay = (d as u32).min(6);
+                                    }
                                 }
                             }
                         }
@@ -1578,10 +1583,23 @@ impl Lobby {
         self.gvs.iter().any(|g| g.0 == ts_game::g::gv_teamplay && g.1 != 0)
     }
 
+    /// The input delay of the match: the host's setting, or from the longest time a packet takes to a player and back: the ticks of the way there,
+    /// rounded up, at least 1 (with less, the others' every press is guessed and corrected) and at most 4 (beyond it rollback does better than waiting).
+    fn chosen_delay(&self) -> u32 {
+        let set = crate::config::get().net_input_delay;
+        if set >= 0 {
+            return set as u32;
+        }
+        let worst = self.others.iter().filter_map(|a| self.host_pings.get(a)).max().copied().unwrap_or(0) as f64;
+        let ticks = (worst / 2.0 / (1000.0 / 60.0)).ceil() as u32;
+        ticks.clamp(1, 4)
+    }
+
     /// The host starts the match, if it can.
     pub fn start_now(&mut self) {
         if self.ready_line().1 {
             self.notice.clear();
+            self.setup.delay = self.chosen_delay();
             self.make_block();
             self.seed = now_seed();
             self.starting = Some(Instant::now());
