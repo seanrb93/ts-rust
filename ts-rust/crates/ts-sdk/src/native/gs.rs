@@ -409,6 +409,82 @@ pub mod perf {
     /// One picture was presented (may be an in-between frame).
     pub fn display_frame() {
         ACC.lock().unwrap().dframes += 1;
+        pace_frame();
+    }
+
+    /// The pacing of the pictures: how long each took to follow the one before, for the last few seconds.
+    struct Pace {
+        last: Option<Instant>,
+        /// the last intervals in milliseconds, oldest first
+        times: std::collections::VecDeque<f32>,
+        /// the intervals not yet written to the log, and the summary's count
+        unwritten: Vec<f32>,
+        since_summary: Instant,
+        summary: Vec<f32>,
+    }
+
+    static PACE: Mutex<Option<Pace>> = Mutex::new(None);
+    const PACE_KEPT: usize = 240;
+
+    fn pace_frame() {
+        let now = Instant::now();
+        let mut g = PACE.lock().unwrap();
+        let p = g.get_or_insert_with(|| Pace { last: None, times: std::collections::VecDeque::new(), unwritten: Vec::new(), since_summary: now, summary: Vec::new() });
+        if let Some(l) = p.last {
+            let ms = (now - l).as_secs_f32() * 1e3;
+            p.times.push_back(ms);
+            while p.times.len() > PACE_KEPT {
+                p.times.pop_front();
+            }
+            // (a test aid, TS_FRAMELOG=<file>: every interval, one a line, and a summary of each 5 seconds on the log)
+            if let Ok(file) = std::env::var("TS_FRAMELOG") {
+                p.unwritten.push(ms);
+                p.summary.push(ms);
+                if p.unwritten.len() >= PACE_KEPT {
+                    let text: String = p.unwritten.iter().map(|m| format!("{m:.3}\n")).collect();
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&file) {
+                        use std::io::Write;
+                        let _ = f.write_all(text.as_bytes());
+                    }
+                    p.unwritten.clear();
+                }
+                if p.since_summary.elapsed() >= Duration::from_secs(5) {
+                    let s = pace_stats(&p.summary);
+                    eprintln!("[pace] {} pictures in {:.1} s: median {:.2} ms, p99 {:.2}, worst {:.2}, {} hitches (over 1.5x the median)", p.summary.len(), p.since_summary.elapsed().as_secs_f32(), s.0, s.1, s.2, s.3);
+                    p.summary.clear();
+                    p.since_summary = now;
+                }
+            }
+        }
+        p.last = Some(now);
+    }
+
+    /// (median, 99th percentile, worst, hitches) of intervals in milliseconds.
+    fn pace_stats(v: &[f32]) -> (f32, f32, f32, usize) {
+        if v.is_empty() {
+            return (0.0, 0.0, 0.0, 0);
+        }
+        let mut s: Vec<f32> = v.to_vec();
+        s.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        let median = s[s.len() / 2];
+        let p99 = s[(s.len() * 99 / 100).min(s.len() - 1)];
+        let worst = s[s.len() - 1];
+        let hitches = v.iter().filter(|m| **m > median * 1.5).count();
+        (median, p99, worst, hitches)
+    }
+
+    /// The last intervals between pictures, in milliseconds, oldest first (for the graph).
+    pub fn frame_times() -> Vec<f32> {
+        PACE.lock().unwrap().as_ref().map_or(Vec::new(), |p| p.times.iter().copied().collect())
+    }
+
+    /// A line on the pacing of the last pictures.
+    pub fn pace_text() -> String {
+        let g = PACE.lock().unwrap();
+        let Some(p) = g.as_ref() else { return String::new() };
+        let v: Vec<f32> = p.times.iter().copied().collect();
+        let (median, p99, worst, hitches) = pace_stats(&v);
+        format!("frame {median:.1} ms  p99 {p99:.1}  worst {worst:.1}  hitches {hitches}/{}", v.len())
     }
     /// GPU time left after the CPU finished submitting a scene (ms).
     pub fn set_gpu(ms: f32) {
