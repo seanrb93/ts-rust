@@ -1524,6 +1524,13 @@ pub fn netlink_boundary() {
         rb.menus = rb.menus.split_off(&keep_from);
     }
     ts_sdk::net::note_boundary(k, waited_from.elapsed());
+    // (a machine ahead of the others holds its clock back a little: see `time_sync`; TS_NOTIMESYNC=1 leaves it out, to compare)
+    if std::env::var_os("TS_NOTIMESYNC").is_none() {
+        let hold = ts_sdk::net::time_sync();
+        if !hold.is_zero() {
+            ts_sdk::delay_clock(hold);
+        }
+    }
 }
 
 /// The options of the match the lobby set (called where the mods' presets are written, after the game made the records of the options).
