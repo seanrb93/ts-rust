@@ -493,6 +493,27 @@ fn ping_text(ms: u32) -> (i32, i32) {
     (TEXT_AT, if ms >= 180 { 0x8020_2080u32 as i32 } else if ms >= 100 { 0x8080_2080u32 as i32 } else { 0x2080_2080 })
 }
 
+/// The rows the table of results has in a network game, starting at `y`: all of them when they fit, in the smaller font if they need it (it is chosen here), and
+/// otherwise as many as fit.  None: not a network game shown in one view, and the game's own number stands.
+#[cfg(feature = "extensions")]
+pub fn netlink_score_rows(rows: i32, y: i32) -> Option<i32> {
+    if !ts_sdk::net::active() || ilinkGetNumLocalPlayers() != 1 || rows <= 0 {
+        return None;
+    }
+    // (above the line at the bottom of the page)
+    let room = lw(g::window + 24) - 24 - y;
+    let fit = || {
+        let h = lw(lw(g::curfont) + 12);
+        let h = if lbu(g::fontflags) & 1 == 0 { h } else { h >> 1 };
+        room / (h + 2).max(1)
+    };
+    if rows <= fit() {
+        return Some(rows);
+    }
+    textSelect(1);
+    Some(rows.min(fit()).max(1))
+}
+
 /// On a player's row of the table of results, how long a packet takes to that player's machine (nothing for this machine's player, for a bot, or for a player who is out).
 #[cfg(feature = "extensions")]
 pub fn netlink_score_ping(record: i32, x: i32, y: i32) {

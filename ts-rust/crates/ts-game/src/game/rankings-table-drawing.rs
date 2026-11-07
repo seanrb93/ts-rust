@@ -115,6 +115,11 @@ pub fn drawRankingsTable(kind: i32) {
     sw(sp + 1080, left + width + 8);
     let first = if split == 0 { shift + 38 } else { shift + 20 };
     let mut y = top + first;
+    // (a network game: each machine has the whole screen for one view, so the table has as many rows as fit, in the smaller font when the larger has too few)
+    #[cfg(feature = "extensions")]
+    if let Some(n) = netlink_score_rows(rows, y) {
+        sw(sp + 1060, n);
+    }
     let mut remaining = lw(sp + 1060);
     let mut row = 0;
     if remaining != 0 {

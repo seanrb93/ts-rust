@@ -84,7 +84,7 @@ Test aid: `TS_NETCUT=<tick>,<seconds>` cuts a machine off from that tick for tha
 
 ## How long a packet takes
 
-The machines ask each other twice a second (`RS_PING`), and the view of a match shows, at the lower left, the time to the machine that takes longest: green, yellow from 100 ms, red from 180 ms.  The table of results (the pause menu's and the one at the end of a match) shows the time on each other player's row; this machine's player, the bots and a player who is out have none, and at the end of a match the times are the last ones known, as the machines have stopped asking.  Game Details shows each player's time to the host (from the lobby's JOIN and roster messages), and the host's character select shows the longest when it can start.
+The machines ask each other twice a second (`RS_PING`), and the view of a match shows, at the lower left, the time to the machine that takes longest: green, yellow from 100 ms, red from 180 ms.  The table of results (the pause menu's and the one at the end of a match) shows the time on each other player's row; this machine's player, the bots and a player who is out have none, and at the end of a match the times are the last ones known, as the machines have stopped asking.  The table has as many rows as the screen has room for (`netlink_score_rows`), in the smaller font when the larger has too few, where the game has 6 for any match of two or more players (it was made for a screen split between them).  Game Details shows each player's time to the host (from the lobby's JOIN and roster messages), and the host's character select shows the longest when it can start.
 
 ## Rollback
 
