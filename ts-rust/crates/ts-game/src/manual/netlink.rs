@@ -432,6 +432,7 @@ fn rs_pack(words: &[(u32, u32)]) -> Vec<u8> {
 /// This machine takes what was sent.
 #[cfg(feature = "extensions")]
 fn rs_apply(start: &[u8], data: &[u8]) {
+    rs_note_differences(start, data);
     let mem = ts_rt::host_slice(0, RS_MEMORY);
     // (first what this machine changed goes back; what the other machine changed then comes on top)
     for (at, _) in rs_changed(start) {
@@ -449,6 +450,49 @@ fn rs_apply(start: &[u8], data: &[u8]) {
         mem[at..at + 4 * n].copy_from_slice(&data[i..i + 4 * n]);
         i += 4 * n;
     }
+}
+
+/// What differed between this machine and the one in charge when they are put back in step, for `net-log.txt`: the words of the game's memory that come out
+/// otherwise than this machine has them, by the 256 bytes they are in, the places with most first (the cause of a desync is in them).
+#[cfg(feature = "extensions")]
+fn rs_note_differences(start: &[u8], data: &[u8]) {
+    let mem = ts_rt::host_slice(0, RS_MEMORY);
+    let mut theirs: std::collections::HashMap<usize, [u8; 4]> = std::collections::HashMap::new();
+    let mut i = 0;
+    while i + 8 <= data.len() {
+        let at = u32::from_le_bytes([data[i], data[i + 1], data[i + 2], data[i + 3]]) as usize;
+        let n = u32::from_le_bytes([data[i + 4], data[i + 5], data[i + 6], data[i + 7]]) as usize;
+        i += 8;
+        if at + 4 * n > RS_MEMORY || i + 4 * n > data.len() {
+            break;
+        }
+        for w in 0..n {
+            theirs.insert(at + 4 * w, data[i + 4 * w..i + 4 * w + 4].try_into().unwrap());
+        }
+        i += 4 * n;
+    }
+    let mut blocks: std::collections::BTreeMap<usize, (u32, usize)> = std::collections::BTreeMap::new();
+    let mut count = |at: usize| {
+        let e = blocks.entry(at & !255).or_insert((0, at));
+        e.0 += 1;
+    };
+    // (the words the one in charge changed and this machine has otherwise, and the words this machine changed and the one in charge did not)
+    for (&at, v) in &theirs {
+        if mem[at..at + 4] != v[..] {
+            count(at);
+        }
+    }
+    for (at, _) in rs_changed(start) {
+        let at = at as usize;
+        if !theirs.contains_key(&at) && mem[at..at + 4] != start[at..at + 4] {
+            count(at);
+        }
+    }
+    let total: u32 = blocks.values().map(|b| b.0).sum();
+    let mut list: Vec<(usize, u32, usize)> = blocks.into_iter().map(|(b, (n, first))| (b, n, first)).collect();
+    list.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    let places: Vec<String> = list.iter().take(16).map(|(_, n, first)| format!("{first:#x} ({n})")).collect();
+    ts_sdk::net::note(&format!("what differed: {total} words in {} places; the most at {}", list.len(), places.join(", ")));
 }
 
 /// A test aid (`TS_RSDUMP=<file>`): what this machine has changed, at each resync, for comparing the machines.
@@ -559,11 +603,11 @@ fn wait_for_others(rb: &mut Rollback, k: &mut u32) {
     use std::time::{Duration, Instant};
     let began = Instant::now();
     let mut drawn = Instant::now() - Duration::from_secs(1);
-    eprintln!("[net] on its own at tick {k}: waiting for the others");
+    ts_sdk::net::note(&format!("on its own at tick {k}: waiting for the others"));
     while ts_sdk::net::rs_alone() {
         ts_sdk::net::poll(Duration::ZERO);
         if let Some(p) = ts_sdk::net::rs_in_charge().then(ts_sdk::net::rs_take_wanting).flatten() {
-            eprintln!("[net] player {p} is back");
+            ts_sdk::net::note(&format!("player {p} is back"));
             ts_sdk::net::rs_name_tick(*k);
         }
         if ts_sdk::net::rs_tick().is_some() {
@@ -581,7 +625,7 @@ fn wait_for_others(rb: &mut Rollback, k: &mut u32) {
         joyTick();
         let leave = joyNewButLOCAL(0) & 16 != 0 || lhu(g::controllers + 292) & 16 != 0;
         if left == 0 || leave {
-            eprintln!("[net] nobody came back: the match is over here");
+            ts_sdk::net::note(&format!("nobody came back: the match is over here"));
             ts_sdk::net::rs_give_up_waiting();
             gameLevelQuit();
             return;
@@ -702,7 +746,7 @@ fn rs_stop(rb: &mut Rollback, k: u32) -> bool {
     rb.menus.insert(k, av_menu_state());
     rb.verified = k;
     rb.tick = k;
-    eprintln!("[net] back in step at tick {k}: {} bytes, {} ms{}", sent, began.elapsed().as_millis(), back.map_or(String::new(), |p| format!(", player {p} is back")));
+    ts_sdk::net::note(&format!("back in step at tick {k}: {} bytes, {} ms{}", sent, began.elapsed().as_millis(), back.map_or(String::new(), |p| format!(", player {p} is back"))));
     // (every machine does this for every player, so it leaves them the same)
     let text = back.map_or("Back in step".to_string(), |p| format!("Player {} is back", p + 1));
     for (i, c) in text.bytes().chain(std::iter::once(0)).enumerate() {
@@ -972,6 +1016,14 @@ fn netlink_put_prefs(prefs: i32, told: &[u8]) {
 #[cfg(feature = "extensions")]
 pub fn netlink_start_match(level: &str, players: usize) {
     let Some(setup) = ts_sdk::net::setup() else { return };
+    ts_sdk::net::note(&format!(
+        "a match starts: {level}, mode {}, {players} players and {} bots, this machine is player {}, input delay {}, pings {:?} ms",
+        setup.mode,
+        setup.bots.len(),
+        ts_sdk::net::local_player(),
+        ts_sdk::net::delay(),
+        ts_sdk::net::pings()
+    ));
     RETURN.store(true, std::sync::atomic::Ordering::Relaxed);
     // (a test aid: no sounds at all)
     if std::env::var_os("TS_NOSND").is_some() {
@@ -1445,13 +1497,13 @@ pub fn netlink_boundary() {
         let every = ts_sdk::net::SUM_EVERY;
         // (a machine that lost the others or quit is there again: the same, with the player coming back at the tick)
         if let Some(p) = ts_sdk::net::rs_take_wanting() {
-            eprintln!("[net] player {p} wants to come back");
+            ts_sdk::net::note(&format!("player {p} wants to come back"));
             ts_sdk::net::rs_name_tick((k + RS_AHEAD) / every * every + every + 1);
         } else if forced || (ts_sdk::net::out_of_step() && !rs.given_up) {
             rs.times.retain(|t| t.elapsed().as_secs() < 60);
             if rs.times.len() >= RS_MOST {
                 rs.given_up = true;
-                eprintln!("[net] {RS_MOST} resyncs in a minute have not kept the machines in step; no more are tried");
+                ts_sdk::net::note(&format!("{RS_MOST} resyncs in a minute have not kept the machines in step; no more are tried"));
             } else {
                 rs.times.push(std::time::Instant::now());
                 ts_sdk::net::rs_name_tick((k + RS_AHEAD) / every * every + every + 1);

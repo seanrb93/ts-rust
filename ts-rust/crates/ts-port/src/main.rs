@@ -1052,6 +1052,8 @@ fn compat_parts(game_dir: &std::path::Path) -> [u32; 3] {
     const START: u32 = 0x811c_9dc5;
     let mut program = START;
     feed(&mut program, env!("CARGO_PKG_VERSION").as_bytes());
+    // (the commit it is built from: two builds of the same version play differently)
+    feed(&mut program, env!("TS_BUILD_ID").as_bytes());
     feed(&mut program, &[cfg!(feature = "extensions") as u8, cfg!(feature = "extended-tables") as u8]);
     feed(&mut program, &ts_sdk::net::PROTOCOL.to_le_bytes());
     // (the game's packs: their names and sizes)

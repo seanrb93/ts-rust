@@ -114,7 +114,7 @@ pub fn set_on_lost(f: fn(&str)) {
 
 /// The link is lost: say so (the game ends).
 pub fn lost(why: &str) {
-    eprintln!("[net] {why}");
+    note(&format!("{why}"));
     let f = *ON_LOST.lock().unwrap();
     if let Some(f) = f {
         f(why);
@@ -398,6 +398,22 @@ pub fn active() -> bool {
     ACTIVE.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// What happened to a network game, for the log and for `net-log.txt` in the saves folder (the start of each match, players dropped and back, the machines out of step
+/// and what differed, the resyncs), so that a match that went wrong can be looked at afterwards.  The file is started again when it passes a megabyte.
+pub fn note(text: &str) {
+    eprintln!("[net] {text}");
+    static START: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+    let secs = START.get_or_init(Instant::now).elapsed().as_secs_f64();
+    let path = crate::save_root().join("net-log.txt");
+    if std::fs::metadata(&path).map_or(false, |m| m.len() > 1 << 20) {
+        let _ = std::fs::rename(&path, crate::save_root().join("net-log.old.txt"));
+    }
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
+        use std::io::Write;
+        let _ = writeln!(f, "{secs:9.1} s  {text}");
+    }
+}
+
 /// When the packets were last read (milliseconds from `PUMP_EPOCH`): every wait of a network game reads them while it waits.
 static LAST_PUMP: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 static PUMP_EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
@@ -669,7 +685,7 @@ impl Session {
         if !self.suspect[q] {
             self.suspect[q] = true;
             self.reports[self.local][q] = Some(self.have[q]);
-            eprintln!("[net] player {q} has stopped answering; dropping them");
+            note(&format!("player {q} has stopped answering; dropping them"));
         }
     }
 
@@ -684,7 +700,7 @@ impl Session {
             if all {
                 let v = (0..self.n()).filter_map(|r| self.reports[r][q]).max().unwrap_or(0);
                 self.dropped[q] = Some(v);
-                eprintln!("[net] player {q} is out from tick {v}");
+                note(&format!("player {q} is out from tick {v}"));
             }
         }
     }
@@ -727,7 +743,7 @@ impl Session {
                 compared = true;
                 if theirs != mine {
                     self.desyncs += 1;
-                    eprintln!("[net] DESYNC at tick {t}: this machine {mine:08x}, player {p} {theirs:08x}");
+                    note(&format!("DESYNC at tick {t}: this machine {mine:08x}, player {p} {theirs:08x}"));
                 }
             }
         }

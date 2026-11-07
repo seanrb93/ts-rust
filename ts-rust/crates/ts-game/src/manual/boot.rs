@@ -255,6 +255,11 @@ pub fn sim_frame() {
     sw(lw(g::curcpudmabuf) * 12 + (info + 8), 0);
     bossMainLoop();
     timeTickEnd();
+    // (the depth tests of the glows go round 3 slots: making the frame moved on the one glows are added to and the one read, and showing it moves on the one
+    // tested.  A frame played again is not shown, so it is tested here, against the depth of the last picture, or the slots part and the glows are read from
+    // points that were never tested: they show through walls)
+    zbtestDoTest();
+    zbtestAdvanceTestPtr();
     if lw(g::lvfirstframe_130) == 0 {
         sw(lw(g::curcpudmabuf) * 12 + info, 0);
     }
@@ -330,6 +335,17 @@ pub fn present_frame() {
     zbtestCopyZB();
     zbtestDoTest();
     zbtestAdvanceTestPtr();
+    // (a test aid, TS_GLOWLOG=1: the depth tests of the glows go round 3 slots, the one glows are added to, the one tested and the one read, which must keep
+    // their distances; told when they change)
+    #[cfg(feature = "extensions")]
+    if std::env::var_os("TS_GLOWLOG").is_some() {
+        static LAST: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(-1);
+        let (add, test, draw) = (lw(0x3b0170), lw(0x3b0174), lw(0x3b0178));
+        let gaps = (add - test).rem_euclid(3) * 3 + (add - draw).rem_euclid(3);
+        if LAST.swap(gaps, std::sync::atomic::Ordering::Relaxed) != gaps {
+            eprintln!("[glow] frame {} slots add {add} test {test} draw {draw}", ts_sdk::frame_count());
+        }
+    }
     ts_sdk::present(list);
     if std::env::var_os("TS_PLAYERLOG").is_some() {
         let p = lw(g::players);
