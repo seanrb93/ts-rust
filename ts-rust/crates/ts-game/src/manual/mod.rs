@@ -46,6 +46,8 @@ pub mod mod_settings;
 pub mod hands_puppet;
 #[path = "mode-presets.rs"]
 pub mod mode_presets;
+#[path = "original-fixes.rs"]
+pub mod original_fixes;
 pub mod restart;
 #[cfg(feature = "extensions")]
 pub mod modelmerge;
@@ -60,6 +62,7 @@ pub use throw_lift::*;
 pub use mod_settings::*;
 pub use hands_puppet::*;
 pub use restart::*;
+pub use original_fixes::*;
 #[cfg(feature = "extensions")]
 pub use script::*;
 #[cfg(feature = "extensions")]

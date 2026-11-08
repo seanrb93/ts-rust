@@ -142,7 +142,8 @@ fn player_step(a0: i32) -> Option<i32> {
             }
         }
         2 => {
-            stringeditStart(player, player * 30 + 0x1fc3298, 30, 1, 174, 0, 0);
+            // (a fix of the original: the names are 30 bytes apart, so a name of 30 letters put its end on the first letter of the next)
+            stringeditStart(player, player * 30 + 0x1fc3298, if fix_on(FIX_NAME_LENGTH) { 29 } else { 30 }, 1, 174, 0, 0);
             sb(lw(lw(g::front)) + 0x3aff28, 4);
             Some(0)
         }

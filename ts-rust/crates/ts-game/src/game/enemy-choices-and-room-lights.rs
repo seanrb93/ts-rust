@@ -13,6 +13,7 @@ fn random_unit() -> f32 {
 /// worth it; the enemy's target (+2788) is set to the pickup and the pad of the pickup (the first word of the entry) is returned, else -1 (@ 0x2c5140).
 pub fn enemyCheckHealth(enemy: i32) -> i32 {
     let data = lw(enemy + 352);
+    let target_before = lw(data + 2788);
     let mut best = 0.0_f32;
     let need = ps2float::mul(lwc1(enemy + 520), ps2float::add(lwc1(data + 12), 1.0));
     let mut chosen = -1;
@@ -47,6 +48,10 @@ pub fn enemyCheckHealth(enemy: i32) -> i32 {
             }
             if lwc1(0x3ad978) < ps2float::mul(ps2float::sub(1.0, need), best) {
                 return chosen;
+            }
+            // (a fix of the original: the pickup decided against stayed the enemy's target)
+            if fix_on(FIX_REJECTED_PICKUP) {
+                sw(data + 2788, target_before);
             }
         }
     }

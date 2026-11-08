@@ -36,6 +36,7 @@ All are optional.  The state of the script is kept in `this` (a map): `this.cloc
 | `model_names()` | a list of every name `make_model` can make, for the test aid `TS_MODELDUMP` |
 | `lists_pair(single)` | the weapon page may list the dual (x2) version of the weapon `single` (a number of the game's table of weapon combinations): answer `true` for it |
 | `allows_pair(pair, single)` | a set of weapons may have the pair `pair` of the weapon `single` (when not, it has the single weapon): answer `true` |
+| `fixes()` | every frame: a list of the names of the fixes of the original's bugs to switch on (`docs/original-bugs.md`; the others are off) |
 | `alternate_fists()` | an unarmed player punches with the left fist and the right in turn: answer `true` |
 | `on_hud(player)` | when the screen of a player is drawn (`hud_glow` works here) |
 | `results_per_character()` | the results: `true` for a row for every character instead of every team |

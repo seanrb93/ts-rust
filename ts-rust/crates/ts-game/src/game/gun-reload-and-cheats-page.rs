@@ -30,7 +30,7 @@ pub fn gunReload(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) {
                             let player = lw(g::currentplayer);
                             sw(first + 140, 2);
                             sw(first + 136, 2);
-                            let id = lw(lw(player));
+                            let id = lw(player);
                             let flags = lw(first + 16) | 0x40000000;
                             sw(a2 + 140, first);
                             sw(first + 16, flags);

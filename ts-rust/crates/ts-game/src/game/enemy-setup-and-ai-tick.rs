@@ -552,6 +552,11 @@ pub fn aiTickBefore() {
                         owner = lw(mind + 3020);
                     }
                     sw(owner + 16, flags | 32);
+                    // (a fix of the original: it stayed on the sleeper it tested, so the sleepers after it were never tested)
+                    if fix_on(FIX_SLEEPING_ENEMIES) {
+                        let next = lw(g::checksleepplayer) + 1;
+                        sw(g::checksleepplayer, if next < lw(g::numactivechars) { next } else { 0 });
+                    }
                 }
             }
             let count = lw(g::numactivechars);
@@ -1362,6 +1367,10 @@ pub fn arcade_mmload_pageTick(a0: i32) {
                                         if (pressed & 64) != 0 {
                                             let selected = lw(0x3aff7c);
                                             if (selected as u32) < (lw(directory + 8) as u32) {
+                                                // (a fix of the original: the map chosen was never kept, so the list always came back on the first)
+                                                if fix_on(FIX_ARCADE_MAP_CURSOR) {
+                                                    sw(0x3aff80, selected);
+                                                }
                                                 let status = 0x1fc11f8;
                                                 if (lw(status + 4) & 16) == 0 {
                                                     let offset = mmfileOffset(lhu(selected * 40 + directory + 48));

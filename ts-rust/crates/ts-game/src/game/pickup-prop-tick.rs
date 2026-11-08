@@ -350,7 +350,16 @@ pub fn pickupPropTick(a0: i32) {
                             gunAddAmmo(chr, lw(data + 44), lw(data + 48));
                             let player_kind = lw(chr + 8);
                             let proceed = if player_kind == 1 {
-                                (if lw(data + 12) < 33 { lw(lw(data + 12) * 400 + (GUNS_TABLE + 28)) } else { 0 } & 2) != 0
+                                // (a fix of the original: it read the gun with the number of the combination, not the combination's gun)
+                                (if fix_on(FIX_PICKUP_GUN) {
+                                    let gun = lh((lw(data + 12) << 3) + (GUNCOMBOS + 4));
+                                    if (0..gun_count()).contains(&gun) { lw(gun * 400 + (GUNS_TABLE + 28)) } else { 0 }
+                                } else if lw(data + 12) < 33 {
+                                    lw(lw(data + 12) * 400 + (GUNS_TABLE + 28))
+                                } else {
+                                    0
+                                } & 2)
+                                    != 0
                             } else {
                                 player_kind == 0
                             };

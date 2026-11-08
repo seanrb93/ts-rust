@@ -110,7 +110,10 @@ pub fn gameStatusUpdated() -> i32 {
                     if (flags & 32) == 0 {
                         if lw(params + 72) != 7 {
                             let record = statsGetPlayer(i) + (lw(g::lvlevelnum) * 36 + 320);
-                            sw(record + 32, lw(record + 32) + 1);
+                            // (a fix of the original: a map of the map maker, level 100, wrote past the 30 levels, into the next profile)
+                            if !fix_on(FIX_CUSTOM_MAP_STATS) || (lw(g::lvlevelnum) as u32) < 30 {
+                                sw(record + 32, lw(record + 32) + 1);
+                            }
                             let life = statsGetPlayer(i);
                             sw(life + 2012, lw(life + 2012) + 1);
                             let life = statsGetPlayer(i);

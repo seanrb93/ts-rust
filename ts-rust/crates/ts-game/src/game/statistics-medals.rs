@@ -278,7 +278,9 @@ pub fn StatsCalcMedals() {
         }
     }
     let count = lw(g::lvnumplayers);
-    let mut sum = StatsGetAverage(46, count_limit());
+    let average = StatsGetAverage(46, count_limit());
+    // (a fix of the original: the sum started from the average, so the mean came out too high)
+    let mut sum = if fix_on(FIX_MEDAL_MEAN) { 0.0_f32 } else { average };
     let mut p = 0;
     while p < count_limit() {
         sum = ps2float::add(sum, lwc1(p * 1368 + (g::matchstats + 184)));

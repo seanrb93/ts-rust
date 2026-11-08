@@ -656,7 +656,9 @@ pub fn camTick() {
                     sw(chr + 16, flags & -33);
                     sw(sp, 1);
                     sw(sp + 8, 0);
-                    let hit = bgLineTest(found, player + 152, sp + 48, 0, sp + 64, sp + 80, sp + 96, 0);
+                    // (a fix of the original: the line from the eye was tested from the room of its far end, so walls between could be missed)
+                    let start_room = if fix_on(FIX_CAMERA_ROOM) { lw(player + 796) } else { found };
+                    let hit = bgLineTest(start_room, player + 152, sp + 48, 0, sp + 64, sp + 80, sp + 96, 0);
                     let hit_x = lwc1(sp + 64);
                     if hit != 0 {
                         swc1(player + 884, hit_x);

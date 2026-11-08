@@ -133,7 +133,7 @@ pub fn propMovingPropInRange(a0: i32, a1: i32, f12: f32) -> i32 {
 }
 
 /// Paste the held objects of the map maker at the cursor: each object of the chain is copied to a new one that is moved by the cursor's cell (tiles snap to the grid) and
-/// placed; if one cannot be placed the pasted ones are freed again and the answer is 0 (@ 0x246140).
+/// placed; if one cannot be placed that one and the held ones are freed (those placed before it stay) and the answer is 0 (@ 0x246140).
 pub fn mmDoPaste() -> i32 {
     mmBackupMap();
     let scale_x = lw(g::scale_wtomx);
@@ -150,6 +150,10 @@ pub fn mmDoPaste() -> i32 {
         loop {
             copy = mmAllocObject();
             if copy == 0 {
+                // (a fix of the original: with no objects left the rest of the group was dropped and the paste counted as done)
+                if fix_on(FIX_PASTE) {
+                    return paste_failed();
+                }
                 break;
             }
             let b = ld(object + 8);
@@ -182,6 +186,10 @@ pub fn mmDoPaste() -> i32 {
             sw(copy + 20, level + edit_level);
             if mmPlaceObject(copy) == 0 {
                 mmFreeObject(copy);
+                // (a fix of the original: the objects placed before this one stayed on the map)
+                if fix_on(FIX_PASTE) {
+                    return paste_failed();
+                }
                 mmFreeObject(lw(g::usedobj));
                 sw(g::usedobj, 0);
                 return 0;
@@ -195,6 +203,17 @@ pub fn mmDoPaste() -> i32 {
     mmFreeObject(lw(g::usedobj));
     sw(g::usedobj, 0);
     1
+}
+
+/// A paste that could not be finished (with the fix of `FIX_PASTE`): the held group is let go and the map is put back as it was before the paste (`mmBackupMap` at its start), when
+/// that copy was made (flag 256).
+fn paste_failed() -> i32 {
+    mmFreeObject(lw(g::usedobj));
+    sw(g::usedobj, 0);
+    if (lw(g::editflags) & 256) != 0 {
+        mmUndoMap();
+    }
+    0
 }
 
 /// Smash a pane of glass `a0` hit at the position `a1`: the glass is split into pieces (`particleNewGlass`) with the position inside the pane worked out as fractions along

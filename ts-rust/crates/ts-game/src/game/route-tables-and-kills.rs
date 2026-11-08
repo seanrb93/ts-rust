@@ -6,6 +6,10 @@ use crate::*;
 pub fn enemyAddToPropList(prop: i32) {
     let n = lw(g::numBases);
     if ((lw(prop + 4) - 201) as u32) < 2 {
+        // (a fix of the original: an eleventh base was written past the end of the list)
+        if n >= 10 && fix_on(FIX_SPAWN_LISTS) {
+            return;
+        }
         let bases = g::bases;
         sw(bases + (n << 3) + 4, prop);
         let pad = closestpad(prop + 48, 0.0);

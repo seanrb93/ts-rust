@@ -453,7 +453,8 @@ pub fn mapfile_pageTick(a0: i32) {
                     sb(STATE, 2);
                     return;
                 }
-                let index = lw(0x3b0048) - lw(0x3b0054);
+                // (a fix of the original: the parent row was taken off the number of the map, so the list came back one row too high)
+                let index = if fix_on(FIX_MAP_CURSOR) { lw(0x3b0048) } else { lw(0x3b0048) - lw(0x3b0054) };
                 let page = lw(sp);
                 sw(g::editflags, flags & -257);
                 sw(0x3b004c, index);

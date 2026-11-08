@@ -694,7 +694,8 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
                             if (lw(a1_26 + 20) & 2) == 0 {
                                 break 'b78;
                             }
-                            StatsAdd(68, lw(a1 + 4), 1.0_f32);
+                            // (a fix of the original: the statistic went to the slot of the prop's kind, not to the killer)
+                            StatsAdd(68, if fix_on(FIX_KILL_STAT) { lw(s1_4) } else { lw(a1 + 4) }, 1.0_f32);
                         }
                     }
                     if lw(s0_4 + 72) == 3 {

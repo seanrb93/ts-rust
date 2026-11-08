@@ -297,6 +297,7 @@ pub fn enemyChooseDefendPad(enemy: i32) -> i32 {
             let dy = ps2float::sub(lwc1(to + 16), lwc1(from + 16));
             swc1(sp + 84, dy);
             let dz = ps2float::sub(lwc1(to + 20), lwc1(from + 20));
+            swc1(sp + 88, dz);
             let inverse = (1.0_f32).pdiv(ps2float::add(ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt());
             let nx = ps2float::mul(lwc1(sp + 80), inverse);
             let ny = ps2float::mul(lwc1(sp + 84), inverse);

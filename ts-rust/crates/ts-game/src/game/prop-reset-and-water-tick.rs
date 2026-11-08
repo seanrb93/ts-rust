@@ -198,16 +198,18 @@ pub fn enemyDefend(enemy: i32) {
         }
     }
     let distance_index = lw(g::updatedistindex);
+    // (a fix of the original: every way wrote the old pad back, so a pad just chosen was lost and the enemy walked to no pad)
+    let keep = if fix_on(FIX_DEFEND_PAD) { pad } else { old_pad };
     if pad != old_pad {
         if distance_index != lw(record) {
-            sw(record + 684, old_pad);
+            sw(record + 684, keep);
         } else {
             sw(record + 1688, 0);
             sw(record + 2692, 0);
-            sw(record + 684, old_pad);
+            sw(record + 684, keep);
         }
     } else {
-        sw(record + 684, old_pad);
+        sw(record + 684, keep);
     }
     let next = findNextPad(record + 680);
     if next != -2 {

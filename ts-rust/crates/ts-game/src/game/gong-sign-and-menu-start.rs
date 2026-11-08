@@ -159,6 +159,10 @@ pub fn musicTick() {
 /// The level is completed: the flag 0x10000 is told to the front end when the status changed, the state becomes 4, the time is paused, the sound plays and, for the game kinds
 /// 1 to 7, the in-game menu of each player opens (@ 0x21d348).
 pub fn gameLevelCompleted() {
+    // (a fix of the original: a level ended twice in one frame, by the time and by the mode, counted the match's statistics twice)
+    if fix_on(FIX_DOUBLE_END) && lw(g::gamestate) == 4 {
+        return;
+    }
     if gameStatusUpdated() != 0 {
         frontmpgSetFlags(0x10000);
     }

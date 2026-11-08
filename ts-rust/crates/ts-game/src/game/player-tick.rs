@@ -363,11 +363,18 @@ fn move_pushed(sp: i32, p: i32) -> i32 {
     swc1(sp + 144, ps2float::add(lwc1(p + 140), step_x));
     swc1(sp + 148, ps2float::add(lwc1(p + 144), step_y));
     swc1(sp + 152, ps2float::add(lwc1(p + 148), step_z));
-    let left = ps2float::sub(lwc1(p + 300), step_x);
-    swc1(p + 300, left);
-    let left = ps2float::sub(left, lwc1(sp + 160));
-    swc1(p + 300, left);
-    swc1(p + 300, ps2float::sub(left, lwc1(sp + 160)));
+    if fix_on(FIX_PUSHED) {
+        // (a fix of the original: it took the push along x off three times and never along y and z)
+        swc1(p + 300, ps2float::sub(lwc1(p + 300), step_x));
+        swc1(p + 304, ps2float::sub(lwc1(p + 304), step_y));
+        swc1(p + 308, ps2float::sub(lwc1(p + 308), step_z));
+    } else {
+        let left = ps2float::sub(lwc1(p + 300), step_x);
+        swc1(p + 300, left);
+        let left = ps2float::sub(left, lwc1(sp + 160));
+        swc1(p + 300, left);
+        swc1(p + 300, ps2float::sub(left, lwc1(sp + 160)));
+    }
     if fraction == 1.0_f32 {
         let speed_x = lwc1(sp + 160);
         sw(p + 296, 2);

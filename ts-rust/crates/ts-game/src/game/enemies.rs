@@ -76,6 +76,10 @@ pub fn enemyAddToEscortList(enemy: i32) {
 /// Add to a list of 8-byte entries (`value` at +4, `pad` at +0) at `list`, counted by the word `count_at`; the count stops at `cap`, and the last entry is overwritten after that.
 fn add_spawn(count_at: i32, list: i32, cap: i32, value: i32, pad: i32) {
     let n = lw(count_at);
+    // (a fix of the original: a full list wrote one entry past its end, over the table after it)
+    if n >= cap && fix_on(FIX_SPAWN_LISTS) {
+        return;
+    }
     sw(list + (n << 3) + 4, value);
     sw((n << 3) + list, pad);
     if n < cap {

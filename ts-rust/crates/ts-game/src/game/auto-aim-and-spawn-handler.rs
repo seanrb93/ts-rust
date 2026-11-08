@@ -96,7 +96,8 @@ pub fn playerAutoAimTick() {
                                     let from_now = lw(g::nexttestfrom);
                                     let chrs = lw(g::chrinfo);
                                     let target = lw(g::nexttestto) * 0x1210 + chrs;
-                                    let current = lw(g::currentplayer);
+                                    // (a fix of the original: it asked whether the player last drawn was dead, not the player of the pair)
+                                    let current = if fix_on(FIX_SEEN_BY) { player } else { lw(g::currentplayer) };
                                     if lw(target + 24) != lw(from_now * 0x1210 + chrs + 24) {
                                         if lw(current + 296) != 4 {
                                             sw(target + 2776, from_now);

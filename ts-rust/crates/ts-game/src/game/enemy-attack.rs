@@ -652,6 +652,8 @@ fn pad_attack(a0: i32, mind: i32) -> Flow {
     let height = dp_abs(ps2float::sub(lwc1(a0 + 52), lwc1(target + 52)));
     if dpcmp(height, 0x3ff8000000000000_i64) <= 0 {
         let wanted = enemyGetTargetPad(a0);
+        // (the pad it went to before: the original compares with what it has just written, so it never plans a new route)
+        let before = lw(mind + 684);
         sw(mind + 684, wanted);
         let next = findNextPad(mind + 680);
         if next == -2 {
@@ -676,7 +678,7 @@ fn pad_attack(a0: i32, mind: i32) -> Flow {
             sw(mind + 680, next);
             sw(mind + 1688, left - 1);
             enemySetMoveMode(a0, 8);
-            let target_pad = lw(mind + 684);
+            let target_pad = if fix_on(FIX_ROUTE_RESET) { before } else { lw(mind + 684) };
             sw(mind + 2704, lw(mind + 2704) | 6);
             if target_pad != wanted {
                 sw(mind + 1688, 0);

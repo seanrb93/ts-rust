@@ -675,6 +675,9 @@ pub fn script_frame() {
     if ACTIVE.load(Ordering::Relaxed) {
         let _: Vec<()> = call_all("on_frame", ());
         FISTS.store(call_all::<_, bool>("alternate_fists", ()).into_iter().any(|b| b), Ordering::Relaxed);
+        // (the fixes of the original's bugs that the mods switch on)
+        let names: Vec<String> = call_all::<_, rhai::Array>("fixes", ()).into_iter().flatten().filter_map(|d| d.into_string().ok()).collect();
+        fixes_set(&names);
     }
 }
 

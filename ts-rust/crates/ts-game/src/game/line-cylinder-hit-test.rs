@@ -178,9 +178,19 @@ pub fn HitTestLineCylinder(from: i32, dir: i32, bottom: i32, top: i32, hit: i32,
         if normal == 0 {
             return 1;
         }
-        let centre_z = ps2float::sub(lwc1(bottom + 8), ps2float::mul(above, axis_z));
-        let centre_x = ps2float::sub(lwc1(bottom), ps2float::mul(above, axis_x));
-        let centre_y = ps2float::sub(lwc1(bottom + 4), ps2float::mul(above, axis_y));
+        // (a fix of the original: the point of the axis nearest the hit is the bottom plus the axis, not minus, else the direction of the hit leans along the limb)
+        let (centre_x, centre_y, centre_z) = if fix_on(FIX_LIMB_NORMAL) {
+            (
+                ps2float::add(lwc1(bottom), ps2float::mul(above, axis_x)),
+                ps2float::add(lwc1(bottom + 4), ps2float::mul(above, axis_y)),
+                ps2float::add(lwc1(bottom + 8), ps2float::mul(above, axis_z)),
+            )
+        } else {
+            let centre_z = ps2float::sub(lwc1(bottom + 8), ps2float::mul(above, axis_z));
+            let centre_x = ps2float::sub(lwc1(bottom), ps2float::mul(above, axis_x));
+            let centre_y = ps2float::sub(lwc1(bottom + 4), ps2float::mul(above, axis_y));
+            (centre_x, centre_y, centre_z)
+        };
         swc1(sp + 168, centre_z);
         swc1(sp + 160, centre_x);
         swc1(sp + 164, centre_y);
