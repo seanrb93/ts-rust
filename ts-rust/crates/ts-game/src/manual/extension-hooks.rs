@@ -282,6 +282,78 @@ pub fn fe_body_model_turn(chr: i32) {
     }
 }
 
+/// A solid figure on the game's skeleton (`upright` of `characters.txt`, a robot whose pieces all follow one bone): its bones walk and turn it, but
+/// the people's poses would tilt it (the hips are turned when they stand), so while it lives its pieces get the turn of the root at rest (the turn
+/// `calMatrices` gave their matrices is replaced, their place kept) and it stands upright the way it faces; when it dies it falls as the others do.
+#[cfg(feature = "extensions")]
+pub fn upright_parts(model: i32) {
+    let owner = lw(model + 244);
+    if owner == 0 || lw(owner + 8) != 8 {
+        return;
+    }
+    let record = lw(owner + 352);
+    if record == 0 || !crate::manual::chartable::is_upright(lh(record + 4)) {
+        return;
+    }
+    // (dying: a player's state at +296 of its player record is 4; a computer character's flags 16 and 32 at +2716)
+    let number = lw(record);
+    let dying = if (0..lw(g::lvnumplayers)).contains(&number) { lw(lw(g::players) + number * 1820 + 296) == 4 } else { lw(record + 2716) & (16 | 32) != 0 };
+    if dying {
+        return;
+    }
+    let matrices = lw(model + 4);
+    let object = lw(model);
+    if matrices == 0 || object == 0 {
+        return;
+    }
+    // (a piece is kept in the frame of its bone as the skeleton has it at rest, so upright is the turn of the root at rest: the first channel of the
+    // skeleton's file, its place and then its quaternion, after the header and the table of channels as `loadAnimation` reads them)
+    let Some(rest) = skeleton_root_rest(lw(model + 88)) else { return };
+    for k in 0..lw(object + 4).clamp(0, 64) {
+        let m = matrices + k * 64;
+        for (i, v) in rest.iter().enumerate() {
+            swc1(m + (i as i32 / 3) * 16 + (i as i32 % 3) * 4, *v);
+        }
+    }
+}
+
+/// The turn of the root of a skeleton at rest (the rows of its matrix), read once from the skeleton's file.
+#[cfg(feature = "extensions")]
+fn skeleton_root_rest(skeleton: i32) -> Option<[f32; 9]> {
+    use std::sync::Mutex;
+    static CACHE: Mutex<Vec<(i32, [f32; 9])>> = Mutex::new(Vec::new());
+    if skeleton == 0 {
+        return None;
+    }
+    let file = lw(skeleton + 16);
+    if let Some((_, r)) = CACHE.lock().unwrap().iter().find(|(f, _)| *f == file) {
+        return Some(*r);
+    }
+    let memory = fileGetMem(file);
+    if memory == 0 {
+        return None;
+    }
+    let mask = -16;
+    let header = memory + 15 & mask;
+    let channels = lw(header + 28);
+    if channels <= 0 {
+        return None;
+    }
+    let data = ((lw(header + 4) << 2) + 15 & mask) + (memory + (channels << 5)) + 51 & mask;
+    let frame = Frame::new(64);
+    let sp = frame.sp();
+    quaternionToMatrix(sp, data + 12);
+    let mut r = [0.0_f32; 9];
+    for (i, v) in r.iter_mut().enumerate() {
+        *v = lwc1(sp + (i as i32 / 3) * 16 + (i as i32 % 3) * 4);
+    }
+    if r.iter().any(|v| !v.is_finite()) {
+        return None;
+    }
+    CACHE.lock().unwrap().push((file, r));
+    Some(r)
+}
+
 /// The sound test's item that saves the table of sounds (`main_pageTick_2073c0`): the original writes it to the developers' host machine, and the port
 /// has no such machine (a failed write ends the game), so the build with extensions does not save it.
 #[inline]

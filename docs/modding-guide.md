@@ -68,7 +68,7 @@ The new weapon is a single weapon and a pair, and shows in the weapon sets and w
 2. `python tools/obchar.py <game folder> figure.obj --out mods/Robo --name "Robo" [--base 0] [--voice 5]` makes the mod: the model, the textures from the OBJ's materials (any size) and a `characters.txt`.  Each triangle is given to the bone nearest to it, and the triangles near a joint go to the seam parts that the game's own characters have there.
 3. Start the game.  The character is on the character select page after the game's own (left from the first character, or right through the list), on the bot sets page, and can be a bot.
 
-By hand the same is `character 80`, `copy 0`, `name "Robo"`, `voice 5`, `model_file ob/chrs/chr90.raw`.  Numbers go from 80 up to 127 in turn.  A character with its own model uses two of the 27 model props that mods share, so about 13 can have one.
+By hand the same is `character 80`, `copy 0`, `name "Robo"`, `voice 5`, `model_file ob/chrs/chr90.raw`.  Numbers go from 80 up to 127 in turn.  A character with its own model uses two of the 27 model props that mods share, so about 13 can have one.  A solid figure (a robot) made of `bone<N>` pieces can have the line `upright`: while it lives its pieces keep the turn they have at rest, so it stands straight the way it faces instead of leaning with the people's poses (their hips are turned when they stand); its bones still walk and turn it, and it falls when it dies.  `example_mods/blue_robot_mod` is the game's unused Blue Robot made so: its model, which has no skeleton, rebuilt by `obchar.py` with all of it on the pelvis (`o bone0`).
 
 Not made yet: sounds of its own (use `voice`), a different skeleton or animations, the character in the story.
 

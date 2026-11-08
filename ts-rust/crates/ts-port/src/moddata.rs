@@ -360,7 +360,7 @@ pub fn split_new_characters(text: &str) -> (String, Vec<ts_game::NewCharacter>, 
             if let Some(v) = words.get(1).and_then(|w| parse_int(w)) {
                 if (CHR_COUNT as i64..ts_game::MAX_CHARACTERS as i64).contains(&v) {
                     current_new = true;
-                    chars.push(ts_game::NewCharacter { number: v as i32, copy_of: -1, name: String::new(), model_file: String::new(), voice_of: -1, puts: Vec::new() });
+                    chars.push(ts_game::NewCharacter { number: v as i32, copy_of: -1, name: String::new(), model_file: String::new(), voice_of: -1, puts: Vec::new(), upright: false });
                     continue;
                 }
             }
@@ -389,6 +389,12 @@ pub fn split_new_characters(text: &str) -> (String, Vec<ts_game::NewCharacter>, 
             "voice" => match arg().and_then(parse_int) {
                 Some(v) if (0..c.number as i64).contains(&v) => c.voice_of = v as i32,
                 _ => errors.push(format!("line {n}: `voice` needs the number of an earlier character")),
+            },
+            "upright" => match arg().map(|w| w.to_ascii_lowercase()) {
+                None => c.upright = true,
+                Some(w) if matches!(w.as_str(), "yes" | "true" | "on" | "1") => c.upright = true,
+                Some(w) if matches!(w.as_str(), "no" | "false" | "off" | "0") => c.upright = false,
+                _ => errors.push(format!("line {n}: `upright` is yes or no")),
             },
             "model_file" => match arg() {
                 Some(p) if !p.contains("..") => c.model_file = p.trim_matches('"').trim_start_matches('/').to_string(),
@@ -423,7 +429,7 @@ pub fn split_new_characters(text: &str) -> (String, Vec<ts_game::NewCharacter>, 
                         None => errors.push(format!("line {n}: `{key}` needs a number in its range")),
                     }
                 }
-                None => errors.push(format!("line {n}: unknown field `{key}` of an added character (copy, name, voice, model_file, raw and the fields of a character)")),
+                None => errors.push(format!("line {n}: unknown field `{key}` of an added character (copy, name, voice, model_file, upright, raw and the fields of a character)")),
             },
         }
     }

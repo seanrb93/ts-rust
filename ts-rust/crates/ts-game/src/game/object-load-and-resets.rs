@@ -609,6 +609,8 @@ pub fn animUpdate(a0: i32) {
                     }
                     if matrices != 0 {
                         calMatrices(a0);
+                        #[cfg(feature = "extensions")]
+                        upright_parts(a0);
                         return;
                     }
                     kind = lw(a0 + 96);

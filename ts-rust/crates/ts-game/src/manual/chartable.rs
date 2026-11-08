@@ -30,6 +30,17 @@ pub struct NewCharacter {
     pub voice_of: i32,
     /// changes of the entry: the place in it, the width in bytes and the value
     pub puts: Vec<(i32, i32, u32)>,
+    /// a solid figure (a robot) on the game's skeleton: its pieces stand upright while it lives, so the people's poses (the hips turned when standing)
+    /// do not tilt it; its bones still walk and turn it
+    pub upright: bool,
+}
+
+/// The characters whose pieces stand upright (`upright` of `characters.txt`), a bit for each of the 128 numbers.
+static UPRIGHT: [std::sync::atomic::AtomicU64; 2] = [std::sync::atomic::AtomicU64::new(0), std::sync::atomic::AtomicU64::new(0)];
+
+/// Whether the character `chr` is a solid figure whose pieces stand upright (`NewCharacter::upright`).
+pub fn is_upright(chr: i32) -> bool {
+    (0..MAX_CHARACTERS).contains(&chr) && UPRIGHT[(chr >> 6) as usize].load(std::sync::atomic::Ordering::Relaxed) & (1 << (chr & 63)) != 0
 }
 
 static NEW_CHARACTERS: Mutex<Vec<NewCharacter>> = Mutex::new(Vec::new());
@@ -160,6 +171,9 @@ pub fn character_table_init() {
             if front >= 0 {
                 sw(entry + 12, front);
             }
+        }
+        if c.upright {
+            UPRIGHT[(next >> 6) as usize].fetch_or(1 << (next & 63), std::sync::atomic::Ordering::Relaxed);
         }
         eprintln!("[mods] character {} \"{}\" added (a copy of {}{})", next, c.name, c.copy_of, if c.model_file.is_empty() { String::new() } else { format!(", model {}", c.model_file) });
         accepted += 1;
