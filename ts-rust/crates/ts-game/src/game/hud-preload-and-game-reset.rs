@@ -958,7 +958,7 @@ pub fn main_pageTick_2073c0(a0: i32) {
                         if item == 2 {
                             sw(g::first_sound, -0x80000000_i64 as i32);
                         }
-                    } else {
+                    } else if sound_save_allowed_or() {
                         sounddataSave();
                         startMessage(0x399bc8, 0x7f7f7f80, 0);
                     }

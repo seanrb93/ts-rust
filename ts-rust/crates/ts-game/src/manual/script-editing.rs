@@ -19,6 +19,9 @@ const CYLINDER_BYTES: i32 = 784;
 /// How far from the eye of the view a cylinder has to be to be drawn.
 const CYLINDER_CLEAR: f32 = 1.5;
 const DEBUG_NEXT: i32 = 0x3afe14;
+/// The head of the list of the particle groups of kind 13, the rays (`getgroup` puts a new one first), and the squares of a ray.
+const RAY_GROUPS: i32 = 0x1fe99c0 + 13 * 4;
+const RAY_SQUARES: i32 = 40;
 const DEBUG_END: i32 = 0x3afe10;
 /// How far the view is tested for where it meets the level, and the place taken where it meets nothing.
 const AIM_REACH: f32 = 50.0;
@@ -31,6 +34,9 @@ thread_local! {
     static IN_HUD: RefCell<bool> = const { RefCell::new(false) };
     /// Where the blast rings are centred (the original centres them on the first player).
     static RING_AT: RefCell<[f32; 3]> = const { RefCell::new([0.0; 3]) };
+    /// The front end's stack of pages before the sound test was opened (`soundtoolStart` empties it), to go back to: the count (+20 of the front end
+    /// record) and the pages (16 bytes each from the address at +4).
+    static BEFORE_SOUND_TEST: RefCell<Option<(i32, Vec<i32>)>> = const { RefCell::new(None) };
     /// The rings as they were before the first view of the frame drew them, and after (`blastringGfx` moves them on as it draws them, so the other
     /// views of a split screen draw them from the same state and leave them as the first view did).
     static RINGS_BEFORE: RefCell<Vec<i32>> = const { RefCell::new(Vec::new()) };
@@ -69,6 +75,15 @@ fn player_record(p: i64) -> i32 {
 
 fn valid_player(p: i64) -> bool {
     p >= 0 && (p as i32) < lw(g::lvnumplayers) && lw(g::players) != 0
+}
+
+/// A controller that can be read: of a player in a match, or of the first four in the menus.
+fn valid_controller(p: i64) -> bool {
+    if lw(g::gamestate) == 3 {
+        valid_player(p)
+    } else {
+        (0..4).contains(&p)
+    }
 }
 
 /// Run `f` with the game's current player set to the player `p` (the editor's functions work on the current player).
@@ -237,14 +252,79 @@ fn pad_file_bytes() -> Vec<u8> {
 
 pub(super) fn register(engine: &mut Engine) {
     // the buttons of a player's controller: held, newly pressed, and taken from the game (it does not see them until they are let go)
-    engine.register_fn("buttons", |p: i64| if valid_player(p) { (lw(crate::game::controllers::controller(p as i32) + 288) & 0xffff) as i64 } else { 0 });
-    engine.register_fn("pressed", |p: i64| if valid_player(p) { (joyNewBut(p as i32) & 0xffff) as i64 } else { 0 });
+    engine.register_fn("buttons", |p: i64| if valid_controller(p) { (lw(crate::game::controllers::controller(p as i32) + 288) & 0xffff) as i64 } else { 0 });
+    engine.register_fn("pressed", |p: i64| if valid_controller(p) { (joyNewBut(p as i32) & 0xffff) as i64 } else { 0 });
     engine.register_fn("consume", |p: i64, mask: i64| {
-        if valid_player(p) {
+        if valid_controller(p) {
             joyClearButs(p as i32, mask as i32);
         }
     });
     engine.register_fn("level", || lw(g::lvlevelnum) as i64);
+    engine.register_fn("in_match", || lw(g::gamestate) == 3);
+
+    // the original's sound test (`soundtoolStart`): a page of the front end that steps through the sounds of the game and plays them; true when it opened
+    engine.register_fn("sound_test_open", || -> bool {
+        let front = lw(g::front);
+        if lw(g::gamestate) == 3 || front == 0 || BEFORE_SOUND_TEST.with(|b| b.borrow().is_some()) {
+            return false;
+        }
+        let count = lw(front + 20).clamp(0, 16);
+        let pages: Vec<i32> = (0..count * 4).map(|k| lw(lw(front + 4) + 4 * k)).collect();
+        BEFORE_SOUND_TEST.with(|b| *b.borrow_mut() = Some((count, pages)));
+        soundtoolStart();
+        true
+    });
+    // back to the page the sound test was opened from
+    engine.register_fn("sound_test_close", || {
+        let front = lw(g::front);
+        if let Some((count, pages)) = BEFORE_SOUND_TEST.with(|b| b.borrow_mut().take()) {
+            if front != 0 && lw(g::gamestate) != 3 {
+                for (k, w) in pages.iter().enumerate() {
+                    sw(lw(front + 4) + 4 * k as i32, *w);
+                }
+                sw(front + 12, 0);
+                sw(front + 24, 0);
+                sw(front + 20, count);
+            }
+        }
+    });
+    // the sound test's own page is showing (not the list of sounds it opens, which its back button closes)
+    engine.register_fn("sound_test_showing", || -> bool {
+        let front = lw(g::front);
+        let open = BEFORE_SOUND_TEST.with(|b| b.borrow().is_some());
+        if open && (front == 0 || lw(g::gamestate) == 3) {
+            BEFORE_SOUND_TEST.with(|b| *b.borrow_mut() = None);
+            return false;
+        }
+        // (the top page of the front end's stack: the stack's count at +20, its pages of 16 bytes from the address at +4, the page's definition first)
+        let count = lw(front + 20);
+        open && count > 0 && lw(lw(front + 4) + (count - 1) * 16) == g::main_page_329710
+    });
+    engine.register_fn("sound_test_open_now", || BEFORE_SOUND_TEST.with(|b| b.borrow().is_some()) && lw(g::gamestate) != 3);
+
+    // the original's ray (`particleNewRay`): a line of turned squares of light from one place to another, that lasts `seconds` (the original's is 5).  The original
+    // leaves the number of squares at 0, so nothing is drawn, and keeps the end where the drawing reads a direction: the squares are set here, 40 along it
+    engine.register_fn("ray", |x1: f64, y1: f64, z1: f64, x2: f64, y2: f64, z2: f64, seconds: f64| -> bool {
+        let frame = Frame::new(32);
+        let sp = frame.sp();
+        let (from, to) = ([x1 as f32, y1 as f32, z1 as f32], [x2 as f32, y2 as f32, z2 as f32]);
+        for k in 0..3 {
+            swc1(sp + 4 * k as i32, from[k]);
+            swc1(sp + 16 + 4 * k as i32, to[k]);
+        }
+        // (the owner is a word the group clears when it is freed: none)
+        particleNewRay(0, sp, sp + 16, 0);
+        let group = lw(RAY_GROUPS);
+        if group == 0 {
+            return false;
+        }
+        for k in 0..3 {
+            swc1(group + 940 + 4 * k as i32, to[k] - from[k]);
+        }
+        sw(group + 24, RAY_SQUARES);
+        swc1(group + 16, (seconds as f32).clamp(0.1, 30.0));
+        true
+    });
 
     // the pads: a pad's number is its place in the level's list (pad_count, pad_x, pad_y and pad_z are in the scripts' own functions)
     engine.register_fn("pad_used", |k: i64| pad_used(k));

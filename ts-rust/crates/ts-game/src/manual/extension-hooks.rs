@@ -263,6 +263,13 @@ pub fn av_front_page_or(page: i32) -> i32 {
     }
 }
 
+/// The sound test's item that saves the table of sounds (`main_pageTick_2073c0`): the original writes it to the developers' host machine, and the port
+/// has no such machine (a failed write ends the game), so the build with extensions does not save it.
+#[inline]
+pub fn sound_save_allowed_or() -> bool {
+    !cfg!(feature = "extensions")
+}
+
 /// The triangle button on the page of the number of players asks whether to exit the game: true when it was dealt with.
 #[inline]
 pub fn av_nplayers_exit_x(page: i32) -> bool {

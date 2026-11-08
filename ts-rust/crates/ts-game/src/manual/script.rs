@@ -738,9 +738,9 @@ pub fn script_hud() {
     STATE.with(|s| s.borrow_mut().in_hud = false);
 }
 
-/// The pads have been read and the game has not seen them yet (`ilinkTick`): the scripts may take buttons from it (`on_input`, in a match).
+/// The pads have been read and the game has not seen them yet (`ilinkTick`): the scripts may take buttons from it (`on_input`, in the menus too).
 pub fn script_input() {
-    if !ACTIVE.load(Ordering::Relaxed) || lw(g::gamestate) != 3 || !has("on_input") || lw(g::players) == 0 {
+    if !ACTIVE.load(Ordering::Relaxed) || !has("on_input") || (lw(g::gamestate) == 3 && lw(g::players) == 0) {
         return;
     }
     let _: Vec<()> = call_all("on_input", ());
