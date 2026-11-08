@@ -225,6 +225,13 @@ pub fn rotateChr(a0: i32) {
         let kind = lw(target + 8);
         let x;
         let y;
+        // Only the kinds 1, 8, 64 and 256 write the direction below; for the others the original reads stack words nothing has written. The fix aims them at the
+        // target's place.
+        if fix_on(FIX_AIM_PITCH) {
+            swc1(sp, ps2float::sub(lwc1(target + 48), lwc1(s2 + 3008)));
+            swc1(sp + 4, ps2float::sub(lwc1(target + 52), lwc1(s2 + 3012)));
+            swc1(sp + 8, ps2float::sub(lwc1(target + 56), lwc1(s2 + 3016)));
+        }
         if kind == 8 {
             let state = lw(s2 + 376);
             let near = state == 8 || state == 11 || state == 13 || state == 25 || ((state - 14) as u32) < 5;

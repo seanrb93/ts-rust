@@ -23,7 +23,10 @@ pub fn electricityPropTick(a0: i32) {
                 let line = index - 1;
                 let offset = line << 2;
                 let entry = lw(sp + 8) + index * 80;
-                if lw(offset + g::electricityOn) != 0 {
+                // The lines are the chunks 1 to 12; for chunk 0 the original reads the word before `electricityOn` (of another table) and writes the texture offset over
+                // the timer of line 11. The fix leaves chunks that are not lines alone.
+                let is_line = !fix_on(FIX_ELECTRICITY) || (0..12).contains(&line);
+                if is_line && lw(offset + g::electricityOn) != 0 {
                     allocateOverrideChunk(a0, index, 1, 3);
                     let vertices = getOverrideChunk(a0, index, 1, 1, sp);
                     let coordinates = getOverrideChunk(a0, index, 1, 2, sp);

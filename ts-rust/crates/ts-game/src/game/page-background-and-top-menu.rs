@@ -237,7 +237,12 @@ pub fn particleGlassTick(group: i32) {
                     let start = lwc1(0x3ad508);
                     let age = lwc1(times + at4);
                     if start < age {
-                        alpha = ps2float::sub(start, ps2float::mul(ps2float::sub(age, alpha), 4.0_f32));
+                        alpha = if fix_on(FIX_MIRROR_GLASS) {
+                            // 1 at the start of the fade, down by 4 a second; the original has start and 1 the other way round (1.9 at the start).
+                            ps2float::sub(alpha, ps2float::mul(ps2float::sub(age, start), 4.0_f32))
+                        } else {
+                            ps2float::sub(start, ps2float::mul(ps2float::sub(age, alpha), 4.0_f32))
+                        };
                     }
                 }
                 if alpha < 0.0_f32 {

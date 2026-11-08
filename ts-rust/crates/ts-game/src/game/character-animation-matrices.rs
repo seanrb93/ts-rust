@@ -186,7 +186,8 @@ pub fn calMatrices(a0: i32) {
                 swc1(s2_1 + 4, f3_4);
                 if v0_4 == 0 {
                     if f20_1 < f3_4 {
-                        swc1(s2_1 + 4, f21_1);
+                        // The original clamps to the length of the first slot's animation (f21), the fix to this one's.
+                        swc1(s2_1 + 4, if fix_on(FIX_BLEND_LENGTH) { f20_1 } else { f21_1 });
                         sw(s2_1 + 56, 1);
                     }
                 } else if f20_1 < f3_4 {
@@ -228,9 +229,11 @@ pub fn calMatrices(a0: i32) {
                     let f4_3 = lwc1(sp + 272);
                     let f5_2 = lwc1(sp + 276);
                     let f3_5 = lwc1(sp + 280);
-                    let f2_4 = ps2float::sub(ps2float::add(f5_2, lwc1(s2_1 + 24)), f5_2);
-                    let f0_14 = ps2float::sub(ps2float::add(f3_5, lwc1(s2_1 + 28)), f3_5);
-                    swc1(s2_1 + 20, ps2float::sub(ps2float::add(f4_3, lwc1(s2_1 + 20)), f4_3));
+                    // The original takes away the first frame it has just added (no change); the fix takes away the last frame, as the first slot does.
+                    let (last_x, last_y, last_z) = if fix_on(FIX_LOOP_ROOT) { (lwc1(sp + 240), lwc1(sp + 244), lwc1(sp + 248)) } else { (f4_3, f5_2, f3_5) };
+                    let f2_4 = ps2float::sub(ps2float::add(f5_2, lwc1(s2_1 + 24)), last_y);
+                    let f0_14 = ps2float::sub(ps2float::add(f3_5, lwc1(s2_1 + 28)), last_z);
+                    swc1(s2_1 + 20, ps2float::sub(ps2float::add(f4_3, lwc1(s2_1 + 20)), last_x));
                     swc1(s2_1 + 24, f2_4);
                     swc1(s2_1 + 28, f0_14);
                 }

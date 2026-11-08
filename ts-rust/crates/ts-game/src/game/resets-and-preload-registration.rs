@@ -83,6 +83,10 @@ pub fn preloadAddFile(name: i32, info: i32) {
     sw(entry + 16, info);
     sw(entry, 0);
     sw(entry + 4, 0);
+    // The list is sorted by the sector at +8, which the original never sets here, so the entry goes where an old entry's sector puts it; the fix sets it.
+    if fix_on(FIX_PRELOAD_ORDER) {
+        sw(entry + 8, fileGetSector(name));
+    }
     preloadInsert(entry);
 }
 

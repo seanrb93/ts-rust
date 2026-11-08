@@ -80,7 +80,9 @@ pub fn ipDefocus() {
         let y0 = lw(window + 20);
         let y1 = lw(window + 24);
         sw(sp, colour);
-        dlTextureRectangle(x0 + 1, y0, x1c + 1, y1, x0 << 4, y0 << 4, x1c << 4, y1 << 4);
+        // The third pass is the first again in the original (one to the right); the fix moves it one to the right and one down.
+        let down = fix_on(FIX_DEFOCUS) as i32;
+        dlTextureRectangle(x0 + 1, y0 + down, x1c + 1, y1 + down, x0 << 4, y0 << 4, x1c << 4, y1 << 4);
         if left < 0 {
             break;
         }

@@ -127,7 +127,11 @@ pub fn emGetNextPos(tex: i32, small: i32) -> i32 {
         return 0;
     }
     loop {
-        if (lw(slots + 12 + slot * 12) & 3) == 0 {
+        // A texture of more than one block takes the slots after this one too; the original tests only this one, so it can take used slots or go past the table,
+        // the fix wants them all free.
+        let fits = !fix_on(FIX_TEXTURE_SLOTS)
+            || (slot + blocks <= lw(buffer + SLOT_COUNT) && (0..blocks).all(|b| (lw(slots + 12 + (slot + b) * 12) & 3) == 0));
+        if (lw(slots + 12 + slot * 12) & 3) == 0 && fits {
             sw(tex + 16, (lw(buffer + SLOT_FIRST) + slot) << 5);
             let mut flags_at = slots + 12 + slot * 12;
             for _ in 0..blocks {

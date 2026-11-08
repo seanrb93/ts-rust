@@ -533,6 +533,10 @@ pub fn soundTick() {
                             sw(request, 5);
                         } else {
                             sw(request, 0);
+                            // Only state 5 clears the lock of state 2, so the original keeps it on after a sound of no size and later sounds wait for ever.
+                            if fix_on(FIX_SOUND_LOCK) {
+                                sw(g::transinprogress, 0);
+                            }
                         }
                         soundSelectBuffer(0);
                         i += 1;

@@ -25,6 +25,11 @@ pub fn enemySetIdleAnimation(chr: i32) {
     let mut pick = false;
     let playing_special = curAnim(chr, 450) != 0 || curAnim(chr, 451) != 0;
     if !playing_special {
+        // The test of animation 3 having finished is only made while 450 or 451 plays, where it is never true, so the original picks again every frame and 3 never plays
+        // out; the fix lets it finish first.
+        if fix_on(FIX_IDLE_ANIMATION) && curAnim(chr, 3) != 0 && curAnimComplete(lw(chr + 32)) == 0 {
+            return;
+        }
         pick = true;
     } else {
         if curAnim(chr, 3) != 0 && curAnimComplete(lw(chr + 32)) != 0 {

@@ -334,6 +334,10 @@ fn step_pad_state(pad: i32) {
         70 => {
             if scePadInfoAct(&[port, slot, -1, 0]) == 0 {
                 sw(pad + 272, 99);
+                // A pad with no motors: the original goes on to set the motors, which can move it on to state 100, where nothing reads it.
+                if fix_on(FIX_PAD_NO_MOTORS) {
+                    return;
+                }
             }
             sb(pad + 326, 0);
             sb(pad + 327, 1);
@@ -446,7 +450,9 @@ pub fn controllerTick(a0: i32) {
     let port = lw(a0 + 256);
     let slot = lw(a0 + 260);
     sw(a0 + 268, lw(a0 + 264));
-    if lw((port << 2) + g::max_slots) >= slot {
+    // The number of slots is a count, so the original also asks the slot after the last; the fix asks only the slots there are.
+    let slots = lw((port << 2) + g::max_slots);
+    if if fix_on(FIX_MULTITAP_SLOT) { slots > slot } else { slots >= slot } {
         sw(a0 + 264, scePadGetState(&[port as i64, slot as i64, port as i64]));
     } else {
         sw(a0 + 264, 0);

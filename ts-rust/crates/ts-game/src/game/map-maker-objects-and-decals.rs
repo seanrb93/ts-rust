@@ -23,7 +23,8 @@ pub fn decalRemoveFromDrawList(decal: i32) {
         sw((slot << 2) + 0x1fe9d48, before);
     } else if before == 0 && after == 0 {
         let slot = lw(decal + 208);
-        if slot > 0 {
+        // Slot 0 (room 0) is a real list; the original leaves its head on a decal taken out of it.
+        if slot > 0 || (slot == 0 && fix_on(FIX_DECAL_ROOM0)) {
             let head = (slot << 2) + 0x1fe9d48;
             if lw(head) == decal {
                 sw(head, 0);

@@ -61,6 +61,11 @@ pub fn hittestMoveCircleToLine(out: i32, x: f32, z: f32, radius: f32, dx: f32, d
                     }
                 }
                 match found {
+                    // The gap to the line is measured along its normal and the original takes it as the distance along the move, which stops a move that comes in at
+                    // a slant short of the wall; the fix turns it into the distance along the move (the move closes the gap by start_side - end_side).
+                    Some(distance) if distance != speed && fix_on(FIX_WALL_SLANT) => {
+                        reach = ps2float::mul(distance, (speed).pdiv(ps2float::sub(start_side, end_side).abs()))
+                    }
                     Some(distance) => reach = distance,
                     None => return 2.0_f32,
                 }

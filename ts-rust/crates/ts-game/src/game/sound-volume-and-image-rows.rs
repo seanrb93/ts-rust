@@ -8,7 +8,7 @@ use crate::*;
 pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32, range: f32) {
     let frame = Frame::new(32);
     let sp = frame.sp();
-    let far = lwc1(0x3afd00);
+    let far = lwc1(0x3ae300);
     let mut nearest = far;
     let loudness;
     if position == 0 {
@@ -38,7 +38,7 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
                 }
             }
         }
-        if nearest == lwc1(0x3afd00) {
+        if nearest == lwc1(0x3ae300) {
             return;
         }
         let mut distance = nearest.abs().psqrt();

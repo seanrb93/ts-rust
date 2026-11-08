@@ -31,6 +31,10 @@ pub fn lvInitStoryState() {
             if difficulty == 2 {
             linkDisable(padGetLinkNum(1212, 1396));
             }
+            // The original goes on to the link of level 9 (1067-1070), which level 5 does not have, so link 0 is turned off.
+            if fix_on(FIX_STORY_LINK) {
+                return;
+            }
         }
         6 => {
             doorClose(1);
@@ -194,7 +198,6 @@ pub fn lvInitStoryState() {
             doorClose(4);
             doorLock(4);
             linkDisable(padGetLinkNum(1070, 1570));
-            linkDisable(padGetLinkNum(1067, 1070));
             return;
         }
         _ => unreachable!(),

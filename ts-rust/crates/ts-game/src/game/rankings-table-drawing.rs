@@ -92,7 +92,9 @@ pub fn drawRankingsTable(kind: i32) {
         if rows > 0 {
             let mut at = sp + 864;
             loop {
-                sw(sp + 1072, if (lw(lw(at) + 4) ^ lw(sp + 1068)) == 0 { i } else { lw(sp + 1072) });
+                // The row of a team is the first character of the team found; the original finds the player's row only when the player is that one, the fix by the team (+24).
+                let own = if fix_on(FIX_TEAM_RANKINGS) { lw(lw(lw(at) + 4) + 24) == lw(lw(sp + 1068) + 24) } else { (lw(lw(at) + 4) ^ lw(sp + 1068)) == 0 };
+                sw(sp + 1072, if own { i } else { lw(sp + 1072) });
                 i += 1;
                 at += 4;
                 if i >= rows {
@@ -152,7 +154,12 @@ pub fn drawRankingsTable(kind: i32) {
                     let bottom = if (flags & 1) == 0 { y + lw(lw(g::curfont) + 12) } else { y + (lw(font + 12) >> 1) };
                     guiHGradient(lw(sp + 1076), y, lw(sp + 1080), bottom, lw(lw(sp + 1084) + 20), 80, 16);
                     let colour;
-                    if lw(lw(sp + 1084)) != lw(lw(sp + 1068)) {
+                    let others = if fix_on(FIX_TEAM_RANKINGS) && lw(sp + 1056) == 3 {
+                        lw(lw(sp + 1084) + 24) != lw(lw(sp + 1068) + 24)
+                    } else {
+                        lw(lw(sp + 1084)) != lw(lw(sp + 1068))
+                    };
+                    if others {
                         sw(sp + 1088, 80);
                         colour = 0x7f7f7f80;
                     } else if (lw(sp + 1092) as u32) >= 2

@@ -58,7 +58,9 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
             if percent != 0 {
                 text = vafmt(&[0x3ae860_i64, percent as i64, ratio.to_bits() as i64]);
             } else {
-                text = vafmt(&[0x3ae868_i64, fptodp(ratio)]);
+                // "%.2f%": the original gives the fraction (0.005 shows as 0.01%), the fix the percentage.
+                let shown = if fix_on(FIX_STATS_PERCENT) { ps2float::mul(ratio, 1e+02_f32) } else { ratio };
+                text = vafmt(&[0x3ae868_i64, fptodp(shown)]);
             }
         }
         print_value(sp, text, a2);

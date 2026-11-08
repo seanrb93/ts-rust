@@ -1226,6 +1226,13 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                                         if a5 != 3 {
                                                             break 'b49;
                                                         }
+                                                        // Colour 3 has the orange of colour 0 in the original; the fix gives it the green of colour 3 of the other effects (kind 1).
+                                                        if fix_on(FIX_SPAWN_GLOW) {
+                                                            swc1(sp + 48, 3e+01_f32);
+                                                            swc1(sp + 52, 127.0_f32);
+                                                            swc1(sp + 56, 3e+01_f32);
+                                                            break 'b49;
+                                                        }
                                                     } else if a5 != 0 {
                                                         break 'b48;
                                                     }

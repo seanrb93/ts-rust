@@ -172,7 +172,13 @@ pub fn draw_menuitem(item: i32) {
                     let mut offset = 0;
                     loop {
                         n += 1;
-                        let text = gvGetStringValue(value);
+                        // The original measures the current choice each time, so the arrow moves with it; the fix measures each choice of the list.
+                        let text = if fix_on(FIX_OPTION_ARROWS) {
+                            let name = lw(lw(value + 16) + offset + 4);
+                            if name < 1246 { lw((name << 2) + lw((lw(g::cur_language) << 2) + g::languages)) } else { name }
+                        } else {
+                            gvGetStringValue(value)
+                        };
                         let width = textWidth(text);
                         let list_now = lw(value + 16);
                         let current = lw(value);

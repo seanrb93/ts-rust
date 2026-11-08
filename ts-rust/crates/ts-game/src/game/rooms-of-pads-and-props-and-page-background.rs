@@ -40,7 +40,10 @@ pub fn padSetRoomNums() {
                 pads_count = lw(g::numpads);
                 let target = offset + pads;
                 sh(target + 10, room);
-                swc1(target + 16, height);
+                // With no room found `lastfloorheight` is the floor of the pad before; the fix keeps the pad's own height then.
+                if room != 0 || !fix_on(FIX_PAD_FLOOR) {
+                    swc1(target + 16, height);
+                }
             }
             pad += 1;
             if pad >= pads_count {
