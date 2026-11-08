@@ -7,6 +7,9 @@ pub fn ilinkTick() {
     // (a network game with rollback reads the pads between the frames)
     if netlink_rollback_or() == 0 {
         joyTick();
+        // (the scripts of mods may take buttons before the game sees them)
+        #[cfg(feature = "extensions")]
+        script_input();
     }
     netlink_tick_hook();
 }

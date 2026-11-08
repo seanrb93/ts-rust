@@ -13,7 +13,7 @@ pub(super) fn controller_slot(player: i32) -> i32 {
 }
 
 /// Address of a player's controller record (384 bytes each).
-pub(super) fn controller(player: i32) -> i32 {
+pub(crate) fn controller(player: i32) -> i32 {
     lw((controller_slot(player) << 2) + g::playercontrollers) * 384 + g::controllers
 }
 

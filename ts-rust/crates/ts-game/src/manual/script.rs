@@ -16,6 +16,8 @@ use rhai::{Engine, Scope, AST};
 #[path = "script-bots.rs"]
 mod bots;
 pub use bots::*;
+#[path = "script-editing.rs"]
+mod editing;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -402,6 +404,8 @@ fn register(engine: &mut Engine) {
             hudPainGfx((r as i32 & 255) << 24 | (g as i32 & 255) << 16 | (b as i32 & 255) << 8 | (a as i32 & 255));
         }
     });
+    // editing the level and drawing in the view
+    editing::register(engine);
 }
 
 /// A character says one of its lines of being hit: the lines the game gives each character in its table of characters (the ones it plays when it is hit), where the character is.
@@ -466,13 +470,18 @@ fn compile(name: &str, source: &str, of_mode: bool, mod_dir: Option<std::path::P
         v
     });
     // the mod's own files, by their place in its folder
+    let (w1, w2) = (mod_dir.clone(), mod_dir.clone());
     let in_mod = move |file: &str| -> Option<std::path::PathBuf> {
         if file.contains("..") {
             return None;
         }
         mod_dir.as_ref().map(|d| d.join(file))
     };
-    let (a, b, c) = (in_mod.clone(), in_mod.clone(), in_mod);
+    let (a, b, c) = (in_mod.clone(), in_mod.clone(), in_mod.clone());
+    // (writing a file in the mod's folder: a file of the game it holds, such as a level's pads, is used from the next start)
+    engine.register_fn("mod_write", move |file: &str, bytes: rhai::Blob| -> bool { w1.as_ref().map_or(false, |d| editing::write_in_mod(d, file, &bytes)) });
+    engine.register_fn("mod_write_text", move |file: &str, text: &str| -> bool { w2.as_ref().map_or(false, |d| editing::write_in_mod(d, file, text.as_bytes())) });
+    let _ = in_mod;
     engine.register_fn("mod_file", move |file: &str| -> rhai::Blob { a(file).and_then(|p| std::fs::read(p).ok()).unwrap_or_default() });
     engine.register_fn("mod_text", move |file: &str| -> String { b(file).and_then(|p| std::fs::read_to_string(p).ok()).unwrap_or_default() });
     engine.register_fn("mod_has_file", move |file: &str| -> bool { c(file).map_or(false, |p| p.is_file()) });
@@ -584,7 +593,8 @@ fn call_all<A: rhai::FuncArgs + Clone, T: Clone + std::any::Any>(name: &str, arg
 }
 
 fn has(name: &str) -> bool {
-    HOSTS.with(|h| h.borrow().iter().any(|host| host.functions.contains(name)))
+    // (asked while a script runs and makes the game call it again, as when a prop it makes loads its model: not asked twice, as `call_all`)
+    HOSTS.with(|h| h.try_borrow().map_or(false, |hosts| hosts.iter().any(|host| host.functions.contains(name))))
 }
 
 /// A name in the game's memory, without the mark of the disc, in small letters.
@@ -722,8 +732,33 @@ pub fn script_hud() {
     }
     let number = lw(lw(g::currentplayer)) as i64;
     STATE.with(|s| s.borrow_mut().in_hud = true);
+    editing::set_in_hud(true);
     let _: Vec<()> = call_all("on_hud", (number,));
+    editing::set_in_hud(false);
     STATE.with(|s| s.borrow_mut().in_hud = false);
+}
+
+/// The pads have been read and the game has not seen them yet (`ilinkTick`): the scripts may take buttons from it (`on_input`, in a match).
+pub fn script_input() {
+    if !ACTIVE.load(Ordering::Relaxed) || lw(g::gamestate) != 3 || !has("on_input") || lw(g::players) == 0 {
+        return;
+    }
+    let _: Vec<()> = call_all("on_input", ());
+}
+
+/// The game's hook where the debug views and the original's editors drew in the view (`padGfx`, `propEditGfx`, which are empty): the scripts draw
+/// in the view of the player being drawn (`on_gfx`), and the blast rings they started are drawn.
+pub fn script_gfx() {
+    if !ACTIVE.load(Ordering::Relaxed) || lw(g::gamestate) != 3 {
+        return;
+    }
+    let number = lw(lw(g::currentplayer)) as i64;
+    if has("on_gfx") {
+        editing::set_in_gfx(true);
+        let _: Vec<()> = call_all("on_gfx", (number,));
+        editing::set_in_gfx(false);
+    }
+    editing::draw_rings(number);
 }
 
 /// `findweapon` found nothing for the computer character of the record `record` to pick up: a script may give it something else to do (it says so by answering true).

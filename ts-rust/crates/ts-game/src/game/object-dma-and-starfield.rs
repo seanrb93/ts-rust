@@ -907,6 +907,8 @@ pub fn lvGfx() {
         }
         padGfx();
         propEditGfx();
+        #[cfg(feature = "extensions")]
+        script_gfx();
         ipGfx();
         playerHitPosGfx();
         hudGfx();
