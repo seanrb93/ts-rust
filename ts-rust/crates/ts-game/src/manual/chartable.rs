@@ -30,7 +30,7 @@ pub struct NewCharacter {
     pub voice_of: i32,
     /// changes of the entry: the place in it, the width in bytes and the value
     pub puts: Vec<(i32, i32, u32)>,
-    /// a solid figure (a robot) on the game's skeleton: its pieces stand upright while it lives, so the people's poses (the hips turned when standing)
+    /// a solid figure (a robot) on the root of the game's skeleton: it stands upright while it lives, so the people's poses (the hips turned when standing)
     /// do not tilt it; its bones still walk and turn it
     pub upright: bool,
 }

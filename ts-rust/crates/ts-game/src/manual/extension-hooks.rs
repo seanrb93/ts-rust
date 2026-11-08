@@ -282,9 +282,9 @@ pub fn fe_body_model_turn(chr: i32) {
     }
 }
 
-/// A solid figure on the game's skeleton (`upright` of `characters.txt`, a robot whose pieces all follow one bone): its bones walk and turn it, but
-/// the people's poses would tilt it (the hips are turned when they stand), so while it lives its pieces get the turn of the root at rest (the turn
-/// `calMatrices` gave their matrices is replaced, their place kept) and it stands upright the way it faces; when it dies it falls as the others do.
+/// A solid figure on the game's skeleton (`upright` of `characters.txt`, a robot that is all on the root, `bone0` of obchar.py): its bones walk and turn it, but
+/// the people's poses would tilt it (the hips are turned when they stand), so while it lives the root's part gets its turn at rest (the turn
+/// `calMatrices` gave its matrix is replaced, its place kept) and it stands upright the way it faces; when it dies it falls as the others do.
 #[cfg(feature = "extensions")]
 pub fn upright_parts(model: i32) {
     let owner = lw(model + 244);
@@ -308,12 +308,13 @@ pub fn upright_parts(model: i32) {
     }
     // (a piece is kept in the frame of its bone as the skeleton has it at rest, so upright is the turn of the root at rest: the first channel of the
     // skeleton's file, its place and then its quaternion, after the header and the table of channels as `loadAnimation` reads them)
+    // (the root's part only: the figure is on it, and the other bones keep their turns, as the hands hold the guns)
     let Some(rest) = skeleton_root_rest(lw(model + 88)) else { return };
-    for k in 0..lw(object + 4).clamp(0, 64) {
-        let m = matrices + k * 64;
-        for (i, v) in rest.iter().enumerate() {
-            swc1(m + (i as i32 / 3) * 16 + (i as i32 % 3) * 4, *v);
-        }
+    if lw(object + 4) <= 0 {
+        return;
+    }
+    for (i, v) in rest.iter().enumerate() {
+        swc1(matrices + (i as i32 / 3) * 16 + (i as i32 % 3) * 4, *v);
     }
 }
 
