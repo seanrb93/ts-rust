@@ -779,7 +779,12 @@ pub fn headPropTick(a0: i32) {
                         let nx = lwc1(sp + 112);
                         let ny = lwc1(sp + 116);
                         let nz = lwc1(sp + 120);
-                        let mut length = ps2float::add(ps2float::add(ps2float::mul(vx, vx).abs().psqrt(), ps2float::mul(vy, vy)), ps2float::mul(vz, vz));
+                        // The original takes the root of x squared only; the fix takes the root of the whole sum.
+                        let mut length = if fix_on(FIX_HEAD_BOUNCE) {
+                            ps2float::add(ps2float::add(ps2float::mul(vx, vx), ps2float::mul(vy, vy)), ps2float::mul(vz, vz)).abs().psqrt()
+                        } else {
+                            ps2float::add(ps2float::add(ps2float::mul(vx, vx).abs().psqrt(), ps2float::mul(vy, vy)), ps2float::mul(vz, vz))
+                        };
                         let inverse = (1.0_f32).pdiv(length);
                         let slow = length < lwc1(0x3acc14);
                         let ux = ps2float::mul(vx, inverse);

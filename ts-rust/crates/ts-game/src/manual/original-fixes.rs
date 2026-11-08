@@ -104,9 +104,19 @@ pub const FIX_HIGHLIGHT_DEPTH: u64 = 1 << 46;
 pub const FIX_BAG_MESSAGE: u64 = 1 << 47;
 /// A sixth escort is not written past the escort list (`enemyAddToEscortList`).
 pub const FIX_ESCORT_LIST: u64 = 1 << 48;
+/// A bot whose gun points away fires only at a target near in all three directions, not in x alone (`gunChrFire`).
+pub const FIX_BOT_FIRE_RANGE: u64 = 1 << 49;
+/// A bullet shows its owner again only when the owner was shown before, so a dying bot stays out of the line tests (`bulletTick`).
+pub const FIX_OWNER_HITTABLE: u64 = 1 << 50;
+/// A shot-off head's speed is the root of the whole sum, so it does not stop bouncing early (`headPropTick`).
+pub const FIX_HEAD_BOUNCE: u64 = 1 << 51;
+/// The announcer makes one announcement each time, not two on following frames (`announceTick`).
+pub const FIX_DOUBLE_ANNOUNCE: u64 = 1 << 52;
+/// A full list of bullet holes drops its oldest only when the new one is kept (`decalNewDecalMain`).
+pub const FIX_DECAL_QUEUE: u64 = 1 << 53;
 
 /// The names a mod gives for each fix.
-pub const FIX_NAMES: [(&str, u64); 49] = [
+pub const FIX_NAMES: [(&str, u64); 54] = [
     ("sleeping_enemies", FIX_SLEEPING_ENEMIES),
     ("custom_map_stats", FIX_CUSTOM_MAP_STATS),
     ("seen_by", FIX_SEEN_BY),
@@ -156,6 +166,11 @@ pub const FIX_NAMES: [(&str, u64); 49] = [
     ("highlight_depth", FIX_HIGHLIGHT_DEPTH),
     ("bag_message", FIX_BAG_MESSAGE),
     ("escort_list", FIX_ESCORT_LIST),
+    ("bot_fire_range", FIX_BOT_FIRE_RANGE),
+    ("owner_hittable", FIX_OWNER_HITTABLE),
+    ("head_bounce", FIX_HEAD_BOUNCE),
+    ("double_announce", FIX_DOUBLE_ANNOUNCE),
+    ("decal_queue", FIX_DECAL_QUEUE),
 ];
 
 static MASK: AtomicU64 = AtomicU64::new(0);

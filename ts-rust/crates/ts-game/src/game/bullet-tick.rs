@@ -1065,11 +1065,13 @@ pub fn bulletTick() {
         if kind != 0 {
             // The prop of the owner is hidden from the line tests while the bullet is young (and is shown again at the end).
             let mut owner_prop = 0;
+            let mut was_hittable = false;
             let owner = lw(b + 108);
             if owner >= 0 {
                 match lw(b + 104) {
                     1 | 4 => {
                         owner_prop = lw(owner * 1820 + lw(g::players) + 384);
+                        was_hittable = lw(owner_prop + 16) & 32 != 0;
                         if lwc1(b + 72) <= lwc1(0x3ad1ec) {
                             sw(owner_prop + 16, lw(owner_prop + 16) & -33);
                         }
@@ -1077,6 +1079,7 @@ pub fn bulletTick() {
                     }
                     2 => {
                         owner_prop = lw(owner * 0x1210 + lw(g::chrinfo) + 3020);
+                        was_hittable = lw(owner_prop + 16) & 32 != 0;
                         sw(owner_prop + 16, lw(owner_prop + 16) & -33);
                         kind = lw(b);
                     }
@@ -1117,7 +1120,8 @@ pub fn bulletTick() {
                     swc1(character + 2940, lwc1(b + 32));
                 }
             }
-            if owner_prop != 0 {
+            // The original shows the owner again even when it was hidden before (a dying bot); the fix shows only an owner that was shown.
+            if owner_prop != 0 && (was_hittable || !fix_on(FIX_OWNER_HITTABLE)) {
                 sw(owner_prop + 16, lw(owner_prop + 16) | 32);
             }
         }

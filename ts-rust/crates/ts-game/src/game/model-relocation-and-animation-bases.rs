@@ -176,6 +176,10 @@ pub fn announceTick() {
     let now = countdown - lw(g::updateframesi);
     sw(g::announcecountdown, now);
     if now <= 0 {
+        // A countdown stored as 0 is not made again and announces once more on the next frame; the fix makes a new wait on the next frame.
+        if fix_on(FIX_DOUBLE_ANNOUNCE) {
+            sw(g::announcecountdown, -1);
+        }
         let pick = |base: i32, modulo: Option<u32>, mask: i64| -> i32 {
             let r = newrnd();
             match modulo {

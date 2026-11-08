@@ -400,7 +400,8 @@ pub fn decalNewDecalMain(a0: i32, a1: i32, a2: i32, a3: i32) {
     }
     let write = lw(g::s_DecalCreateListWrite);
     let next = (write + 1).wrapping_rem(15);
-    if next == lw(g::s_DecalCreateListRead) {
+    // The original drops the oldest request of a full list before the line test; the fix drops it only when the new request is kept.
+    if next == lw(g::s_DecalCreateListRead) && !fix_on(FIX_DECAL_QUEUE) {
         sw(g::s_DecalCreateListRead, (next + 1).wrapping_rem(15));
     }
     let decal = write * 44 + 0x1fe9a40;
@@ -491,6 +492,9 @@ pub fn decalNewDecalMain(a0: i32, a1: i32, a2: i32, a3: i32) {
     let result = bgLineTest(lw(a1 + 12), sp + 16, sp + 32, 0, 0, 0, 0, 8);
     let write = lw(g::s_DecalCreateListWrite);
     if result != 0 {
+        if fix_on(FIX_DECAL_QUEUE) && (write + 1).wrapping_rem(15) == lw(g::s_DecalCreateListRead) {
+            sw(g::s_DecalCreateListRead, (write + 2).wrapping_rem(15));
+        }
         sw(g::s_DecalCreateListWrite, (write + 1).wrapping_rem(15));
     }
 }

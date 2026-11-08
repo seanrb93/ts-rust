@@ -679,6 +679,14 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
     let x = lwc1(a0 + 48);
     let distance = ps2float::sub(x, lwc1(target + 48));
     let squared = ps2float::mul(distance, distance);
+    // The original takes the x difference three times; the fix takes the distance in all three directions.
+    let near = if fix_on(FIX_BOT_FIRE_RANGE) {
+        let dy = ps2float::sub(lwc1(a0 + 52), lwc1(target + 52));
+        let dz = ps2float::sub(lwc1(a0 + 56), lwc1(target + 56));
+        ps2float::add(ps2float::add(squared, ps2float::mul(dy, dy)), ps2float::mul(dz, dz)).abs().psqrt() < 2.5_f32
+    } else {
+        ps2float::add(ps2float::add(squared, squared), squared).abs().psqrt() < 2.5_f32
+    };
     let forward = lwc1(sp);
     'aim: {
         'b22: {
@@ -689,7 +697,7 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
                         if lwc1(0x3ad318) < ps2float::add(ps2float::add(ps2float::mul(forward, nx), ps2float::mul(lwc1(sp + 4), lwc1(sp + 20))), ps2float::mul(lwc1(sp + 8), lwc1(sp + 24))) {
                             swc1(mind + 2976, nx);
                         } else {
-                            if !(ps2float::add(ps2float::add(squared, squared), squared).abs().psqrt() < 2.5_f32) {
+                            if !near {
                                 return;
                             }
                             swc1(mind + 2976, nx);
