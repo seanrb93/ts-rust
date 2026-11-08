@@ -739,7 +739,10 @@ pub fn propDropBagOnDrop(a0: i32, a1: i32, a2: i32) {
                         let strings = lw((lw(g::cur_language) << 2) + g::languages);
                         sw(other + 248, lw(other + 248) + 1);
                         credited = 1;
-                        hudMessage(i, lw(strings + 0x1210));
+                        // The original gives the message to the character whoever it is; a bot has no HUD, and past the fourth the text is written after the HUDs.
+                        if !fix_on(FIX_BAG_MESSAGE) || i < lw(g::lvnumplayers) {
+                            hudMessage(i, lw(strings + 0x1210));
+                        }
                         StatsAdd(39, i, 1.0_f32);
                         players = lw(g::lvnumplayers);
                         chars = lw(g::numactivechars);

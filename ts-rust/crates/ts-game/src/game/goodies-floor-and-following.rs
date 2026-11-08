@@ -234,7 +234,11 @@ pub fn followTarget(chr: i32) {
         sw(state + 1688, 0);
         sw(state + 2692, 0);
     }
-    sw(state + 684, target_pad);
+    // The original stores the new pad on every tick, so a change seen off the character's turn is lost and the old route is walked to its end; the fix keeps the old
+    // pad until the turn comes, when the change is still seen.
+    if !(fix_on(FIX_CHASE_ROUTE) && lw(state + 684) != target_pad && turn != lw(state)) {
+        sw(state + 684, target_pad);
+    }
     let next = findNextPad(state + 680);
     if next == -2 {
         let old = lw(state + 2716);

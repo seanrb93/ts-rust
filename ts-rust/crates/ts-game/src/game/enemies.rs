@@ -67,7 +67,10 @@ pub fn gameGetRankTeam(team: i32) -> i32 {
 /// Remember an enemy that escorts someone, up to 5 (@ 0x2c7ef0).
 pub fn enemyAddToEscortList(enemy: i32) {
     let n = lw(g::numEscorts);
-    sw((n << 2) + g::escort, enemy);
+    // The original writes before it tests the count, so a sixth escort goes into the word after the list (and every later one there again).
+    if n < 5 || !fix_on(FIX_ESCORT_LIST) {
+        sw((n << 2) + g::escort, enemy);
+    }
     if n < 5 {
         sw(g::numEscorts, n + 1);
     }
@@ -128,6 +131,18 @@ pub fn enemyGetPadProp(pad: i32) -> i32 {
 pub fn enemyOnPad(enemy: i32, pad: i32) -> i32 {
     let n = lw(g::numactivechars);
     let me = if n > 0 { lw(lw(enemy + 352)) } else { 0 };
+    if fix_on(FIX_ON_PAD) {
+        // The bots are numbered after the players, but the original looks at the first `numactivechars` records, players among them, and misses the last bots; and
+        // it gives the number found, so character 0 counts as nobody. The fix looks at the bots and gives the number plus 1.
+        let me = lw(lw(enemy + 352));
+        let players = lw(g::lvnumplayers);
+        for i in players..players + n {
+            if i != me && lw(i * CHRINFO_SIZE + lw(g::chrinfo) + 684) == pad {
+                return i + 1;
+            }
+        }
+        return 0;
+    }
     for i in 0..n {
         if i != me && lw(i * CHRINFO_SIZE + lw(g::chrinfo) + 684) == pad {
             return i;

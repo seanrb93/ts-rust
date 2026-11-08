@@ -390,6 +390,8 @@ pub fn pickupPropTick(a0: i32) {
                                     playerMessage(lw(prop + 356), text);
                                     current = lw(chr + 260);
                                 }
+                                // The sound is chosen by the gun in hand, which is the one picked up only when the game switches to it; the fix uses the one picked up.
+                                let current = if fix_on(FIX_PICKUP_SOUND) { lw(data + 12) } else { current };
                                 let index_sound = current - 7;
                                 if (index_sound as u32) < (26 as u32) {
                                     match index_sound {

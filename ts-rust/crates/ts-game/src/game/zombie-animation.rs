@@ -109,8 +109,10 @@ pub fn setZombieAnimation(a0: i32) {
                                 }
                             } else {
                                 'left: {
-                                    if curAnim(a0, 520) != 0 {
-                                        if curAnim(a0, 522) != 0 {
+                                    // The turn without and with a weapon: a zombie plays only one of them, so the original's test that both play never holds and the turn starts again every frame.
+                                    let playing = if fix_on(FIX_ZOMBIE_TURN) { curAnim(a0, 520) != 0 || curAnim(a0, 522) != 0 } else { curAnim(a0, 520) != 0 && curAnim(a0, 522) != 0 };
+                                    if playing {
+                                        {
                                             if curAnimSlot1(a0, 520) != 0 {
                                                 if lw(lw(a0 + 32) + 152) != 0 {
                                                     if curAnimSlot2(a0, 520) == 0 {
@@ -138,8 +140,10 @@ pub fn setZombieAnimation(a0: i32) {
                             }
                         } else {
                             'right: {
-                                if curAnim(a0, 521) != 0 {
-                                    if curAnim(a0, 523) != 0 {
+                                // The turn without and with a weapon: a zombie plays only one of them, so the original's test that both play never holds and the turn starts again every frame.
+                                let playing = if fix_on(FIX_ZOMBIE_TURN) { curAnim(a0, 521) != 0 || curAnim(a0, 523) != 0 } else { curAnim(a0, 521) != 0 && curAnim(a0, 523) != 0 };
+                                if playing {
+                                    {
                                         if curAnimSlot1(a0, 521) != 0 {
                                             if lw(lw(a0 + 32) + 152) != 0 {
                                                 if curAnimSlot2(a0, 521) == 0 {

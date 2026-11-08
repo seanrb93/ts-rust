@@ -121,7 +121,8 @@ pub fn findHighlightPad() {
             count = lw(0x3b0078);
             if lw(g::window) < x_screen && x_screen < lw(window + 4) && lw(window + 20) < y_screen && y_screen < lw(window + 24) {
                 count = lw(0x3b0078);
-                let depth_f = depth as f32;
+                // The original cuts the depth to a whole number, which is 0 on screen, so the depth never decides between two close pads; the fix keeps the fraction.
+                let depth_f = if fix_on(FIX_HIGHLIGHT_DEPTH) { (lwc1(sp + 24)).pdiv(w) } else { depth as f32 };
                 if depth_f < 1.0_f32 {
                     let dx = x_screen - mouse_x;
                     let dy = (y_screen - mouse_y) << 1;

@@ -84,9 +84,29 @@ pub const FIX_MULTITAP_SLOT: u64 = 1 << 36;
 pub const FIX_PAD_NO_MOTORS: u64 = 1 << 37;
 /// The pitch of an enemy's aim at a target of another kind is towards the target, not from stack words nothing wrote (`rotateChr`).
 pub const FIX_AIM_PITCH: u64 = 1 << 38;
+/// A chaser plans its route again when its target's pad changes, not only when that happens on its own turn (`followTarget`, `trackTarget`).
+pub const FIX_CHASE_ROUTE: u64 = 1 << 39;
+/// The killing spree starts again at a kill more than two seconds after the last (`StatsKillMade`).
+pub const FIX_KILL_SPREE: u64 = 1 << 40;
+/// The test for a pad taken by another character looks at every bot, and finds character 0 (`enemyOnPad`).
+pub const FIX_ON_PAD: u64 = 1 << 41;
+/// A zombie's turn animation is not started again while it plays (`setZombieAnimation`).
+pub const FIX_ZOMBIE_TURN: u64 = 1 << 42;
+/// A flickering room light keeps its colour on a frame with no update and does not take the strength of the room before it (`roomlightTick`).
+pub const FIX_ROOM_LIGHT: u64 = 1 << 43;
+/// The sound of a gun picked up is that gun's, not the one in hand (`pickupPropTick`).
+pub const FIX_PICKUP_SOUND: u64 = 1 << 44;
+/// A character nearest pad 0 is put on it (`enemyCheckValidPad`).
+pub const FIX_PAD_ZERO: u64 = 1 << 45;
+/// The map maker's pad cursor compares depth as a fraction, so the nearer of two close pads wins (`findHighlightPad`).
+pub const FIX_HIGHLIGHT_DEPTH: u64 = 1 << 46;
+/// The message for a dropped bag goes to a player only (`propDropBagOnDrop`).
+pub const FIX_BAG_MESSAGE: u64 = 1 << 47;
+/// A sixth escort is not written past the escort list (`enemyAddToEscortList`).
+pub const FIX_ESCORT_LIST: u64 = 1 << 48;
 
 /// The names a mod gives for each fix.
-pub const FIX_NAMES: [(&str, u64); 39] = [
+pub const FIX_NAMES: [(&str, u64); 49] = [
     ("sleeping_enemies", FIX_SLEEPING_ENEMIES),
     ("custom_map_stats", FIX_CUSTOM_MAP_STATS),
     ("seen_by", FIX_SEEN_BY),
@@ -126,6 +146,16 @@ pub const FIX_NAMES: [(&str, u64); 39] = [
     ("multitap_slot", FIX_MULTITAP_SLOT),
     ("pad_no_motors", FIX_PAD_NO_MOTORS),
     ("aim_pitch", FIX_AIM_PITCH),
+    ("chase_route", FIX_CHASE_ROUTE),
+    ("kill_spree", FIX_KILL_SPREE),
+    ("on_pad", FIX_ON_PAD),
+    ("zombie_turn", FIX_ZOMBIE_TURN),
+    ("room_light", FIX_ROOM_LIGHT),
+    ("pickup_sound", FIX_PICKUP_SOUND),
+    ("pad_zero", FIX_PAD_ZERO),
+    ("highlight_depth", FIX_HIGHLIGHT_DEPTH),
+    ("bag_message", FIX_BAG_MESSAGE),
+    ("escort_list", FIX_ESCORT_LIST),
 ];
 
 static MASK: AtomicU64 = AtomicU64::new(0);

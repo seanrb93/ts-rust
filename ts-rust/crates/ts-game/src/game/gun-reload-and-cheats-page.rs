@@ -661,7 +661,8 @@ pub fn enemyCheckValidPad(a0: i32) {
         }
         if nearest != current {
             if nearest != next {
-                if nearest > 0 {
+                // Pads are numbered from 0 and `closestpad` gives -1 for none; the original's test leaves out pad 0.
+                if nearest > 0 || (nearest == 0 && fix_on(FIX_PAD_ZERO)) {
                     let pads = lw(g::levelpads);
                     let px = lwc1(sp + 32);
                     let py = lwc1(sp + 36);

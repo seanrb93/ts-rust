@@ -188,6 +188,9 @@ pub fn StatsKillMade(killer: i32, victim: i32) {
                 if quick {
                     sw(streak_at, lw(streak_at) + 1);
                     k = lw(killer);
+                } else if fix_on(FIX_KILL_SPREE) {
+                    // The original never starts the spree again, so it counts every quick kill of a life and not the longest run of them.
+                    sw(streak_at, 1);
                 }
                 let streak = lw(k * 1368 + run) as f32;
                 let best = StatsGet(7, k);

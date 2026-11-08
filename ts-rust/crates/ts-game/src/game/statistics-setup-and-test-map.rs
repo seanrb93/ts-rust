@@ -337,6 +337,7 @@ pub fn roomlightTick() {
             let kind = lw(light);
             let prop = lw((room << 2) + lw(g::roomprops) + 4);
             let first;
+            let mut keep = false;
             'b3: {
                 'b4: {
                     if kind == 1 {
@@ -368,6 +369,8 @@ pub fn roomlightTick() {
                                         break 'b6;
                                     }
                                     if ticks == 0 {
+                                        // No roll on a frame with no update: the original blends with the strength the room before left (or a register never set), the fix keeps the colour.
+                                        keep = fix_on(FIX_ROOM_LIGHT);
                                         first = lw(light + 16);
                                         break 'b3;
                                     }
@@ -398,6 +401,7 @@ pub fn roomlightTick() {
                 | a4_2 + ps2float::mul(strength, ((second & 255) - a4_2) as f32) as i32
                 | ((a2_1 + ps2float::mul(strength, ((((second as u32) >> 8) as i32 & 255) - a2_1) as f32) as i32) << 8
                     | (a5_1 + ps2float::mul(strength, ((((second as u32) >> 16) as i32 & 255) - a5_1) as f32) as i32) << 16);
+            let colour = if keep { lw(light + 24) } else { colour };
             sw(light + 24, colour);
             if colour != -1 {
                 obInstLight(lw(prop + 32), light);
