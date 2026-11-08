@@ -2,6 +2,16 @@
 
 use crate::*;
 
+/// `setAnim` for the character the front end shows.  A character shown with its body model (BlueRobot, who has no front end model) has an animation of its
+/// own model (`obInstSetAnim`, when the front end makes it), not the people's animations, which turned him on his side: the build with extensions leaves him to it.
+fn set_anim_front(chr: i32, anim: i32, blend: f32, extra: f32) {
+    #[cfg(feature = "extensions")]
+    if fe_body_model(chr) {
+        return;
+    }
+    setAnim(chr, anim, blend, extra);
+}
+
 /// Tick of the front end character display (@ 0x1ff3d8): moves the character, its stage and its stage prop together, plays the animations of the list of the character in
 /// order, creates and removes the prop and the guns that go with an animation, flashes the guns during some animations, and chooses what to draw.
 pub fn animTick(a0: i32) {
@@ -158,10 +168,10 @@ pub fn animTick(a0: i32) {
                                         sw(a4_3, 1);
                                         if idx != 29 {
                                             let a1_16 = lw(s0_3);
-                                            setAnim(chr, a1_16, 0.0_f32, 1.0_f32);
+                                            set_anim_front(chr, a1_16, 0.0_f32, 1.0_f32);
                                         } else {
                                             let a1_15 = lw(fal + 584);
-                                            setAnim(chr, a1_15, 0.0_f32, lwc1(0x3aca18));
+                                            set_anim_front(chr, a1_15, 0.0_f32, lwc1(0x3aca18));
                                         }
                                         let v1_9 = lw(g::front);
                                         let v1_10 = lw((lw(v1_9) << 2) + g::stage);
@@ -298,13 +308,13 @@ pub fn animTick(a0: i32) {
                                 let a1_4 = lw(idx * 20 + fal);
                                 if ((a1_4 - 524) as u32) >= (2 as u32) {
                                     if idx != 29 {
-                                        setAnim(chr, a1_4, 0.0_f32, 1.0_f32);
+                                        set_anim_front(chr, a1_4, 0.0_f32, 1.0_f32);
                                     } else {
                                         let a1_5 = lw(fal + 580);
-                                        setAnim(chr, a1_5, 0.0_f32, lwc1(0x3aca00));
+                                        set_anim_front(chr, a1_5, 0.0_f32, lwc1(0x3aca00));
                                     }
                                 } else {
-                                    setAnim(chr, a1_4, 0.0_f32, 0.0_f32);
+                                    set_anim_front(chr, a1_4, 0.0_f32, 0.0_f32);
                                 }
                                 let a0_7 = lw(g::front);
                                 let v0_6 = lw(a0_7);
@@ -696,7 +706,7 @@ pub fn animTick(a0: i32) {
                 if a1_29 == -1 {
                     sw((lw(lw(g::front)) << 2) + g::propdrawflag, 0);
                 } else {
-                    setAnim(chr, a1_29, 0.0_f32, 1.0_f32);
+                    set_anim_front(chr, a1_29, 0.0_f32, 1.0_f32);
                     let a2_22 = lw((lw(lw(g::front)) << 2) + g::stageprop);
                     if a2_22 != 0 {
                         if lw(idx * 20 + fal) == lw(s2_4) {

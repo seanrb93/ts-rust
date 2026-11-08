@@ -577,6 +577,14 @@ pub fn animUpdate(a0: i32) {
                     'b3: {
                         let owner = lw(a0 + 244);
                         let owner_kind = lw(owner + 8);
+                        // (a character whose model has no skeleton, BlueRobot, has its parts drawn as the model has them, by unit matrices, as the game does for
+                        // him in the state 3 with an animation other than 1; a mod's copy of him has the state of the others, and the bones worked out with no
+                        // skeleton laid him on his side)
+                        #[cfg(feature = "extensions")]
+                        if owner_kind == 8 && lw(a0 + 88) == 0 {
+                            kind = 0;
+                            break 'b2;
+                        }
                         if owner_kind == 8 {
                             if lw(lw(owner + 352) + 8) != 3 {
                                 matrices = lw(a0 + 4);

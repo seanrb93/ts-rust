@@ -263,6 +263,25 @@ pub fn av_front_page_or(page: i32) -> i32 {
     }
 }
 
+/// Whether the front end shows the character `chr` with its body model, as it has no front end model (BlueRobot, and a mod's copy of him; `chrNew`).
+#[cfg(feature = "extensions")]
+pub fn fe_body_model(chr: i32) -> bool {
+    let shown = crate::manual::chartable::front_end_chr(lh(lw(chr + 352) + 4));
+    lw(shown * 44 + (CHRS_TABLE + 12)) == -1
+}
+
+/// A character the front end shows with its body model, as it has no front end model (BlueRobot, and a mod's copy of him; `chrNew`): the front end's
+/// models face the other way, so it showed his back.  He is turned round when the front end makes him.
+#[cfg(feature = "extensions")]
+pub fn fe_body_model_turn(chr: i32) {
+    if !fe_body_model(chr) {
+        return;
+    }
+    for at in [76, 80, 84] {
+        swc1(chr + at, (lwc1(chr + at) + 180.0).rem_euclid(360.0));
+    }
+}
+
 /// The sound test's item that saves the table of sounds (`main_pageTick_2073c0`): the original writes it to the developers' host machine, and the port
 /// has no such machine (a failed write ends the game), so the build with extensions does not save it.
 #[inline]

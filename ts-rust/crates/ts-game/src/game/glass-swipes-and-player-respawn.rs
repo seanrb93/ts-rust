@@ -542,6 +542,8 @@ pub fn selectChar(a0: i32, a1: i32) {
     swc1(chr + 52, ps2float::sub(ps2float::add(lwc1(player + 156), ps2float::mul(lwc1(player + 180), distance)), 1.0_f32));
     swc1(chr + 56, ps2float::add(lwc1(player + 160), ps2float::mul(lwc1(player + 184), distance)));
     tlhAdjustChrPosition(chr);
+    #[cfg(feature = "extensions")]
+    fe_body_model_turn(chr);
     sw(index + 0x1fc1238, chr);
 }
 
