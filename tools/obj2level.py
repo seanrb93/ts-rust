@@ -14,7 +14,7 @@ Formats (by the file's extension):
     .bsp                 a compiled Source map (Half-Life 2, Garry's Mod, CS:S, TF2, Portal, ...; also .bsp.bz2) or GoldSrc map (Half-Life, CS 1.6, ...)
     .vmf                 a Hammer map source (Source)
 
-The result is a mod folder (see examples/levels_sample) holding what the game reads for a level, in the formats of docs/level-formats.md:
+The result is a mod folder (see example_mods/levels_sample) holding what the game reads for a level, in the formats of docs/level-formats.md:
 
     mods/MyLevel/mod.ini
     mods/MyLevel/levels.txt                          one `level` line, with `setup setup.txt`

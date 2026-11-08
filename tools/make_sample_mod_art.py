@@ -1,4 +1,4 @@
-"""Draw the picture of the sample mod (examples/sample_mod/art/ammo_big.png) and turn it into the game's texture format.
+"""Draw the picture of the sample mod (example_mods/sample_mod/art/ammo_big.png) and turn it into the game's texture format.
 The picture is original art made here, not taken from the game."""
 import os
 import sys
@@ -6,7 +6,7 @@ import sys
 from PIL import Image, ImageDraw
 
 
-root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'examples', 'sample_mod')
+root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'example_mods', 'sample_mod')
 img = Image.new('RGBA', (32, 32), (0, 0, 0, 0))
 d = ImageDraw.Draw(img)
 # a glowing blue-green round bullet: an outline, a body with a bright side, a highlight

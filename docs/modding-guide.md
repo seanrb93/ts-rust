@@ -1,5 +1,7 @@
 # Making mods
 
+Mods are made and shared by the people who make them, apart from the program: the repository has none.  The mods these documents name as examples (`example_mods/`) are a local folder of copies of the play folder's `mods/`, which git ignores.
+
 ## The easy way: the mod kit
 
 `modkit.exe` is one program with all the mod making tools.  It is in `tools/`, not in the play folder (`python tools/build-modkit.py` makes it); double-click it: it asks where the game is the first time.  A menu asks what you
@@ -46,7 +48,7 @@ weapon 0
    The names of the fields are in `docs/mod-roadmap.md`.  A line with a wrong name or a number out of its range is left out and the log says which line.
 3. Start the game.  The log (`[mods]`) says how many changes each file made.
 
-A weapon that is thrown can be given a lift: `throw_lift 0.07` adds that to the upward speed of its shot (units a frame, as `bullet_speed`), so that a brick, which has gravity, goes up and comes down again like a throw instead of falling at the thrower's feet (`examples/brick_throw_mod`; `TS_BULLETLOG=1` prints where a brick is each frame).
+A weapon that is thrown can be given a lift: `throw_lift 0.07` adds that to the upward speed of its shot (units a frame, as `bullet_speed`), so that a brick, which has gravity, goes up and comes down again like a throw instead of falling at the thrower's feet (`example_mods/brick_throw_mod`; `TS_BULLETLOG=1` prints where a brick is each frame).
 
 To add a weapon, give a number from 30 on, `copy` the weapon it starts from and a `name`:
 
@@ -84,7 +86,7 @@ mode deathmatch
   rule win_lead 5
 ```
 
-Each variant is listed as a mode on the Select Level page, after the game's own (a level lists up to seven modes in all); choosing it opens the Options page with the variant's options set and its name at the top.  A `rule` ends the match by itself: `win_score N`, `win_score_seconds N` (BagTag) and `win_lead N`.  `hide` (in a variant) leaves options off the Options page: `hide team_play team_starts friendly_fire kill_limit score_method score_limit one_shot_kill` (also `time_limit`, `radar`, `handicaps`, `start_with_gun`); set their values with the lines above it.  `script <file>` gives the variant a script, which can make its own rules, move the computer characters, add effects and say what the results say (`docs/scripting.md`; `examples/virus_mode/` is a whole mode made this way, with no change to the program).  A mode with objects or bases of its own is not possible yet.
+Each variant is listed as a mode on the Select Level page, after the game's own (a level lists up to seven modes in all); choosing it opens the Options page with the variant's options set and its name at the top.  A `rule` ends the match by itself: `win_score N`, `win_score_seconds N` (BagTag) and `win_lead N`.  `hide` (in a variant) leaves options off the Options page: `hide team_play team_starts friendly_fire kill_limit score_method score_limit one_shot_kill` (also `time_limit`, `radar`, `handicaps`, `start_with_gun`); set their values with the lines above it.  `script <file>` gives the variant a script, which can make its own rules, move the computer characters, add effects and say what the results say (`docs/scripting.md`; `example_mods/virus_mode/` is a whole mode made this way, with no change to the program).  A mode with objects or bases of its own is not possible yet.
 
 ## Add a level
 
@@ -124,11 +126,11 @@ end
 
 `if` takes a setting (`if name`, `if not name`) or a comparison (`if name = word`, `!=`, `<`, `<=`, `>`, `>=`), and the blocks can be put inside each other.  A setting that is a word, in braces on its own, goes in as that word.  A line that uses a setting that is missing or is not a number is left out, and the log names the lines, so a wrong value in the settings never writes a wrong value into the game.  A script reads a setting with `setting("name", default)` (`docs/scripting.md`).
 
-All the machines of a network game need the same settings: a machine with other values cannot join (the lobby says "other game files or mods").  `examples/balance_mod`, `bots_punch_mod`, `brick_throw_mod`, `virus_mode`, `first_person_hands_mod`, `dual_wield_everything_mod` and `smarter_bots_mod` have settings.
+All the machines of a network game need the same settings: a machine with other values cannot join (the lobby says "other game files or mods").  `example_mods/balance_mod`, `bots_punch_mod`, `brick_throw_mod`, `virus_mode`, `first_person_hands_mod`, `dual_wield_everything_mod` and `smarter_bots_mod` have settings.
 
 ## Replace sounds, music and textures
 
-Put a file in the mod under the pack's name: `SFX.PAK/sfx/<name>.mp3` (or `.ogg`, `.flac`, `.m4a`, `.wav`, `.opus`) replaces a sound, `MUSIC/<name>.mp3` (or the same formats) a track, `MISC.PAK/textures/<number>.png` a texture.  See `examples/sample_mod/`.
+Put a file in the mod under the pack's name: `SFX.PAK/sfx/<name>.mp3` (or `.ogg`, `.flac`, `.m4a`, `.wav`, `.opus`) replaces a sound, `MUSIC/<name>.mp3` (or the same formats) a track, `MISC.PAK/textures/<number>.png` a texture.  See `example_mods/sample_mod/`.
 
 ## Seeing a result
 

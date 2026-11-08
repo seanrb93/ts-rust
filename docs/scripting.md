@@ -1,7 +1,7 @@
 # Scripts
 
 A mod can have scripts: files of the mod in the [Rhai](https://rhai.rs) language.  There are two kinds.  The script of a **mode** (a `variant` of `modes.txt` with a `script` line) runs while that mode is played.  The script of a **mod** (`script = bots_punch.rhai` in its `mod.ini`) runs all the time the mod is on, in every match, and in the menus (`on_frame`).  A mod can have several.  The program knows nothing of the mode;
-the rules, the computer characters' behaviour and the look of it are the script's.  `examples/virus_mode/` is made this way (`scripts/virus.rhai`).  Scripts need the build with extensions.
+the rules, the computer characters' behaviour and the look of it are the script's.  `example_mods/virus_mode/` is made this way (`scripts/virus.rhai`).  Scripts need the build with extensions.
 
 ```
 mode deathmatch
@@ -80,6 +80,6 @@ Weapons: a weapon (a "combination" of the game) is one gun or a gun in each hand
 
 A script has 5 million operations a call, then it is stopped.
 
-In a network game with rollback what the scripts keep (`this`, their variables, and what they asked for the characters) is kept for each tick and put back with the game's memory when a tick is played again or a picture is made between ticks, so a script plays the same on every machine.  A resync sends the game's memory only: a script that keeps something of its own may differ after one.  `examples/smarter_bots_mod` uses most of the calls for the computer characters.
+In a network game with rollback what the scripts keep (`this`, their variables, and what they asked for the characters) is kept for each tick and put back with the game's memory when a tick is played again or a picture is made between ticks, so a script plays the same on every machine.  A resync sends the game's memory only: a script that keeps something of its own may differ after one.  `example_mods/smarter_bots_mod` uses most of the calls for the computer characters.
 
-`TS_MODELDUMP=<folder>` writes every model of `model_names()` to that folder once the scripts run, and prints how many milliseconds each took. `examples/first_person_hands_mod` is made this way: a model takes it about 8 ms, and it needs no models of its own.
+`TS_MODELDUMP=<folder>` writes every model of `model_names()` to that folder once the scripts run, and prints how many milliseconds each took. `example_mods/first_person_hands_mod` is made this way: a model takes it about 8 ms, and it needs no models of its own.

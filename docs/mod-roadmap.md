@@ -178,7 +178,7 @@ Not done: new sound files for weapons (only the choice of a game sound with `fir
    the log.  Small, and the three features share it.
 2. Weapons first (the stats are tables and need only mapping), then game modes built from parts, then characters (they wait on the model format).
 3. Each step: write what is known into `docs/`, add the table move and the hooks behind the features with the original expression when the feature is off, run the
-   verifier, make a sample mod in `examples/`.
+   verifier, make a sample mod in `example_mods/`.
 4. The default build stays the original: the checks of `docs/decompilation.md` run after every change.
 
 ## Decisions

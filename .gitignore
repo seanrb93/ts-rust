@@ -41,3 +41,6 @@ modkit-error.txt
 /tools/modkit
 examples/first_person_hands_src/work/
 examples/first_person_hands_mod/scripts/arms/
+
+# the example mods: copies of the mods folder, kept out of the repository (mods are made and shared by their authors)
+example_mods/

@@ -1,4 +1,4 @@
-"""Make the sounds of the sample mod (examples/sample_mod): a short "pew" for a weapon sound and a small looping tune for a music stream,
+"""Make the sounds of the sample mod (example_mods/sample_mod): a short "pew" for a weapon sound and a small looping tune for a music stream,
 both written here (not taken from the game) and stored as Ogg Opus.  Needs ffmpeg with libopus (imageio_ffmpeg's will do)."""
 import os
 import subprocess
@@ -6,7 +6,7 @@ import wave
 
 import numpy as np
 
-root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'examples', 'sample_mod')
+root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'example_mods', 'sample_mod')
 try:
     import imageio_ffmpeg
     FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()

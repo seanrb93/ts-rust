@@ -123,4 +123,4 @@ The second trigger has its own damage (`alt_damage`, +208) and its own rate, and
 
 A trigger held down stops when the clip is empty: the weapon reloads when the trigger is let go and pressed again.  Pressing it again quickly also fires the slow weapons faster than holding it (a sniper rifle 1.5 shots a second when pressed every half second, 1.0 when held).
 
-The stock damage per second of a full hit on the body (damage times the bullets of the shot times the rate) runs from 0.5 (Sniper Rifle, Rocket Launcher) and 0.8 (Colt) to 1.6 to 2.3 (the automatics and rifles) and 5.8 and 7.2 for the Assault Shotgun and the Shotgun, which is why the shotguns feel so strong.  `examples/balance_mod` sets the damage of both triggers from these rates and the reloads.
+The stock damage per second of a full hit on the body (damage times the bullets of the shot times the rate) runs from 0.5 (Sniper Rifle, Rocket Launcher) and 0.8 (Colt) to 1.6 to 2.3 (the automatics and rifles) and 5.8 and 7.2 for the Assault Shotgun and the Shotgun, which is why the shotguns feel so strong.  `example_mods/balance_mod` sets the damage of both triggers from these rates and the reloads.
