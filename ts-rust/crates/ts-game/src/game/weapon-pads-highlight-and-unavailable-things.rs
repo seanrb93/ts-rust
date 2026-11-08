@@ -6,6 +6,11 @@ use crate::*;
 /// `chr`: of those that carry flag 1 and whose own pad (+36 of their state) is not this pad and is not one of the camping pads, one at random (kept on the stack); with none, the
 /// last prop of the pad with flag 1 that is on another pad, or the last on another pad, or 0 (@ 0x2c4f98).
 pub fn selectWeaponPad(chr: i32) -> i32 {
+    // (a script may choose the weapon)
+    #[cfg(feature = "extensions")]
+    if let Some(prop) = script_bot_weapon(chr) {
+        return prop;
+    }
     let frame = Frame::new(144);
     let sp = frame.sp();
     let mut count = 0;

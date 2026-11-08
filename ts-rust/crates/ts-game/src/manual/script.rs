@@ -12,6 +12,10 @@
 
 use crate::*;
 use rhai::{Engine, Scope, AST};
+
+#[path = "script-bots.rs"]
+mod bots;
+pub use bots::*;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -44,14 +48,27 @@ struct Fx {
     flame_group: i32,
     /// the colour of the character's dot on the radar (the game's colour word of a team)
     radar: Option<i32>,
+    /// a computer character does not fire
+    hold_fire: bool,
+    /// which of its gun's two shots a computer character fires (-1: the game's choice, 0: the first, 1: the second)
+    fire_mode: i32,
+    /// a part of the spread of a computer character's own aim (1: the game's)
+    spread: f32,
+    /// a part of the time a computer character takes to react (1: the game's)
+    react: f32,
+    /// a place a computer character runs at, whatever it was doing
+    run_to: Option<[f32; 3]>,
+    /// a computer character uses up the ammunition of its gun as a player does
+    uses_ammo: bool,
 }
 
 impl Default for Fx {
     fn default() -> Self {
-        Fx { flame: false, tint: None, passive: false, speed: 1.0, pad: -1, steer: None, flame_group: 0, radar: None }
+        Fx { flame: false, tint: None, passive: false, speed: 1.0, pad: -1, steer: None, flame_group: 0, radar: None, hold_fire: false, fire_mode: -1, spread: 1.0, react: 1.0, run_to: None, uses_ammo: false }
     }
 }
 
+#[derive(Clone)]
 struct State {
     fx: Vec<Fx>,
     started: bool,
@@ -85,6 +102,57 @@ thread_local! {
     static HOSTS: RefCell<Vec<Host>> = RefCell::new(Vec::new());
 }
 
+/// What the scripts keep at the start of a tick of a network game with rollback (each script's `this` and its variables, and what they have asked for the characters):
+/// going back to the tick puts it back, as the journal puts back the game's memory, so that a tick played again finds the scripts as they were the first time.
+struct Kept {
+    hosts: Vec<(String, rhai::Dynamic, Scope<'static>)>,
+    state: State,
+}
+
+thread_local! {
+    static KEPT: RefCell<std::collections::BTreeMap<u32, Kept>> = RefCell::new(std::collections::BTreeMap::new());
+}
+
+/// Keep what the scripts have at the start of the tick `tick`.
+pub fn script_keep(tick: u32) {
+    if !ACTIVE.load(Ordering::Relaxed) {
+        return;
+    }
+    let hosts = HOSTS.with(|h| h.borrow().iter().map(|host| (host.name.clone(), host.state.clone(), host.scope.clone())).collect());
+    let state = STATE.with(|s| s.borrow().clone());
+    KEPT.with(|k| k.borrow_mut().insert(tick, Kept { hosts, state }));
+}
+
+/// Put back what the scripts had at the start of the tick `tick` (a script that has gone since is left out, one that has come since keeps what it has).
+pub fn script_back_to(tick: u32) {
+    KEPT.with(|k| {
+        let k = k.borrow();
+        let Some(kept) = k.get(&tick) else { return };
+        HOSTS.with(|h| {
+            for host in h.borrow_mut().iter_mut() {
+                if let Some((_, state, scope)) = kept.hosts.iter().find(|(name, ..)| *name == host.name) {
+                    host.state = state.clone();
+                    host.scope = scope.clone();
+                }
+            }
+        });
+        STATE.with(|s| *s.borrow_mut() = kept.state.clone());
+    });
+}
+
+/// Forget what was kept for the ticks before `tick`.
+pub fn script_forget_before(tick: u32) {
+    // (the ticks from `tick` on are kept, and the place of a picture between ticks, the highest key, with them)
+    KEPT.with(|k| {
+        let mut k = k.borrow_mut();
+        *k = k.split_off(&tick);
+    });
+}
+
+pub fn script_forget_all() {
+    KEPT.with(|k| k.borrow_mut().clear());
+}
+
 /// The scripts that mods have given (the mod, the file, the text), read by the loader when the game starts.
 static MOD_SCRIPTS: Mutex<Vec<(String, String, String, std::path::PathBuf)>> = Mutex::new(Vec::new());
 
@@ -95,6 +163,8 @@ pub fn register_script(mod_name: &str, mod_dir: &std::path::Path, file: &str, so
 
 /// A script is running (set while one is loaded, so that the hooks in the game's code cost nothing otherwise).
 static ACTIVE: AtomicBool = AtomicBool::new(false);
+/// The script of a mode is running (`mode_script()`).
+static MODE_SCRIPT: AtomicBool = AtomicBool::new(false);
 /// How much a script has scaled the height of the view of each character (`chr_view_ratio`; 0: not at all).
 static VIEW_RATIOS: [std::sync::atomic::AtomicU32; 128] = [const { std::sync::atomic::AtomicU32::new(0) }; 128];
 /// The script of the mode chosen was looked for in this game, and those of the mods in this run.
@@ -299,6 +369,7 @@ fn register(engine: &mut Engine) {
     engine.register_fn("bot_steer_clear", |i: i64| {
         fx_of(i, |f| f.steer = None);
     });
+    bots::register(engine);
     // how characters look
     engine.register_fn("flame", |i: i64, on: bool| {
         fx_of(i, |f| f.flame = on);
@@ -436,6 +507,7 @@ fn compile(name: &str, source: &str, of_mode: bool, mod_dir: Option<std::path::P
 /// A new game starts: the script of the last mode and what the scripts asked for are put away.
 pub fn script_reset() {
     HOSTS.with(|h| h.borrow_mut().retain(|host| !host.of_mode));
+    MODE_SCRIPT.store(false, Ordering::Relaxed);
     for i in 0..32 {
         sw(GUN_DIPS + 4 * i, 0);
     }
@@ -470,6 +542,7 @@ fn load() {
             if let Some(host) = compile(&name, &source, true, None, Some(settings)) {
                 eprintln!("[script] a script is running");
                 HOSTS.with(|h| h.borrow_mut().push(host));
+                MODE_SCRIPT.store(true, Ordering::Relaxed);
             }
         }
     }
@@ -703,22 +776,37 @@ pub fn script_hides_score() -> bool {
     ACTIVE.load(Ordering::Relaxed) && STATE.with(|s| s.borrow().hide_score)
 }
 
-/// A computer character of the game being scripted does not attack.
+/// A computer character of the game being scripted does not attack (it is held back, or sent running somewhere).
 pub fn script_bot_passive(chr: i32) -> bool {
     if !ACTIVE.load(Ordering::Relaxed) {
         return false;
     }
     let mind = lw(chr + 352);
-    mind != 0 && fx_read(lw(mind), |f| f.passive).unwrap_or(false)
+    mind != 0 && fx_read(lw(mind), |f| f.passive || f.run_to.is_some()).unwrap_or(false)
 }
 
 /// A computer character that a script holds back (`enemyTick`, before its state runs): whatever it was going to do (attack, look for a weapon or health, defend) it picks its way again, so that it only goes to the pads it is sent to.
 pub fn script_bot_hold(chr: i32) {
-    if !script_bot_passive(chr) {
+    if !ACTIVE.load(Ordering::Relaxed) {
         return;
     }
     let mind = lw(chr + 352);
+    if mind == 0 {
+        return;
+    }
+    let (passive, running) = fx_read(lw(mind), |f| (f.passive, f.run_to.is_some())).unwrap_or((false, false));
     let state = lw(mind + 2716);
+    // (a character sent running somewhere goes to a pad, whatever it was doing: `script_bot_post` puts the place it runs at)
+    if running {
+        if !matches!(state, 0 | 8 | 16 | 32) {
+            sw(mind + 2720, state);
+            sw(mind + 2716, 8);
+        }
+        return;
+    }
+    if !passive {
+        return;
+    }
     // (0: not in play, 8: going to a pad, 16: dying, 32: spawning, 128: choosing a target)
     if !matches!(state, 0 | 8 | 16 | 32 | 128) {
         sw(mind + 2716, 128);
@@ -746,7 +834,7 @@ pub fn script_bot_post(chr: i32) {
     if mind == 0 || lw(mind) < lw(g::lvnumplayers) || lw(mind + 2716) != 8 {
         return;
     }
-    let Some((speed, steer)) = fx_read(lw(mind), |f| (f.speed, f.steer)) else {
+    let Some((speed, steer)) = fx_read(lw(mind), |f| (f.speed, f.run_to.or(f.steer))) else {
         return;
     };
     // (the top speed of a character that is going to a pad is set from its base speed each frame)

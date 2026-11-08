@@ -434,6 +434,16 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
     if frames <= 0 {
         return;
     }
+    // (a script may hold the character's fire, have it use up ammunition, and choose which of the gun's two shots it fires)
+    #[cfg(feature = "extensions")]
+    if script_bot_holds_fire(a0) || !script_bot_take_ammo(a0, lw(a1)) {
+        return;
+    }
+    #[cfg(feature = "extensions")]
+    let a2 = match script_bot_fire_mode(a0) {
+        -1 => a2,
+        m => m,
+    };
     let kind;
     'b2: {
         'b3: {
@@ -472,7 +482,12 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
                                     _ => 2.25_f32,
                                 };
                                 let mut n = 0;
-                                if bullets != 0 {
+                                // (a script may say the shot misses)
+                                #[cfg(feature = "extensions")]
+                                let hits = script_bot_unseen_hit(a0);
+                                #[cfg(not(feature = "extensions"))]
+                                let hits = true;
+                                if bullets != 0 && hits {
                                     loop {
                                         n += 1;
                                         let damage = ps2float::mul(ps2float::mul(lwc1(shot + 20), scale), ps2float::sub(1.0_f32, lwc1(mind + 2836)));
@@ -551,6 +566,9 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
         }
         kind = lw(mind + 8);
     }
+    // (a script may move the place the character aims at, at sp+32)
+    #[cfg(feature = "extensions")]
+    script_bot_aim(a0, sp + 32);
     let gun_holder;
     let skeleton;
     if kind != 3 {
@@ -703,17 +721,22 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
     swc1(sp, first);
     swc1(sp + 4, lwc1(mind + 2980));
     let gun = gun_number * 400 + GUNS_TABLE;
-    let shot = gun + 52;
+    // (the first shot of the gun, or the second when a script chose it)
+    #[cfg(feature = "extensions")]
+    let second = script_bot_fire_mode(a0) == 1;
+    #[cfg(not(feature = "extensions"))]
+    let second = false;
+    let shot = if second { gun + 188 } else { gun + 52 };
     let bullets = if (lw(shot) ^ 4) == 0 { 3 } else { 1 };
     swc1(sp + 8, lwc1(mind + 2984));
     if bullets != 0 {
         let mut n = 0;
         loop {
             let random = random_unit();
-            let spread = ps2float::add(lwc1(shot + 32), lwc1(mind + 2964));
+            let spread = ps2float::add(lwc1(shot + 32), own_spread(a0, mind));
             let a = ps2float::mul(ps2float::sub(ps2float::add(random, random), 1.0_f32), spread);
             let random = random_unit();
-            let b = ps2float::mul(ps2float::sub(ps2float::add(random, random), 1.0_f32), ps2float::add(lwc1(shot + 32), lwc1(mind + 2964)));
+            let b = ps2float::mul(ps2float::sub(ps2float::add(random, random), 1.0_f32), ps2float::add(lwc1(shot + 32), own_spread(a0, mind)));
             let (x, y, z, inverse);
             if n != 0 {
                 x = lwc1(sp);
@@ -733,14 +756,27 @@ pub fn gunChrFire(a0: i32, a1: i32, a2: i32) {
             swc1(sp + 4, ps2float::mul(ps2float::add(ps2float::mul(y, inverse), b), speed));
             swc1(sp, new_x);
             swc1(sp + 8, ps2float::mul(ps2float::sub(zs, ps2float::mul(a, ps2float::mul(new_x, inverse))), speed));
-            gunFire(a0, a1, 0, 0, sp, 2, lw(mind), 1);
+            gunFire(a0, a1, 0, second as i32, sp, 2, lw(mind), 1);
             sw(g::propershots, lw(g::propershots) + 1);
             if n >= bullets {
                 break;
             }
         }
     }
-    gunFireSfx(a1, 0, a0 + 48);
+    gunFireSfx(a1, second as i32, a0 + 48);
+}
+
+/// The spread of the aim of the computer character `chr` (+2964 of its record `mind`), which a script may scale.
+fn own_spread(chr: i32, mind: i32) -> f32 {
+    #[cfg(feature = "extensions")]
+    {
+        script_bot_spread(chr, lwc1(mind + 2964))
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = chr;
+        lwc1(mind + 2964)
+    }
 }
 
 /// The matrix part of `obInstLightUpdate`: the direction vectors in sp+48, +64 and +80 are normalised, and the matrices of the lights of the instance are made from them.

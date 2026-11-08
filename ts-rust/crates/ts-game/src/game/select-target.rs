@@ -462,6 +462,12 @@ pub fn selectTarget(a0: i32) {
                                         }
                                         target = lw(s2 + 2788);
                                     }
+                                    // (a script may choose another character to go after)
+                                    #[cfg(feature = "extensions")]
+                                    if let Some(chosen) = script_bot_target(a0) {
+                                        sw(s2 + 2788, chosen);
+                                        target = chosen;
+                                    }
                                 }
                             }
                             if target == 0 {

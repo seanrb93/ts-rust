@@ -308,7 +308,7 @@ pub fn pickupPropTick(a0: i32) {
                             gunPickedUpAmmo(chr, lw(data + 16), before);
                             break 'b12;
                         }
-                        // health
+                        // armour (+12 of the character's record, which a blow takes first)
                         let health = ps2float::add(lwc1(chr + 12), lwc1(data + 8));
                         swc1(chr + 12, health);
                         if 1.0_f32 < health {
@@ -320,7 +320,7 @@ pub fn pickupPropTick(a0: i32) {
                         StatsAdd(34, lw(chr), 1.0_f32);
                         break 'b12;
                     }
-                    // armour
+                    // health (+520 of the character's prop)
                     let armour = ps2float::add(lwc1(prop + 520), lwc1(data + 8));
                     swc1(prop + 520, armour);
                     if 1.0_f32 < armour {

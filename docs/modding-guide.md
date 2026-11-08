@@ -124,7 +124,7 @@ end
 
 `if` takes a setting (`if name`, `if not name`) or a comparison (`if name = word`, `!=`, `<`, `<=`, `>`, `>=`), and the blocks can be put inside each other.  A setting that is a word, in braces on its own, goes in as that word.  A line that uses a setting that is missing or is not a number is left out, and the log names the lines, so a wrong value in the settings never writes a wrong value into the game.  A script reads a setting with `setting("name", default)` (`docs/scripting.md`).
 
-All the machines of a network game need the same settings: a machine with other values cannot join (the lobby says "other game files or mods").  `examples/balance_mod`, `bots_punch_mod`, `brick_throw_mod`, `virus_mode`, `first_person_hands_mod` and `dual_wield_everything_mod` have settings.
+All the machines of a network game need the same settings: a machine with other values cannot join (the lobby says "other game files or mods").  `examples/balance_mod`, `bots_punch_mod`, `brick_throw_mod`, `virus_mode`, `first_person_hands_mod`, `dual_wield_everything_mod` and `smarter_bots_mod` have settings.
 
 ## Replace sounds, music and textures
 

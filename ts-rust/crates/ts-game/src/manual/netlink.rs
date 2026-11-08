@@ -743,7 +743,9 @@ fn rs_stop(rb: &mut Rollback, k: u32) -> bool {
     rb.used.clear();
     rb.pending.clear();
     rb.menus.clear();
+    script_forget_all();
     rb.menus.insert(k, av_menu_state());
+    script_keep(k);
     rb.verified = k;
     rb.tick = k;
     ts_sdk::net::note(&format!("back in step at tick {k}: {} bytes, {} ms{}", sent, began.elapsed().as_millis(), back.map_or(String::new(), |p| format!(", player {p} is back"))));
@@ -800,6 +802,10 @@ fn memory_blocks() -> Vec<u32> {
         .collect()
 }
 
+/// The key under which what the scripts keep is put away while a picture between ticks is made.
+#[cfg(feature = "extensions")]
+const SUB_FRAME: u32 = u32::MAX;
+
 #[cfg(feature = "extensions")]
 pub fn netlink_sub_frames() {
     use std::time::{Duration, Instant};
@@ -822,11 +828,13 @@ pub fn netlink_sub_frames() {
         if TICKS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % n.max(1) == 0 {
             let blocks = if std::env::var("TS_SUBCHECK").map_or(false, |v| v == "2") { Some(memory_blocks()) } else { None };
             ts_rt::journal::begin_tick();
+            script_keep(SUB_FRAME);
             ts_sdk::net::set_muted(true);
             sub_frame(0.5);
             ts_sdk::net::set_muted(false);
             ts_sdk::present_sync();
             ts_rt::journal::undo(1);
+            script_back_to(SUB_FRAME);
             if let Some(b) = blocks {
                 let after = memory_blocks();
                 let diff: Vec<String> = (0..b.len()).filter(|&i| b[i] != after[i]).take(24).map(|i| format!("{:x}", block_address(i))).collect();
@@ -872,12 +880,14 @@ pub fn netlink_sub_frames() {
         static SCANS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
         let blocks = if check && std::env::var("TS_SUBCHECK").map_or(false, |v| v == "2") && SCANS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % 2 == 1 { Some(memory_blocks()) } else { None };
         ts_rt::journal::begin_tick();
+        script_keep(SUB_FRAME);
         ts_sdk::net::set_muted(true);
         sub_frame(f.clamp(0.02, 0.98) as f32);
         ts_sdk::net::set_muted(false);
         // (what is being drawn must be finished before the memory is put back)
         ts_sdk::present_sync();
         ts_rt::journal::undo(1);
+        script_back_to(SUB_FRAME);
 
         if check && state_sum() != before {
             eprintln!("[sub] the picture between ticks changed the game's state");
@@ -1281,11 +1291,14 @@ fn go_back(rb: &mut Rollback, e: u32, k: u32) {
     if let Some(m) = rb.menus.get(&e) {
         av_menu_state_put(m);
     }
+    // (and what the scripts of mods keep, which is outside the game's memory too)
+    script_back_to(e);
     ts_sdk::net::set_replaying(true);
     for t in e..k {
         ts_sdk::net::replay_tick(t);
         ts_rt::journal::begin_tick();
         rb.menus.insert(t, av_menu_state());
+        script_keep(t);
         let (mut pads, mask) = best_pads(t);
         if WRONG_PADS.load(std::sync::atomic::Ordering::Relaxed) {
             for (p, pad) in pads.iter_mut().enumerate() {
@@ -1309,6 +1322,7 @@ fn go_back(rb: &mut Rollback, e: u32, k: u32) {
     ts_sdk::net::set_tick(k);
     ts_rt::journal::begin_tick();
     rb.menus.insert(k, av_menu_state());
+    script_keep(k);
     ts_sdk::net::note_rollback(n as u32);
 }
 
@@ -1334,6 +1348,7 @@ pub fn netlink_boundary() {
             rb.used.clear();
             rb.pending.clear();
             rb.menus.clear();
+            script_forget_all();
             RAN.store(true, std::sync::atomic::Ordering::Relaxed);
         }
         // (the screen after the level: the machines do not exchange pads any more, and each player's own pad is the one that player's buttons read, so that each can go on)
@@ -1455,6 +1470,7 @@ pub fn netlink_boundary() {
     // (what is stored from here is the record of this tick: going back to it undoes the pads written below too)
     ts_rt::journal::begin_tick();
     rb.menus.insert(k, av_menu_state());
+    script_keep(k);
     // (a test aid, TS_REPLAYCHECK=1: the tick before is played again from the memory before it, and what differs from the first time is told, which finds what the game reads
     // that is not in its memory)
     if std::env::var_os("TS_REPLAYCHECK").is_some() && k >= 40 && k % 25 == 0 && ts_rt::journal::depth() >= 3 {
@@ -1578,6 +1594,7 @@ pub fn netlink_boundary() {
         let keep_from = k.saturating_sub(48);
         rb.used = rb.used.split_off(&keep_from);
         rb.menus = rb.menus.split_off(&keep_from);
+        script_forget_before(keep_from);
     }
     ts_sdk::net::note_boundary(k, waited_from.elapsed());
     // (a machine ahead of the others holds its clock back a little: see `time_sync`; TS_NOTIMESYNC=1 leaves it out, to compare)

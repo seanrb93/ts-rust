@@ -7,6 +7,14 @@ use crate::*;
 /// the constants being the game's; otherwise by the skill of its kind (a byte of the game parameters, 0 to 4) a random time on top of a base, one pair of constants for each;
 /// 0 for any other skill (@ 0x2c15f8).
 pub fn enemyReactTime(chr: i32) -> f32 {
+    let time = react_time(chr);
+    // (a script may make a computer character quicker or slower)
+    #[cfg(feature = "extensions")]
+    let time = script_bot_react(chr, time);
+    time
+}
+
+fn react_time(chr: i32) -> f32 {
     let params = g::curgameparms;
     if lw(params + 72) == 7 {
         let mode = lw(params + 76);

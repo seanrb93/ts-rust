@@ -8,9 +8,9 @@ fn random_unit() -> f32 {
     ps2float::mul((r as i32 as u32) as f32, 2.3283064e-10_f32)
 }
 
-/// Whether an enemy goes for a health pickup, and which: when its health fraction (+520, times its value at +12 plus 1) is below a limit, a random number is below its
-/// chance (+2832) and the best pickup (by nearness, doubled when it matters for that health) is worth it; the enemy's target (+2788) is set to the pickup and
-/// the number (the first word of the entry) is returned, else -1 (@ 0x2c5140).
+/// Whether an enemy goes for a health or armour pickup, and which: when its health (+520 of the prop) times its armour (+12 of its record) plus 1 is below a limit, a random
+/// number is not below its chance (+2832) and the best pickup (by nearness, doubled for a health pickup (kind 4) when its health is low, or for armour when its health is high) is
+/// worth it; the enemy's target (+2788) is set to the pickup and the pad of the pickup (the first word of the entry) is returned, else -1 (@ 0x2c5140).
 pub fn enemyCheckHealth(enemy: i32) -> i32 {
     let data = lw(enemy + 352);
     let mut best = 0.0_f32;

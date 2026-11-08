@@ -25,6 +25,10 @@ All are optional.  The state of the script is kept in `this` (a map): `this.cloc
 | `on_start()` | the match has its characters (and again when it is restarted) |
 | `on_tick()` | every frame of the match, after the game's own |
 | `on_bot_idle(i)` | the game looked for a weapon for the computer character `i` and found none to pick up: answer `true` if the script gave it something else to do |
+| `on_bot_target(i)` | the game has chosen whom the computer character `i` goes after (in the modes where it chooses among all the others, such as Deathmatch): answer the number of another character, or -1 to leave the game's choice |
+| `on_bot_aim(i, t, x, y, z)` | the computer character `i` fires at the character `t`, aimed at the place `x, y, z`: answer `[x, y, z]` for another place (to aim ahead of a moving target), or `()` to leave it |
+| `on_bot_unseen_hit(i, t)` | the computer character `i` fires at `t` where no player sees, and the game makes such a shot hit at once with no bullet: answer `false` to make it miss |
+| `on_bot_weapon(i)` | the computer character `i` has no weapon and is choosing one to fetch: answer the `id` of a weapon of `pickups()`, or -1 for the game's choice |
 | `file_prefixes()` and `on_file(name)` | the game loads a file whose name starts with one of the prefixes: `on_file` gives the names to try instead (a list; the plain file is used when none is in the packs) |
 | `on_gun_model(name, left)` | a gun is made for a hand when a gun is held in each: the name of the file of another model for it (or "") |
 | `has_model(name)` | the game loads a file whose name starts with one of `file_prefixes`, or looks for the model `on_gun_model` named: `true` if `make_model` can make it, and then it is made in place of any file of that name. `name` is the name in the pack of objects, such as `ob/gun3/gun3_c00.raw`; the names `on_file` gives are asked about in turn |
@@ -47,6 +51,13 @@ Characters are numbered from 0, the players first, then the computer characters.
 `setting(name, default)` (a value of the `[settings]` of the mod's `mod.ini`: a number of the default's kind, true or false for yes and no, or text; the default when the file does not have it), `setting(name)` (the same, `()` when it is not there),
 `dt()` (frames of 1/60 second since the last call), `rand_int(n)` (0 to n-1, by the game's random numbers), `env_int(name, default)` (a number from the environment: test aids),
 `pad_count()`, `pad_x(k)`, `pad_y(k)`, `pad_z(k)` (the pads of the level: the places computer characters go between).
+`health(i)` and `armour(i)` (each a part of 1; a blow takes the armour first), `bot_skill(i)` (the skill the match gives a computer character, 0 the easiest to 4), `game_mode()` (1 BagTag, 2 Capture the Bag, 3 Deathmatch, 4 Escort, 5 KnockOut, 6 Last Stand, 7 the story) and `mode_script()` (the script of a mode of a mod is playing it: a script of a mod can leave the computer characters to it).
+What a character sees: `can_see(i, j)` (nothing is in the way from the eyes of `i` to the body of `j`), `line_clear(i, x, y, z)` (nothing is in the way from its eyes to the place) and `eye_y(i)` (the height of its eyes).
+Weapons: a weapon (a "combination" of the game) is one gun or a gun in each hand, and a gun has two shots.  `weapon(i)` (the weapon a character holds), `owns(i, w)`, `weapon_gun(w)` (the gun in its right hand, -1 for the fists), `weapon_rank(w)` (the game's order of weapons, the lowest the best),
+`shot_kind(gun, second)` (the kind of bullet: 8 and 9 rockets, 10 to 13 grenades, 14 to 16 mines, 17 and 18 thrown things), `shot_speed(gun, second)` (units a frame), `shot_damage(gun, second)`, `shot_spread(gun, second)`, `gun_wait(gun)` (the frames a computer character waits between shots),
+`ammo(i, gun)` and `ammo_max(gun)` (the ammunition a character carries for a gun, not counting what is in it).
+`shots()`: the shots in flight, a list of maps with `kind`, `x`, `y`, `z`, `vx`, `vy`, `vz` (units a frame), `age` (seconds) and `owner` (the character that fired it, or -1).
+`pickups()`: the weapon, health and armour pickups of the level, a list of maps with `id`, `kind` ("weapon", "health", "armour" or "ammo"), `weapon` (for a weapon), `pad` (the pad a computer character goes to for it), `x`, `y`, `z` and `here` (false while it is taken).
 `mod_file(path)` (a file of the script's mod as a blob, empty when there is none), `mod_text(path)` (the same as a string), `mod_has_file(path)` (paths are from the mod's folder; `..` is refused. Keep such files under `scripts`, or the program takes the folder for files of a pack), `f32_at(blob, at)` (a little-endian 32-bit float of a blob: Rhai's own `parse_le_float` reads 4 bytes as the low half of a 64-bit float, which gives numbers near zero).
 
 ## What it can do
@@ -56,7 +67,10 @@ Characters are numbered from 0, the players first, then the computer characters.
 * `damage(target, attacker, amount)`: a blow (of the game's damage: a fraction of a character's health, a pistol shot is 0.3).  `poke(address, value)` and `pokef(address, number)`: set a word or a float of the game's memory (a mod's script can reach what the other functions do not).
 * `finish()`: the match is over.
 * Computer characters: `bot_passive(i, true)` (never attacks, looks for no weapon: it only goes to the pads it is sent to), `bot_pad(i, k)` (go to that pad; -1 gives the choice back to the game),
-  `bot_set_state(i, state)` (a state of the game's own machine: 128 chooses a target), `bot_speed(i, 0.8)` (a part of its own speed), `bot_steer(i, x, y, z)` and `bot_steer_clear(i)` (run straight at a place when going to a pad).
+  `bot_set_state(i, state)` (a state of the game's own machine: 128 chooses a target), `bot_speed(i, 0.8)` (a part of its own speed), `bot_steer(i, x, y, z)` and `bot_steer_clear(i)` (run straight at a place when going to a pad),
+  `bot_run_to(i, x, y, z)` and `bot_run_clear(i)` (run straight at a place now, whatever it was doing, and not attack meanwhile; clearing it has it choose what to do again), `bot_switch(i, w)` (hold a weapon it owns),
+  `bot_hold_fire(i, true)`, `bot_fire_mode(i, m)` (which shot of its gun it fires: 0 the first, 1 the second, -1 the game's choice, which is the first where a player sees), `bot_spread(i, part)` (a part of the spread of its own aim: 0.5 aims twice as well),
+  `bot_reaction(i, part)` (a part of the time it takes to react), `bot_uses_ammo(i, true)` (it uses up the ammunition of its gun as a player does, and does not fire with none), `set_ammo(i, gun, n)`.
 * Looks: `flame(i, true)` (a green flame), `tint(i, r, g, b, add)` and `tint_clear(i)` (the light of the character's model: its parts of red, green and blue, and a part of the strongest colour added to green),
   `radar_colour(i, team)` and `radar_colour_clear(i)` (the colour of its dot on the radar: a team's colour; the game gives every character one colour when it is not a team game),
   `set_colour(i, team)` (its colour in the results and the HUD: 1 red, 2 blue, 3 yellow, 4 green), `hud_glow(r, g, b, a)` (in `on_hud`: a glow at the edge of the screen, each 0 to 127).
@@ -65,5 +79,7 @@ Characters are numbered from 0, the players first, then the computer characters.
 * `log("text")`.
 
 A script has 5 million operations a call, then it is stopped.
+
+In a network game with rollback what the scripts keep (`this`, their variables, and what they asked for the characters) is kept for each tick and put back with the game's memory when a tick is played again or a picture is made between ticks, so a script plays the same on every machine.  A resync sends the game's memory only: a script that keeps something of its own may differ after one.  `examples/smarter_bots_mod` uses most of the calls for the computer characters.
 
 `TS_MODELDUMP=<folder>` writes every model of `model_names()` to that folder once the scripts run, and prints how many milliseconds each took. `examples/first_person_hands_mod` is made this way: a model takes it about 8 ms, and it needs no models of its own.
