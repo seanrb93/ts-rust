@@ -1406,7 +1406,12 @@ pub fn arcadeoptions_pageTick(a0: i32) {
     sh(page + 358, 111);
     sh(page + 390, 125);
     sh(page + 422, 146);
-    if count == 10 {
+    // (extensions: nine rows, which a mode of a mod can have with rows of its own, are laid out as ten are)
+    #[cfg(feature = "extensions")]
+    let full = count >= 9;
+    #[cfg(not(feature = "extensions"))]
+    let full = count == 10;
+    if full {
         sh(page + 358, 118);
         sh(page + 390, 132);
         sh(page + 422, 150);
