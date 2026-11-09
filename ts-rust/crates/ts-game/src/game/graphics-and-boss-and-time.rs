@@ -244,7 +244,7 @@ fn mark_camera_bit(index: i32) {
     }
     let bit = 0x1000000_i32 << index;
     let flags_at = lw(lw(g::currentplayer) + 384) + 16;
-    if mode != 2 && level != 6 {
+    if mode != 2 && level != 6 && !third_person_view_x() {
         sw(flags_at, lw(flags_at) & !bit);
     } else {
         sw(flags_at, lw(flags_at) | bit);

@@ -333,6 +333,11 @@ pub fn camTick() {
                 let width = lw(window + 12) as f32;
                 swc1(now + 252, half);
                 swc1(now + 256, ps2float::mul(ps2float::mul(half, ratio), ((width).pdiv(height))));
+                // (extensions: a camera a mod's script gave the player)
+                #[cfg(feature = "extensions")]
+                if script_camera_view(player, sp + 16) {
+                    break 'b2;
+                }
                 let mode = camGetMode();
                 if (mode as u32) < (10 as u32) {
                     let mut eye = 0;

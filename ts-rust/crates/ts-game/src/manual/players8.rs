@@ -48,7 +48,7 @@ pub fn prop_hidden_from(player: i32, prop: i32) -> bool {
     if flags & 0xf000000 == 0 {
         return true;
     }
-    crate::lw(crate::lw(crate::dec::g::currentplayer) + 384) == prop && crate::camGetMode() != 2 && crate::lw(crate::dec::g::lvlevelnum) != 6
+    crate::lw(crate::lw(crate::dec::g::currentplayer) + 384) == prop && crate::camGetMode() != 2 && !crate::third_person_view_x() && crate::lw(crate::dec::g::lvlevelnum) != 6
 }
 
 pub fn body_room(player: i32) -> i32 {

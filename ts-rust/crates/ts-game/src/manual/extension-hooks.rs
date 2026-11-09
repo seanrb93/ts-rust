@@ -369,6 +369,20 @@ pub fn split_side_by_side() -> bool {
     SPLIT_SIDE_BY_SIDE.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// The view being drawn is a camera a mod's script set (`camera_set`): the player's own body and the guns in its hands are drawn, as in the game's
+/// third person camera (camera mode 2), and the gun of the first person view is not.
+#[inline]
+pub fn third_person_view_x() -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        script_camera_on()
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        false
+    }
+}
+
 /// The window of a player of two (`playerSetWindow`): side by side when the setting says so, the left half for the first player, the right for the second
 /// (the same 4 pixels apart as the game's four-way split); false when the game's own layout stands.
 pub fn split_window_or(window: i32) -> bool {

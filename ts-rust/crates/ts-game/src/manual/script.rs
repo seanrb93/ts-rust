@@ -18,6 +18,9 @@ mod bots;
 pub use bots::*;
 #[path = "script-editing.rs"]
 mod editing;
+#[path = "script-camera.rs"]
+mod camera;
+pub use camera::{script_camera_on, script_camera_view};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -406,6 +409,8 @@ fn register(engine: &mut Engine) {
     });
     // editing the level and drawing in the view
     editing::register(engine);
+    // the cameras of the players' views, the sticks, and where a player looks
+    camera::register(engine);
 }
 
 /// A character says one of its lines of being hit: the lines the game gives each character in its table of characters (the ones it plays when it is hit), where the character is.
@@ -718,6 +723,7 @@ pub fn script_tick() {
     let started = STATE.with(|s| s.borrow().started);
     if !started {
         STATE.with(|s| s.borrow_mut().started = true);
+        camera::clear_all();
         let _: Vec<()> = call_all("on_start", ());
         return;
     }

@@ -812,7 +812,7 @@ pub fn lvGfx() {
         sw(sp + 8, second_flags);
         let camera = camGetMode();
         let player = lw(g::currentplayer);
-        if camera != 2 {
+        if camera != 2 && !third_person_view_x() {
             bulletMakeAttachedMinesInvisible(lw(player + 384));
             let prop = lw(sp + 16);
             if prop != 0 {
@@ -860,7 +860,7 @@ pub fn lvGfx() {
         }
         let state = lw(player + 296);
         if state != 4 {
-            if camGetMode() != 2 {
+            if camGetMode() != 2 && !third_person_view_x() {
                 gunGfx();
             }
         }
