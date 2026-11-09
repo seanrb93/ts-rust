@@ -68,7 +68,7 @@ Changes apply at once and are saved to `ts-rust.ini` next to the executable (cre
 | `window_mode` | `windowed`, `borderless` (a window without borders over the whole desktop) or `fullscreen` (the monitor is switched to the video mode of `fullscreen_width` x `fullscreen_height`, 0 = the desktop's; the mode with the highest refresh rate of that size is used). The old `fullscreen = true/false` still reads as borderless / windowed. |
 | `width`, `height` | Window size in windowed mode (also set by dragging the window's edge or by the Resolution row). |
 | `vsync` | as named. |
-| `split_layout` | The views of two players on one screen: `top_bottom` (one above the other, as the game has them) or `side_by_side` (the left and right halves, 4 pixels apart as in the four-way split; each view keeps its own shape, as the camera takes the shape of its window).  The **Split Screen** row of Video Options; it applies from the next level that starts (extensions build). |
+| `split_layout` | The views of two players on one screen: `top_bottom` (one above the other, as the game has them) or `side_by_side` (the left and right halves, 4 pixels apart as in the four-way split; each view keeps its own shape, as the camera takes the shape of its window).  The **Split Screen** row of Game Options (front end); it applies from the next level that starts (extensions build). |
 | `stick_deadzone`, `stick_sensitivity` | Gamepad sticks, with PCSX2's defaults: dead zone 0 (none; the game has its own) and sensitivity 1.33 (the stick's range is stretched by a third and cut off at the ends, so a round modern gate reaches the console pad's values). Both sticks. |
 | `framerate` | **Ignored unless the port is built with `--features high-framerate`: the game runs at its own 60 Hz, because the logic is made to match the original exactly and the changes for other rates are not in it.**  Game frame rate while a level is played: `60` (the original), a higher number, or `display` (the monitor's refresh rate). Above 60 the game logic itself runs at that rate (movement, aiming, animation and effects are all advanced by the real frame time, so no in-between pictures are needed (the old frame interpolation option was removed); menus, loading, pause and the retry screens stay at 60. Frame times are measured, so a PC that cannot keep up simply gets a lower rate at the same game speed. See "Frame rates above 60 Hz" below. |
 
@@ -221,7 +221,7 @@ test) is skipped for the player's own move.  Everything the menu changes is rese
 
 The game type page (and the SETUP page of the pause menu) lead to separate pages: **Controls** (configuration, inverse look, aim mode, crouch
 mode, auto lookahead, auto aim, weapon change, vibration, vibration mode: the game's Setup Controls and Preferences pages in one),
-**Audio Options**, **Video Options** (the port's graphics settings) and, in the front end only, **Game Options** (Debug Menu, FPS Counter,
+**Audio Options**, **Video Options** (the port's graphics settings) and, in the front end only, **Game Options** (Debug Menu, FPS Counter, Split Screen,
 View Statistics, and View Credits once the game has been completed).  All of them work the same way: X starts editing the row under the cursor
 (its arrows appear), left / right change the value, X or triangle ends it; left / right otherwise move between the columns or the pages.
 Choosing X on the Custom configuration of the Controls page (after editing it) opens the page where each button is chosen.  `avmenu.rs` builds the tables.

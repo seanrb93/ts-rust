@@ -211,7 +211,7 @@ mapmaker_unlimited = false
 # keep the gun of the first person.  An experiment: the pose of each gun is not tuned yet
 first_person_arms = false
 
-# the views of two players on one screen: top_bottom (one above the other, as the game has them) or side_by_side; also a row of the Video Options page
+# the views of two players on one screen: top_bottom (one above the other, as the game has them) or side_by_side; also a row of the Game Options page
 split_layout = top_bottom
 
 [graphics]
