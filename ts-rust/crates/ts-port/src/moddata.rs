@@ -534,7 +534,7 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
             continue;
         }
         if words[0] == "option" {
-            // option <name> "<label>" <least> <most> <default>
+            // option <name> "<label>" <least> <most> <default> [<step>]
             let rest = line.splitn(2, char::is_whitespace).nth(1).unwrap_or("").trim();
             let (name, rest) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
             let rest = rest.trim();
@@ -550,12 +550,20 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
             let numbers: Vec<Option<i64>> = numbers.split_whitespace().map(parse_int).collect();
             match (variants.last_mut().filter(|_| in_variant), numbers.as_slice()) {
                 (None, _) => errors.push(format!("line {n}: an `option` belongs to a `variant`")),
-                (Some(v), [Some(least), Some(most), Some(default)])
-                    if !name.is_empty() && !label.is_empty() && least <= most && (least..=most).contains(&default) && *least >= -1_000_000 && *most <= 1_000_000 =>
+                (Some(v), [Some(least), Some(most), Some(default), rest @ ..])
+                    if !name.is_empty()
+                        && !label.is_empty()
+                        && least <= most
+                        && (least..=most).contains(&default)
+                        && *least >= -1_000_000
+                        && *most <= 1_000_000
+                        && rest.len() <= 1
+                        && rest.first().map_or(true, |s| matches!(s, Some(step) if *step >= 1 && (most - least) % step == 0 && (default - least) % step == 0 && (most - least) / step <= 100)) =>
                 {
-                    v.options.push(ts_game::ModeOption { name: name.to_ascii_lowercase(), label: label.chars().take(24).collect(), least: *least as i32, most: *most as i32, value: *default as i32 });
+                    let step = rest.first().copied().flatten().unwrap_or(1) as i32;
+                    v.options.push(ts_game::ModeOption { name: name.to_ascii_lowercase(), label: label.chars().take(24).collect(), least: *least as i32, most: *most as i32, step, value: *default as i32 });
                 }
-                _ => errors.push(format!("line {n}: an option is `option <name> \"<label>\" <least> <most> <default>`, whole numbers with the default between the others")),
+                _ => errors.push(format!("line {n}: an option is `option <name> \"<label>\" <least> <most> <default> [<step>]`, whole numbers with the default between the others, and the range and the default a whole number of steps from the least (at most 100 steps)")),
             }
             continue;
         }
@@ -675,7 +683,7 @@ pub fn load_file(mod_name: &str, which: &str, path: &Path) {
         for v in variants.iter_mut() {
             for o in v.options.iter_mut() {
                 if let Some(value) = settings.get(&o.name).and_then(ts_game::setting_number) {
-                    if value.fract() == 0.0 && (o.least as f64..=o.most as f64).contains(&value) {
+                    if value.fract() == 0.0 && (o.least as f64..=o.most as f64).contains(&value) && (value as i32 - o.least) % o.step.max(1) == 0 {
                         o.value = value as i32;
                     }
                 }
@@ -855,8 +863,11 @@ mode ls
         let o = &vs[0].options;
         assert_eq!((o[0].name.as_str(), o[0].label.as_str(), o[0].least, o[0].most, o[0].value), ("lives", "Lives", 1, 20, 3));
         assert_eq!((o[1].name.as_str(), o[1].label.as_str(), o[1].value), ("rounds", "Rounds", 2));
-        let (_, _, errors) = parse_modes("mode deathmatch\n option lives \"Lives\" 1 20 3\n variant \"E\"\n option lives \"Lives\" 5 1 3\n option lives \"Lives\" 1 2 3\n option lives\n");
-        assert_eq!(errors.len(), 4, "{errors:?}");
+        let (_, _, errors) = parse_modes("mode deathmatch\n option lives \"Lives\" 1 20 3\n variant \"E\"\n option lives \"Lives\" 5 1 3\n option lives \"Lives\" 1 2 3\n option lives\n option lives \"Lives\" 5 50 7 5\n option lives \"Lives\" 5 52 5 5\n");
+        assert_eq!(errors.len(), 6, "{errors:?}");
+        let (_, vs, errors) = parse_modes("mode deathmatch\n variant \"E\"\n option lives \"Lives\" 5 50 10 5\n");
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!((vs[0].options[0].step, vs[0].options[0].value), (5, 10));
     }
 
     #[test]

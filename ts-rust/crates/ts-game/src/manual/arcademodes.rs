@@ -27,6 +27,12 @@ static ROWS_FOR: Mutex<Option<(i32, usize, Vec<i32>)>> = Mutex::new(None);
 const OPTION_GV_AT: i32 = BASE + 0x17_4000;
 const OPTION_GV_BYTES: i32 = 48;
 const OPTION_TEXT_AT: i32 = BASE + 0x17_4400;
+/// the tables that name the values of the rows (pairs of a value and its text), up to the box of the screen's rank texts
+const OPTION_TABLE_AT: i32 = BASE + 0x17_4900;
+const OPTION_TABLE_END: i32 = BASE + 0x17_5000;
+/// the texts of the values those tables name (a number takes at most 8 bytes)
+const OPTION_NAMES_AT: i32 = BASE + 0x17_5000;
+const OPTION_NAMES_END: i32 = BASE + 0x17_6000;
 const MOST_ROWS: i32 = 10;
 
 /// A mode a mod adds to the list, as the tick of the page needs it.
@@ -143,25 +149,45 @@ pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
     }
     let step = if count >= 2 { ys[1] - ys[0] } else { 14 };
     let mut text = OPTION_TEXT_AT;
+    let mut table = OPTION_TABLE_AT;
+    let mut names = OPTION_NAMES_AT;
     let mut made = Vec::new();
     for (index, o) in options.iter().enumerate() {
         if kept >= MOST_ROWS {
             eprintln!("[mods] the option {:?} has no room on the Options page", o.name);
             break;
         }
-        // (its value: a copy of the template's, with this option's range and value, shown as a plain number)
+        // (its value: a copy of the template's, counting the steps from the least (the page moves a value by 1), with a table that names each
+        // step by the number it stands for; a plain number when the steps are 1)
         let gv = OPTION_GV_AT + OPTION_GV_BYTES * index as i32;
         let template_gv = lw(template + 12);
         for j in 0..(OPTION_GV_BYTES / 4) {
             sw(gv + 4 * j, if template_gv != 0 { lw(template_gv + 4 * j) } else { 0 });
         }
-        sw(gv, o.value.clamp(o.least, o.most));
-        sw(gv + 4, o.least);
-        sw(gv + 8, o.most);
+        let step = o.step.max(1);
+        let steps = (o.most - o.least) / step;
+        sw(gv, (o.fit(o.value) - o.least) / step);
+        sw(gv + 4, 0);
+        sw(gv + 8, steps);
         sw(gv + 12, 0);
-        sw(gv + 16, 0);
         sw(gv + 20, 0);
         sw(gv + 24, 0);
+        if step == 1 && o.least == 0 {
+            sw(gv + 16, 0);
+        } else if table + 8 * (steps + 2) <= OPTION_TABLE_END && names + 8 * (steps + 1) <= OPTION_NAMES_END {
+            sw(gv + 16, table);
+            for k in 0..=steps {
+                sw(table, k);
+                sw(table + 4, put_str(&mut names, &(o.least + k * step).to_string()));
+                table += 8;
+            }
+            sw(table, 0);
+            sw(table + 4, 0);
+            table += 8;
+        } else {
+            eprintln!("[mods] the option {:?} has too many values to name", o.name);
+            sw(gv + 16, 0);
+        }
         let row = rows + 32 * kept;
         for j in 0..8 {
             sw(row + 4 * j, lw(template + 4 * j));
@@ -181,7 +207,10 @@ pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
 /// again, and when a match starts and its script reads them).
 pub fn option_rows_keep() {
     let Some((kind, choice, gvs)) = ROWS_FOR.lock().unwrap().clone() else { return };
+    let options = variant_options(kind, choice);
     for (index, gv) in gvs.iter().enumerate() {
-        variant_option_set(kind, choice, index, lw(*gv));
+        if let Some(o) = options.get(index) {
+            variant_option_set(kind, choice, index, o.least + lw(*gv) * o.step.max(1));
+        }
     }
 }

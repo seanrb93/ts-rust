@@ -42,16 +42,26 @@ pub struct ModeVariant {
     pub options: Vec<ModeOption>,
 }
 
-/// An option a variant adds to the Options page (`option <name> "<label>" <least> <most> <default>` in `modes.txt`): a row of whole numbers from
-/// `least` to `most`, which the variant's script reads with `setting(name, ...)`.  `value` is what it is set to now (the default, or the
-/// setting of that name in the mod's `mod.ini`, until a player changes it on the page).
+/// An option a variant adds to the Options page (`option <name> "<label>" <least> <most> <default> [<step>]` in `modes.txt`): a row of whole
+/// numbers from `least` to `most`, `step` apart, which the variant's script reads with `setting(name, ...)`.  `value` is what it is set to now
+/// (the default, or the setting of that name in the mod's `mod.ini`, until a player changes it on the page).
 #[derive(Clone, Debug)]
 pub struct ModeOption {
     pub name: String,
     pub label: String,
     pub least: i32,
     pub most: i32,
+    pub step: i32,
     pub value: i32,
+}
+
+impl ModeOption {
+    /// The value nearest `value` that the option can have (in its range, a whole number of steps from `least`).
+    pub fn fit(&self, value: i32) -> i32 {
+        let step = self.step.max(1);
+        let k = ((value.clamp(self.least, self.most) - self.least) + step / 2) / step;
+        (self.least + k * step).min(self.most)
+    }
 }
 
 /// The option of the Options page that `hide` names in `modes.txt`: the address of its value in the game.
@@ -158,7 +168,7 @@ pub fn variant_option_set(kind: i32, choice: usize, index: usize, value: i32) {
     }
     if let Some(v) = VARIANTS.lock().unwrap().iter_mut().filter(|v| v.kind == kind).nth(choice - 1) {
         if let Some(o) = v.options.get_mut(index) {
-            o.value = value.clamp(o.least, o.most);
+            o.value = o.fit(value);
         }
     }
 }
