@@ -110,6 +110,8 @@ thread_local! {
     static MODELS_MADE: RefCell<HashMap<String, Arc<Vec<u8>>>> = RefCell::new(HashMap::new());
     static STATE: RefCell<State> = RefCell::new(State { fx: Vec::new(), started: false, last_game_frame: 0, in_hud: false, dt: 1.0, hide_score: false });
     static HOSTS: RefCell<Vec<Host>> = RefCell::new(Vec::new());
+    /// The table of scores being drawn is the page of the scores, which a script's `result_key` and `result_text` change.
+    static SCRIPTED_TABLE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// What the scripts keep at the start of a tick of a network game with rollback (each script's `this` and its variables, and what they have asked for the characters):
@@ -957,17 +959,30 @@ pub fn script_lighting(chr: i32) -> i32 {
 }
 
 /// The kind of the table of results (`scores_pageGfx`): a script can ask for a row for every character.
+/// Only the page of the scores (kind 3) is the script's: the pages of a player's kills and losses (1 and 2) keep the game's numbers.
 pub fn script_table_kind(kind: i32) -> i32 {
-    if ACTIVE.load(Ordering::Relaxed) && call_all::<_, bool>("results_per_character", ()).into_iter().any(|b| b) {
+    let scores = kind == 3 && ACTIVE.load(Ordering::Relaxed);
+    SCRIPTED_TABLE.with(|t| t.set(scores));
+    if scores && call_all::<_, bool>("results_per_character", ()).into_iter().any(|b| b) {
         2
     } else {
         kind
     }
 }
 
+/// The table `script_table_kind` was asked about has been drawn.
+pub fn script_table_done() {
+    SCRIPTED_TABLE.with(|t| t.set(false));
+}
+
+/// A script answers `hud_box`: the box of the rank shows what it says, and the score does not slide out of it at a kill (`hudGfx`).
+pub fn script_has_hud_box() -> bool {
+    ACTIVE.load(Ordering::Relaxed) && has("hud_box")
+}
+
 /// The number the table of results ranks the character of the record `record` by (`score` is the game's).
 pub fn script_result_key(record: i32, score: i32) -> i32 {
-    if !ACTIVE.load(Ordering::Relaxed) || !has("result_key") {
+    if !ACTIVE.load(Ordering::Relaxed) || !SCRIPTED_TABLE.with(|t| t.get()) || !has("result_key") {
         return score;
     }
     let i = ((record - lw(g::chrinfo)) / 0x1210) as i64;
@@ -976,7 +991,7 @@ pub fn script_result_key(record: i32, score: i32) -> i32 {
 
 /// What the table of results says in place of the score of the character of the record `record`, if a script has a text for it.
 pub fn script_result_text(record: i32) -> Option<i32> {
-    if !ACTIVE.load(Ordering::Relaxed) || !has("result_text") {
+    if !ACTIVE.load(Ordering::Relaxed) || !SCRIPTED_TABLE.with(|t| t.get()) || !has("result_text") {
         return None;
     }
     let i = ((record - lw(g::chrinfo)) / 0x1210) as i64;

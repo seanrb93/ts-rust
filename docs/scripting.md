@@ -41,10 +41,10 @@ All are optional.  The state of the script is kept in `this` (a map): `this.cloc
 | `on_hud(player)` | when the screen of a player is drawn (`hud_glow` and `pad_info` work here) |
 | `on_input()` | every frame, in the menus too (`in_match()` tells them apart), when the pads have been read and before the game sees them: `consume` takes buttons from the game |
 | `on_gfx(player)` | when the view of a player is drawn, where the original's editors drew (`draw_cylinder` works here) |
-| `hud_box(player)` | when the box of the rank is drawn on a player's screen: answer `[label, value]` (two texts, such as `["LIVES", "3"]`) to show those in it, or `()` for the game's rank |
+| `hud_box(player)` | when the box of the rank is drawn on a player's screen: answer `[label, value]` (two texts, such as `["LIVES", "3"]`) to show those in it, or `()` for the game's rank; a script that has it also keeps the score from sliding out of the box at a kill |
 | `results_per_character()` | the results: `true` for a row for every character instead of every team |
 | `result_key(i)` | the number the results rank the character `i` by (the highest first) |
-| `result_text(i)` | what the results say in place of the score of the character `i` (the scores shown during a match with Select too) |
+| `result_text(i)` | what the results say in place of the score of the character `i` (the page of the scores during a match with Select too; the pages of a player's kills and losses keep the game's numbers, and `result_key` too ranks only the page of the scores) |
 
 ## What the script can ask
 

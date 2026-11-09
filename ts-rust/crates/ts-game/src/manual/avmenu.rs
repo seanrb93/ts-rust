@@ -988,7 +988,8 @@ pub fn av_menu(page: i32) -> i32 {
         let pages = if layout().pages() > 1 && n > 8 { format!("   Left/Right: Page {}/{}", page_shown() + 1, ((n + 7) / 8).max(1)) } else { String::new() };
         let text = match entries.first().map(|e| e.1) {
             Some(Src::Info) => "Put mods in the mods folder next to the game".to_string(),
-            _ => format!("^2 {}   Changes apply after a restart{}", if editing() != 0 { "OK" } else { "Edit" }, pages),
+            // (short, so that the pages fit on the line beside it)
+            _ => format!("^2 {}   Restart to apply{}", if editing() != 0 { "OK" } else { "Edit" }, pages),
         };
         put_str(&mut at, &text)
     } else if on_action {

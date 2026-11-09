@@ -330,7 +330,12 @@ pub fn hudGfx() {
                     }
                 }
                 let player = lw(g::currentplayer);
-                if width > 0 {
+                // (extensions: not when a mode's script shows something else in the box of the rank)
+                #[cfg(feature = "extensions")]
+                let slide = width > 0 && !script_has_hud_box();
+                #[cfg(not(feature = "extensions"))]
+                let slide = width > 0;
+                if slide {
                     hudScoreGfx(lw(lw(player + 384) + 352), y, width - step);
                 }
                 let player = lw(g::currentplayer);

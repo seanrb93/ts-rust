@@ -225,6 +225,8 @@ pub fn scores_pageGfx() {
         if kind != 6 {
             #[cfg(feature = "extensions")]
             drawRankingsTable(script_table_kind(lhu(menu + 4)));
+            #[cfg(feature = "extensions")]
+            script_table_done();
             #[cfg(not(feature = "extensions"))]
             drawRankingsTable(lhu(menu + 4));
             #[cfg(feature = "extensions")]
