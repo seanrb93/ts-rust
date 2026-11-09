@@ -65,11 +65,14 @@ struct Fx {
     run_to: Option<[f32; 3]>,
     /// a computer character uses up the ammunition of its gun as a player does
     uses_ammo: bool,
+    /// the character does not come back into the match when it dies (a player's button does not bring it back, a computer character is not
+    /// put back in)
+    out: bool,
 }
 
 impl Default for Fx {
     fn default() -> Self {
-        Fx { flame: false, tint: None, passive: false, speed: 1.0, pad: -1, steer: None, flame_group: 0, radar: None, hold_fire: false, fire_mode: -1, spread: 1.0, react: 1.0, run_to: None, uses_ammo: false }
+        Fx { flame: false, tint: None, passive: false, speed: 1.0, pad: -1, steer: None, flame_group: 0, radar: None, hold_fire: false, fire_mode: -1, spread: 1.0, react: 1.0, run_to: None, uses_ammo: false, out: false }
     }
 }
 
@@ -247,6 +250,26 @@ fn register(engine: &mut Engine) {
     engine.register_fn("is_player", |i: i64| is_player_index(i));
     engine.register_fn("alive", |i: i64| is_alive(i));
     engine.register_fn("team", |i: i64| if prop_of(i) == 0 { 0 } else { lw(record(i) + 24) as i64 });
+    // the character's name, as the results show it (the text the record points to at +16)
+    engine.register_fn("char_name", |i: i64| -> String {
+        let (info, total) = characters();
+        if info == 0 || i < 0 || i as i32 >= total {
+            return String::new();
+        }
+        let at = lw(record(i) + 16);
+        if at == 0 {
+            return String::new();
+        }
+        let mut text = Vec::new();
+        for k in 0..60 {
+            let b = lbu(at + k) as u8;
+            if b == 0 {
+                break;
+            }
+            text.push(b);
+        }
+        String::from_utf8_lossy(&text).to_string()
+    });
     engine.register_fn("set_team", |i: i64, t: i64| {
         if prop_of(i) != 0 {
             sw(record(i) + 24, t as i32);
@@ -374,6 +397,11 @@ fn register(engine: &mut Engine) {
     engine.register_fn("bot_steer_clear", |i: i64| {
         fx_of(i, |f| f.steer = None);
     });
+    // a character that does not come back into the match when it dies (for modes with lives), and back in again
+    engine.register_fn("keep_out", |i: i64, on: bool| {
+        fx_of(i, |f| f.out = on);
+    });
+    engine.register_fn("kept_out", |i: i64| fx_read(i as i32, |f| f.out).unwrap_or(false));
     bots::register(engine);
     // how characters look
     engine.register_fn("flame", |i: i64, on: bool| {
@@ -818,6 +846,12 @@ pub fn script_radar_colour(i: i32) -> Option<i32> {
 /// The screen leaves out the score and the rank (`hudGfx`).
 pub fn script_hides_score() -> bool {
     ACTIVE.load(Ordering::Relaxed) && STATE.with(|s| s.borrow().hide_score)
+}
+
+/// The character of the record `record` (a record of the characters, +0 its number) is kept out of the match by a script (`keep_out`): when it is
+/// dead it does not come back (`move_dead` of a player, the spawning state of `enemyTick`).
+pub fn script_kept_out(record: i32) -> bool {
+    ACTIVE.load(Ordering::Relaxed) && record != 0 && fx_read(lw(record), |f| f.out).unwrap_or(false)
 }
 
 /// A computer character of the game being scripted does not attack (it is held back, or sent running somewhere).

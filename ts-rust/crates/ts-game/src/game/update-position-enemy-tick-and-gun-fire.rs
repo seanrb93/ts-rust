@@ -573,7 +573,12 @@ pub fn enemyTick(a0: i32) {
         }
         32 => {
             strncpy(name, 0x3afd28, 30);
-            spawn(a0);
+            // (extensions: a character a mode's script keeps out stays out of sight, and is not put back in)
+            if kept_out_x(a0) {
+                kept_out_hide(a0);
+            } else {
+                spawn(a0);
+            }
         }
         2 => {
             strncpy(name, 0x3afd08, 30);

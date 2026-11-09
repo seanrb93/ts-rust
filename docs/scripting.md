@@ -49,7 +49,7 @@ All are optional.  The state of the script is kept in `this` (a map): `this.cloc
 
 Characters are numbered from 0, the players first, then the computer characters.
 
-`chars()`, `players()`, `is_player(i)`, `alive(i)`, `team(i)`, `x(i)`, `y(i)`, `z(i)`, `score(i)`, `bot_state(i)` (the game's own state of a computer character: 8 is going to a pad),
+`chars()`, `players()`, `is_player(i)`, `alive(i)`, `team(i)`, `char_name(i)` (the character's name as the results show it; a player's is the name of its profile), `x(i)`, `y(i)`, `z(i)`, `score(i)`, `bot_state(i)` (the game's own state of a computer character: 8 is going to a pad),
 `player_character(p)` (the number of the character of the player `p`, -1 before the player chose), `bot_unarmed(i)` (a computer character with no weapon in either hand), `bot_target(i)` (the character it goes after, -1 for none), `peek(address)` (a word of the game's memory), `peekf(address)` (a float), `chr_view_ratio(c, ratio)` (says that the script scaled the heights of the view of character `c` by `ratio`, so that the arm of the fists stays where it is in the view), `chr_entry(c)` (the address of the entry of the character `c` in the game's table of characters: +20 the height of its head standing, +24 crouching, +28 the floor, +40 its scale),
 `setting(name, default)` (a value of the `[settings]` of the mod's `mod.ini`: a number of the default's kind, true or false for yes and no, or text; the default when the file does not have it), `setting(name)` (the same, `()` when it is not there),
 `dt()` (frames of 1/60 second since the last call), `rand_int(n)` (0 to n-1, by the game's random numbers), `env_int(name, default)` (a number from the environment: test aids),
@@ -72,6 +72,7 @@ Weapons: a weapon (a "combination" of the game) is one gun or a gun in each hand
 * `message(i, "text")`: a line on the screen of a player.  `sound(id, i)`: a sound of the game at the character.  `pain_voice(i)`: one of the character's own lines of being hit.
 * `damage(target, attacker, amount)`: a blow (of the game's damage: a fraction of a character's health, a pistol shot is 0.3).  `poke(address, value)` and `pokef(address, number)`: set a word or a float of the game's memory (a mod's script can reach what the other functions do not).
 * `finish()`: the match is over.
+* `keep_out(i, true)`: the character `i` does not come back into the match once it is dead (a player's button does not bring it back; a computer character stays out of sight and out of the tests of shots), for modes with lives; `keep_out(i, false)` lets it back in, and `kept_out(i)` asks.  `example_mods/elimination_mode` is made with it.
 * Computer characters: `bot_passive(i, true)` (never attacks, looks for no weapon: it only goes to the pads it is sent to), `bot_pad(i, k)` (go to that pad; -1 gives the choice back to the game),
   `bot_set_state(i, state)` (a state of the game's own machine: 128 chooses a target), `bot_speed(i, 0.8)` (a part of its own speed), `bot_steer(i, x, y, z)` and `bot_steer_clear(i)` (run straight at a place when going to a pad),
   `bot_run_to(i, x, y, z)` and `bot_run_clear(i)` (run straight at a place now, whatever it was doing, and not attack meanwhile; clearing it has it choose what to do again), `bot_switch(i, w)` (hold a weapon it owns),

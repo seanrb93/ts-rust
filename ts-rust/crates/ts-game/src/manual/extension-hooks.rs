@@ -383,6 +383,26 @@ pub fn third_person_view_x() -> bool {
     }
 }
 
+/// The character of the prop `prop` is kept out of the match by a mode's script (`keep_out`): dead, it does not come back.
+#[inline]
+pub fn kept_out_x(prop: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        let record = lw(prop + 352);
+        script_kept_out(record)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = prop;
+        false
+    }
+}
+
+/// A computer character that is kept out, in its spawning state: it stays out of every player's sight and out of the tests of lines and shots.
+pub fn kept_out_hide(prop: i32) {
+    sw(prop + 16, lw(prop + 16) & !(0xf000000 | 32));
+}
+
 /// The window of a player of two (`playerSetWindow`): side by side when the setting says so, the left half for the first player, the right for the second
 /// (the same 4 pixels apart as the game's four-way split); false when the game's own layout stands.
 pub fn split_window_or(window: i32) -> bool {

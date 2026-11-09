@@ -490,7 +490,8 @@ fn move_dead(sp: i32, p: i32, chr: i32) {
     if lw(chr + 0x11b0) != 0 {
         playerRespawn();
     }
-    if joyNewBut(lw(p)) & lw(p + 36) != 0 {
+    // (extensions: a player a mode's script keeps out is not brought back by the button)
+    if joyNewBut(lw(p)) & lw(p + 36) != 0 && !kept_out_x(body) {
         let kind = lw(g::curgameparms + 72);
         if kind != 7 {
             let spawn = if kind != 6 {
