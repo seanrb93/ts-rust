@@ -656,7 +656,7 @@ fn main() {
                     match n {
                         "cross" => b |= CROSS, "circle" => b |= CIRCLE, "square" => b |= SQUARE, "triangle" => b |= TRIANGLE,
                         "start" => b |= START, "select" => b |= SELECT, "up" => b |= UP, "down" => b |= DOWN,
-                        "left" => b |= LEFT, "right" => b |= RIGHT, "l1" => b |= L1, "r1" => b |= R1, "l2" => b |= L2, "r2" => b |= R2,
+                        "left" => b |= LEFT, "right" => b |= RIGHT, "l1" => b |= L1, "r1" => b |= R1, "l2" => b |= L2, "r2" => b |= R2, "l3" => b |= L3, "r3" => b |= R3,
                         "lup" => st[3] = 0, "ldown" => st[3] = 255, "lleft" => st[2] = 0, "lright" => st[2] = 255,
                         "rup" => st[1] = 0, "rdown" => st[1] = 255, "rleft" => st[0] = 0, "rright" => st[0] = 255,
                         other => eprintln!("unknown button {other}"),

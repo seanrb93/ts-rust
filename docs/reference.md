@@ -247,6 +247,8 @@ page's table is a copy in the port's memory, as it has no room for another item)
 The MapMaker's Options page works like the others (X edits the Grid Intensity slider, arrows show) and has **No Limit** (Yes / No): Yes removes the
 limit on what a map can hold and hides the FREE bar (`mmoptions.rs`, `mapmaker_unlimited` in `ts-rust.ini`).
 
+The MapMaker has **undo and redo**: L3 / R3 (the stick buttons, which it does not use otherwise) or the keys U / Y.  Every change of the map (placing, deleting, turning, loading a map) can be undone, up to 100 steps; the object in the hand is not part of it, and a map put back leaves the hand empty.  The history lasts while the map does (a map tried in a match and taken back from the backup keeps it) and starts again with an empty map maker (`manual/mmundo.rs`: each tick the map is written as the game writes a map file and compared with the last).
+
 ## Dual versions of every weapon, and story with more players
 
 The weapon page of the custom weapon sets lists a dual version ("Uzi (x2)") after the weapons for each weapon that the game only has in one hand

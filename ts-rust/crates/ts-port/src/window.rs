@@ -572,6 +572,15 @@ impl ApplicationHandler for App {
                                 if code == KeyCode::F2 && crate::config::get().debug_menu {
                                     ts_game::request_debug_menu();
                                 }
+                                // (the MapMaker's undo and redo; the keys do nothing elsewhere)
+                                #[cfg(feature = "extensions")]
+                                if code == KeyCode::KeyU {
+                                    ts_game::request_mm_undo();
+                                }
+                                #[cfg(feature = "extensions")]
+                                if code == KeyCode::KeyY {
+                                    ts_game::request_mm_redo();
+                                }
                                 if code == KeyCode::F10 {
                                     std::process::exit(0);
                                 }

@@ -111,6 +111,11 @@ pub fn mapmakerReset() {
     let flags = lw(g::editflags);
     let backup = lw(g::mmtempbuffer);
     sw(g::editflags, flags & 0x1200);
+    // (the history of undo is the map's: a map maker started with no map kept begins a new one)
+    #[cfg(feature = "extensions")]
+    if lw(backup) != 0x1324626 {
+        mm_undo_reset();
+    }
     if lw(backup) == 0x1324626 {
         mmLoadMapFile(backup, 0);
         mmInitView();

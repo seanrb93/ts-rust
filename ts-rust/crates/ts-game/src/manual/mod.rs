@@ -53,6 +53,8 @@ pub mod restart;
 pub mod modelmerge;
 #[cfg(feature = "extensions")]
 pub mod script;
+#[cfg(feature = "extensions")]
+pub mod mmundo;
 
 pub use arcademodes::*;
 pub use arcadeopts::*;
@@ -65,6 +67,8 @@ pub use restart::*;
 pub use original_fixes::*;
 #[cfg(feature = "extensions")]
 pub use script::*;
+#[cfg(feature = "extensions")]
+pub use mmundo::*;
 #[cfg(feature = "extensions")]
 pub use modelmerge::*;
 pub use menu_mouse::*;

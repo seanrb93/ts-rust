@@ -15,6 +15,9 @@ pub fn mapmakerTick() {
     if (flags_before & 0x4008) != 0 {
         return;
     }
+    // (undo and redo: the map's changes are noted, and L3 / R3 put them back)
+    #[cfg(feature = "extensions")]
+    mm_undo_tick();
     let front = lw(g::front);
     if (pressed & 2304) != 0 {
         sw(front + 12, 0);
