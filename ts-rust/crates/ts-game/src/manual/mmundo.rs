@@ -5,7 +5,7 @@
 //! program's window).  A map put back leaves nothing in the hand.
 
 use crate::*;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 /// The changes kept to undo.
@@ -26,17 +26,21 @@ struct History {
 }
 
 static HISTORY: Mutex<History> = Mutex::new(History { buffer: 0, last: None, undo: Vec::new(), redo: Vec::new() });
-static UNDO_ASKED: AtomicBool = AtomicBool::new(false);
-static REDO_ASKED: AtomicBool = AtomicBool::new(false);
+/// The frames the keys of undo and redo were pressed on (0: not since they were last used): a key pressed while the map maker does not tick (a dialog,
+/// a name being typed) is forgotten, not used when it ticks again.
+static UNDO_ASKED: AtomicU64 = AtomicU64::new(0);
+static REDO_ASKED: AtomicU64 = AtomicU64::new(0);
+/// How many frames a key press waits for the map maker's tick.
+const KEY_FRAMES: u64 = 3;
 
 /// The key of undo was pressed (the window's keys).
 pub fn request_mm_undo() {
-    UNDO_ASKED.store(true, Ordering::Relaxed);
+    UNDO_ASKED.store(ts_sdk::frame_count() as u64, Ordering::Relaxed);
 }
 
 /// The key of redo was pressed.
 pub fn request_mm_redo() {
-    REDO_ASKED.store(true, Ordering::Relaxed);
+    REDO_ASKED.store(ts_sdk::frame_count() as u64, Ordering::Relaxed);
 }
 
 /// The map as a map file (empty for a map with no objects), without what is in the hand: the object in the hand (`usedobj`) and the ones after it
@@ -94,8 +98,10 @@ pub fn mm_undo_reset() {
 /// The map maker's tick (`mapmakerTick`, while no message or dialog is up): note a change of the map, and undo or redo when asked.
 pub fn mm_undo_tick() {
     let pressed = joyNewBut(0);
-    let undo = UNDO_ASKED.swap(false, Ordering::Relaxed) || pressed & L3 != 0;
-    let redo = REDO_ASKED.swap(false, Ordering::Relaxed) || pressed & R3 != 0;
+    let now = ts_sdk::frame_count() as u64;
+    let fresh = |at: u64| at != 0 && now.saturating_sub(at) <= KEY_FRAMES;
+    let undo = fresh(UNDO_ASKED.swap(0, Ordering::Relaxed)) || pressed & L3 != 0;
+    let redo = fresh(REDO_ASKED.swap(0, Ordering::Relaxed)) || pressed & R3 != 0;
     let mut h = HISTORY.lock().unwrap();
     if h.buffer == 0 {
         h.buffer = malloc(BUFFER_BYTES);
