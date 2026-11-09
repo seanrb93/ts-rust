@@ -147,6 +147,8 @@ impl ts_game::AvOptions for PortAv {
             }),
             row("Anisotropic", names(&AF, |n| if *n <= 1 { "Off".into() } else { format!("{n}x") }), aniso_idx),
             row("UI Size", names(&HUD_SCALES, |h| format!("{}x", h)), nearest_idx_f32(&HUD_SCALES, c.hud_scale)),
+            // (the views of two players: one above the other, as the game has them, or side by side; from the next level that starts)
+            row("Split Screen", vec!["Top / Bottom".into(), "Side by Side".into()], c.split_side_by_side as usize),
         ]
     }
 
@@ -349,6 +351,11 @@ impl ts_game::AvOptions for PortAv {
             }
             9 => c.aniso = AF[index.min(AF.len() - 1)],
             10 => c.hud_scale = HUD_SCALES[index.min(HUD_SCALES.len() - 1)],
+            11 => {
+                c.split_side_by_side = index != 0;
+                #[cfg(feature = "extensions")]
+                ts_game::set_split_side_by_side(c.split_side_by_side);
+            }
             _ => {}
         });
         config::get().save();

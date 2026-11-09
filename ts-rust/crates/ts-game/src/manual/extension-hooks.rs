@@ -355,6 +355,36 @@ fn skeleton_root_rest(skeleton: i32) -> Option<[f32; 9]> {
     Some(r)
 }
 
+/// The views of two players side by side (`split_layout` of the settings) instead of one above the other.
+#[cfg(feature = "extensions")]
+static SPLIT_SIDE_BY_SIDE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(feature = "extensions")]
+pub fn set_split_side_by_side(on: bool) {
+    SPLIT_SIDE_BY_SIDE.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[cfg(feature = "extensions")]
+pub fn split_side_by_side() -> bool {
+    SPLIT_SIDE_BY_SIDE.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// The window of a player of two (`playerSetWindow`): side by side when the setting says so, the left half for the first player, the right for the second
+/// (the same 4 pixels apart as the game's four-way split); false when the game's own layout stands.
+pub fn split_window_or(window: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    if split_side_by_side() {
+        let right = lw(window) & 1;
+        sw(window + 4, if right == 0 { 0 } else { 322 });
+        sw(window + 12, if right != 0 { 639 } else { 317 });
+        sw(window + 8, 0);
+        sw(window + 16, 223);
+        return true;
+    }
+    let _ = window;
+    false
+}
+
 /// The sound test's item that saves the table of sounds (`main_pageTick_2073c0`): the original writes it to the developers' host machine, and the port
 /// has no such machine (a failed write ends the game), so the build with extensions does not save it.
 #[inline]

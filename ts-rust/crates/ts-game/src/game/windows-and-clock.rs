@@ -64,6 +64,9 @@ pub fn lvGetSkyPropNum() -> i32 {
 pub fn playerSetWindow(window: i32) {
     let players = ilinkGetNumLocalPlayers();
     if players == 2 {
+        if split_window_or(window) {
+            return;
+        }
         let lower = lw(window) & 1;
         sw(window + 16, if lower != 0 { 223 } else { 111 });
         sw(window + 8, if lower == 0 { 0 } else { 113 });

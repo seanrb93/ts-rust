@@ -70,6 +70,8 @@ pub struct Config {
     /// the MapMaker has no limit of what a map holds
     pub mapmaker_unlimited: bool,
     pub first_person_arms: bool,
+    /// the views of two players: false one above the other (the game's), true side by side
+    pub split_side_by_side: bool,
     /// 0 controller, 1 keyboard and mouse
     pub input_method: u8,
     /// the keys of each button of the pad, as the names of the ini (see `keys::ACTIONS`)
@@ -108,6 +110,7 @@ impl Default for Config {
             look_sensitivity: 1.0,
             mapmaker_unlimited: false,
             first_person_arms: false,
+            split_side_by_side: false,
             input_method: 1,
             keys: (0..14).map(crate::keys::default_keys).collect(),
             sound_mix: [100; 3],
@@ -208,6 +211,9 @@ mapmaker_unlimited = false
 # keep the gun of the first person.  An experiment: the pose of each gun is not tuned yet
 first_person_arms = false
 
+# the views of two players on one screen: top_bottom (one above the other, as the game has them) or side_by_side; also a row of the Video Options page
+split_layout = top_bottom
+
 [graphics]
 # the console's own 640x448 picture (a build without the extensions) is scaled up to the window with sharp pixels (true) or smoothed (false); with the extensions the picture is drawn at the resolution of the window and nothing is scaled
 upscale_sharp = false
@@ -273,6 +279,13 @@ impl Config {
             }
             "mapmaker_unlimited" => self.mapmaker_unlimited = parse_bool(value).ok_or_else(bad)?,
             "first_person_arms" => self.first_person_arms = parse_bool(value).ok_or_else(bad)?,
+            "split_layout" => {
+                self.split_side_by_side = match value.trim().to_ascii_lowercase().replace(['-', ' '], "_").as_str() {
+                    "top_bottom" | "horizontal" => false,
+                    "side_by_side" | "vertical" => true,
+                    _ => return Err(bad()),
+                }
+            }
             "look_sensitivity" => self.look_sensitivity = value.trim().parse::<f32>().map_err(|_| bad())?.clamp(0.1, 5.0),
             "input_method" => {
                 self.input_method = match value.trim().to_ascii_lowercase().as_str() {
@@ -415,6 +428,8 @@ pub fn load(overrides: &[(String, String)]) {
     ts_game::set_mm_unlimited(c.mapmaker_unlimited);
     #[cfg(feature = "extensions")]
     ts_game::set_first_person_arms(c.first_person_arms);
+    #[cfg(feature = "extensions")]
+    ts_game::set_split_side_by_side(c.split_side_by_side);
     apply_sound_mix(&c);
     apply_keys(&c);
     *CONFIG.lock().unwrap() = Some(c);
@@ -518,7 +533,7 @@ impl Config {
 
     /// Write the current values back into the settings file, keeping the template's comments.
     pub fn save(&self) {
-        let vals: [(&str, String); 44] = [
+        let vals: [(&str, String); 45] = [
             ("width", self.width.to_string()),
             ("height", self.height.to_string()),
             ("window_mode", self.window_mode.name().to_string()),
@@ -544,6 +559,7 @@ impl Config {
             ("look_sensitivity", format!("{}", self.look_sensitivity)),
             ("mapmaker_unlimited", self.mapmaker_unlimited.to_string()),
             ("first_person_arms", self.first_person_arms.to_string()),
+            ("split_layout", if self.split_side_by_side { "side_by_side" } else { "top_bottom" }.to_string()),
             ("input_method", ["controller", "keyboard"][self.input_method.min(1) as usize].to_string()),
             ("key_cross", self.keys[0].join(", ")),
             ("key_circle", self.keys[1].join(", ")),
