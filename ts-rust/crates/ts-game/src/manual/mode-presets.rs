@@ -38,6 +38,20 @@ pub struct ModeVariant {
     pub script_source: String,
     /// the settings of the mod it comes from (`[settings]` of its `mod.ini`), which its script reads with `setting`
     pub script_settings: super::ModSettings,
+    /// the options of its own that the Options page shows for it (`option` in `modes.txt`), which its script reads with `setting` too
+    pub options: Vec<ModeOption>,
+}
+
+/// An option a variant adds to the Options page (`option <name> "<label>" <least> <most> <default>` in `modes.txt`): a row of whole numbers from
+/// `least` to `most`, which the variant's script reads with `setting(name, ...)`.  `value` is what it is set to now (the default, or the
+/// setting of that name in the mod's `mod.ini`, until a player changes it on the page).
+#[derive(Clone, Debug)]
+pub struct ModeOption {
+    pub name: String,
+    pub label: String,
+    pub least: i32,
+    pub most: i32,
+    pub value: i32,
 }
 
 /// The option of the Options page that `hide` names in `modes.txt`: the address of its value in the game.
@@ -107,15 +121,46 @@ pub fn active_hidden(mode: i32) -> Vec<i32> {
     VARIANTS.lock().unwrap().iter().filter(|v| v.kind == mode).nth(choice - 1).map_or(Vec::new(), |v| v.hidden.clone())
 }
 
-/// The script of the variant that is being played: its file name, its text and the settings of its mod.
+/// The script of the variant that is being played: its file name, its text and the settings of its mod, with the values of the variant's own
+/// options as the Options page left them in place of the settings of the same names.
 pub fn active_script(mode: i32) -> Option<(String, String, super::ModSettings)> {
     let choice = super::arcadeopts::variant_choice(mode);
     if choice == 0 {
         return None;
     }
+    super::arcademodes::option_rows_keep();
     let all = VARIANTS.lock().unwrap();
     let v = all.iter().filter(|v| v.kind == mode).nth(choice - 1)?;
-    (!v.script_source.is_empty()).then(|| (v.script_file.clone(), v.script_source.clone(), v.script_settings.clone()))
+    if v.script_source.is_empty() {
+        return None;
+    }
+    let mut settings = v.script_settings.clone();
+    for o in &v.options {
+        let name = o.name.to_ascii_lowercase();
+        settings.values.retain(|(k, _)| *k != name);
+        settings.values.insert(0, (name, o.value.to_string()));
+    }
+    Some((v.script_file.clone(), v.script_source.clone(), settings))
+}
+
+/// The options of the variant `choice` (1 and on) of the mode `kind`.
+pub fn variant_options(kind: i32, choice: usize) -> Vec<ModeOption> {
+    if choice == 0 {
+        return Vec::new();
+    }
+    VARIANTS.lock().unwrap().iter().filter(|v| v.kind == kind).nth(choice - 1).map_or(Vec::new(), |v| v.options.clone())
+}
+
+/// A player set the option `index` of the variant `choice` of the mode `kind` to `value` (on the Options page).
+pub fn variant_option_set(kind: i32, choice: usize, index: usize, value: i32) {
+    if choice == 0 {
+        return;
+    }
+    if let Some(v) = VARIANTS.lock().unwrap().iter_mut().filter(|v| v.kind == kind).nth(choice - 1) {
+        if let Some(o) = v.options.get_mut(index) {
+            o.value = value.clamp(o.least, o.most);
+        }
+    }
 }
 
 /// The names of the variants of a mode.

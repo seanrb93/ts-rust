@@ -505,7 +505,7 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
             if name.is_empty() {
                 errors.push(format!("line {n}: `variant` needs a name"));
             } else {
-                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new(), rules: Vec::new(), hidden: Vec::new(), script_file: String::new(), script_source: String::new(), script_settings: Default::default() });
+                variants.push(ts_game::ModeVariant { kind: presets[k].kind, name: name.chars().take(20).collect(), fields: Vec::new(), rules: Vec::new(), hidden: Vec::new(), script_file: String::new(), script_source: String::new(), script_settings: Default::default(), options: Vec::new() });
                 in_variant = true;
             }
             continue;
@@ -530,6 +530,32 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
                 (None, _) => errors.push(format!("line {n}: `script` belongs to a `variant`")),
                 (_, None) => errors.push(format!("line {n}: `script` needs the name of a file of the mod")),
                 (Some(v), Some(file)) => v.script_file = file.trim_matches('"').to_string(),
+            }
+            continue;
+        }
+        if words[0] == "option" {
+            // option <name> "<label>" <least> <most> <default>
+            let rest = line.splitn(2, char::is_whitespace).nth(1).unwrap_or("").trim();
+            let (name, rest) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
+            let rest = rest.trim();
+            let (label, numbers) = if let Some(after) = rest.strip_prefix('"') {
+                match after.split_once('"') {
+                    Some((label, numbers)) => (label.to_string(), numbers.trim()),
+                    None => (String::new(), ""),
+                }
+            } else {
+                let (label, numbers) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
+                (label.to_string(), numbers.trim())
+            };
+            let numbers: Vec<Option<i64>> = numbers.split_whitespace().map(parse_int).collect();
+            match (variants.last_mut().filter(|_| in_variant), numbers.as_slice()) {
+                (None, _) => errors.push(format!("line {n}: an `option` belongs to a `variant`")),
+                (Some(v), [Some(least), Some(most), Some(default)])
+                    if !name.is_empty() && !label.is_empty() && least <= most && (least..=most).contains(&default) && *least >= -1_000_000 && *most <= 1_000_000 =>
+                {
+                    v.options.push(ts_game::ModeOption { name: name.to_ascii_lowercase(), label: label.chars().take(24).collect(), least: *least as i32, most: *most as i32, value: *default as i32 });
+                }
+                _ => errors.push(format!("line {n}: an option is `option <name> \"<label>\" <least> <most> <default>`, whole numbers with the default between the others")),
             }
             continue;
         }
@@ -645,6 +671,16 @@ pub fn load_file(mod_name: &str, which: &str, path: &Path) {
         // (the scripts of the variants are files of the mod, in its `scripts` folder or next to `modes.txt`)
         let mod_dir = path.parent().unwrap_or_else(|| Path::new("."));
         let settings = ts_game::ModSettings::read(mod_dir).0;
+        // (an option starts at the setting of its name in the mod's `mod.ini`, when that is a number it can be)
+        for v in variants.iter_mut() {
+            for o in v.options.iter_mut() {
+                if let Some(value) = settings.get(&o.name).and_then(ts_game::setting_number) {
+                    if value.fract() == 0.0 && (o.least as f64..=o.most as f64).contains(&value) {
+                        o.value = value as i32;
+                    }
+                }
+            }
+        }
         for v in variants.iter_mut().filter(|v| !v.script_file.is_empty()) {
             let dir = mod_dir;
             v.script_settings = settings.clone();
@@ -809,6 +845,17 @@ mode ls
  time_limit 5000
  radar maybe
 ");
+        assert_eq!(errors.len(), 4, "{errors:?}");
+    }
+
+    #[test]
+    fn reads_variant_options() {
+        let (_, vs, errors) = parse_modes("mode deathmatch\n variant \"Elimination\"\n option lives \"Lives\" 1 20 3\n option Rounds Rounds 0 9 2\n");
+        assert!(errors.is_empty(), "{errors:?}");
+        let o = &vs[0].options;
+        assert_eq!((o[0].name.as_str(), o[0].label.as_str(), o[0].least, o[0].most, o[0].value), ("lives", "Lives", 1, 20, 3));
+        assert_eq!((o[1].name.as_str(), o[1].label.as_str(), o[1].value), ("rounds", "Rounds", 2));
+        let (_, _, errors) = parse_modes("mode deathmatch\n option lives \"Lives\" 1 20 3\n variant \"E\"\n option lives \"Lives\" 5 1 3\n option lives \"Lives\" 1 2 3\n option lives\n");
         assert_eq!(errors.len(), 4, "{errors:?}");
     }
 

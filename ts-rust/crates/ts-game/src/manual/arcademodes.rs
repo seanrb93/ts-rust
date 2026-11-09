@@ -7,6 +7,7 @@
 use super::avmenu::put_str;
 use crate::*;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 const BASE: i32 = 0x240_0000;
 const MENU_AT: i32 = BASE + 0x17_3000;
@@ -19,6 +20,14 @@ const MOST: i32 = 7;
 const OLD_ITEMS: i32 = 11;
 
 static BUILT: AtomicBool = AtomicBool::new(false);
+/// The rows of a variant's options on the Options page: the mode, the variant, and the values of the rows (the game's variables, which the page
+/// changes).
+static ROWS_FOR: Mutex<Option<(i32, usize, Vec<i32>)>> = Mutex::new(None);
+/// The values of the rows of options (the game's variables of 48 bytes) and their labels, and the most rows the page has.
+const OPTION_GV_AT: i32 = BASE + 0x17_4000;
+const OPTION_GV_BYTES: i32 = 48;
+const OPTION_TEXT_AT: i32 = BASE + 0x17_4400;
+const MOST_ROWS: i32 = 10;
 
 /// A mode a mod adds to the list, as the tick of the page needs it.
 pub struct ExtraMode {
@@ -100,17 +109,29 @@ pub fn arcade_variant_of(number: i32) -> (i32, usize) {
     (kind, index)
 }
 
-/// The rows of the Options page of the mode `kind` (`source`: the game's list of `count` items): without the options that the variant being played hides, the rest moved up.  Gives the list and its count.
+/// The rows of the Options page of the mode `kind` (`source`: the game's list of `count` items): without the options that the variant being played
+/// hides, the rest moved up, and after them the rows of the variant's own options (`option` in `modes.txt`), as many as the page has room for
+/// (ten rows in all).  Gives the list and its count.
 pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
     let hidden = active_hidden(kind);
-    if hidden.is_empty() || count == 0 {
+    let choice = super::arcadeopts::variant_choice(kind);
+    // (what a player changed on the page the last time it was shown is kept before the rows are made again)
+    option_rows_keep();
+    let options = variant_options(kind, choice);
+    if (hidden.is_empty() && options.is_empty()) || count == 0 {
+        *ROWS_FOR.lock().unwrap() = None;
         return (source, count);
     }
     let rows = BASE + 0x17_3800;
     let ys: Vec<i32> = (0..count).map(|k| lh(source + 32 * k + 6)).collect();
     let mut kept = 0;
+    // (the row the options' rows are copies of: the time limit's, a row of numbers, where the mode has one)
+    let mut template = source;
     for k in 0..count {
         let item = source + 32 * k;
+        if lw(item + 12) == g::gv_timelimit {
+            template = item;
+        }
         if hidden.contains(&lw(item + 12)) {
             continue;
         }
@@ -120,5 +141,47 @@ pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
         sh(rows + 32 * kept + 6, ys[kept as usize]);
         kept += 1;
     }
+    let step = if count >= 2 { ys[1] - ys[0] } else { 14 };
+    let mut text = OPTION_TEXT_AT;
+    let mut made = Vec::new();
+    for (index, o) in options.iter().enumerate() {
+        if kept >= MOST_ROWS {
+            eprintln!("[mods] the option {:?} has no room on the Options page", o.name);
+            break;
+        }
+        // (its value: a copy of the template's, with this option's range and value, shown as a plain number)
+        let gv = OPTION_GV_AT + OPTION_GV_BYTES * index as i32;
+        let template_gv = lw(template + 12);
+        for j in 0..(OPTION_GV_BYTES / 4) {
+            sw(gv + 4 * j, if template_gv != 0 { lw(template_gv + 4 * j) } else { 0 });
+        }
+        sw(gv, o.value.clamp(o.least, o.most));
+        sw(gv + 4, o.least);
+        sw(gv + 8, o.most);
+        sw(gv + 12, 0);
+        sw(gv + 16, 0);
+        sw(gv + 20, 0);
+        sw(gv + 24, 0);
+        let row = rows + 32 * kept;
+        for j in 0..8 {
+            sw(row + 4 * j, lw(template + 4 * j));
+        }
+        sw(row, put_str(&mut text, &o.label));
+        sw(row + 12, gv);
+        let y = if (kept as usize) < ys.len() { ys[kept as usize] } else { ys[ys.len() - 1] + step * (kept + 1 - ys.len() as i32) };
+        sh(row + 6, y);
+        made.push(gv);
+        kept += 1;
+    }
+    *ROWS_FOR.lock().unwrap() = (!made.is_empty()).then(|| (kind, choice, made));
     (rows, kept)
+}
+
+/// The values of the rows of the variant's options, as a player left them on the Options page, are kept with the variant (before the page is made
+/// again, and when a match starts and its script reads them).
+pub fn option_rows_keep() {
+    let Some((kind, choice, gvs)) = ROWS_FOR.lock().unwrap().clone() else { return };
+    for (index, gv) in gvs.iter().enumerate() {
+        variant_option_set(kind, choice, index, lw(*gv));
+    }
 }
