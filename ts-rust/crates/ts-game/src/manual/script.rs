@@ -32,6 +32,8 @@ const MESSAGE_AT: i32 = BASE + 0x17_2c00;
 const TEXT_AT: i32 = BASE + 0x17_3a00;
 const LIGHT_AT: i32 = BASE + 0x17_3c00;
 const FLAME_AT: i32 = BASE + 0x17_2d00;
+/// the label and the value of the box of the rank on the screen (`hud_box`)
+const HUD_BOX_AT: i32 = BASE + 0x17_4800;
 /// the place, source and direction of a blow (three floats each, 16 bytes apart)
 const HIT_AT: i32 = BASE + 0x17_3d00;
 
@@ -981,6 +983,26 @@ pub fn script_result_text(record: i32) -> Option<i32> {
     let text = call_all::<_, String>("result_text", (i,)).into_iter().next()?;
     put_text(TEXT_AT, &text, 60);
     Some(TEXT_AT)
+}
+
+/// The box of the rank on the screen of the player `player` (`hudRankGfx`): a script may put a label and a value of its own in it (`hud_box`
+/// answers `[label, value]`, or `()` for the game's).  Gives the two texts.
+pub fn script_hud_box(player: i32) -> Option<(i32, i32)> {
+    if !ACTIVE.load(Ordering::Relaxed) || !has("hud_box") {
+        return None;
+    }
+    for answer in call_all::<_, rhai::Dynamic>("hud_box", (player as i64,)) {
+        let Some(list) = answer.try_cast::<rhai::Array>() else { continue };
+        if list.len() != 2 {
+            continue;
+        }
+        let label = list[0].to_string();
+        let value = list[1].to_string();
+        put_text(HUD_BOX_AT, &label, 30);
+        put_text(HUD_BOX_AT + 0x40, &value, 30);
+        return Some((HUD_BOX_AT, HUD_BOX_AT + 0x40));
+    }
+    None
 }
 
 /// The flames of the characters a script has set alight.

@@ -116,7 +116,11 @@ pub fn hudRankGfx(team: i32, y: i32, across: i32) {
     let texts = lw((language << 2) + g::languages);
     let record = lw(lw(lw(g::currentplayer) + 384) + 352);
     sw(sp, 0);
-    drawValueBox(lw(texts + 3256), text, x, y, 54, 22, lw(record + 20), 0x7f7f7f80);
+    let label = lw(texts + 3256);
+    // (extensions: a mode's script may show something else in the box, such as the lives left)
+    #[cfg(feature = "extensions")]
+    let (label, text) = script_hud_box(lw(lw(g::currentplayer))).unwrap_or((label, text));
+    drawValueBox(label, text, x, y, 54, 22, lw(record + 20), 0x7f7f7f80);
 }
 
 /// Work out the sizes of the menu item `item` and of the two items it is joined to (at +8 and +16) and their places (`menuitemCalcPos`) (@ 0x20cc28).
