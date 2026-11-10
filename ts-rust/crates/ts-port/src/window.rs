@@ -482,6 +482,16 @@ impl ApplicationHandler for App {
             read_monitor(m);
         }
         attrs = attrs.with_fullscreen(fullscreen_for(monitor, &cfg));
+        // the icon of the window's title bar and of the taskbar: the program's own (resource 1, `assets/ts-rust.rc`), which Windows does not give a window by itself
+        #[cfg(windows)]
+        {
+            use winit::platform::windows::{IconExtWindows, WindowAttributesExtWindows};
+            match (winit::window::Icon::from_resource(1, None), winit::window::Icon::from_resource(1, Some(winit::dpi::PhysicalSize::new(256, 256)))) {
+                (Ok(small), Ok(big)) => attrs = attrs.with_window_icon(Some(small)).with_taskbar_icon(Some(big)),
+                (Ok(small), Err(_)) => attrs = attrs.with_window_icon(Some(small)),
+                (Err(e), _) => eprintln!("[window] no icon: {e}"),
+            }
+        }
         self.applied = Some(window_want(&cfg));
         self.applied_at = Instant::now();
         let window = Arc::new(el.create_window(attrs).expect("cannot create window"));
