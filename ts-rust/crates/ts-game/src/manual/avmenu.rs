@@ -987,7 +987,7 @@ pub fn av_menu(page: i32) -> i32 {
         let text = format!("{}{}{}", PROVIDER.get().map_or(String::new(), |p| p.net_hint(editing() != 0)), square.as_str(), if editing() == 0 && square.is_empty() { pages } else { String::new() });
         put_str(&mut at, &text)
     } else if mode() == Mode::Mods {
-        let pages = if layout().pages() > 1 && n > 8 { format!("   Left/Right: Page {}/{}", page_shown() + 1, ((n + 7) / 8).max(1)) } else { String::new() };
+        let pages = if layout().pages() > 1 && n > 8 { format!("   L/R: Page {}/{}", page_shown() + 1, ((n + 7) / 8).max(1)) } else { String::new() };
         let text = match entries.first().map(|e| e.1) {
             Some(Src::Info) => "Put mods in the mods folder next to the game".to_string(),
             // (short, so that the pages fit on the line beside it)
