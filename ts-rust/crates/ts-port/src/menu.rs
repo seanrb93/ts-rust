@@ -211,6 +211,14 @@ impl ts_game::AvOptions for PortAv {
         config::get().save();
     }
 
+    fn set_mode_option(&self, key: &str, value: i32) {
+        config::update(|c| {
+            c.mode_options.retain(|(k, _)| k != key);
+            c.mode_options.push((key.to_string(), value));
+        });
+        config::get().save();
+    }
+
     fn mod_rows(&self) -> Vec<ts_game::AvRow> {
         mod_cache(false)
             .iter()

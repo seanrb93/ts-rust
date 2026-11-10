@@ -215,7 +215,7 @@ pub fn option_rows_keep() {
     let options = variant_options(kind, choice);
     for (index, gv) in gvs.iter().enumerate() {
         if let Some(o) = options.get(index) {
-            variant_option_set(kind, choice, index, o.least + lw(*gv) * o.step.max(1));
+            variant_option_choose(kind, choice, index, o.least + lw(*gv) * o.step.max(1));
         }
     }
 }

@@ -161,6 +161,51 @@ pub fn variant_options(kind: i32, choice: usize) -> Vec<ModeOption> {
     VARIANTS.lock().unwrap().iter().filter(|v| v.kind == kind).nth(choice - 1).map_or(Vec::new(), |v| v.options.clone())
 }
 
+/// The name an option is kept under in the settings: the variant's name and the option's, in lower case with `_` for anything but letters and digits
+/// (`elimination.lives`).
+pub fn mode_option_key(variant: &str, option: &str) -> String {
+    let clean = |s: &str| s.chars().map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '_' }).collect::<String>();
+    format!("{}.{}", clean(variant), clean(option))
+}
+
+/// The values of options kept from the last time (`<mode>.<option>`, the value) are set, where a variant of a mod has that option and the value is one it can
+/// have (called once the mods are read, before the menus).
+pub fn mode_options_restore(saved: &[(String, i32)]) {
+    let mut all = VARIANTS.lock().unwrap();
+    for v in all.iter_mut() {
+        let name = v.name.clone();
+        for o in v.options.iter_mut() {
+            let key = mode_option_key(&name, &o.name);
+            if let Some(&(_, value)) = saved.iter().find(|(k, _)| *k == key) {
+                if o.fit(value) == value {
+                    o.value = value;
+                }
+            }
+        }
+    }
+}
+
+/// A player changed the option `index` of the variant `choice` of the mode `kind` on the Options page: it is set, and kept for the next start when it changed.
+pub fn variant_option_choose(kind: i32, choice: usize, index: usize, value: i32) {
+    if choice == 0 {
+        return;
+    }
+    let changed = {
+        let mut all = VARIANTS.lock().unwrap();
+        let Some(v) = all.iter_mut().filter(|v| v.kind == kind).nth(choice - 1) else { return };
+        let name = v.name.clone();
+        let Some(o) = v.options.get_mut(index) else { return };
+        let value = o.fit(value);
+        (o.value != value).then(|| {
+            o.value = value;
+            (mode_option_key(&name, &o.name), value)
+        })
+    };
+    if let (Some((key, value)), Some(p)) = (changed, super::avmenu::provider()) {
+        p.set_mode_option(&key, value);
+    }
+}
+
 /// A player set the option `index` of the variant `choice` of the mode `kind` to `value` (on the Options page).
 pub fn variant_option_set(kind: i32, choice: usize, index: usize, value: i32) {
     if choice == 0 {

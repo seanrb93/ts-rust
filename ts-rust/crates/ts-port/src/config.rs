@@ -80,6 +80,8 @@ pub struct Config {
     pub sound_mix: [u8; 3],
     /// the music of the levels: 0 = the level's own, 1 = a random track each time, n + 1 = track n (1 to 27); the same numbers as the row of the arcade Options page
     pub level_music: i32,
+    /// the options of the modes of mods as the Options page last had them (`<mode>.<option>`, the value)
+    pub mode_options: Vec<(String, i32)>,
 }
 
 impl Default for Config {
@@ -115,6 +117,7 @@ impl Default for Config {
             keys: (0..14).map(crate::keys::default_keys).collect(),
             sound_mix: [100; 3],
             level_music: 0,
+            mode_options: Vec::new(),
         }
     }
 }
@@ -308,6 +311,13 @@ impl Config {
             }
             // (the first version had five kinds)
             "volume_impacts" | "volume_ambience" | "volume_effects" => {}
+            // the options of the modes of mods, as the Options page last had them
+            k if k.starts_with("mode_option.") => {
+                let name = k["mode_option.".len()..].to_string();
+                let value = value.trim().parse::<i32>().map_err(|_| bad())?;
+                self.mode_options.retain(|(n, _)| *n != name);
+                self.mode_options.push((name, value));
+            }
             k if k.starts_with("key_") => {
                 let name = &k[4..];
                 let i = crate::keys::ACTIONS.iter().position(|a| a.0 == name).ok_or_else(bad)?;
@@ -604,6 +614,13 @@ impl Config {
         for (k, v) in &vals {
             if !written.contains(k) {
                 out.push_str(&format!("{k} = {v}\n"));
+            }
+        }
+        // the options of the modes of mods (the rows a mod's mode adds to the Options page), as they were last set
+        if !self.mode_options.is_empty() {
+            out.push_str("\n# the options of the modes of mods, as they were last set on the Options page (mode_option.<mode>.<option>)\n");
+            for (k, v) in &self.mode_options {
+                out.push_str(&format!("mode_option.{k} = {v}\n"));
             }
         }
         std::fs::write(ini_path(), out).ok();

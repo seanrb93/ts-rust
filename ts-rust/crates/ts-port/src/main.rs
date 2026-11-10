@@ -794,6 +794,8 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
     ts_gfx::hd::set_loader(texmod::load_hd);
     icons::init();
     mods::load(&exe_dir());
+    // (the options of the modes of mods, as they were last set)
+    ts_game::mode_options_restore(&config::get().mode_options);
     icons::register();
     mods::publish_pack_names();
     ts_game::prop_table_init();

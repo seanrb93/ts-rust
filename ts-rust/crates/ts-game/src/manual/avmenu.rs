@@ -65,6 +65,8 @@ pub trait AvOptions: Send + Sync {
         0
     }
     fn set_level_music(&self, _choice: i32) {}
+    /// an option of a mode of a mod was changed on the Options page (`key`: `<mode>.<option>`, as `mode_option_key` makes it), to keep for the next start
+    fn set_mode_option(&self, _key: &str, _value: i32) {}
     /// The Network Game pages (hosting and joining a game): the page was opened / left, the network is looked at once a tick, the rows of the page that is shown, a value
     /// chosen, an action chosen, the triangle button (true: the page stepped back by itself), the title and the line at the bottom, a character or the Delete key typed
     fn net_open(&self) {}
