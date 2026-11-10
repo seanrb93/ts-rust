@@ -763,9 +763,15 @@ pub fn script_tick() {
     flames(info, total);
 }
 
+/// The scripts have been started for the match (`on_start` ran): the hooks of a match wait for it, as their state is made there (in a network game the
+/// pads are read, and the screen drawn, before the first tick of the match starts the scripts).
+fn match_started() -> bool {
+    STATE.with(|s| s.borrow().started)
+}
+
 /// The game's hook of the screen of the player being drawn (`hudGfx`): a script may draw a glow.
 pub fn script_hud() {
-    if !ACTIVE.load(Ordering::Relaxed) || !has("on_hud") {
+    if !ACTIVE.load(Ordering::Relaxed) || !has("on_hud") || !match_started() {
         return;
     }
     let number = lw(lw(g::currentplayer)) as i64;
@@ -778,7 +784,7 @@ pub fn script_hud() {
 
 /// The pads have been read and the game has not seen them yet (`ilinkTick`): the scripts may take buttons from it (`on_input`, in the menus too).
 pub fn script_input() {
-    if !ACTIVE.load(Ordering::Relaxed) || !has("on_input") || (lw(g::gamestate) == 3 && lw(g::players) == 0) {
+    if !ACTIVE.load(Ordering::Relaxed) || !has("on_input") || (lw(g::gamestate) == 3 && (lw(g::players) == 0 || !match_started())) {
         return;
     }
     let _: Vec<()> = call_all("on_input", ());
@@ -787,7 +793,7 @@ pub fn script_input() {
 /// The game's hook where the debug views and the original's editors drew in the view (`padGfx`, `propEditGfx`, which are empty): the scripts draw
 /// in the view of the player being drawn (`on_gfx`), and the blast rings they started are drawn.
 pub fn script_gfx() {
-    if !ACTIVE.load(Ordering::Relaxed) || lw(g::gamestate) != 3 {
+    if !ACTIVE.load(Ordering::Relaxed) || lw(g::gamestate) != 3 || !match_started() {
         return;
     }
     let number = lw(lw(g::currentplayer)) as i64;
@@ -1003,7 +1009,7 @@ pub fn script_result_text(record: i32) -> Option<i32> {
 /// The box of the rank on the screen of the player `player` (`hudRankGfx`): a script may put a label and a value of its own in it (`hud_box`
 /// answers `[label, value]`, or `()` for the game's).  Gives the two texts.
 pub fn script_hud_box(player: i32) -> Option<(i32, i32)> {
-    if !ACTIVE.load(Ordering::Relaxed) || !has("hud_box") {
+    if !ACTIVE.load(Ordering::Relaxed) || !has("hud_box") || !match_started() {
         return None;
     }
     for answer in call_all::<_, rhai::Dynamic>("hud_box", (player as i64,)) {

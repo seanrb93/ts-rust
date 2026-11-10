@@ -686,7 +686,8 @@ impl Lobby {
             b.extend_from_slice(&p);
         }
         // the game variables the host set, and the parameters of the match once they are made
-        let n = self.gvs.len().min(16);
+        // (the 14 variables of the pages, and the mode of a mod with up to ten options)
+        let n = self.gvs.len().min(32);
         b.push(n as u8);
         for &(gv, value) in self.gvs.iter().take(n) {
             b.extend_from_slice(&gv.to_le_bytes());

@@ -100,6 +100,15 @@ pub fn variant_choice(mode: i32) -> usize {
     VARIANT.load(Ordering::Relaxed).max(0) as usize
 }
 
+/// The host of a network game plays the variant `variant` of the mode `mode` (0: the mode as it is): this machine plays it too, with the options the
+/// host sends (what this machine's own Options page last showed is let go).
+pub fn net_pick_variant(mode: i32, variant: usize) {
+    super::arcademodes::option_rows_forget();
+    VARIANT_MODE.store(mode, Ordering::Relaxed);
+    VARIANT.store(variant as i32, Ordering::Relaxed);
+    ARCADE.store(true, Ordering::Relaxed);
+}
+
 /// A mode of a mod was chosen on the arcade page (`variant`: 0 is the mode as it is): the options of the Options page that follows are the variant's.
 pub fn arcade_pick_variant(mode: i32, variant: usize) {
     let before = if VARIANT_MODE.load(Ordering::Relaxed) == mode { VARIANT.load(Ordering::Relaxed) } else { 0 };

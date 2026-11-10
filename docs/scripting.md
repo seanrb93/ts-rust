@@ -16,7 +16,7 @@ The script of a mode is read from `scripts/<file>` of the mod (or next to `modes
 
 ## The functions of the script
 
-All are optional.  The state of the script is kept in `this` (a map): `this.clock = 0.0;` in `on_start`, `this.clock += dt();` in `on_tick`.  A function that uses `this` has to be called as a method of it
+All are optional.  In a match the hooks of the screen and the pads (`on_input`, `on_hud`, `on_gfx`, `hud_box`) are called only once `on_start` has run (a network game reads the pads and draws before its first tick).  The state of the script is kept in `this` (a map): `this.clock = 0.0;` in `on_start`, `this.clock += dt();` in `on_tick`.  A function that uses `this` has to be called as a method of it
 (`this.infect(b, a)`); the functions the program calls are given `this` already.
 
 | function | when |

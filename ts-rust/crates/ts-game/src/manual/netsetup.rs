@@ -505,9 +505,34 @@ fn all_gvs() -> [i32; 14] {
     ]
 }
 
-/// The game variables with their values: what every machine sets before it starts the match.
+/// The entries that are not game variables: the mode of a mod being played (its number among the mods' variants of the mode, 0 for none), and the values
+/// of its options, by their place (the key `OPTION_KEY - k` for the option `k`).  Their keys are not addresses, so they cannot be taken for game variables.
+const VARIANT_KEY: i32 = -1;
+const OPTION_KEY: i32 = -2;
+/// The most options a mode of a mod sends (the rows of the Options page).
+const MOST_OPTIONS: i32 = 10;
+
+/// The game variables with their values: what every machine sets before it starts the match.  After them the mode of a mod the host chose on the
+/// arcade pages and the values of its options (as the Options page left them), so that every machine plays the same variant with the same options.
 pub fn netsetup_gv_values() -> Vec<(i32, i32)> {
-    all_gvs().into_iter().map(|gv| (gv, lw(gv))).collect()
+    let mut v: Vec<(i32, i32)> = all_gvs().into_iter().map(|gv| (gv, lw(gv))).collect();
+    #[cfg(feature = "extensions")]
+    {
+        let mode = lw(STATE + 48);
+        let variant = super::arcadeopts::variant_choice(mode);
+        super::arcademodes::option_rows_keep();
+        // (a test aid: `TS_MODE_OPTION=<name>=<value>` sets an option of the mode of a mod on the host, as its Options page would)
+        if let Some((name, value)) = std::env::var("TS_MODE_OPTION").ok().and_then(|v| v.split_once('=').map(|(n, x)| (n.to_ascii_lowercase(), x.parse::<i32>().ok()))) {
+            if let (Some(k), Some(value)) = (variant_options(mode, variant).iter().position(|o| o.name == name), value) {
+                variant_option_set(mode, variant, k, value);
+            }
+        }
+        v.push((VARIANT_KEY, variant as i32));
+        for (k, o) in variant_options(mode, variant).iter().enumerate().take(MOST_OPTIONS as usize) {
+            v.push((OPTION_KEY - k as i32, o.value));
+        }
+    }
+    v
 }
 
 /// Does a game mode have a row for the variable `gv` (the weapon set and the bot set are in every mode)?
@@ -527,6 +552,17 @@ pub fn netsetup_mode_has_gv(mode: i32, gv: i32) -> bool {
 
 /// The values the host chose are set in this machine's variables (before the parameters are used), and the records of the mode's options the level reads are made from them.
 pub fn netsetup_apply(values: &[(i32, i32)], mode: i32) {
+    // (the mode of a mod the host plays, first: choosing it sets the options it starts with, which the host's values then take the place of)
+    #[cfg(feature = "extensions")]
+    if let Some(&(_, variant)) = values.iter().find(|e| e.0 == VARIANT_KEY) {
+        let variant = variant.max(0) as usize;
+        super::arcadeopts::net_pick_variant(mode, variant);
+        for &(key, value) in values {
+            if (OPTION_KEY - MOST_OPTIONS + 1..=OPTION_KEY).contains(&key) {
+                variant_option_set(mode, variant, (OPTION_KEY - key) as usize, value);
+            }
+        }
+    }
     for &(gv, value) in values {
         // (only the variables of the pages: an address from the network is not written to blindly)
         if all_gvs().contains(&gv) {

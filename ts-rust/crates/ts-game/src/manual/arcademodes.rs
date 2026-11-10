@@ -203,6 +203,11 @@ pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
     (rows, kept)
 }
 
+/// The rows of the options are no longer this machine's to keep (a network game takes the host's values).
+pub fn option_rows_forget() {
+    *ROWS_FOR.lock().unwrap() = None;
+}
+
 /// The values of the rows of the variant's options, as a player left them on the Options page, are kept with the variant (before the page is made
 /// again, and when a match starts and its script reads them).
 pub fn option_rows_keep() {
