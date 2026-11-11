@@ -145,6 +145,7 @@ pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
             sw(rows + 32 * kept + 4 * j, lw(item + 4 * j));
         }
         sh(rows + 32 * kept + 6, ys[kept as usize]);
+        place_flag(rows + 32 * kept, source, count, kept);
         kept += 1;
     }
     let step = if count >= 2 { ys[1] - ys[0] } else { 14 };
@@ -172,13 +173,14 @@ pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
         sw(gv + 12, 0);
         sw(gv + 20, 0);
         sw(gv + 24, 0);
-        if step == 1 && o.least == 0 {
+        if step == 1 && o.least == 0 && o.names.is_empty() {
             sw(gv + 16, 0);
-        } else if table + 8 * (steps + 2) <= OPTION_TABLE_END && names + 8 * (steps + 1) <= OPTION_NAMES_END {
+        } else if table + 8 * (steps + 2) <= OPTION_TABLE_END && names + o.names.iter().map(|n| n.len() as i32 + 1).sum::<i32>().max(8 * (steps + 1)) <= OPTION_NAMES_END {
             sw(gv + 16, table);
             for k in 0..=steps {
                 sw(table, k);
-                sw(table + 4, put_str(&mut names, &(o.least + k * step).to_string()));
+                let text = o.names.get(k as usize).cloned().unwrap_or_else(|| (o.least + k * step).to_string());
+                sw(table + 4, put_str(&mut names, &text));
                 table += 8;
             }
             sw(table, 0);
@@ -196,11 +198,21 @@ pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
         sw(row + 12, gv);
         let y = if (kept as usize) < ys.len() { ys[kept as usize] } else { ys[ys.len() - 1] + step * (kept + 1 - ys.len() as i32) };
         sh(row + 6, y);
+        place_flag(row, source, count, kept);
         made.push(gv);
         kept += 1;
     }
     *ROWS_FOR.lock().unwrap() = (!made.is_empty()).then(|| (kind, choice, made));
     (rows, kept)
+}
+
+/// The flag of a row that goes with its place on the page, not with the row: the game's first row has it clear and the others set (a row with it set
+/// is drawn a line lower when it is the first), so a row moved up, or added, takes the flag of the place it is put in (a place after the game's last
+/// takes the last's).
+const PLACE_FLAG: i32 = 0x20;
+fn place_flag(row: i32, source: i32, count: i32, place: i32) {
+    let at = source + 32 * place.min(count - 1).max(0) + 10;
+    sh(row + 10, (lhu(row + 10) & !PLACE_FLAG) | (lhu(at) & PLACE_FLAG));
 }
 
 /// The rows of the options are no longer this machine's to keep (a network game takes the host's values).

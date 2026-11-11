@@ -467,6 +467,24 @@ const MODE_FIELDS: &[(&str, i32, i32)] = &[
     ("one_shot_kill", 28, 1),
 ];
 
+/// The words of a list: each in double quotes (it may have spaces) or a single word.
+fn quoted_words(s: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut rest = s.trim();
+    while !rest.is_empty() {
+        if let Some(after) = rest.strip_prefix('"') {
+            let (word, next) = after.split_once('"').unwrap_or((after, ""));
+            out.push(word.to_string());
+            rest = next.trim_start();
+        } else {
+            let (word, next) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
+            out.push(word.to_string());
+            rest = next.trim_start();
+        }
+    }
+    out
+}
+
 /// Read a `modes.txt`: `mode <name or number>` and then the options of that mode, and `name "text"` for its name in the menus.
 pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVariant>, Vec<String>) {
     let mut presets: Vec<ts_game::ModePreset> = Vec::new();
@@ -534,7 +552,7 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
             continue;
         }
         if words[0] == "option" {
-            // option <name> "<label>" <least> <most> <default> [<step>]
+            // option <name> "<label>" <least> <most> <default> [<step>] [names "<a>" "<b>" ...]
             let rest = line.splitn(2, char::is_whitespace).nth(1).unwrap_or("").trim();
             let (name, rest) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
             let rest = rest.trim();
@@ -547,7 +565,13 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
                 let (label, numbers) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
                 (label.to_string(), numbers.trim())
             };
+            // (the names of the values, in quotes or single words, after the word `names`)
+            let (numbers, value_names) = match numbers.find(" names").map(|i| (&numbers[..i], &numbers[i + 6..])).or_else(|| numbers.strip_prefix("names").map(|r| ("", r))) {
+                Some((numbers, list)) => (numbers, Some(quoted_words(list))),
+                None => (numbers, None),
+            };
             let numbers: Vec<Option<i64>> = numbers.split_whitespace().map(parse_int).collect();
+            let names_fit = |least: i64, most: i64, step: i64| value_names.as_ref().map_or(true, |l| l.len() as i64 == (most - least) / step.max(1) + 1 && l.iter().all(|n| !n.is_empty()));
             match (variants.last_mut().filter(|_| in_variant), numbers.as_slice()) {
                 (None, _) => errors.push(format!("line {n}: an `option` belongs to a `variant`")),
                 (Some(v), [Some(least), Some(most), Some(default), rest @ ..])
@@ -558,12 +582,14 @@ pub fn parse_modes(text: &str) -> (Vec<ts_game::ModePreset>, Vec<ts_game::ModeVa
                         && *least >= -1_000_000
                         && *most <= 1_000_000
                         && rest.len() <= 1
-                        && rest.first().map_or(true, |s| matches!(s, Some(step) if *step >= 1 && (most - least) % step == 0 && (default - least) % step == 0 && (most - least) / step <= 100)) =>
+                        && rest.first().map_or(true, |s| matches!(s, Some(step) if *step >= 1 && (most - least) % step == 0 && (default - least) % step == 0 && (most - least) / step <= 100))
+                        && names_fit(*least, *most, rest.first().copied().flatten().unwrap_or(1)) =>
                 {
                     let step = rest.first().copied().flatten().unwrap_or(1) as i32;
-                    v.options.push(ts_game::ModeOption { name: name.to_ascii_lowercase(), label: label.chars().take(24).collect(), least: *least as i32, most: *most as i32, step, value: *default as i32 });
+                    let names = value_names.clone().unwrap_or_default().into_iter().map(|n| n.chars().take(20).collect()).collect();
+                    v.options.push(ts_game::ModeOption { name: name.to_ascii_lowercase(), label: label.chars().take(24).collect(), least: *least as i32, most: *most as i32, step, value: *default as i32, names });
                 }
-                _ => errors.push(format!("line {n}: an option is `option <name> \"<label>\" <least> <most> <default> [<step>]`, whole numbers with the default between the others, and the range and the default a whole number of steps from the least (at most 100 steps)")),
+                _ => errors.push(format!("line {n}: an option is `option <name> \"<label>\" <least> <most> <default> [<step>] [names \"<a>\" \"<b>\" ...]`, whole numbers with the default between the others, the range and the default a whole number of steps from the least (at most 100 steps), and a name for each value when it has names")),
             }
             continue;
         }
@@ -868,6 +894,16 @@ mode ls
         let (_, vs, errors) = parse_modes("mode deathmatch\n variant \"E\"\n option lives \"Lives\" 5 50 10 5\n");
         assert!(errors.is_empty(), "{errors:?}");
         assert_eq!((vs[0].options[0].step, vs[0].options[0].value), (5, 10));
+    }
+
+    #[test]
+    fn reads_option_names() {
+        let (_, vs, errors) = parse_modes("mode deathmatch\n variant \"E\"\n option fast \"Fast bots\" 0 1 0 names No Yes\n option size \"Arena\" 1 3 2 names \"Very small\" Medium Large\n");
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(vs[0].options[0].names, vec!["No".to_string(), "Yes".to_string()]);
+        assert_eq!(vs[0].options[1].names, vec!["Very small".to_string(), "Medium".to_string(), "Large".to_string()]);
+        let (_, _, errors) = parse_modes("mode deathmatch\n variant \"E\"\n option fast \"Fast\" 0 1 0 names No\n option fast \"Fast\" 0 2 0 names A B C D\n");
+        assert_eq!(errors.len(), 2, "{errors:?}");
     }
 
     #[test]

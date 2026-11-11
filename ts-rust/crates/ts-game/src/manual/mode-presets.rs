@@ -42,8 +42,9 @@ pub struct ModeVariant {
     pub options: Vec<ModeOption>,
 }
 
-/// An option a variant adds to the Options page (`option <name> "<label>" <least> <most> <default> [<step>]` in `modes.txt`): a row of whole
-/// numbers from `least` to `most`, `step` apart, which the variant's script reads with `setting(name, ...)`.  `value` is what it is set to now
+/// An option a variant adds to the Options page (`option <name> "<label>" <least> <most> <default> [<step>] [names "<a>" "<b>" ...]` in `modes.txt`): a
+/// row of whole numbers from `least` to `most`, `step` apart (shown by their names when it has them), which the variant's script reads with
+/// `setting(name, ...)`.  `value` is what it is set to now
 /// (the default, or the setting of that name in the mod's `mod.ini`, until a player changes it on the page).
 #[derive(Clone, Debug)]
 pub struct ModeOption {
@@ -53,6 +54,8 @@ pub struct ModeOption {
     pub most: i32,
     pub step: i32,
     pub value: i32,
+    /// what the page shows for each value, from the least up (`names "..." "..."` in `modes.txt`); empty: the numbers
+    pub names: Vec<String>,
 }
 
 impl ModeOption {
