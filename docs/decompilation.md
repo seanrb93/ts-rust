@@ -36,7 +36,11 @@ A file holds one subsystem or theme; when a theme grows, split it and name the p
 3. Regenerate (`python tools/gen_rust.py`, with `Game Files/SLUS_200.90` in place) so the generated copy is dropped, and build.
 4. Prove it equal to the machine code: `ts-verify --elf <SLUS_200.90> --n 500 name1 name2 ...` runs the original instructions and the Rust on
    random inputs and compares results and every memory write.  Functions that call others are checked with those calls included.
-   `python tools/verify-game.py [--regen]` does this for every function in `game/`.  Functions whose original code does not finish on random
+   `python tools/verify-game.py [--regen]` does this for every function in `game/`, and `python tools/verify-changed.py [<commit>]` for only the
+   functions a change touched (against the last commit, or the one named): the game functions whose lines changed, and those that use a constant or a
+   function whose definition changed elsewhere, such as a table moved in `dec/g.rs` (`--list` names them without checking).  Run it before every commit
+   that touches the game's code or what it names.  The checker runs on a thread with a 1 GB stack; `TS_VERIFY_TRACE=1` prints the name of each
+   function before it runs, to name one that never comes back.  `calMatrices` overflows even that stack on random data and is only reviewed.  Functions whose original code does not finish on random
    data (loops over lists) get a second pass with small numbers (`TS_VERIFY_SMALL=1`); a few that use instructions the interpreter lacks
    (the 128-bit stores of `memMark`) are only reviewed.  Functions that read the port's relocated tables (the prop table, `GUNCOMBOS`) differ
    from the machine code on purpose and are listed in `BY_DESIGN` in that script.  The live shadow mode (`TS_SHADOW`, see the README)

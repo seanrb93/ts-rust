@@ -254,7 +254,8 @@ const OWNED_AT: i32 = 0x240_0000 + 0xc400;
 
 /// Does the character `chr` own the combination (non zero)?  (`chr + 488 + 4 * combo` for the game's own.)
 pub fn own_get(chr: i32, combo: i32) -> i32 {
-    if combo < GAME_COMBOS {
+    // (without extended-tables there are only the game's combinations, kept where the game keeps them, whatever the number)
+    if combo < GAME_COMBOS || !cfg!(feature = "extended-tables") {
         return lw(chr + 488 + 4 * combo);
     }
     let bit = (combo - GAME_COMBOS).clamp(0, 63);
@@ -262,7 +263,7 @@ pub fn own_get(chr: i32, combo: i32) -> i32 {
 }
 
 pub fn own_set(chr: i32, combo: i32) {
-    if combo < GAME_COMBOS {
+    if combo < GAME_COMBOS || !cfg!(feature = "extended-tables") {
         sw(chr + 488 + 4 * combo, 1);
         return;
     }
@@ -275,12 +276,16 @@ pub fn own_set(chr: i32, combo: i32) {
 
 /// A game starts: nobody owns an added pair.
 pub fn own_clear_all() {
-    mm_clear(OWNED_AT);
+    if cfg!(feature = "extended-tables") {
+        mm_clear(OWNED_AT);
+    }
 }
 
 /// The character has no guns (`chrClearGuns`).
 pub fn own_clear(chr: i32) {
-    mm_remove(OWNED_AT, chr);
+    if cfg!(feature = "extended-tables") {
+        mm_remove(OWNED_AT, chr);
+    }
 }
 
 /// The number that the statistics count a combination under: a pair counts with its single weapon.

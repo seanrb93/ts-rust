@@ -670,7 +670,18 @@ fn find_root() -> PathBuf {
     }
 }
 
+/// The checker runs on a thread of its own with a large stack: the decompiled code of some functions recurses deeply on random data (walks of
+/// lists and trees that random memory makes long), and the main thread's 1 MB was overflowed partway through a whole run, which ended it with
+/// the functions after unchecked.
+const STACK_BYTES: usize = 1 << 30;
+
 fn main() {
+    let worker = std::thread::Builder::new().name("ts-verify".into()).stack_size(STACK_BYTES).spawn(checker).expect("cannot start the checker's thread");
+    let code = worker.join().unwrap_or(101);
+    std::process::exit(code);
+}
+
+fn checker() -> i32 {
     if std::env::var_os("TS_VERIFY_BACKTRACE").is_some() {
         // print where the port faults (the last fault of a run is the one that matters)
         std::panic::set_hook(Box::new(|info| {
@@ -748,18 +759,22 @@ fn main() {
     // (`TS_VERIFY_FRAMES=k` frames a run, 3 by default); a difference that only shows after the state has moved on (a bullet that flies for a few frames) is found this way
     if names.len() == 1 && names[0] == "frames" {
         run_frames(&ctx, &syms, &snapshots, n);
-        return;
+        return 0;
     }
     // `TS_VERIFY_CAPTURE=file.cap` (written by the port, see `ts_rt::capture`): run the function of the capture on the memory and the arguments of that call
     if let Ok(path) = std::env::var("TS_VERIFY_CAPTURE") {
         run_capture(&ctx, &syms, &path);
-        return;
+        return 0;
     }
     let (mut pass, mut fail, mut skip, mut vacuous) = (0, 0, 0, 0);
     let mut failures = Vec::new();
     for &(addr, name, ni, nf, _rk) in FUNC_INFO {
         if !names.is_empty() && !names.iter().any(|x| x == name) {
             continue;
+        }
+        // (`TS_VERIFY_TRACE`: the name of each function before it is run, so that one that never comes back, or overflows the stack, is named)
+        if std::env::var_os("TS_VERIFY_TRACE").is_some() {
+            eprintln!("run  {name}");
         }
         // hand-written platform replacements (no original behaviour to compare against)
         if matches!(name, "SCEECdSearchFile") {
@@ -958,4 +973,5 @@ fn main() {
         }
     }
     println!("\n== pass {pass}, fail {fail}, skipped {skip}, vacuous {vacuous} ==");
+    0
 }
