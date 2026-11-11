@@ -45,6 +45,25 @@ pub fn harness_bots() {
     }
 }
 
+/// The number of the arcade version of the level called `name` (the one that has an arcade set-up, with the pickups and the bots' pads of a match), when it
+/// has one: a level's name is that of its story version too, which `--level` would start (a test with bots asks for the arcade one).
+pub fn harness_arcade_level(name: &str) -> Option<i32> {
+    let language = lw(g::cur_language);
+    let mut entry = LVINFO;
+    for _ in 0..300 {
+        let text = lw((lh(entry) << 2) + lw((language << 2) + g::languages));
+        if text == 0 {
+            break;
+        }
+        let number = lw(entry + 4);
+        if ts_rt::cstr(text).eq_ignore_ascii_case(name.trim()) && lvGetARCADESetup(number) != 0 {
+            return Some(number);
+        }
+        entry += 24;
+    }
+    None
+}
+
 /// the port's frame at which the level in play started (-1: none)
 static STARTED: AtomicI64 = AtomicI64::new(-1);
 static DONE: AtomicI64 = AtomicI64::new(0);

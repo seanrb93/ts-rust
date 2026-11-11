@@ -979,6 +979,17 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
             None => (level.clone(), players.clone()),
         };
         let mut argv_strings = vec!["timesplitters".to_string()];
+        // (a test with bots plays the arcade version of a level, which has the weapons and the pads of a match: the name alone starts the story one)
+        let level = match &level {
+            Some(l) if std::env::var_os("TS_BOTCHRS").is_some() && l.parse::<i32>().is_err() => match ts_game::manual::harness::harness_arcade_level(l) {
+                Some(n) => {
+                    eprintln!("[port] --level {l}: the arcade version, level {n}");
+                    Some(n.to_string())
+                }
+                None => level.clone(),
+            },
+            _ => level.clone(),
+        };
         if let Some(l) = &level {
             argv_strings.push(l.clone());
             argv_strings.push(players.clone().unwrap_or_else(|| "1".into()));
