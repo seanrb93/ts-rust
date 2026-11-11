@@ -53,7 +53,7 @@ A host announces its game once a second to the local network (UDP broadcast to p
 
 A mode of a mod (a `variant` of a mod's `modes.txt`) is chosen on the host's arcade pages like any other mode.  The host sends which variant it is, and the values of its own options (`option` rows, as its Options page left them), with the game variables of the roster (keys -1 for the variant and -2, -3, ... for the options, which no address can be); every machine plays that variant with those values, whatever its own pages last had.  The mods must be the same on every machine, as the variant goes by its number.  `TS_MODE_OPTION=<name>=<value>` (a test aid) sets an option on the host.
 
-For tests without a window: `TS_LOBBY_AUTO=host,3,Prison` (starts when 3 players are there) and `TS_LOBBY_AUTO=join,127.0.0.1:7777`, with `--lobby --headless`.
+For tests without a window: `TS_LOBBY_AUTO=host,3,Tomb` (starts when 3 players are there) and `TS_LOBBY_AUTO=join,127.0.0.1:7777`, with `--lobby --headless`.
 
 The `--lobby` start and `--setup` start the level from its name, not from the parameters the game's pages make: the bots of `--setup` stand still, and `--lobby` has none.  A match as the Network pages start it, with the bots and the teams of the game's own pages, comes from `TS_NETPAGES=1` (the lobby of the pages opens as soon as the front end runs, and `TS_LOBBY_AUTO` then hosts or joins as above, the host on the level it names) with a save folder that has a profile; `TS_NETBOTS=<n>` has the first n bots of the Setup Bots page play, and `TS_LOBBY_TEAMS=0/0` plays the mode in teams with both players in the first.  `--setup` takes `teams=<t>/<t>` and `teamplay=1` too.
 
@@ -70,8 +70,8 @@ and `TS_LOBBY_SETUP`, `TS_LOBBY_CHAR` with the auto lobby.
 ## Trying it by hand (all the machines on one PC, or a LAN)
 
 ```
-ts-rust.exe --level Prison --players 2 --net local=0,peers=192.168.1.10:7000/192.168.1.11:7000,seed=7,delay=3
-ts-rust.exe --level Prison --players 2 --net local=1,peers=192.168.1.10:7000/192.168.1.11:7000,seed=7,delay=3
+ts-rust.exe --level Tomb --players 2 --net local=0,peers=192.168.1.10:7000/192.168.1.11:7000,seed=7,delay=3
+ts-rust.exe --level Tomb --players 2 --net local=1,peers=192.168.1.10:7000/192.168.1.11:7000,seed=7,delay=3
 ```
 
 `local` is the number of this machine's player (0 to 3), `peers` the address of every player's machine in the order of the players (a machine listens

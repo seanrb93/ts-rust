@@ -30,7 +30,11 @@ const PIECE: usize = 1024;
 const BEACON_PORT: u16 = 7778;
 /// the port a host listens on
 pub const PORT: u16 = 7777;
+// (more than four players need the game's per-player tables to be the port's larger ones: the build with `extended-tables`)
+#[cfg(feature = "extended-tables")]
 const MAX_PLAYERS: usize = 10;
+#[cfg(not(feature = "extended-tables"))]
+const MAX_PLAYERS: usize = 4;
 /// the rows of the host's screen: the level, the mode, the time limit, the score limit, the bots, friendly fire and the character
 const HOST_ROWS: usize = 9;
 /// the modes the lobby offers: (number, name)

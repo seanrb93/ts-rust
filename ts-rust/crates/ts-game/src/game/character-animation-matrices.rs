@@ -539,7 +539,9 @@ pub fn calMatrices(a0: i32) {
             if v1_9 < 201 {
                 v1_11 = lw(a0 + 4);
             } else {
-                if v1_9 < lw(g::lvnumplayers).min(4) + 201 {
+                // (with more than four players the rooms after 204 are the later players' own, not the views of guns: `gun_room`)
+                let views = if cfg!(feature = "extended-tables") { lw(g::lvnumplayers).min(4) } else { lw(g::lvnumplayers) };
+                if v1_9 < views + 201 {
                     let f23_1 = lwc1(0x3ac828);
                     let v1_10 = lw(a0);
                     let mut s3_3 = 0;

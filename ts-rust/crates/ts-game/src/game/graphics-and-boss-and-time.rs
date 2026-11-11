@@ -238,11 +238,11 @@ fn fill_border(x0: i32, y0: i32, x1: i32, y1: i32) {
 fn mark_camera_bit(index: i32) {
     let mode = camGetMode();
     let level = lw(g::lvlevelnum);
-    if index >= 4 {
+    if index >= 4 && cfg!(feature = "extended-tables") {
         // (the flags have no bit for him; the drawing hides his body)
         return;
     }
-    let bit = 0x1000000_i32 << index;
+    let bit = view_bit(index);
     let flags_at = lw(lw(g::currentplayer) + 384) + 16;
     if mode != 2 && level != 6 && !third_person_view_x() {
         sw(flags_at, lw(flags_at) & !bit);
