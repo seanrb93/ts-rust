@@ -87,6 +87,27 @@ pub(super) fn register(engine: &mut Engine) {
         swc1(at + 8, z as f32);
         moveFindRoom(at, 1.0, ROOM_RADIUS) as i64
     });
+    // nothing of the level is in the way of a line from one place to another (its walls, floors and the props that stop shots), as the game tests a line
+    engine.register_fn("line_clear_between", |x1: f64, y1: f64, z1: f64, x2: f64, y2: f64, z2: f64| -> bool {
+        if lw(g::gamestate) != 3 {
+            return false;
+        }
+        let frame = Frame::new(80);
+        let sp = frame.sp();
+        let (from, to) = ([x1 as f32, y1 as f32, z1 as f32], [x2 as f32, y2 as f32, z2 as f32]);
+        for k in 0..3 {
+            swc1(sp + 48 + 4 * k as i32, from[k]);
+            swc1(sp + 16 + 4 * k as i32, to[k] - from[k]);
+        }
+        let room = moveFindRoom(sp + 48, 1.0, ROOM_RADIUS);
+        if room == 0 {
+            return false;
+        }
+        // (the arguments the line test takes on the stack)
+        sw(sp, 0);
+        sw(sp + 8, 0);
+        bgLineTest(room, sp + 48, sp + 16, 0, 0, 0, 0, 112) == 0
+    });
     engine.register_fn("camera_on", |p: i64| (0..8).contains(&p) && CAMERAS.lock().unwrap()[p as usize].is_some());
     // the sticks of a player's controller (0 left across, 1 left up, 2 right across, 3 right up; -1 to 1), and taking them from the game
     engine.register_fn("stick", |p: i64, axis: i64| -> f64 {
