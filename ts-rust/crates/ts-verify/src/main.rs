@@ -45,7 +45,11 @@ impl Rng {
 
 fn run_native(addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> Outcome {
     trace::start();
+    // (the port's run gets a budget of memory accesses as the original's has one of instructions: a loop that random data makes endless ends with a
+    // fault, reported as a difference with its test, instead of the whole check never ending)
+    ts_rt::fuel::refill(step_limit());
     let res = silent(|| call_any(addr, *ints, *floats));
+    ts_rt::fuel::refill(u64::MAX);
     let log = trace::stop();
     let writes = changed(&log);
     trace::rollback(&log);

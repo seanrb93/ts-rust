@@ -5,6 +5,8 @@ use crate::*;
 /// Add `offset` to the texture offsets of the two lists of a bone (pointers at +8 and +12 to records of 24 bytes ended by a negative word at +20; the first
 /// word of a record is changed unless it is negative), and of the bones below it (@ 0x260128).
 pub fn partSetTextureOffset(skeleton: i32, bone: i32, offset: i32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let mut bone = bone;
     loop {
         let bones = skeleton - lw(skeleton) * 80;
@@ -38,6 +40,8 @@ pub fn partSetTextureOffset(skeleton: i32, bone: i32, offset: i32) {
 /// Copy the translation of bone `from` to the bone `to` that mirrors it, for the bones of kind 2, and walk the skeleton (80-byte bones; kind
 /// at +0, matrix number at +1, child at +3, sibling at +4) (@ 0x214b58).
 pub fn calDoubleFilletTrans(skeleton: i32, bone: i32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let mut bone = bone;
     loop {
         let base = lw(skeleton);

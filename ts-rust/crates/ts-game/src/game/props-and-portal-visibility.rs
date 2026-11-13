@@ -229,6 +229,8 @@ pub fn quaternionToMatrix(m: i32, q: i32) {
 
 /// Work out the back face test of the portals of `room` and, through the ones that face the player and are open, of the rooms beyond them (once a room) (@ 0x2578f0).
 pub fn bgPortalCalcBackFace(room: i32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let list = lw(room * 44 + lw(g::levelrooms) + 4);
     let seen = (room << 2) + lw(0x3b0084);
     let count = lw(list);

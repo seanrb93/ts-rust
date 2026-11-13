@@ -35,8 +35,9 @@ pub fn gunAddAmmo(chr: i32, ammo: i32, amount: i32) {
 /// Add a texture to the second preload pass: a record of 16 bytes from the table at 0x1fb7b40, kept sorted (@ 0x21c8d0).
 pub fn preloadPass2AddTexNum(a: i32, b: i32, c: i32) {
     let n = lw(0x3afedc);
-    // (the table has room for so many records: a list that is read past its end, which has no end to find, would write over the tables after this one)
-    if n >= preload_pass2_capacity() {
+    // (extended-tables: the table has room for so many records: a list that is read past its end, which has no end to find, would write over the tables
+    // after this one; a level of a mod can have such a list.  Without it the original writes on, as the game's own levels never get there)
+    if cfg!(feature = "extended-tables") && n >= preload_pass2_capacity() {
         preload_overflow_note(a, b, c);
         return;
     }

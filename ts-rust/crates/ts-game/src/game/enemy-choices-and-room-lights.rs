@@ -109,6 +109,8 @@ pub fn lvGetRandomPadExtref(flags: i32, pos: i32) -> i32 {
 /// Work out the depth of the rooms seen through the portals of `room` for the first player: `depth` is how many portals away it is; the rooms already reached
 /// (the array at 0x3b0084) are not entered again; a room is marked with the least depth, and the greatest depth is kept (@ 0x2579f8).
 pub fn bgPortalCalcRoomDepth(room: i32, depth: i32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let list = lw(room * 44 + lw(g::levelrooms) + 4);
     let count = lw(list);
     let reached = lw(0x3b0084);

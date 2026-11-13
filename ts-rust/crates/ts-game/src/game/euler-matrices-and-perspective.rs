@@ -167,6 +167,8 @@ pub fn rot2fquat(angles: i32, q: i32) {
 /// Copy the matrices of the bones of the skeleton `skeleton` (from `source`, one for each bone in turn, the count kept in the word `count`) into the matrix table of the model
 /// (+4 of `skeleton`), and note the bones of kind 0 by number in the list at +92; kind 1 bones are skipped and kind 3 ones are not copied (@ 0x262f80).
 pub fn matrixAlign(skeleton: i32, source: i32, bone: i32, count: i32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let mut bone = bone;
     loop {
         let top = lw(skeleton);

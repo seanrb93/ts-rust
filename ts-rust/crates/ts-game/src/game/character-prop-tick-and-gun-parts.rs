@@ -1095,6 +1095,8 @@ fn move_test_keep(sp: i32, distance_at: i32, wall_at: i32, fraction_at: i32, nor
 /// `a2` is changed), `a4` the floor item under it, and `a5` allowing the flags of the character to be changed. `f12` is the height and `f13` the radius. Returns the
 /// bits of what was hit: 1 a floor, 2 a hit, 4 a wall in the way, 8 a prop in the way.
 pub fn moveTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, f12: f32, f13: f32) -> i32 {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let frame = Frame::new(560);
     let sp = frame.sp();
     sw(sp + 312, a0);

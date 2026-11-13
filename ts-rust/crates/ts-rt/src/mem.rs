@@ -108,6 +108,8 @@ macro_rules! load {
     ($name:ident, $t:ty, $r:ty) => {
         #[inline(always)]
         pub fn $name(a: i32) -> $r {
+            #[cfg(feature = "fuel")]
+            crate::fuel::burn();
             unsafe { (ptr(a) as *const $t).read_unaligned() as $r }
         }
     };
@@ -117,6 +119,8 @@ macro_rules! store {
         #[inline(always)]
         pub fn $name(a: i32, v: $v) {
             let t: $t = v as $t;
+            #[cfg(feature = "fuel")]
+            crate::fuel::burn();
             #[cfg(feature = "trace")]
             crate::trace::record(a, std::mem::size_of::<$t>(), &t as *const $t as *const u8);
             #[cfg(any(feature = "calltrace", feature = "watch"))]
@@ -144,6 +148,8 @@ store!(sd, i64, i64);
 store!(sq, u128, u128);
 #[inline(always)]
 pub fn swc1(a: i32, v: f32) {
+    #[cfg(feature = "fuel")]
+    crate::fuel::burn();
     #[cfg(feature = "trace")]
     crate::trace::record(a, 4, &v as *const f32 as *const u8);
     #[cfg(any(feature = "calltrace", feature = "watch"))]
@@ -155,6 +161,19 @@ pub fn swc1(a: i32, v: f32) {
     unsafe { (ptr(a) as *mut f32).write_unaligned(v) }
 }
 
+/// The host address of the `n` bytes from `a`, when they are all in one mapped area (the RAM, the scratchpad or the hardware's registers), else the
+/// error of an unmapped address: a copy with a length the game never meant (random data, a bad count) must not reach past the host's buffers.
+fn span(a: i32, n: usize) -> *mut u8 {
+    let p = ptr(a);
+    if n > 1 {
+        let last = (a as u32).wrapping_add(n as u32 - 1);
+        if n > u32::MAX as usize || last < a as u32 || ptr(last as i32) as usize != p as usize + (n - 1) {
+            bad_addr(last);
+        }
+    }
+    p
+}
+
 pub fn memcpy_game(dst: i32, src: i32, n: usize) {
     #[cfg(any(feature = "calltrace", feature = "watch"))]
     crate::watch::check(dst, n, src as u64);
@@ -162,7 +181,8 @@ pub fn memcpy_game(dst: i32, src: i32, n: usize) {
     crate::trace::record_bulk(dst, n);
     #[cfg(feature = "journal")]
     crate::journal::touch(dst, n);
-    unsafe { std::ptr::copy(ptr(src), ptr(dst), n) }
+    let (to, from) = (span(dst, n), span(src, n));
+    unsafe { std::ptr::copy(from, to, n) }
 }
 
 pub fn memset_game(dst: i32, c: u8, n: usize) {
@@ -172,5 +192,6 @@ pub fn memset_game(dst: i32, c: u8, n: usize) {
     crate::trace::record_bulk(dst, n);
     #[cfg(feature = "journal")]
     crate::journal::touch(dst, n);
-    unsafe { std::ptr::write_bytes(ptr(dst), c, n) }
+    let to = span(dst, n);
+    unsafe { std::ptr::write_bytes(to, c, n) }
 }

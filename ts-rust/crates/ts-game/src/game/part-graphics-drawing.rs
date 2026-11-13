@@ -95,6 +95,8 @@ fn lighting_packets(chr: i32, matrix: i32) {
 /// Draw the parts of a model (@ 0x260ae0): part `part` of the character, prop or gun `a0` for the pass `pass` (0 solid, others the see through parts), then its child parts (the
 /// ones at +3 and +4 of its record). Fills the display list with the matrices, the draw entries of the part, and the glows (flares and lights) it has.
 pub fn partGfx(a0: i32, part: i32, pass: i32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let frame = Frame::new(944);
     let sp = frame.sp();
     draw_part(a0, part, pass, sp);

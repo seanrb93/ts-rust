@@ -6,6 +6,8 @@ use crate::*;
 /// children, unless the bone has kind 3): for the first list of chunks (`which` 0) the vertices of the chunks, for the second also the vertices of the bone's own morph targets
 /// (records of 152 bytes with 5 rows of two vertices) and its extra vertices (@ 0x260258).
 pub fn partTransform(skeleton: i32, bone: i32, which: i32, matrix: i32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let mut bone_number = bone;
     loop {
         let this = skeleton - lw(skeleton) * 80 + bone_number * 80;

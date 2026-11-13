@@ -18,7 +18,7 @@ fn fsub(x: f32, y: f32) -> f32 { if clamp() { ps2float::sub(x, y) } else { x - y
 fn fmul(x: f32, y: f32) -> f32 { if clamp() { ps2float::mul(x, y) } else { x * y } }
 
 /// The number of instructions after which a run of the original is given up (`TS_VERIFY_STEPS` changes it: the loads of big files need more).
-fn step_limit() -> u64 {
+pub fn step_limit() -> u64 {
     static LIMIT: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
     *LIMIT.get_or_init(|| std::env::var("TS_VERIFY_STEPS").ok().and_then(|v| v.parse().ok()).unwrap_or(STEP_LIMIT))
 }

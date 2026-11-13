@@ -265,6 +265,8 @@ pub fn mmMakeSeals(object: i32) -> i32 {
 /// Get a particle group of kind `kind` (its type info, 16 bytes in `particletypeinfos`: the limit at +12, the kind of its child group at +4): one from the free list, or, when the kind
 /// is at its limit or none is free, one taken from the groups in use (the oldest that is not locked) and freed; it is put at the head of the list of its kind (@ 0x296c90).
 pub fn getgroup(kind: i32) -> i32 {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let info = kind << 4;
     let limit = lw(info + (g::particletypeinfos + 12));
     let slot = kind << 2;

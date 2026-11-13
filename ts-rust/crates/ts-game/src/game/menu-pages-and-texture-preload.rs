@@ -143,7 +143,7 @@ pub fn obPreloadTextures(name: i32) {
                     let number = lw(at);
                     i += 1;
                     preloadPass2AddTexNum(number, at, 0);
-                    if lw(0x3afedc) >= preload_pass2_capacity() {
+                    if cfg!(feature = "extended-tables") && lw(0x3afedc) >= preload_pass2_capacity() {
                         break;
                     }
                     if lw((i << 4) + textures) == -1 {
@@ -180,7 +180,7 @@ pub fn bgPreloadTextures() {
             let mut i = 1;
             loop {
                 preloadPass2AddTexNum(lw(at), at, at);
-                if lw(0x3afedc) >= preload_pass2_capacity() {
+                if cfg!(feature = "extended-tables") && lw(0x3afedc) >= preload_pass2_capacity() {
                     break;
                 }
                 at = (i << 4) + lw(g::leveltextures);

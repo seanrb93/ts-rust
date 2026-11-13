@@ -33,6 +33,8 @@ pub fn hudLSScoreGfx(_unused: i32, y: i32, across: i32) {
 /// Make the fillet matrices of the bones of the model `model` from the bone `bone` down (the bone records of 80 bytes; kind 2 is a fillet joint whose matrix is made between its
 /// own and its parent's by `calInbetweenMatrix`; the children at +3 and the next bones at +4 are followed) (@ 0x214a88).
 pub fn calDoubleFillets(model: i32, bone: i32, amount: f32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let mut bone = bone;
     let mut skeleton = lw(model);
     loop {

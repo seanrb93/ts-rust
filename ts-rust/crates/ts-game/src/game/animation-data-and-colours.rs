@@ -65,6 +65,8 @@ fn modulate(c: i32, by: i32) -> i32 {
 /// Multiply the vertex colours of the parts of a bone and the bones below it by the colour `colour`: `which` 0 uses the bone's first list of chunks (+8), else the second
 /// (+12); a chunk record (24 bytes, the vertex count at +16, the offset at +12) says where its colours are (@ 0x2604e0).
 pub fn partColour(skeleton: i32, bone: i32, which: i32, colour: i32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let mut bone = bone;
     loop {
         let bones = skeleton - lw(skeleton) * 80;

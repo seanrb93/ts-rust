@@ -95,6 +95,8 @@ pub fn animStopImmediately() {
 /// Relocate the part `part` of the model `model` and the parts that follow it: both of its point lists are transformed (`transformPart`), a child (+3) is relocated unless the part is of
 /// kind 3, and the next part (+4) is taken until there is none (@ 0x263078).
 pub fn partRelocate(model: i32, part: i32) {
+    // (a walk the verifier's random data can make endless: see `ts_rt::DepthGuard`)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let mut current = part;
     loop {
         let skeleton = lw(model);

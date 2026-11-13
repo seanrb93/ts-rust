@@ -14,4 +14,7 @@ trace = []
 # Per-function entry tracing for hang diagnosis.
 calltrace = []
 watch = []
+# A budget of memory accesses for a run of the port's code, which the verifier sets: past it the run ends with a fault (a loop that random data makes
+# endless, which the original's interpreter stops by its count of instructions).
+fuel = []
 shadow = ["trace"]

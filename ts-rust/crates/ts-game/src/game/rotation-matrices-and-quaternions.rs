@@ -81,6 +81,8 @@ pub fn rotz2fquat(q: i32, angle: f32) {
 /// Make the global matrices (64 bytes each, in `matrices`) of the bone `bone` of the skeleton `skeleton` and of its children and the bones after it: a bone of kind 0 has its own
 /// matrix multiplied by its parent's (`parent`, when not negative); a bone's children are done unless it is of kind 3 (@ 0x2149b0).
 pub fn calGlobalMatrices(skeleton: i32, matrices: i32, bone: i32, parent: i32) {
+    // (the verifier's random skeletons can have no end: a real one has well under a hundred bones)
+    let _depth = ts_rt::DepthGuard::enter(10_000);
     let mut bone = bone;
     let mut parent = parent;
     loop {

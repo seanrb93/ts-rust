@@ -42,6 +42,64 @@ pub fn trap(what: &str) {
 /// Set by the verifier: `exit` then ends the run like a trap (a panic starting with "trap:") instead of ending the process.
 pub static VERIFYING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+thread_local! {
+    static DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+/// The depth of a recursive function of the game, while the verifier runs it: past `limit` the run ends with a fault (a panic, which the verifier
+/// takes as the original's fault on the same data), as random data can make the structure a recursion walks endless and the host's stack would
+/// overflow and end the whole check.  In play it does nothing.  Hold the guard for the length of the call.
+pub struct DepthGuard(bool);
+
+impl DepthGuard {
+    #[inline]
+    pub fn enter(limit: u32) -> DepthGuard {
+        if !VERIFYING.load(std::sync::atomic::Ordering::Relaxed) {
+            return DepthGuard(false);
+        }
+        let d = DEPTH.with(|d| {
+            d.set(d.get() + 1);
+            d.get()
+        });
+        if d > limit {
+            DEPTH.with(|d| d.set(0));
+            panic!("recursion deeper than {limit}");
+        }
+        DepthGuard(true)
+    }
+}
+
+impl Drop for DepthGuard {
+    fn drop(&mut self) {
+        if self.0 {
+            DEPTH.with(|d| d.set(d.get().saturating_sub(1)));
+        }
+    }
+}
+
+/// The budget of memory accesses of a run (feature `fuel`, the verifier's build only).
+#[cfg(feature = "fuel")]
+pub mod fuel {
+    thread_local! {
+        static LEFT: std::cell::Cell<u64> = const { std::cell::Cell::new(u64::MAX) };
+    }
+    /// Give the next run `n` accesses (`u64::MAX`: no limit).
+    pub fn refill(n: u64) {
+        LEFT.with(|l| l.set(n));
+    }
+    #[inline(always)]
+    pub fn burn() {
+        LEFT.with(|l| {
+            let v = l.get();
+            if v == 0 {
+                l.set(u64::MAX);
+                panic!("out of fuel: a loop that does not end");
+            }
+            l.set(v - 1);
+        });
+    }
+}
+
 /// Called by auto-generated stubs of SDK functions that have no native implementation yet.
 /// Logs each distinct name once; the stub then returns 0.
 pub fn stub_called(name: &str) {
