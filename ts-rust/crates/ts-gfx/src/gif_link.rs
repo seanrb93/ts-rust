@@ -6,10 +6,11 @@ use crate::gif::Gif;
 use crate::scene::Frame;
 use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
 
-/// About how many bytes of packets go to the thread at a time (a busy frame has some megabytes).  The cost of a hand-over is that of waking a thread; the delay does not matter, as nothing waits for a packet.
-const BATCH: usize = 256 * 1024;
+/// About how many bytes of packets go to the thread at a time.  The cost of a hand-over is that of waking a thread, and the end of a list waits for the last batch to be worked: 16 KB
+/// (some hundreds of hand-overs in a busy frame) took a frame of a Deathmatch on Tomb with bots from 0.84 ms to 0.81 ms against 256 KB.
+const BATCH: usize = 16 * 1024;
 /// How many batches may wait: what the thread cannot keep up with holds the vector unit back here.
-const QUEUE: usize = 16;
+const QUEUE: usize = 256;
 /// The bytes before a packet in a batch: program, kick, world, size.
 const HEADER: usize = 16;
 
