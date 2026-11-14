@@ -101,7 +101,12 @@ The VU1/GIF stage is a game-specific replacement of the command stream, not a ge
 The VU1 translation (`tools/vu1dec.py`) is the main cost of the graphics thread, so it is kept lean: the Q register is
 resolved only where the program reads it (`Regs::q_now`), a MAC flag update is only computed when an `FMAND/FMEQ/FMOR` can
 still read it before the next update (`mac_liveness`), and results are clamped with SSE (`fz`, `fz4`) while the graphics thread
-runs with flush-to-zero / denormals-are-zero set (`enter_vu_mode`).  The timing counters that `TS_BENCH` prints cost clock reads
+runs with flush-to-zero / denormals-are-zero set (`enter_vu_mode`).  The cycle count (which only the divide unit and WAITQ read)
+goes up once per block, by the sum of its instructions, where it is read and before the block is left (`lump_ticks`).  Each arm of
+the dispatch holds its block and then copies of the blocks it goes on to, up to 96 instruction pairs (`arm`): for a conditional
+branch the side that leads back to the arm's block, else the side that falls through, and a branch back to the arm's block goes
+round a loop of its own, so the vertex loops run without going back to the dispatch.  The program is built for x86-64-v3 (AVX2,
+FMA), which the translation gains most from.  The timing counters that `TS_BENCH` prints cost clock reads
 in the inner loops, so they only run when a report asks for them.  Together this is about 3x faster per vertex than the first
 translation (a heavy level frame of 60000 vertices takes about 4.5 ms to translate).
 
