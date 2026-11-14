@@ -253,6 +253,15 @@ fn register(engine: &mut Engine) {
     engine.register_fn("players", || lw(g::lvnumplayers) as i64);
     engine.register_fn("is_player", |i: i64| is_player_index(i));
     engine.register_fn("alive", |i: i64| is_alive(i));
+    // the character that last killed the character `i` (the prop the game keeps at +256 of its record, which its view of death looks at), -1 for none or itself
+    engine.register_fn("killer", |i: i64| -> i64 {
+        if prop_of(i) == 0 {
+            return -1;
+        }
+        let by = lw(record(i) + 256);
+        let total = characters().1 as i64;
+        (0..total).find(|&j| j != i && prop_of(j) == by && by != 0).unwrap_or(-1)
+    });
     engine.register_fn("team", |i: i64| if prop_of(i) == 0 { 0 } else { lw(record(i) + 24) as i64 });
     // the character's name, as the results show it (the text the record points to at +16)
     engine.register_fn("char_name", |i: i64| -> String {

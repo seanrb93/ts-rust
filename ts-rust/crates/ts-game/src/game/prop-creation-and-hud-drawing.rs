@@ -270,7 +270,10 @@ pub fn hudGfx() {
                 let alpha = (level * 160).wrapping_div(300) & 255;
                 let high = lw(sp) << 24 | alpha;
                 sw(sp + 12, alpha);
-                hudPainGfx(high | rgb);
+                // (extensions: not while a mod's script shows the player another view, such as a player who is out watching the match)
+                if !third_person_view_x() {
+                    hudPainGfx(high | rgb);
+                }
                 pain = lw(hud + 268);
             }
             if pain != 0 {
