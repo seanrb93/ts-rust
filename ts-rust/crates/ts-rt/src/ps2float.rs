@@ -86,3 +86,111 @@ impl Ps2F for f32 {
         sqrt(self)
     }
 }
+
+/// `add` and `mul` of four lanes at once, each lane as the scalar function does it.
+#[cfg(target_arch = "x86_64")]
+pub mod lanes {
+    use std::arch::x86_64::*;
+
+    /// (SSE2 is part of x86_64)
+    #[inline(always)]
+    fn flush(x: __m128) -> __m128 {
+        unsafe {
+            let b = _mm_castps_si128(x);
+            let zero_exp = _mm_cmpeq_epi32(_mm_and_si128(b, _mm_set1_epi32(0x7f80_0000)), _mm_setzero_si128());
+            let sign = _mm_and_si128(b, _mm_set1_epi32(i32::MIN));
+            _mm_castsi128_ps(_mm_or_si128(_mm_and_si128(zero_exp, sign), _mm_andnot_si128(zero_exp, b)))
+        }
+    }
+
+    #[inline(always)]
+    fn result(x: __m128) -> __m128 {
+        unsafe {
+            let b = _mm_castps_si128(x);
+            let exp = _mm_and_si128(b, _mm_set1_epi32(0x7f80_0000));
+            let zero_exp = _mm_cmpeq_epi32(exp, _mm_setzero_si128());
+            let full_exp = _mm_cmpeq_epi32(exp, _mm_set1_epi32(0x7f80_0000));
+            let sign = _mm_and_si128(b, _mm_set1_epi32(i32::MIN));
+            let kept = _mm_andnot_si128(_mm_or_si128(zero_exp, full_exp), b);
+            let largest = _mm_and_si128(full_exp, _mm_or_si128(sign, _mm_set1_epi32(super::MAX as i32)));
+            let zero = _mm_and_si128(zero_exp, sign);
+            _mm_castsi128_ps(_mm_or_si128(kept, _mm_or_si128(largest, zero)))
+        }
+    }
+
+    #[inline(always)]
+    pub fn load(v: [f32; 4]) -> __m128 {
+        unsafe { _mm_loadu_ps(v.as_ptr()) }
+    }
+
+    #[inline(always)]
+    pub fn store(v: __m128) -> [f32; 4] {
+        let mut out = [0.0f32; 4];
+        unsafe { _mm_storeu_ps(out.as_mut_ptr(), v) };
+        out
+    }
+
+    #[inline(always)]
+    pub fn splat(x: f32) -> __m128 {
+        unsafe { _mm_set1_ps(x) }
+    }
+
+    #[inline(always)]
+    pub fn add(a: __m128, b: __m128) -> __m128 {
+        result(unsafe { _mm_add_ps(flush(a), flush(b)) })
+    }
+
+    #[inline(always)]
+    pub fn mul(a: __m128, b: __m128) -> __m128 {
+        result(unsafe { _mm_mul_ps(flush(a), flush(b)) })
+    }
+}
+
+/// `add` and `mul` of four lanes at once, each lane as the scalar function does it.
+#[cfg(not(target_arch = "x86_64"))]
+pub mod lanes {
+    pub type V = [f32; 4];
+    #[inline(always)]
+    pub fn load(v: [f32; 4]) -> V {
+        v
+    }
+    #[inline(always)]
+    pub fn store(v: V) -> [f32; 4] {
+        v
+    }
+    #[inline(always)]
+    pub fn splat(x: f32) -> V {
+        [x; 4]
+    }
+    #[inline(always)]
+    pub fn add(a: V, b: V) -> V {
+        std::array::from_fn(|i| super::add(a[i], b[i]))
+    }
+    #[inline(always)]
+    pub fn mul(a: V, b: V) -> V {
+        std::array::from_fn(|i| super::mul(a[i], b[i]))
+    }
+}
+
+#[cfg(test)]
+mod lane_tests {
+    use super::*;
+
+    /// Each lane is what the scalar function gives, for numbers at the edges (denormals, zeros, overflow, infinity).
+    #[test]
+    fn lanes_are_the_scalar_functions() {
+        let odd = [0.0f32, -0.0, 1.0, -1.0, 1e-40, -1e-40, 1e-20, -1e-20, 1e20, -1e20, 3e38, -3e38, f32::MAX, f32::INFINITY, f32::NEG_INFINITY, 1.5e-38, 0.75, -2.5];
+        for &a in &odd {
+            for &b in &odd {
+                let va = [a, b, -a, 0.5 * b];
+                let vb = [b, a, b, a];
+                let s = lanes::store(lanes::mul(lanes::load(va), lanes::load(vb)));
+                let t = lanes::store(lanes::add(lanes::load(va), lanes::load(vb)));
+                for i in 0..4 {
+                    assert_eq!(s[i].to_bits(), mul(va[i], vb[i]).to_bits(), "mul {} {}", va[i], vb[i]);
+                    assert_eq!(t[i].to_bits(), add(va[i], vb[i]).to_bits(), "add {} {}", va[i], vb[i]);
+                }
+            }
+        }
+    }
+}

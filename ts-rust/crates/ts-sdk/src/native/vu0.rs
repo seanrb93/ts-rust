@@ -28,14 +28,13 @@ fn wm(a: i32, m: M4) {
 
 /// `v * m` for a row vector: x*r0 + y*r1 + z*r2 + w*r3 accumulated in VU0 order.
 fn row_times(v: V4, m: &M4) -> V4 {
-    let mut o = [0.0f32; 4];
-    for j in 0..4 {
-        o[j] = mul(v[0], m[0][j]);
-        o[j] = add(o[j], mul(v[1], m[1][j]));
-        o[j] = add(o[j], mul(v[2], m[2][j]));
-        o[j] = add(o[j], mul(v[3], m[3][j]));
-    }
-    o
+    // (the four columns at once: each lane is `mul(v[0], m[0][j])` and so on, as the scalar functions do it)
+    use ts_rt::ps2float::lanes as l;
+    let mut o = l::mul(l::splat(v[0]), l::load(m[0]));
+    o = l::add(o, l::mul(l::splat(v[1]), l::load(m[1])));
+    o = l::add(o, l::mul(l::splat(v[2]), l::load(m[2])));
+    o = l::add(o, l::mul(l::splat(v[3]), l::load(m[3])));
+    l::store(o)
 }
 
 /// `dst = m2 * m1` (each row of m2 is transformed by m1) -- the argument order of the Sony routine.
@@ -166,15 +165,14 @@ pub fn quaternionSlerp2(args: &[i64]) -> i32 {
 
 /// Shared by the three matrix * vector routines: ACC = row0*v.x + row1*v.y [+ row2*v.z] ...
 fn acc3(m: &M4, v: V4, with_z: bool) -> V4 {
-    let mut acc = [0.0f32; 4];
-    for j in 0..4 {
-        acc[j] = mul(m[0][j], v[0]);
-        acc[j] = add(acc[j], mul(m[1][j], v[1]));
-        if with_z {
-            acc[j] = add(acc[j], mul(m[2][j], v[2]));
-        }
+    // (the four columns at once, as the scalar functions do each)
+    use ts_rt::ps2float::lanes as l;
+    let mut acc = l::mul(l::load(m[0]), l::splat(v[0]));
+    acc = l::add(acc, l::mul(l::load(m[1]), l::splat(v[1])));
+    if with_z {
+        acc = l::add(acc, l::mul(l::load(m[2]), l::splat(v[2])));
     }
-    acc
+    l::store(acc)
 }
 
 /// v.xyz = (v.x*row0 + v.y*row1 + v.z*row2 + row3).xyz, in place; w untouched.   (matrix = a0, vector = a1)
