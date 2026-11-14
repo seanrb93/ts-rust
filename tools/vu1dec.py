@@ -372,6 +372,30 @@ def pair_code(p, delay=False):
     return out, br
 
 
+# what reads the cycle count of the vector unit: the divide and the square roots (when their result is ready), the Q register and WAITQ
+CYCLE_READERS = ('r.q_now()', 'r.div(', 'r.sqrt(', 'r.rsqrt(', 'r.waitq()')
+
+
+def lump_ticks(body):
+    """The cycle count goes up by one for each instruction pair (`r.tick()`), but it is only read by the divide unit and at the end of a run: the
+    ticks of a block are added up and the sum added where it is read and before the block is left, so the count is the same where it matters."""
+    out = []
+    pending = 0
+    for line in body:
+        t = line.strip()
+        if t == 'r.tick();':
+            pending += 1
+            continue
+        leaves = t.startswith(('pc =', 'return;', 'panic!(')) or (t.startswith('if ') and t.endswith('continue;'))
+        if pending and (leaves or any(x in t for x in CYCLE_READERS)):
+            indent = line[:len(line) - len(line.lstrip())]
+            out.append(f'{indent}r.cycle += {pending};')
+            pending = 0
+        out.append(line)
+    assert pending == 0 or not any(l.strip().startswith(('pc =', 'return;')) for l in body[-3:]), 'ticks left at the end of a block'
+    return out
+
+
 def generate():
     e = Elf()
     mem = extract(e.image())
@@ -450,7 +474,7 @@ def generate():
                 body.append(f'            pc = {pc:#x}; continue;')
                 break
         body.append('        }')
-        out += body
+        out += lump_ticks(body)
     out.append('        _ => panic!("VU1 microprogram entry {:#x} is not a known block start", pc),')
     out.append('        }')
     out.append('    }')
