@@ -14,6 +14,8 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
     let scale = text_scale();
     let sc = |v: i32| text_scaled(v, scale);
     let f16 = |v: i32| text_scaled16(v, scale);
+    // (the place along the line in sixteenths of a pixel, in 64 bits: the pixel's place wraps as the original's 32-bit sum does)
+    let w16 = |v: i32| -> i64 { if scale == 1000 { (v as i64) << 4 } else { text_scaled16(v, scale) as i64 } };
     let mut cursor = text;
     sw(sp + 16, x_at);
     sw(sp + 20, y_at);
@@ -27,7 +29,7 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
     let centre_lift16 = ((line_height << 4) - f16(line_height)) >> 1;
     sw(sp + 32, glyphs);
     let mut x = lw(x_at);
-    let mut x16 = x << 4;
+    let mut x16: i64 = (x as i64) << 4;
     sw(sp + 28, lw(y_at));
     if cursor == 0 {
         return;
@@ -75,8 +77,8 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
                             width = lhu(glyph + 4);
                             advance = (width + offset) >> shift;
                         } else if code == 49 {
-                            x16 += f16(4);
-                            x = x16 >> 4;
+                            x16 += w16(4);
+                            x = (x16 >> 4) as i32;
                             width = lhu(glyph + 4);
                             advance = (lw(lw(g::curfont) + 20) >> shift) - 4;
                         } else if code >= 50 {
@@ -91,8 +93,8 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
                         } else if code != 46 {
                             let current = lw(g::curfont);
                             if code == 47 {
-                                x16 -= f16(1);
-                                x = x16 >> 4;
+                                x16 -= w16(1);
+                                x = (x16 >> 4) as i32;
                                 width = lhu(glyph + 4);
                                 advance = 7;
                             } else {
@@ -110,9 +112,9 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
                         let top = lw(sp + 28);
                         sw(sp, lw(sp + 24));
                         dlTextureRectangleFine(
-                            x16,
+                            x16 as i32,
                             (top << 4) + centre_lift16 + f16(drop >> shift),
-                            x16 + f16(width >> shift),
+                            (x16 + w16(width >> shift)) as i32,
                             (top << 4) + centre_lift16 + f16((drop + height) >> shift),
                             u << 4,
                             v << 4,
@@ -121,8 +123,8 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
                         );
                     }
                     if lw(g::cur_language) == 0 {
-                        x16 += f16(advance);
-                        x = x16 >> 4;
+                        x16 += w16(advance);
+                        x = (x16 >> 4) as i32;
                     } else {
                         let first = lbu(cursor);
                         if (first & 128) != 0 {
@@ -171,8 +173,8 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
                                 }
                             }
                         }
-                        x16 += f16(advance);
-                        x = x16 >> 4;
+                        x16 += w16(advance);
+                        x = (x16 >> 4) as i32;
                     }
                 } else {
                     cursor += 1;
@@ -196,16 +198,16 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
                     let height = lhu(entry + 2);
                     let width = lhu(entry);
                     if (lbu(g::fontflags) & 4) != 0 {
-                        x16 += f16(width >> shift);
-                        x = x16 >> 4;
+                        x16 += w16(width >> shift);
+                        x = (x16 >> 4) as i32;
                     } else {
                         let drawn = sc(width >> shift);
                         dlSelectTextureKick(picture);
                         sw(sp, 0x7f7f7f7f);
                         dlTextureRectangle(x, top + centre_lift, x + drawn, top + centre_lift + sc(height >> ((shift + 1) & 31)), 0, 0, width << 4, height << 4);
                         dlSelectTextureKick(lw(lw(g::curfont) + 16));
-                        x16 += drawn << 4;
-                        x = x16 >> 4;
+                        x16 += (drawn as i64) << 4;
+                        x = (x16 >> 4) as i32;
                     }
                 }
                 cursor += 1;
@@ -216,7 +218,7 @@ pub fn textPrint(x_at: i32, y_at: i32, text: i32, colour: i32) {
                 }
                 cursor += 1;
                 x = lw(lw(sp + 16));
-                x16 = x << 4;
+                x16 = (x as i64) << 4;
                 sw(sp + 28, lw(sp + 28) + sc(lw(lw(g::curfont) + 12) >> shift));
             }
             ch = lbu(cursor);

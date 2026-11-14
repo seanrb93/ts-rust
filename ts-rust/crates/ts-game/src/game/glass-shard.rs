@@ -17,28 +17,34 @@ fn pane_point(a: i32, b: i32, c: i32, d: i32, side_1: i32, side_2: i32, u: f32, 
     point
 }
 
-/// The texture coordinates of the shard's corner: by an affine map of the pane's (when the pane's mode, the word at +0x1184 of the glass record, is 0) or interpolated between its four corners.
-fn corner_texture(a: i32, b: i32, c: i32, d: i32, affine: bool, uv: i32, at: i32) {
-    let u = lwc1(uv);
-    let v = lwc1(uv + 4);
-    if affine {
-        let base_u = lwc1(a + 12);
-        let base_v = lwc1(a + 16);
-        let b_u = ps2float::sub(lwc1(b + 12), base_u);
-        let c_u = ps2float::sub(lwc1(c + 12), base_u);
-        let b_v = ps2float::sub(lwc1(b + 16), base_v);
-        let c_v = ps2float::sub(lwc1(c + 16), base_v);
-        swc1(at, ps2float::add(ps2float::add(base_u, ps2float::mul(b_u, u)), ps2float::mul(c_u, v)));
-        swc1(at + 4, ps2float::add(ps2float::add(lwc1(a + 16), ps2float::mul(b_v, u)), ps2float::mul(c_v, v)));
+/// The differences of the pane's texture coordinates that the affine map of the shard's corners uses (from the first corner to the second and the third,
+/// in u and in v): the original works them out once for the four corners.
+fn texture_steps(a: i32, b: i32, c: i32) -> [f32; 4] {
+    let base_u = lwc1(a + 12);
+    let base_v = lwc1(a + 16);
+    [ps2float::sub(lwc1(b + 12), base_u), ps2float::sub(lwc1(c + 12), base_u), ps2float::sub(lwc1(b + 16), base_v), ps2float::sub(lwc1(c + 16), base_v)]
+}
+
+/// The texture coordinates of the shard's corner: by an affine map of the pane's (when the pane's mode, the word at +0x1184 of the glass record, is 0, with
+/// the differences `steps` of `texture_steps`) or interpolated between its four corners.  The corner's u and v, and the pane's first corner, are read
+/// again for each value written, as the original reads them (what is written can be where they are kept).
+fn corner_texture(a: i32, b: i32, c: i32, d: i32, steps: Option<[f32; 4]>, uv: i32, at: i32) {
+    if let Some([b_u, c_u, b_v, c_v]) = steps {
+        swc1(at, ps2float::add(ps2float::add(lwc1(a + 12), ps2float::mul(b_u, lwc1(uv))), ps2float::mul(c_u, lwc1(uv + 4))));
+        swc1(at + 4, ps2float::add(ps2float::add(lwc1(a + 16), ps2float::mul(b_v, lwc1(uv))), ps2float::mul(c_v, lwc1(uv + 4))));
         swc1(at + 8, 1.0_f32);
         swc1(at + 12, 1.0_f32);
     } else {
         for component in 0..3 {
             let offset = 12 + component * 4;
+            let u = lwc1(uv);
+            let v = lwc1(uv + 4);
             let one_minus_u = ps2float::sub(1.0_f32, u);
             let one_minus_v = ps2float::sub(1.0_f32, v);
-            let value = ps2float::mul(ps2float::add(ps2float::mul(lwc1(a + offset), one_minus_u), ps2float::mul(lwc1(b + offset), u)), one_minus_v)
-                + ps2float::mul(ps2float::add(ps2float::mul(lwc1(c + offset), one_minus_u), ps2float::mul(lwc1(d + offset), u)), v);
+            let value = ps2float::add(
+                ps2float::mul(ps2float::add(ps2float::mul(lwc1(a + offset), one_minus_u), ps2float::mul(lwc1(b + offset), u)), one_minus_v),
+                ps2float::mul(ps2float::add(ps2float::mul(lwc1(c + offset), one_minus_u), ps2float::mul(lwc1(d + offset), u)), v),
+            );
             swc1(at + component * 4, value);
         }
         swc1(at + 12, 1.0_f32);
@@ -90,16 +96,16 @@ pub fn glassSetQuad(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i3
     for (index, (u, v)) in corners.iter().enumerate() {
         let point = pane_point(a5, a6, a7, corner_d, side_1, side_2, *u, *v);
         let at = vertices + index as i32 * 16;
-        swc1(at, point[0] - middle[0]);
-        swc1(at + 4, point[1] - middle[1]);
-        swc1(at + 8, point[2] - middle[2]);
+        swc1(at, ps2float::sub(point[0], middle[0]));
+        swc1(at + 4, ps2float::sub(point[1], middle[1]));
+        swc1(at + 8, ps2float::sub(point[2], middle[2]));
         swc1(at + 12, 1.0_f32);
     }
-    let affine = lw(a3 + 0x1184) == 0;
+    let steps = if lw(a3 + 0x1184) == 0 { Some(texture_steps(a5, a6, a7)) } else { None };
     let texture = a2 + shard;
     let uvs = [uv_0, uv_1, uv_2, uv_3];
     for (index, uv) in uvs.iter().enumerate() {
-        corner_texture(a5, a6, a7, corner_d, affine, *uv, texture + index as i32 * 16);
+        corner_texture(a5, a6, a7, corner_d, steps, *uv, texture + index as i32 * 16);
     }
 
     // The speed and the spin: they are bigger the nearer the shard is to the point of impact.

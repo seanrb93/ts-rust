@@ -87,6 +87,18 @@ pub mod fuel {
     pub fn refill(n: u64) {
         LEFT.with(|l| l.set(n));
     }
+    /// A bulk copy or fill of `n` bytes costs a word's access for each 4 bytes (the original's code does it a word at a time).
+    pub fn burn_bytes(n: usize) {
+        let cost = (n / 4) as u64;
+        LEFT.with(|l| {
+            let v = l.get();
+            if v < cost {
+                l.set(u64::MAX);
+                panic!("out of fuel: a copy or fill of {n} bytes");
+            }
+            l.set(v - cost);
+        });
+    }
     #[inline(always)]
     pub fn burn() {
         LEFT.with(|l| {

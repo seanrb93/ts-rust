@@ -111,14 +111,15 @@ pub fn textSize(width: i32, height: i32, text: i32) {
     let mut max_x = 0;
     let mut max_y = 0;
     let mut x = 0;
-    let mut x16 = 0;
+    // (in 64 bits: the sum of the widths in sixteenths of a pixel, so that the width in pixels wraps as the original's 32-bit sum does)
+    let mut x16: i64 = 0;
     let mut cursor = text;
     sw(sp, width);
     sw(sp + 4, height);
     let shift = lbu(g::fontflags) & 1;
     let scale = text_scale();
     let sc = |v: i32| text_scaled(v, scale);
-    let f16 = |v: i32| text_scaled16(v, scale);
+    let f16 = |v: i32| if scale == 1000 { (v as i64) << 4 } else { text_scaled16(v, scale) as i64 };
     let mut base = lw(font) as u128;
     sw(sp + 8, sc(lw(font + 12) >> (shift & 31)));
     if cursor != 0 {
@@ -136,7 +137,7 @@ pub fn textSize(width: i32, height: i32, text: i32) {
                         cursor += 1;
                         let picture = lw(((lbu(cursor) - 49) << 2) + g::texnum_text_gfx) * 40 + lw(lw(g::thistexbuf) + 4);
                         x16 += f16(lhu(picture) >> (shift & 31));
- x = x16 >> 4;
+ x = (x16 >> 4) as i32;
                         let bottom = lines + half_line + sc((lhu(picture + 2) >> 1) >> (shift & 31));
                         let right = x - 1;
                         max_y = if max_y < bottom { bottom } else { max_y };
@@ -166,24 +167,24 @@ pub fn textSize(width: i32, height: i32, text: i32) {
                             let offset = GetXOffset(cursor);
                             base = lq(sp + 16);
                             x16 += f16((lhu(glyph + 4) + offset) >> (shift & 31));
- x = x16 >> 4;
+ x = (x16 >> 4) as i32;
                         } else if ch == 47 {
                             x16 += f16(6);
- x = x16 >> 4;
+ x = (x16 >> 4) as i32;
                         } else if ch >= 48 {
                             if ch != 58 {
                                 x16 += f16(lw(lw(g::curfont) + 20) >> (shift & 31));
- x = x16 >> 4;
+ x = (x16 >> 4) as i32;
                             } else {
                                 x16 += f16(5);
- x = x16 >> 4;
+ x = (x16 >> 4) as i32;
                             }
                         } else if ch != 46 {
                             x16 += f16(lw(lw(g::curfont) + 20) >> (shift & 31));
- x = x16 >> 4;
+ x = (x16 >> 4) as i32;
                         } else {
                             x16 += f16(5);
- x = x16 >> 4;
+ x = (x16 >> 4) as i32;
                         }
                         let right = x - 1;
                         max_x = if max_x < right { right } else { max_x };

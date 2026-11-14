@@ -846,6 +846,10 @@ fn checker() -> i32 {
                 if (s == "timeout" || s.starts_with("syscall")) && std::env::var_os("TS_VERIFY_SMALL").is_some() {
                     continue;
                 }
+                // (only that run: the others of the function still count)
+                if s == ts_verify::interp::WROTE_CODE {
+                    continue;
+                }
                 skipped = Some(s.clone());
                 break;
             }
@@ -875,7 +879,10 @@ fn checker() -> i32 {
                         let (lo, hi) = v.split_once('-')?;
                         Some((u32::from_str_radix(lo.trim_start_matches("0x"), 16).ok()?, u32::from_str_radix(hi.trim_start_matches("0x"), 16).ok()?))
                     });
-                    let keep = |w: &Vec<(u32, u8)>| -> Vec<(u32, u8)> { w.iter().cloned().filter(|(a, _)| ignore.map_or(true, |(lo, hi)| *a < lo || *a >= hi)).collect() };
+                    // (and always the words the original takes from stack garbage that the port's frames cannot have: the wall normal `moveTest` keeps at
+                    // 0x3b0118 when nothing was hit, as the snapshot runs leave out)
+                    let garbage = |a: u32| (0x3b0118..0x3b0124).contains(&a);
+                    let keep = |w: &Vec<(u32, u8)>| -> Vec<(u32, u8)> { w.iter().cloned().filter(|(a, _)| !garbage(*a) && ignore.map_or(true, |(lo, hi)| *a < lo || *a >= hi)).collect() };
                     let (w1, w2) = (&keep(w1), &keep(w2));
                     if _rk == 1 && (*r1 as i32) != (*r2 as i32) && (*r1 != *r2) {
                         bad = Some(format!("test {t}: int return differs: interp {r1:#x} native {r2:#x} (ints {ints:x?})"));

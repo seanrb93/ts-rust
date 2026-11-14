@@ -432,8 +432,7 @@ pub fn gunUpdateParts(a0: i32, a1: i32) {
     let z_sway = ((ps2float::add(ps2float::mul(ps2float::mul(phase, lwc1(0x3ad38c)), phase_scale), half) as i32 & 2047) << 2) + sin_table;
     swc1(
         owner + 48,
-        lwc1(owner + 48)
-            + ps2float::add(ps2float::add(lwc1(a0 + 68), ps2float::mul(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(phase, lwc1(0x3ad384)), phase_scale), half) as i32 & 2047) << 2) + sin_table), lwc1(shot + 88)), lwc1(a0 + 120))), ps2float::mul(lwc1(a0 + 92), lwc1(a0 + 116))),
+        ps2float::add(lwc1(owner + 48), ps2float::add(ps2float::add(lwc1(a0 + 68), ps2float::mul(ps2float::mul(lwc1(((ps2float::add(ps2float::mul(ps2float::mul(phase, lwc1(0x3ad384)), phase_scale), half) as i32 & 2047) << 2) + sin_table), lwc1(shot + 88)), lwc1(a0 + 120))), ps2float::mul(lwc1(a0 + 92), lwc1(a0 + 116)))),
     );
     swc1(
         owner + 52,

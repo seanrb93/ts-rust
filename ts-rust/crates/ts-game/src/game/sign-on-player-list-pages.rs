@@ -19,6 +19,8 @@ fn player_step(a0: i32) -> Option<i32> {
     match state {
         0 => {
             signonSet(player, -1);
+            // (the player is read again after each call, as the original reads it: what a call wrote can be where it is kept)
+            let player = lw(lw(g::front));
             sh(a0 + 4, lhu((player << 1) + 0x3aff88));
             sb(player + 0x3aff28, 2);
             None
@@ -30,6 +32,8 @@ fn player_step(a0: i32) -> Option<i32> {
                 sh(a0 + 4, memo);
                 sh(memo_at, 0);
             }
+            // (from here the player is read again at each use, as the original reads it: the stores can be where it is kept)
+            let player = || lw(lw(g::front));
             let mut cursor = lhu(a0 + 4);
             if (cursor as u32) < 2000 {
                 if signonCount() < (cursor & 0xffff) {
@@ -39,17 +43,18 @@ fn player_step(a0: i32) -> Option<i32> {
                     cursor = lhu(a0 + 4);
                 }
             }
-            sh((player << 1) + 0x3aff88, cursor);
+            sh((player() << 1) + 0x3aff88, cursor);
             let item = menuitem(menu, lhu(a0 + 4));
             let mut updating = lbu(0x3aff4a);
             if item != 0 {
                 updating = lbu(0x3aff4a);
                 if lhu(item + 10) & 64 == 0 {
                     let at = lhu(a0 + 4) - 1;
-                    let flags_at = (player << 2) + 0x1fc1200;
+                    let flags_at = (player() << 2) + 0x1fc1200;
                     sw(flags_at, lw(flags_at) | 2);
                     let count = signonCount();
                     if (at as u32) < (count as u32) {
+                        let flags_at = (player() << 2) + 0x1fc1200;
                         sw(flags_at, lw(flags_at) | 8);
                     }
                     updating = lbu(0x3aff4a);
@@ -58,35 +63,36 @@ fn player_step(a0: i32) -> Option<i32> {
             if updating != 0 || lbu(0x3aff40) != 0 || lbu(0x3aff48) != 0 || lbu(0x3aff94) != 0 {
                 return Some(menu);
             }
-            if joyNewBut(player) & 16 == 0 {
+            if joyNewBut(player()) & 16 == 0 {
                 let mut sound = 142;
                 let mut marked = false;
-                if joyNewBut(player) & 128 != 0 {
+                if joyNewBut(player()) & 128 != 0 {
                     let free = lbu(0x3aff48) == 0;
-                    if lw(0x1fc11f8 + (player << 2) + 8) & 8 != 0 && free {
+                    if lw(0x1fc11f8 + (player() << 2) + 8) & 8 != 0 && free {
                         // Ask to delete the player that is under the cursor.
                         let flags = lw(0x1fc11f8 + 4);
                         let cursor = lhu(a0 + 4);
-                        sb(0x3aff48, player + 1);
+                        sb(0x3aff48, player() + 1);
                         let found = lbu(cursor + 0x1fc330f) + 1;
+                        let at = player() + 0x3aff90;
                         sw(0x1fc11f8 + 4, flags & -3);
-                        sb(player + 0x3aff90, found);
+                        sb(at, found);
                         sound = 140;
                         marked = true;
                     }
                 }
                 if !marked {
-                    if joyNewBut(player) & 64 == 0 {
+                    if joyNewBut(player()) & 64 == 0 {
                         return Some(menu);
                     }
                     sound = 142;
-                    if lw(0x1fc11f8 + (player << 2) + 8) & 2 != 0 {
+                    if lw(0x1fc11f8 + (player() << 2) + 8) & 2 != 0 {
                         let at = lhu(a0 + 4) - 1;
                         if (at as u32) < (signonCount() as u32) {
                             sh(item + 10, lhu(item + 10) | 64);
                             soundStart(140, 0);
-                            signonSet(player, lbu(lhu(a0 + 4) + 0x1fc330f));
-                            sb(player + 0x3aff28, 5);
+                            signonSet(player(), lbu(lhu(a0 + 4) + 0x1fc330f));
+                            sb(player() + 0x3aff28, 5);
                             return Some(g::signon_ready_waiting);
                         }
                         let now = lhu(a0 + 4);
@@ -98,14 +104,14 @@ fn player_step(a0: i32) -> Option<i32> {
                                 return Some(menu);
                             }
                             sw(0x1fc11f8 + 4, lw(0x1fc11f8 + 4) & -3);
-                            sb(0x3aff40, player + 1);
+                            sb(0x3aff40, player() + 1);
                             soundStart(141, 0);
                             return Some(0);
                         }
                         if signonCount() < 144 {
                             soundStart(141, 0);
-                            sb(player * 30 + 0x1fc3298, 0);
-                            sb(player + 0x3aff28, 3);
+                            sb(player() * 30 + 0x1fc3298, 0);
+                            sb(player() + 0x3aff28, 3);
                             return None;
                         }
                         sound = 142;
@@ -114,8 +120,8 @@ fn player_step(a0: i32) -> Option<i32> {
                 soundStart(sound, 0);
                 Some(menu)
             } else {
-                joyClearButs(player, 0xffff);
-                if player == 0 {
+                joyClearButs(player(), 0xffff);
+                if player() == 0 {
                     // The first player can leave if all the players are ready (or not there).
                     let count = lw(0x3aff20);
                     let mut ready = 0;
@@ -171,17 +177,19 @@ fn player_step(a0: i32) -> Option<i32> {
             let mut i = 0;
             while i < signonCount() {
                 let wanted = lbu(i + 0x1fc3310);
-                let current = signonGet(player);
+                let current = signonGet(lw(lw(g::front)));
                 i += 1;
                 if wanted == current {
-                    sh((player << 1) + 0x3aff88, i);
+                    sh((lw(lw(g::front)) << 1) + 0x3aff88, i);
                 }
             }
-            if joyNewBut(player) & 16 != 0 {
-                sh(a0 + 4, lhu((player << 1) + 0x3aff88));
-                signonSet(player, -1);
-                sb(player + 0x3aff28, 2);
-                joyClearButs(player, 16);
+            if joyNewBut(lw(lw(g::front))) & 16 != 0 {
+                let p = lw(lw(g::front));
+                sh(a0 + 4, lhu((p << 1) + 0x3aff88));
+                signonSet(p, -1);
+                let p = lw(lw(g::front));
+                sb(p + 0x3aff28, 2);
+                joyClearButs(p, 16);
                 soundStart(142, 0);
             }
             Some(g::signon_ready_waiting)

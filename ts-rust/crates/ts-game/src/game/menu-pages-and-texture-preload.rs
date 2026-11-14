@@ -129,14 +129,16 @@ pub fn splitpageInit(page: i32) {
 /// the model is marked as done (+36 of its second header) (@ 0x25ea78).
 pub fn obPreloadTextures(name: i32) {
     let entry = preloadGetOb(name);
-    // (an entry whose file was not loaded has no data: its list of textures would be read from address 0)
-    if entry != 0 && lw(entry + 16) != 0 {
+    // (extended-tables: an entry whose file was not loaded has no data, and its list of textures would be read from address 0, as a model of a mod can have it)
+    if entry != 0 && (lw(entry + 16) != 0 || !cfg!(feature = "extended-tables")) {
         let base = lw(entry + 16);
         let textures = lw(base) + base;
         let header = lw(base + 4) + base;
         if (lw(textures + 12) & 0x10000000) == 0 {
             let mut i = 0;
-            preload_list_check("the textures of a model", name, entry, base, textures, -1);
+            if cfg!(feature = "extended-tables") {
+                preload_list_check("the textures of a model", name, entry, base, textures, -1);
+            }
             if lw(textures) != -1 {
                 let mut at = textures;
                 loop {
@@ -167,14 +169,16 @@ pub fn bgPreloadTextures() {
         sprintf(&[sp as i64, 0x3a2640, level as i64, level as i64]);
         let entry = preloadGetFile(sp);
         let base = lw(entry + 16);
-        if base == 0 {
-            // (the file of the level's textures was not loaded)
+        if base == 0 && cfg!(feature = "extended-tables") {
+            // (extended-tables: the file of the level's textures was not loaded, as a level of a mod can have it)
             return;
         }
         let textures = lw(base) + base;
         let first = lw(textures);
         sw(g::leveltextures, textures);
-        preload_list_check("the textures of the level", level, entry, base, textures, 0xffff_ffffu32 as i32);
+        if cfg!(feature = "extended-tables") {
+            preload_list_check("the textures of the level", level, entry, base, textures, 0xffff_ffffu32 as i32);
+        }
         if first >= 0 {
             let mut at = textures;
             let mut i = 1;

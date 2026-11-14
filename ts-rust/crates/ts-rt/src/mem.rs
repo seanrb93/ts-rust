@@ -175,6 +175,8 @@ fn span(a: i32, n: usize) -> *mut u8 {
 }
 
 pub fn memcpy_game(dst: i32, src: i32, n: usize) {
+    #[cfg(feature = "fuel")]
+    crate::fuel::burn_bytes(n);
     #[cfg(any(feature = "calltrace", feature = "watch"))]
     crate::watch::check(dst, n, src as u64);
     #[cfg(feature = "trace")]
@@ -186,6 +188,8 @@ pub fn memcpy_game(dst: i32, src: i32, n: usize) {
 }
 
 pub fn memset_game(dst: i32, c: u8, n: usize) {
+    #[cfg(feature = "fuel")]
+    crate::fuel::burn_bytes(n);
     #[cfg(any(feature = "calltrace", feature = "watch"))]
     crate::watch::check(dst, n, c as u64);
     #[cfg(feature = "trace")]

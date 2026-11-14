@@ -10,8 +10,8 @@ pub fn matrixRotZXY(m: i32, a: f32, b: f32, c: f32) {
     let cb = cosf(b);
     let sc = sinf(c);
     let cc = cosf(c);
-    let sa_sb = sa * sb_;
-    let sa_cb = sa * cb;
+    let sa_sb = ps2float::mul(sa, sb_);
+    let sa_cb = ps2float::mul(sa, cb);
     sw(m + 12, 0);
     swc1(m + 60, 1.0_f32);
     sw(m + 28, 0);
@@ -19,14 +19,15 @@ pub fn matrixRotZXY(m: i32, a: f32, b: f32, c: f32) {
     sw(m + 48, 0);
     sw(m + 52, 0);
     sw(m + 56, 0);
-    swc1(m + 40, ca * cb);
-    swc1(m + 32, ca * sb_);
-    swc1(m + 4, sc * ca);
-    swc1(m + 20, cc * ca);
-    swc1(m + 16, -sc * cb + cc * sa_sb);
-    swc1(m, cc * cb + sc * sa_sb);
-    swc1(m + 8, cc * -sb_ + sc * sa_cb);
-    swc1(m + 24, sc * sb_ + cc * sa_cb);
+    // (the console's float arithmetic: a result too small for the float is 0, as the PS2's unit flushes it)
+    swc1(m + 40, ps2float::mul(ca, cb));
+    swc1(m + 32, ps2float::mul(ca, sb_));
+    swc1(m + 4, ps2float::mul(sc, ca));
+    swc1(m + 20, ps2float::mul(cc, ca));
+    swc1(m + 16, ps2float::add(ps2float::mul(-sc, cb), ps2float::mul(cc, sa_sb)));
+    swc1(m, ps2float::add(ps2float::mul(cc, cb), ps2float::mul(sc, sa_sb)));
+    swc1(m + 8, ps2float::add(ps2float::mul(cc, -sb_), ps2float::mul(sc, sa_cb)));
+    swc1(m + 24, ps2float::add(ps2float::mul(sc, sb_), ps2float::mul(cc, sa_cb)));
     swc1(m + 36, -sa);
 }
 
@@ -38,8 +39,8 @@ pub fn matrixTransRotZXY(m: i32, x: f32, y: f32, z: f32, a: f32, b: f32, c: f32)
     let cb = cosf(b);
     let sc = sinf(c);
     let cc = cosf(c);
-    let sa_sb = sa * sb_;
-    let sa_cb = sa * cb;
+    let sa_sb = ps2float::mul(sa, sb_);
+    let sa_cb = ps2float::mul(sa, cb);
     swc1(m + 48, x);
     swc1(m + 60, 1.0_f32);
     swc1(m + 52, y);
@@ -47,14 +48,15 @@ pub fn matrixTransRotZXY(m: i32, x: f32, y: f32, z: f32, a: f32, b: f32, c: f32)
     sw(m + 12, 0);
     sw(m + 28, 0);
     sw(m + 44, 0);
-    swc1(m + 40, ca * cb);
-    swc1(m + 32, ca * sb_);
-    swc1(m + 4, sc * ca);
-    swc1(m + 20, cc * ca);
-    swc1(m + 16, -sc * cb + cc * sa_sb);
-    swc1(m, cc * cb + sc * sa_sb);
-    swc1(m + 8, cc * -sb_ + sc * sa_cb);
-    swc1(m + 24, sc * sb_ + cc * sa_cb);
+    // (the console's float arithmetic: a result too small for the float is 0, as the PS2's unit flushes it)
+    swc1(m + 40, ps2float::mul(ca, cb));
+    swc1(m + 32, ps2float::mul(ca, sb_));
+    swc1(m + 4, ps2float::mul(sc, ca));
+    swc1(m + 20, ps2float::mul(cc, ca));
+    swc1(m + 16, ps2float::add(ps2float::mul(-sc, cb), ps2float::mul(cc, sa_sb)));
+    swc1(m, ps2float::add(ps2float::mul(cc, cb), ps2float::mul(sc, sa_sb)));
+    swc1(m + 8, ps2float::add(ps2float::mul(cc, -sb_), ps2float::mul(sc, sa_cb)));
+    swc1(m + 24, ps2float::add(ps2float::mul(sc, sb_), ps2float::mul(cc, sa_cb)));
     swc1(m + 36, -sa);
 }
 

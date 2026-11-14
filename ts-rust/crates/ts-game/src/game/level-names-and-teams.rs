@@ -180,13 +180,20 @@ pub fn mmPopCursorPos() {
 /// Clear the override records (24 bytes; two a part) of a prop (@ 0x274400).
 pub fn nullOverridePointers(prop: i32) {
     let model = lw(prop + 32);
+    // (the count is read again on every pass, as the original reads it: the records cleared can be where it is kept)
+    if lw(lw(model)) << 1 <= 0 {
+        return;
+    }
     let mut i = 0;
-    let records = lw(lw(model)) << 1;
-    while i < records {
+    loop {
+        let records = lw(lw(model)) << 1;
         let rec = i * 24 + lw(model + 248);
         i += 1;
         for at in [20, 0, 4, 8, 12, 16] {
             sw(rec + at, 0);
+        }
+        if i >= records {
+            break;
         }
     }
 }

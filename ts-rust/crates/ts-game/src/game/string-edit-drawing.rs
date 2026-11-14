@@ -167,7 +167,8 @@ pub fn stringeditDraw(edit: i32, _unused: i32, active: i32) {
         if active != 0 && (frame_number & 16) != 0 {
             textOutline(lw(sp + 32), lw(sp + 36), 0x3ae820, 0x40787880, 0x5080);
         }
-        language = frame_number;
+        // (the frame number was only for the flashing cursor: the title's text is in the current language)
+        language = lw(g::cur_language);
     } else {
         let box_width = lw(textbox + 20);
         let spare = lw(textbox + 8) - box_width;

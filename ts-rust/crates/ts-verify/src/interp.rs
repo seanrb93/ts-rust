@@ -317,13 +317,25 @@ pub fn exec_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> 
     Ran { res, unsupported, exited, ret: c.r[2] as i64, fret: f32::from_bits(c.f[0]) }
 }
 
+/// The game's machine code (.text and .vutext).
+const CODE_START: u32 = 0x20_0000;
+const CODE_END: u32 = 0x2f_2bc0;
+/// Why a run of the original is left out when it wrote over its own code.
+pub const WROTE_CODE: &str = "the original wrote over its own code";
+
 pub fn run_interp(ctx: &Ctx, addr: u32, ints: &[i64; 8], floats: &[f32; 8]) -> Outcome {
     trace::start();
     let ran = exec_interp(ctx, addr, ints, floats);
     let log = trace::stop();
+    // (random data can make the original write over its own machine code, which the interpreter then runs from memory while the port's code is not
+    // there to be changed: such a run is no comparison, and is left out)
+    let wrote_code = log.iter().any(|s| s.addr < CODE_END && s.addr + s.size as u32 > CODE_START);
     let writes = changed(&log);
     trace::rollback(&log);
     let log: Vec<trace::Store> = log.into_iter().filter(|s| !s.bulk && s.addr < STACK_LIMIT).collect();
+    if wrote_code {
+        return Outcome::Skip(WROTE_CODE.into());
+    }
     if let Some(u) = ran.unsupported {
         return Outcome::Skip(u);
     }
