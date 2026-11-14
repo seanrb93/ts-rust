@@ -30,6 +30,9 @@ The default `cargo build` is the original game: 60 Hz, 4:3, the original's logic
 
 `tools/build-game.py` builds with all three; `--original` builds without them.
 
+The program is built for x86-64-v3 (a CPU with AVX2: Intel from 2013, AMD from 2015), which makes the graphics and the game's float maths about a quarter
+faster with the same results (`ts-rust/.cargo/config.toml`).  For an older CPU build with `RUSTFLAGS="-C target-cpu=x86-64"`.
+
 ## Mods
 
 A mod is a folder in `mods/` with a `mod.ini` (`name = ...`, `enabled = true`); the Mods page switches them on and off. Mods can add levels, characters, weapons,

@@ -2,3 +2,14 @@
 # only the program, the game's PAK and MUSIC, and what the game makes there.  `python tools/build-game.py` builds and puts the program there.
 [build]
 target-dir = "../build/cargo"
+
+# The program is built for x86-64-v3 (AVX2, FMA, BMI: Intel from 2013, AMD from 2015): the translated vector unit code and the game's float maths
+# run about a quarter faster.  The results are the same: Rust never fuses a multiply and an add by itself, so the arithmetic is as it was, and
+# headless runs with a fixed clock and seed (TS_CLOCK, TS_SEED, framerate 60) give the same pictures as the build for the baseline x86-64.
+# A CPU without AVX2 cannot run it: build with RUSTFLAGS="-C target-cpu=x86-64" for one.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-cpu=x86-64-v3"]
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "target-cpu=x86-64-v3"]
+

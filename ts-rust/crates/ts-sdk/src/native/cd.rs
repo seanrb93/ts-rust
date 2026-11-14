@@ -194,7 +194,12 @@ fn local_time() -> (i64, i64, i64, i64, i64, i64) {
 /// `sceCdReadClock(clock*)`: fills an 8-byte BCD clock with the local time of the host.
 pub fn sceCdReadClock(args: &[i64]) -> i32 {
     let p = args[0] as i32;
-    let (y, m, d, hh, mm, ss) = local_time();
+    // (a test aid: `TS_CLOCK=<seconds>` gives the time of day as those seconds after midnight of 1 January 2000, so that the game's choices made from
+    // the clock, such as where the players start, are the same in every run)
+    let (y, m, d, hh, mm, ss) = match std::env::var("TS_CLOCK").ok().and_then(|v| v.parse::<i64>().ok()) {
+        Some(s) => (2000, 1, 1, (s / 3600) % 24, (s / 60) % 60, s % 60),
+        None => local_time(),
+    };
     let bcd = |v: i64| (((v / 10) << 4) | (v % 10)) as i32;
     sb(p, 0);
     sb(p + 1, bcd(ss)); // seconds
