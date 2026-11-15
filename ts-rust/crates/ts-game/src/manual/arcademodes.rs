@@ -148,7 +148,7 @@ pub fn arcade_options_filter(kind: i32, source: i32, count: i32) -> (i32, i32) {
         place_flag(rows + 32 * kept, source, count, kept);
         kept += 1;
     }
-    let step = if count >= 2 { ys[1] - ys[0] } else { 14 };
+    let _step = if count >= 2 { ys[1] - ys[0] } else { 14 };
     let mut text = OPTION_TEXT_AT;
     let mut table = OPTION_TABLE_AT;
     let mut names = OPTION_NAMES_AT;

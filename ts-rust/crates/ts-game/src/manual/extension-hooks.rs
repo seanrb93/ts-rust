@@ -213,6 +213,7 @@ pub fn av_ingame_x() -> bool {
 pub fn av_menu_or(page: i32, own: i32) -> i32 {
     #[cfg(feature = "extensions")]
     {
+        let _ = own;
         av_menu(page)
     }
     #[cfg(not(feature = "extensions"))]
@@ -459,6 +460,7 @@ pub fn av_gametype_exit_x(page: i32) -> bool {
 pub fn av_confirm_table_or(page: i32, own: i32) -> i32 {
     #[cfg(feature = "extensions")]
     {
+        let _ = own;
         av_confirm_table(page)
     }
     #[cfg(not(feature = "extensions"))]
@@ -487,6 +489,7 @@ pub fn av_confirm_pressed_x(page: i32) -> bool {
 pub fn av_mainsetup_menu_or(own: i32) -> i32 {
     #[cfg(feature = "extensions")]
     {
+        let _ = own;
         av_mainsetup_menu()
     }
     #[cfg(not(feature = "extensions"))]
@@ -500,6 +503,7 @@ pub fn av_mainsetup_menu_or(own: i32) -> i32 {
 pub fn av_gamemode_menu_or(own: i32) -> i32 {
     #[cfg(feature = "extensions")]
     {
+        let _ = own;
         av_gamemode_menu()
     }
     #[cfg(not(feature = "extensions"))]

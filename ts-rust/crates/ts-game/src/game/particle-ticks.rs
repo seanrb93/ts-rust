@@ -27,7 +27,7 @@ pub fn particleTrailTick(group: i32) {
     }
     if count != 0 {
         if count < 100 {
-            todo = ((ps2float::sub(lwc1(group + 12), lwc1(group + 3728))).pdiv(((1.0_f32).pdiv(rate as f32)))) as i32;
+            todo = ((ps2float::sub(lwc1(group + 12), lwc1(group + 3728))).pdiv((1.0_f32).pdiv(rate as f32))) as i32;
         }
     } else {
         todo = 1;
@@ -89,7 +89,7 @@ pub fn particleStreamTick(group: i32) {
         }
     }
     let count = lw(group + 24);
-    let moved = ps2float::add(head, ps2float::mul(rate as f32, ((update_ticks_f()).pdiv(60.0_f32))));
+    let moved = ps2float::add(head, ps2float::mul(rate as f32, (update_ticks_f()).pdiv(60.0_f32)));
     let whole = moved as i32;
     swc1(group + 928, moved);
     if count < whole {

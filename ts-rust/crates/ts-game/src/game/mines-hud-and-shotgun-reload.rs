@@ -86,7 +86,7 @@ pub fn pathPosUpdateAbs(prop: i32, distance: f32) {
             if turn < 0.0_f32 {
                 turn = ps2float::add(turn, 3.6e+02_f32);
             }
-            let arc = ps2float::mul(ps2float::mul(lwc1(node + 20), full), ((turn).pdiv(3.6e+02_f32)));
+            let arc = ps2float::mul(ps2float::mul(lwc1(node + 20), full), (turn).pdiv(3.6e+02_f32));
             if arc < left {
                 passed = Some(arc);
             } else {

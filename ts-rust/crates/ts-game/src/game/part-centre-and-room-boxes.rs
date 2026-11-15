@@ -88,9 +88,9 @@ pub fn FindPartCenterPos(model: i32, bone: i32, out: i32) {
         }
     }
     let half = 0.5_f32;
-    let x = ps2float::add(low[0], ps2float::mul((high[0] - low[0]), half));
-    let y = ps2float::add(low[1], ps2float::mul((high[1] - low[1]), half));
-    let z = ps2float::add(low[2], ps2float::mul((high[2] - low[2]), half));
+    let x = ps2float::add(low[0], ps2float::mul(high[0] - low[0], half));
+    let y = ps2float::add(low[1], ps2float::mul(high[1] - low[1], half));
+    let z = ps2float::add(low[2], ps2float::mul(high[2] - low[2], half));
     swc1(out, x);
     swc1(out + 4, y);
     swc1(out + 8, z);

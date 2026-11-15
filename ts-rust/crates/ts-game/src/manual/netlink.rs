@@ -677,7 +677,7 @@ fn rs_stop(rb: &mut Rollback, k: u32) -> bool {
     let Some(start) = rs.start.take() else { return false };
     rs_dump(&start, k);
     let in_charge = ts_sdk::net::rs_in_charge();
-    let mut sent = 0;
+    let sent;
     if in_charge {
         let back_from = Instant::now();
         // (a machine that had heard too late says so: another tick is named, further on)

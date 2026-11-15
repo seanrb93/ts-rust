@@ -1,8 +1,10 @@
 //! VU1 microprogram dispatch: the microcode image has been decompiled to native Rust (`vu1_gen.rs`).
 //! `XGKICK` hands a GIF packet to the vertex stream interpreter.
 
+#[cfg(feature = "vucheck")]
 use crate::gif::Gif;
 use crate::gif_link::GifLink;
+#[cfg(feature = "vucheck")]
 use crate::scene::Frame;
 use crate::vif::{Vu1, VU_MEM_QW};
 use crate::vu::Regs;

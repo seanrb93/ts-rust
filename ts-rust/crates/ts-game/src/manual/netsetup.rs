@@ -9,8 +9,6 @@ use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 
 /// The front end's settings of the arcade game (the level's place in the arcade list, its number, the mode).
 const STATE: i32 = 0x1fc11f8;
-/// The block of parameters the game makes (`gameDeferedReset` copies it).
-const PARAMS: i32 = 0x1fc1898;
 
 /// A text of the game in its language (`n` is the number of the text).
 pub fn netsetup_text(n: i32) -> String {

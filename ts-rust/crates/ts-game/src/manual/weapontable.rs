@@ -14,7 +14,6 @@
 //! statistics count a pair with its single weapon (`stats_combo`).
 
 use crate::*;
-use std::collections::HashMap;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Mutex;
 

@@ -23,7 +23,6 @@ pub fn gunPickedUpAmmo(player: i32, gun: i32, flag: i32) {
     let slot = gun << 2;
     let mut combo = 1;
     let mut entry = combos + 8;
-    let mut owned_at = player + 492;
     loop {
         let mut uses = 0;
         if own_get(player, combo) != 0 {
@@ -52,7 +51,6 @@ pub fn gunPickedUpAmmo(player: i32, gun: i32, flag: i32) {
             combo += 1;
         }
         entry += 8;
-        owned_at += 4;
         if combo >= combo_count() {
             break;
         }

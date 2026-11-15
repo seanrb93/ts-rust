@@ -705,7 +705,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     // The sticks.
     let aiming = lw(p + 296) != 4 && lw(p + 20) & 2 != 0;
     sw(p + 800, aiming as i32);
-    let (mut turn, mut look) = if !aiming { read_free_sticks(sp, p, chr, look_input) } else { read_aiming_sticks(p) };
+    let (mut turn, look) = if !aiming { read_free_sticks(sp, p, chr, look_input) } else { read_aiming_sticks(p) };
     let smooth = lwc1(0x3ad040);
     let dt = frames();
     let side_before = lwc1(p + 812);
@@ -781,7 +781,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     if lw(p + 296) != 6 {
         let dt = frames();
         let stance = lw(p + 288);
-        swc1(p + 276, ps2float::add(lwc1(p + 276), ps2float::mul(ps2float::mul(look_scale(ps2float::mul(turn, lwc1(0x3ad054))), ((lwc1(p + 260)).pdiv(60.0_f32))), dt)));
+        swc1(p + 276, ps2float::add(lwc1(p + 276), ps2float::mul(ps2float::mul(look_scale(ps2float::mul(turn, lwc1(0x3ad054))), (lwc1(p + 260)).pdiv(60.0_f32)), dt)));
         if stance == 2 && lhu(lw(p + 24) + 2) & 8 != 0 {
             let pitch = lwc1(p + 284);
             let eased = ps2float::sub(pitch, ps2float::mul(ps2float::mul(pitch, lwc1(0x3ad058)), dt));
@@ -791,7 +791,7 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
                 sw(p + 288, 1);
             }
         } else {
-            swc1(p + 284, ps2float::add(lwc1(p + 284), ps2float::mul(ps2float::mul(look_scale(ps2float::mul(look, lwc1(0x3ad05c))), ((lwc1(p + 260)).pdiv(60.0_f32))), frames())));
+            swc1(p + 284, ps2float::add(lwc1(p + 284), ps2float::mul(ps2float::mul(look_scale(ps2float::mul(look, lwc1(0x3ad05c))), (lwc1(p + 260)).pdiv(60.0_f32)), frames())));
         }
         if lwc1(p + 276) < 0.0_f32 {
             loop {

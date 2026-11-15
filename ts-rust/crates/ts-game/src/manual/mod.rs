@@ -1,6 +1,8 @@
 //! Hand-written replacements for functions the decompiler cannot translate automatically, and the platform glue.
 //! A function defined here wins over the generated one of the same name (the generator skips it).
 
+#![allow(non_snake_case)] // the functions that stand for the game's keep its names
+
 pub mod arcademodes;
 pub mod arcadeopts;
 pub mod bigpool;

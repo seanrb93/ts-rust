@@ -17,7 +17,6 @@ const SELECTOR_GV: i32 = 0x3567d8;
 const SLIDER_ID: i32 = 1;
 /// the item number of the new row (the game's rows of the Map Settings page are 1 to 3)
 const LIMIT_ID: i32 = 4;
-const BACK_ID: i32 = 0x8000;
 
 /// the table has been made (its row's value is the one to take)
 static BUILT: AtomicBool = AtomicBool::new(false);

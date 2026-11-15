@@ -891,7 +891,7 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                                 if turn < 0.0_f32 {
                                     turn = ps2float::add(turn, 3.6e+02_f32);
                                 }
-                                let arc = ps2float::mul(ps2float::mul(radius, lwc1(0x3acdf0)), ((turn).pdiv(3.6e+02_f32)));
+                                let arc = ps2float::mul(ps2float::mul(radius, lwc1(0x3acdf0)), (turn).pdiv(3.6e+02_f32));
                                 if !(arc < remaining) {
                                     let part = ps2float::mul(turn, remaining);
                                     fraction = (remaining).pdiv(arc);
@@ -921,7 +921,7 @@ pub fn pathPosUpdateRel(a0: i32, f12: f32) {
                                 if turn < 0.0_f32 {
                                     turn = ps2float::add(turn, 3.6e+02_f32);
                                 }
-                                let arc = ps2float::mul(ps2float::mul(radius, lwc1(0x3acde8)), ((turn).pdiv(3.6e+02_f32)));
+                                let arc = ps2float::mul(ps2float::mul(radius, lwc1(0x3acde8)), (turn).pdiv(3.6e+02_f32));
                                 if !(arc < remaining) {
                                     let part = ps2float::mul(turn, remaining);
                                     let heading = lwc1(state + 56);

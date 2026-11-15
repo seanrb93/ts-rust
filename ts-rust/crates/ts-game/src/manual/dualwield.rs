@@ -5,7 +5,6 @@
 //! Everything option off the pairs are not listed, and an entry of a set that is a pair is the single weapon (`dual_combo`).
 
 use crate::*;
-use std::sync::Mutex;
 
 /// the first number of the added pairs
 const FIRST: i32 = GAME_COMBOS;

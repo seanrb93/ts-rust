@@ -634,7 +634,7 @@ pub fn bgPreload() {
     }
     let base = lw(g::mmtempbuffer);
     memset(0x1fc49b8, 0, 84);
-    let mut cursor = base + 8;
+    let cursor = base + 8;
     let mut tiles = 0;
     memset(g::tilepaddata, 0, 84);
     let buffer_start = lw(g::mmtempbuffer);

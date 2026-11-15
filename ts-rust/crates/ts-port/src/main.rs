@@ -145,10 +145,6 @@ pub(crate) fn prepare_frame(n: u64, frame: &ts_gfx::scene::Frame, fbp: u32) {
     }
 }
 
-pub(crate) fn window_present(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t: f32, warp: bool) {
-    window::present_inner(frame, update_last, t, warp);
-}
-
 /// Draw / present one picture.
 pub(crate) fn show_frame(frame: &ts_gfx::scene::Frame) {
     if WINDOWED.load(std::sync::atomic::Ordering::Relaxed) {

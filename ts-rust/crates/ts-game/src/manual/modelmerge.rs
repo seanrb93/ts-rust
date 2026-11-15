@@ -200,7 +200,7 @@ fn add_to_part(f: &[u8], part: usize, added: &[Placed]) -> Option<Vec<u8>> {
     let (keep_to, resume, delta) = if compact { (lo, hi, hi - lo) } else { (bones_at, bones_at, 0) };
     let mut out = f[..keep_to].to_vec();
     out.extend_from_slice(&f[resume..bones_at]);
-    let mut place = |out: &mut Vec<u8>, data: &[u8]| -> u32 {
+    let place = |out: &mut Vec<u8>, data: &[u8]| -> u32 {
         align16(out);
         let at = out.len() as u32;
         out.extend_from_slice(data);

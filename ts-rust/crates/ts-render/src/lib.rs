@@ -1036,7 +1036,6 @@ impl Renderer {
         let aspect = if frame.demo { 4.0 / 3.0 } else { self.settings.aspect.unwrap_or(tw_ / th_).max(0.1) };
         let ww = tw_.min(th_ * aspect).floor().max(1.0);
         let wh = (ww / aspect).min(th_).floor().max(1.0);
-        let (wx, wy) = (((tw_ - ww) * 0.5).floor(), ((th_ - wh) * 0.5).floor());
         // internal resolution
         let sc = self.settings.render_scale.clamp(0.25, 8.0);
         let mut size = (((ww * sc).round() as u32).max(16), ((wh * sc).round() as u32).max(16));

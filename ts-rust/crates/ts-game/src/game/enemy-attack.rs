@@ -26,7 +26,7 @@ enum Flow {
 }
 
 /// Check the target (@ the end of the attack): when it is not a character, or not dead, the tick stops, else the character loses interest.
-fn check_target(mind: i32, target: i32) -> Flow {
+fn check_target(_mind: i32, target: i32) -> Flow {
     if lw(target + 8) != 8 {
         return Flow::Return;
     }

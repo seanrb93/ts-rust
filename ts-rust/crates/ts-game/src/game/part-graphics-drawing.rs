@@ -211,7 +211,7 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                         swc1(sp + 548 + n * 12, screen_y);
                         swc1(sp + 552 + n * 12, depth);
                         if kind_now == 0 {
-                            let size = ps2float::mul(ps2float::mul(depth, lwc1(0x3acb84)), ((6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260))));
+                            let size = ps2float::mul(ps2float::mul(depth, lwc1(0x3acb84)), (6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260)));
                             let small = if ilinkGetNumLocalPlayers() < 2 { (size as i32) < 8 } else { (ps2float::mul(size, 0.5_f32) as i32) < 8 };
                             if small {
                                 started = false;
@@ -296,7 +296,7 @@ fn draw_glows(chr: i32, sp: i32, part: i32, owner: i32, rec: i32, first_glow: i3
                                 n += 1;
                                 break 'next;
                             }
-                            let size = ps2float::mul(ps2float::mul(lwc1(sp + 552), lwc1(0x3acb8c)), ((6e+01_f32).pdiv(lwc1(viewer_now + 260))));
+                            let size = ps2float::mul(ps2float::mul(lwc1(sp + 552), lwc1(0x3acb8c)), (6e+01_f32).pdiv(lwc1(viewer_now + 260)));
                             let amount_size = if ilinkGetNumLocalPlayers() < 2 { (size as i32) * alpha } else { (ps2float::mul(size, 0.5_f32) as i32) * alpha };
                             zbtestDrawGlow(
                                 lw(lw(g::currentplayer)),

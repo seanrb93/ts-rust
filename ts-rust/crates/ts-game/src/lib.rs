@@ -4,8 +4,12 @@
 //! functions (VU0 math, variadic helpers, ...) that replace generated functions of the same name.
 
 #![allow(clippy::all)]
+// (the build without extensions, the original game, leaves out what only the extensions use)
+#![cfg_attr(not(feature = "extensions"), allow(dead_code, unused_imports, unused_variables, unused_mut))]
 
 pub use ts_rt::*;
+// (`gs` is a module of ts_sdk and of `manual`: nothing names it from here, so the two need not be told apart)
+#[allow(ambiguous_glob_reexports)]
 pub use ts_sdk::*;
 
 pub mod dec;

@@ -3,11 +3,6 @@
 use super::particle_spawners::random_as_float;
 use crate::*;
 
-/// A random number from 0 up to 1.
-fn random_unit() -> f32 {
-    ps2float::mul(random_as_float(), 2.3283064e-10_f32)
-}
-
 /// An unsigned 32 bit number as a float.
 fn uint_to_float(value: i32) -> f32 {
     if value < 0 {
@@ -851,7 +846,7 @@ pub fn specialfxCreate(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6:
                                     sw(s0_8, v0_35);
                                     let mut s4_1 = 0;
                                     if v0_35 != 0 {
-                                        let mut f1_10;
+                                        let f1_10;
                                         'b12: {
                                             'b13: {
                                                 if a5 == 1 {

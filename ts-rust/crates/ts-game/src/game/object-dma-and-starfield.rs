@@ -363,7 +363,7 @@ pub fn bulletStraightLineTest(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32) -> i3
     let mut owner = lw(a0 + 220);
     let owner_flags = lw(owner + 16);
     let s2 = a0 + 100;
-    let mut room;
+    let room;
     let mut line_result = 0;
     let mut tail_owner = 0;
     let mut hit_prop = 0;

@@ -10,7 +10,6 @@ use std::time::{Duration, Instant};
 
 use ts_sdk::pad::{btn, PadState};
 use winit::application::ApplicationHandler;
-use winit::dpi::LogicalSize;
 use winit::event::{ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};

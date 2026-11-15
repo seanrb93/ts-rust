@@ -1,6 +1,5 @@
 //! Functions: starting the special effect of a spawning character, the tick of the arcade page and adding a decal to the decal ring.
 
-use super::particle_spawners::random_as_float;
 use crate::*;
 
 /// Start the effect of a spawn (@ 0x2adb70): one of the 14 spawn groups is taken, the sound of the spawn is played and the kind of effect `a0` (0 to 6) makes its special

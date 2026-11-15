@@ -1521,14 +1521,7 @@ pub fn av_gamemode_menu() -> i32 {
     // the item of the audio / video page: it becomes the Audio Options item and the others are made from it
     let last = (0..n).find(|&k| lhu(item(k) + 8) == 6).unwrap_or(n - 2);
     let flags = lhu(item(last) + 10);
-    // where the cursor goes up from the first of the small items: what it went up to from View Statistics (the credits item, when it
-    // has a label, is the one above it, and it goes too)
     let id_of = |k: i32| lhu(item(k) + 8);
-    let up_of = |id: i32| (0..n).find(|&k| id_of(k) == id).map(|k| lw(item(k) + 16) & 0xffff);
-    let mut above = up_of(5).unwrap_or(3);
-    if above == 4 {
-        above = up_of(4).unwrap_or(3);
-    }
     let mut at = EXIT_TEXT_AT;
     let label = put_str(&mut at, "Audio Options");
     sw(item(last), label);
@@ -1639,7 +1632,7 @@ pub fn av_frame_end() {
 }
 
 /// The menu of the game's end game confirmation page; for the exit confirmation, the triangle button goes back to SETUP.
-pub fn av_confirm_table(page: i32) -> i32 {
+pub fn av_confirm_table(_page: i32) -> i32 {
     if !CONFIRM_GAME.load(std::sync::atomic::Ordering::Relaxed) {
         return g::confirmendgame_menu;
     }

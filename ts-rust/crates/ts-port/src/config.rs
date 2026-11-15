@@ -423,7 +423,7 @@ pub fn load(overrides: &[(String, String)]) {
         }
     }
     for (k, v) in overrides {
-        let on = parse_bool(v).unwrap_or(false);
+        let _on = parse_bool(v).unwrap_or(false);
         match k.as_str() {
             _ => {}
         }
@@ -535,10 +535,6 @@ impl Config {
         } else {
             (self.framerate as f32).max(60.0)
         }
-    }
-
-    pub fn aspect_name(&self) -> String {
-        aspect_name(self.aspect)
     }
 
     /// Write the current values back into the settings file, keeping the template's comments.

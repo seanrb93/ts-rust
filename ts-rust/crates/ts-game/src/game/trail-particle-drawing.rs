@@ -78,7 +78,7 @@ pub fn particleTrailGfx(particle: i32, matrix: i32) {
                             let screen_y = ps2float::mul(y, inverse);
                             let index = angle as i32;
                             let tex_a = lw(texture + (g::particletextures + 8));
-                            let scaled = ps2float::mul(base_size, ((60.0_f32).pdiv(zoom_raw)));
+                            let scaled = ps2float::mul(base_size, (60.0_f32).pdiv(zoom_raw));
                             let sine = lwc1(((index & 2047) << 2) + table);
                             let cosine = lwc1((((index + 512) & 2047) << 2) + table);
                             let tex_b = lw(texture + (g::particletextures + 4));

@@ -264,7 +264,7 @@ impl Vif {
             }
         };
         for i in 0..n {
-            let mut v = [0u32; 4];
+            let v;
             if vn == 3 && vl == 3 {
                 // V4-5: RGBA5551
                 let c = if p + 2 <= d.len() { u16::from_le_bytes([d[p], d[p + 1]]) as u32 } else { 0 };

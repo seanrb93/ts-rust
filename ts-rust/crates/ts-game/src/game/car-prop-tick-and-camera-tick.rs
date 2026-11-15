@@ -332,7 +332,7 @@ pub fn camTick() {
                 let now = lw(g::currentplayer);
                 let width = lw(window + 12) as f32;
                 swc1(now + 252, half);
-                swc1(now + 256, ps2float::mul(ps2float::mul(half, ratio), ((width).pdiv(height))));
+                swc1(now + 256, ps2float::mul(ps2float::mul(half, ratio), (width).pdiv(height)));
                 // (extensions: a camera a mod's script gave the player)
                 #[cfg(feature = "extensions")]
                 if script_camera_view(player, sp + 16) {

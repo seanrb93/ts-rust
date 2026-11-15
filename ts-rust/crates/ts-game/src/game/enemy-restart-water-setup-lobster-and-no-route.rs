@@ -232,7 +232,7 @@ pub fn vtxlistWaterxyzPre(part: i32, prop: i32) {
                 if 0.5_f32 < share {
                     ramp_down = (ps2float::sub(top, z)).pdiv(ps2float::mul(height, 0.5_f32));
                 }
-                swc1((i << 2) + lw(slot), ps2float::mul(ps2float::mul(ramp_up, ramp_down), ((ps2float::sub(x, lwc1(sp + 96))).pdiv(width))));
+                swc1((i << 2) + lw(slot), ps2float::mul(ps2float::mul(ramp_up, ramp_down), (ps2float::sub(x, lwc1(sp + 96))).pdiv(width)));
             }
             i += 1;
             points += 12;

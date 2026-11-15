@@ -16,11 +16,6 @@ fn copy_doublewords(to: i32, from: i32, count: i32) {
     }
 }
 
-/// Add `bits` to the flags of the sign on window (at 0x1fc11fc).
-fn set_window_flags(bits: i32) {
-    sw(0x1fc11fc, lw(0x1fc11fc) | bits);
-}
-
 /// Show the message `message` for the player `a0` with the buttons `buttons` and the second line `second`.
 fn show_message(a0: i32, buttons: i32, message: i32, second: i32) {
     mcseqMessage(buttons, GetPlayerSignOnMessage(a0, message), second);

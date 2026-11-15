@@ -268,7 +268,7 @@ pub fn fxSelectCharTick(a0: i32) {
     let offset0 = lw(front) << 2;
     let state = lw(offset0 + 0x1fc1268);
     sw(sp + 4, lw(g::signonarray) + signon * 2936 + 32);
-    let mut index;
+    let index;
     'b1: {
         'b2: {
             'b3: {

@@ -55,7 +55,7 @@ pub fn frontfxWaveyTexture(
         let next = row + 1;
         let mut col = 0;
         let mut point = (row << 4) * 20 + sp;
-        let y = ps2float::sub(ps2float::mul(row as f32, ((ps2float::add(ps2float::mul(size_y, four), 224.0_f32)).pdiv(7.0_f32))), ps2float::add(size_y, size_y));
+        let y = ps2float::sub(ps2float::mul(row as f32, (ps2float::add(ps2float::mul(size_y, four), 224.0_f32)).pdiv(7.0_f32)), ps2float::add(size_y, size_y));
         let wave_x = sine_at(table, ps2float::add(ps2float::mul(y, y_freq_x), ps2float::mul(time, y_time_x)), scale, half);
         let wave_y = sine_at(table, ps2float::add(ps2float::mul(y, y_freq_y), ps2float::mul(time, y_time_y)), scale, half);
         loop {
@@ -63,7 +63,7 @@ pub fn frontfxWaveyTexture(
             swc1(point + 8, y);
             sw(point, colour);
             col += 1;
-            let x = ps2float::sub(ps2float::mul(column, ((ps2float::add(ps2float::mul(size_x, four), 6.4e+02_f32)).pdiv(15.0_f32))), ps2float::add(size_x, size_x));
+            let x = ps2float::sub(ps2float::mul(column, (ps2float::add(ps2float::mul(size_x, four), 6.4e+02_f32)).pdiv(15.0_f32)), ps2float::add(size_x, size_x));
             swc1(point + 4, x);
             let across = ps2float::mul(ps2float::add(sine_at(table, ps2float::add(ps2float::mul(x, x_freq_x), ps2float::mul(time, x_time_x)), scale, half), wave_x), size_x);
             swc1(point + 16, ps2float::mul(ps2float::add(sine_at(table, ps2float::add(ps2float::mul(x, x_freq_y), ps2float::mul(time, x_time_y)), scale, half), wave_y), size_y));

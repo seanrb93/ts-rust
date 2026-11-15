@@ -45,7 +45,7 @@ pub fn soundCalcVol(sound: i32, position: i32, left: i32, right: i32, base: i32,
         if range < distance {
             distance = range;
         }
-        loudness = ps2float::mul(ps2float::mul((lhu(sound + 20) as f32).pdiv(1e+02_f32), (0x1fff - base) as f32), ((ps2float::sub(range, distance)).pdiv(range)));
+        loudness = ps2float::mul(ps2float::mul((lhu(sound + 20) as f32).pdiv(1e+02_f32), (0x1fff - base) as f32), (ps2float::sub(range, distance)).pdiv(range));
     }
     let volume = base + loudness as i32;
     sw(left, volume);

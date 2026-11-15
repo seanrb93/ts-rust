@@ -145,7 +145,7 @@ pub fn chrAddFloorMoveToPos(index: i32, pos: i32, angle: i32) {
         swc1(pos, ps2float::add(ps2float::add(old_start_z, ps2float::mul(along, new_unit_x)), ps2float::mul(across, new_unit_z)));
         let new_angle = atan2f(new_unit_x, new_unit_z);
         let line_angle = atan2f(lwc1(sp + 32), lwc1(sp + 36));
-        swc1(angle, ps2float::add(lwc1(angle), ps2float::mul((new_angle - line_angle), 1.8e+02_f32).pdiv(lwc1(0x3ad198))));
+        swc1(angle, ps2float::add(lwc1(angle), ps2float::mul(new_angle - line_angle, 1.8e+02_f32).pdiv(lwc1(0x3ad198))));
         return;
     }
     let z = lwc1(pos + 8);

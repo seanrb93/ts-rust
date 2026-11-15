@@ -3,11 +3,6 @@
 use super::particle_spawners::random_as_float;
 use crate::*;
 
-/// The statistics record (36 bytes) of level `level` of the saved (flag 0) or the current (flag not 0) set; three numbers, one for each difficulty.
-fn level_record(stats: i32, level: i32, current: i32) -> i32 {
-    level * 36 + stats + if current == 0 { 328 } else { 340 }
-}
-
 /// Count the levels of a story's list (halfwords 8 bytes apart from `list`) that have any of the three numbers set, starting from `from` and stopping at the first that has
 /// none or at `to`; whether all were done.
 fn story_done(list: i32, from: i32, to: i32, current: i32) -> i32 {

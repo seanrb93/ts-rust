@@ -124,8 +124,8 @@ pub fn bgPortalCalcPos(room: i32, matrix: i32) {
                     let w = lwc1(vertex + 12);
                     let x_at = sp + 224 + at;
                     let y_at = sp + 228 + at;
-                    let y = ps2float::sub(lw(window + 28) as f32, ps2float::mul(lw(window + 36) as f32, ((lwc1(vertex + 4)).pdiv(w))));
-                    swc1(x_at, f32::from_bits(ps2float::add(lw(window + 8) as f32, ps2float::mul(lw(window + 16) as f32, ((lwc1(vertex)).pdiv(w)))) as i32 as u32));
+                    let y = ps2float::sub(lw(window + 28) as f32, ps2float::mul(lw(window + 36) as f32, (lwc1(vertex + 4)).pdiv(w)));
+                    swc1(x_at, f32::from_bits(ps2float::add(lw(window + 8) as f32, ps2float::mul(lw(window + 16) as f32, (lwc1(vertex)).pdiv(w))) as i32 as u32));
                     swc1(y_at, f32::from_bits(y as i32 as u32));
                     let value = lw(x_at);
                     if value < lw(data + 24) {

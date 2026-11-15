@@ -1,6 +1,5 @@
 //! The prop number a character's head uses.
 
-use crate::*;
 
 /// The number of the prop (431 to 496) that a character's head uses, by the character number (0 to 72); -1 for the numbers that have none (25, 39, 59 and 65 to 68) or are out
 /// of range (@ 0x288460).

@@ -75,7 +75,7 @@ pub fn flareGfx(flare: i32) {
             let entry = start + (word + kind * 244);
             let along = lwc1(entry + 4);
             let centre_x = ps2float::add(lw(g::window + 8) as f32, ps2float::mul(ps2float::mul(lw(g::window + 16) as f32, lwc1(sp + 16)), along));
-            let size = ps2float::mul(ps2float::mul(lwc1(entry + 44), 256.0_f32), ((6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260))));
+            let size = ps2float::mul(ps2float::mul(lwc1(entry + 44), 256.0_f32), (6e+01_f32).pdiv(lwc1(lw(g::currentplayer) + 260)));
             let centre_y = ps2float::add(lw(g::window + 28) as f32, ps2float::mul(ps2float::mul(lw(g::window + 36) as f32, -lwc1(sp + 20)), along));
             let players = ilinkGetNumLocalPlayers();
             let mut wide = size;

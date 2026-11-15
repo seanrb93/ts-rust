@@ -97,7 +97,7 @@ pub fn statistics_pageDrawInfo(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: 
         if !(0.0_f32 < hours) {
             text = language_text(1440);
         } else {
-            let per_hour = (rate).pdiv(((hours).pdiv(3.6e+03_f32)));
+            let per_hour = (rate).pdiv((hours).pdiv(3.6e+03_f32));
             let value = fptodp(per_hour);
             let unit = language_text(1224);
             text = vafmt(&[0x3ae878_i64, value, unit as i64]);

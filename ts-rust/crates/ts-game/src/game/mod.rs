@@ -6,6 +6,9 @@
 //! signature, so the code that is still translated can call it.
 
 #![allow(non_snake_case)] // functions keep the names the game gave them
+// (a value the original stores and never reads again is kept, as the code follows the machine code; the code after the early return of a
+// function that the build with extensions does in its own way is the original's, which the default build runs)
+#![allow(unused_assignments, unreachable_code, unused_labels)]
 
 #[path = "ammo-and-preload-order.rs"]
 pub mod ammo_and_preload_order;

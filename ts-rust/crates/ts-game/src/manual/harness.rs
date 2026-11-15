@@ -108,6 +108,20 @@ pub fn harness_tick() {
         for k in 0..3 {
             swc1(player + 140 + 4 * k, spawn[k as usize]);
         }
+        // (and the room there, of the player and of its prop: with the room of where it was, the player moved and was drawn from the wrong room,
+        // and from some places the level was not drawn at all)
+        let room = moveFindRoom(player + 140, 1.0, 0.25);
+        if room != 0 {
+            sw(player + 796, room);
+            let prop = lw(player + 384);
+            for k in 0..3 {
+                swc1(prop + 48 + 4 * k, spawn[k as usize]);
+            }
+            sw(prop + 12, room);
+            propCalcRooms(prop);
+        } else {
+            eprintln!("[harness] TS_SPAWN / --spawn: no room of the level at {spawn:?}: the player keeps the room it had");
+        }
     }
     let cam = numbers("TS_CAM");
     if cam.len() == 2 && since >= 25 {

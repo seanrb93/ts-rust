@@ -805,7 +805,7 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
         loop {
             'prop: {
                 let prop = lw((index << 2) + lw(sp + 80));
-                let next = index + 1;
+                let _next = index + 1;
                 if prop == 0 {
                     break 'prop;
                 }
@@ -949,7 +949,7 @@ pub fn propMoveTestRoom(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6
                     let reach = ps2float::add(fraction_limit, f12);
                     let dx = ps2float::sub(lwc1(a3), centre_x);
                     let dz = ps2float::sub(lwc1(a3 + 8), lwc1(prop + 56));
-                    let distance = (ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz))).pdiv((scale * scale));
+                    let distance = (ps2float::add(ps2float::mul(dx, dx), ps2float::mul(dz, dz))).pdiv(scale * scale);
                     let radius_x;
                     if !(distance < ps2float::mul(reach, reach)) {
                         radius_x = lwc1(a4);
