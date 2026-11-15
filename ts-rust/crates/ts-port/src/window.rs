@@ -74,6 +74,17 @@ pub fn monitor_info() -> MonitorInfo {
     MONITOR.lock().unwrap().clone()
 }
 
+/// The refresh rate of the monitor the window is on (and its sizes and rates for the pages, `read_monitor`).
+fn query_monitor(window: &Window) -> Option<f32> {
+    let m = window.current_monitor()?;
+    read_monitor(&m);
+    m.refresh_rate_millihertz().map(|r| r as f32 / 1000.0)
+}
+
+/// A query of the monitor on its own thread is under way, and what it found (taken by the next picture).
+static MONITOR_ASKING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static MONITOR_HZ: Mutex<Option<Option<f32>>> = Mutex::new(None);
+
 fn read_monitor(m: &MonitorHandle) {
     let size = m.size();
     let mut modes: Vec<(u32, u32)> = m.video_modes().map(|v| (v.size().width, v.size().height)).filter(|&(w, h)| w >= 640 && h >= 480).collect();
@@ -151,18 +162,32 @@ pub fn present_inner(frame: Option<&ts_gfx::scene::Frame>, update_last: bool, t:
     ts_sdk::set_view(cfg.aspect.unwrap_or(size.width as f32 / size.height as f32), cfg.fov);
     #[cfg(not(feature = "extensions"))]
     ts_sdk::set_view(4.0 / 3.0, cfg.fov);
-    // (asking Windows about the monitor and listing its video modes takes several milliseconds: a hitch in the frame rate when it
-    // is done every second, so it is done at the start and then rarely)
-    let ask = p.presents == 0 || p.presents % 1800 == 0;
-    if ask {
+    // (asking Windows about the monitor and listing its video modes takes 5 to 30 milliseconds: it is done here at the start, and
+    // then now and then (the window may have gone to another monitor, or the monitor's rate changed) on a thread of its own, as
+    // done here it stopped the picture for several frames every ten seconds or so)
+    if p.presents == 0 {
         let t = Instant::now();
-        p.monitor_hz = p.window.current_monitor().and_then(|m| m.refresh_rate_millihertz()).map(|m| m as f32 / 1000.0);
-        if let Some(m) = p.window.current_monitor() {
-            read_monitor(&m);
-        }
+        p.monitor_hz = query_monitor(&p.window);
         if std::env::var_os("TS_PERFLOG").is_some() {
             eprintln!("[window] monitor query {:.1} ms", t.elapsed().as_secs_f64() * 1e3);
         }
+    } else if p.presents % 1800 == 0 && !MONITOR_ASKING.swap(true, std::sync::atomic::Ordering::Relaxed) {
+        let window = p.window.clone();
+        let started = std::thread::Builder::new().name("monitor".into()).spawn(move || {
+            let t = Instant::now();
+            let hz = query_monitor(&window);
+            *MONITOR_HZ.lock().unwrap() = Some(hz);
+            if std::env::var_os("TS_PERFLOG").is_some() {
+                eprintln!("[window] monitor query {:.1} ms (on its own thread)", t.elapsed().as_secs_f64() * 1e3);
+            }
+            MONITOR_ASKING.store(false, std::sync::atomic::Ordering::Relaxed);
+        });
+        if started.is_err() {
+            MONITOR_ASKING.store(false, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+    if let Some(hz) = MONITOR_HZ.lock().unwrap().take() {
+        p.monitor_hz = hz;
     }
     p.presents = p.presents.wrapping_add(1);
     ts_sdk::set_logic_hz(cfg.logic_hz(p.monitor_hz));
