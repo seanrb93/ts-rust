@@ -586,6 +586,13 @@ impl ApplicationHandler for App {
                     return;
                 }
                 // (the Network Game page of the game takes typed characters: the address of a host)
+                // (Backspace takes a character off the address there, and is not also the triangle button it is bound to, which left the screen)
+                if ts_game::av_net_active() && crate::netmenu::typing_address() && event.physical_key == PhysicalKey::Code(KeyCode::Backspace) {
+                    if event.state == ElementState::Pressed {
+                        ts_game::av_net_delete();
+                    }
+                    return;
+                }
                 if event.state == ElementState::Pressed && ts_game::av_net_active() {
                     if event.physical_key == PhysicalKey::Code(KeyCode::Delete) {
                         ts_game::av_net_delete();

@@ -195,6 +195,11 @@ pub fn typed(c: char) {
     }
 }
 
+/// The address of a host is being typed (the Join screen): Backspace takes a character off it there.
+pub fn typing_address() -> bool {
+    LOBBY.lock().unwrap().as_ref().map_or(false, |l| l.view() == View::Find)
+}
+
 pub fn delete() {
     if let Some(l) = LOBBY.lock().unwrap().as_mut() {
         l.backspace();

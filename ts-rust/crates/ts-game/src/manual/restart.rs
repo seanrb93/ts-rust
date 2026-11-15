@@ -1,4 +1,4 @@
-//! Playing a match again without going back to the menus: the End Game page of the menu of the game has a second entry, "Restart match", and the results page at the end of a match
+//! Playing a match again without going back to the menus: the End Game page of the menu of the game has "Restart" above "End Game" (in the story too), and the results page at the end of a match
 //! restarts it with the cross button (the game does this itself for the game modes 4 and 6, `tickRetryQuit`).  The level starts again with the settings it had (`gameLevelRestart`).
 
 use crate::*;
@@ -12,9 +12,16 @@ pub fn restart_available() -> bool {
     (1..=6).contains(&lw(g::curgameparms + 72)) && ilinkIsILinkGame() == 0 && lw(g::lvnumplayers) > 0
 }
 
-/// The menu of the End Game page: the game's one entry and, below it, "Restart match".
+/// Can the level be started again from the End Game page: a match of the arcade modes or a level of the story, on this machine (not on a network).
+pub fn restart_in_menu() -> bool {
+    let mode = lw(g::curgameparms + 72);
+    (restart_available() || mode == 0) && ilinkIsILinkGame() == 0 && lw(g::lvnumplayers) > 0
+}
+
+/// The menu of the End Game page: "Restart" and, below it, "End Game" (the game's one entry, which said "Press (A) to end game" in a text of its own
+/// with the button's picture, and did not line up with the other).
 pub fn restart_menu(own: i32) -> i32 {
-    if !restart_available() {
+    if !restart_in_menu() {
         return own;
     }
     for i in 0..4 {
@@ -27,23 +34,26 @@ pub fn restart_menu(own: i32) -> i32 {
         sw(item(1) + 4 * j, lw(own + 16 + 4 * j));
     }
     let mut at = TEXT_AT;
-    let text = crate::manual::avmenu::put_str(&mut at, "Restart match");
-    sw(item(1), text);
+    sw(item(0), crate::manual::avmenu::put_str(&mut at, "Restart"));
+    sh(item(0) + 8, 2);
+    sw(item(1), crate::manual::avmenu::put_str(&mut at, "End Game"));
     sh(item(1) + 6, lh(item(0) + 6) + 20);
-    sh(item(1) + 8, 2);
-    // (the cursor goes down from the first to the second, and up again)
-    sw(item(0) + 16, 2 << 16);
-    sw(item(1) + 16, 1);
+    // (the cursor goes down from Restart to End Game, and up again: the links name the items by their numbers, 2 and the game's)
+    let end_id = lhu(item(1) + 8) as i32;
+    sw(item(0) + 16, end_id << 16);
+    sw(item(1) + 16, 2);
     item(0) - 16
 }
 
-/// The End Game page's tick: the button 64 on "Restart match" starts the match again.  True when it did.
+/// The End Game page's tick: the button 64 on "Restart" (the first entry, where the cursor starts) starts the level again.  True when it did; on
+/// "End Game" the game's own tick ends the game.
 pub fn restart_page_pressed(page: i32, player: i32) -> bool {
-    if !restart_available() {
+    if !restart_in_menu() {
         return false;
     }
+    // (the page keeps the number of the item the cursor is on: Restart's is 2)
     if lhu(page + 4) == 0 {
-        sh(page + 4, 1);
+        sh(page + 4, 2);
     }
     if joyNewBut(player) & 64 != 0 && lhu(page + 4) == 2 {
         joyClearAll(player);
