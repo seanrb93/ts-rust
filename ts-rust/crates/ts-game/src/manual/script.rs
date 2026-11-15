@@ -51,8 +51,6 @@ struct Fx {
     pad: i32,
     /// a place a computer character runs at when it is going to a pad
     steer: Option<[f32; 3]>,
-    /// the group of particles of the flame
-    flame_group: i32,
     /// the colour of the character's dot on the radar (the game's colour word of a team)
     radar: Option<i32>,
     /// a computer character does not fire
@@ -74,7 +72,7 @@ struct Fx {
 
 impl Default for Fx {
     fn default() -> Self {
-        Fx { flame: false, tint: None, passive: false, speed: 1.0, pad: -1, steer: None, flame_group: 0, radar: None, hold_fire: false, fire_mode: -1, spread: 1.0, react: 1.0, run_to: None, uses_ammo: false, out: false }
+        Fx { flame: false, tint: None, passive: false, speed: 1.0, pad: -1, steer: None, radar: None, hold_fire: false, fire_mode: -1, spread: 1.0, react: 1.0, run_to: None, uses_ammo: false, out: false }
     }
 }
 
@@ -1035,58 +1033,128 @@ pub fn script_hud_box(player: i32) -> Option<(i32, i32)> {
     None
 }
 
-/// The flames of the characters a script has set alight.
+/// The flames of the characters a script has set alight: a flame is kept on each living one, and the flame of one that is not alight (or is
+/// dead) is put out at once.
 fn flames(info: i32, total: i32) {
     let frame = ts_sdk::frame_count() as i32;
-    for i in 0..total {
+    for i in 0..total.min(FLAME_CHARS) {
         let wanted = fx_read(i, |f| f.flame).unwrap_or(false);
         let prop = lw(info + i * 0x1210 + 3020);
         if wanted && prop != 0 && is_alive(i as i64) {
             flame(i, prop, frame);
+        } else {
+            flame_out(i);
         }
     }
 }
 
-/// the particle type of the game that is drawn as a flame (a soft sprite, added to the picture): the points of a group of it are put by hand each frame
-const FLAME: i32 = 10;
+/// How many characters can burn at once, and where the particle groups of their flames are kept (a word for each layer of each character): a
+/// group's owner is its word, which the game clears when it frees the group, so a flame whose group the game took back is lit again.
+const FLAME_CHARS: i32 = 32;
+const FLAME_SLOTS: i32 = BASE + 0x17_2d40;
 
-/// Keep a green flame on the character `i` whose prop is `prop`: a group of manual particles whose points are put by hand each frame, rising from the feet.
-fn flame(i: i32, prop: i32, frame: i32) {
-    let mut group = fx_read(i, |f| f.flame_group).unwrap_or(0);
-    if group == 0 || lw(group) != 11 {
-        for k in 0..3 {
-            swc1(FLAME_AT + 4 * k, 0.0);
+/// The layers of a flame: the particle type of the game (10 is drawn as a lick of flame, 19 as a small star), the age the group is kept at
+/// (with the type, the size and how bright it is: type 10 is at full strength from 0.4 to 0.5 and grows with age), and how many particles.
+/// The glow round the body, the bright core low down, the tongues that rise from it, and embers that drift up out of it.
+const FLAME_LAYERS: [(i32, f32, i32); 4] = [(10, 1.0, 6), (10, 0.45, 18), (10, 0.42, 28), (19, 0.0, 6)];
+
+fn flame_slot(i: i32, layer: usize) -> i32 {
+    FLAME_SLOTS + (i * FLAME_LAYERS.len() as i32 + layer as i32) * 4
+}
+
+/// The group of a layer of a character's flame, if the game still has it as it was made.
+fn flame_group(i: i32, layer: usize) -> i32 {
+    let slot = flame_slot(i, layer);
+    let group = lw(slot);
+    if group != 0 && lw(group) == 11 && lw(group + 4) == FLAME_LAYERS[layer].0 && lw(group + 20) == slot {
+        group
+    } else {
+        0
+    }
+}
+
+fn flame_out(i: i32) {
+    if i >= FLAME_CHARS {
+        return;
+    }
+    for layer in 0..FLAME_LAYERS.len() {
+        let group = flame_group(i, layer);
+        if group != 0 {
+            particleFree(group);
         }
-        group = particleNewManual(0, FLAME, FLAME_AT);
-        fx_of(i as i64, |f| f.flame_group = group);
-        for r in 0..4 {
-            for c in 0..4 {
-                swc1(group + 928 + 16 * r + 4 * c, if r == c { 1.0 } else { 0.0 });
+        sw(flame_slot(i, layer), 0);
+    }
+}
+
+/// Keep a green flame on the character `i` whose prop is `prop`: groups of manual particles whose points are put by hand each tick.
+fn flame(i: i32, prop: i32, frame: i32) {
+    let t = frame as f32 / 60.0;
+    // (each character's flame moves on its own)
+    let own = i as f32 * 1.37;
+    let (cx, cy, cz) = (lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));
+    for (layer, &(kind, age, count)) in FLAME_LAYERS.iter().enumerate() {
+        let mut group = flame_group(i, layer);
+        if group == 0 {
+            for k in 0..3 {
+                swc1(FLAME_AT + 4 * k, 0.0);
+            }
+            let slot = flame_slot(i, layer);
+            group = particleNewManual(slot, kind, FLAME_AT);
+            sw(slot, group);
+            for r in 0..4 {
+                for c in 0..4 {
+                    swc1(group + 928 + 16 * r + 4 * c, if r == c { 1.0 } else { 0.0 });
+                }
             }
         }
-    }
-    let info = g::particleinfos + FLAME * 104;
-    // (the age is kept where the particles are fully lit)
-    let life = lwc1(info + 12);
-    let age = (lwc1(info + 24) + 0.1).min(life * 0.5);
-    swc1(group + 12, age);
-    swc1(group + 52, 0.0);
-    let n = lw(group + 24).clamp(0, 40);
-    let t = frame as f32 / 60.0;
-    let (cx, cy, cz) = (lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));
-    for k in 0..n {
-        let phase = (k as f32 / n as f32 + t * 0.8).fract();
-        let radius = 0.3 * (1.0 - phase).powf(0.7);
-        let angle = k as f32 * 2.4 + t * 3.0;
-        let place = group + 992 + 12 * k;
-        swc1(place, cx + radius * angle.cos());
-        swc1(place + 4, cy + 0.1 + phase * 1.8);
-        swc1(place + 8, cz + radius * angle.sin());
-        let g = (255.0 * (1.0 - 0.55 * phase)) as i32;
-        let r = (g as f32 * (0.15 + 0.35 * (1.0 - phase))) as i32;
-        let colour = (r << 16) | (g << 8) | r;
-        swc1(group + 2192 + 4 * k, colour as f32);
-        swc1(group + 2592 + 4 * k, 20.0 * (k % 5) as f32);
+        swc1(group + 12, age);
+        swc1(group + 52, 0.0);
+        sw(group + 24, count);
+        let n = count as f32;
+        for k in 0..count {
+            let kf = k as f32;
+            // where the particle is, and its colour (red, green, blue: the flame is green, yellower and paler where it is hottest)
+            let (x, y, z, rgb, turn) = match layer {
+                // the glow round the body
+                0 => {
+                    let angle = kf * std::f32::consts::TAU / n + t * 0.7 + own;
+                    let lift = 0.3 + 0.3 * (kf % 3.0) + 0.08 * (t * 2.3 + kf).sin();
+                    (0.22 * angle.cos(), lift, 0.22 * angle.sin(), [20.0, 120.0, 15.0], 10.0)
+                }
+                // the core: low and narrow, nearly white where it starts
+                1 => {
+                    let phase = (kf / n + t * 1.1 + own).fract();
+                    let radius = 0.22 * (1.0 - phase).sqrt() + 0.04;
+                    let angle = kf * 2.4 + t * 2.5;
+                    let hot = 1.0 - phase;
+                    (radius * angle.cos(), 0.05 + phase * 1.1, radius * angle.sin(), [60.0 + 150.0 * hot, 255.0, 40.0 + 110.0 * hot], 20.0 * (k % 5) as f32)
+                }
+                // the tongues: they rise higher, narrow and flicker as they go, and darken
+                2 => {
+                    let phase = (kf / n + t * 0.9 + own * 0.7).fract();
+                    let radius = 0.3 * (1.0 - phase).powf(0.8);
+                    let angle = kf * 2.4 + t * 3.0;
+                    let flicker = 0.08 * (t * 13.0 + kf * 1.7).sin();
+                    let cool = phase;
+                    (radius * angle.cos() + flicker, 0.3 + phase * 1.9, radius * angle.sin() - flicker, [70.0 - 60.0 * cool, 255.0 - 145.0 * cool, 50.0 - 40.0 * cool], 20.0 * (k % 5) as f32)
+                }
+                // the embers: they drift up and out, and fade as they go
+                _ => {
+                    let phase = (kf / n + t * 0.45 + own * 0.3).fract();
+                    let radius = 0.15 + 0.3 * phase;
+                    let angle = kf * 2.1 + phase * 3.0;
+                    let glow = 0.6 * (1.0 - phase);
+                    (radius * angle.cos(), 1.0 + phase * 1.4, radius * angle.sin(), [200.0 * glow, 255.0 * glow, 90.0 * glow], 0.0)
+                }
+            };
+            let place = group + 992 + 12 * k;
+            swc1(place, cx + x);
+            swc1(place + 4, cy + y);
+            swc1(place + 8, cz + z);
+            let [r, g, b] = rgb.map(|v: f32| v.clamp(0.0, 255.0) as i32);
+            swc1(group + 2192 + 4 * k, ((b << 16) | (g << 8) | r) as f32);
+            swc1(group + 2592 + 4 * k, turn);
+        }
     }
 }
 
