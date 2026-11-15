@@ -193,6 +193,18 @@ fn record(i: i64) -> i32 {
     lw(g::chrinfo) + (i as i32) * 0x1210
 }
 
+/// Where the characters of a list of numbers are (x and z), leaving out the ones that are not there.
+fn char_places(chars: &rhai::Array) -> Vec<(f64, f64)> {
+    chars
+        .iter()
+        .filter_map(|c| c.as_int().ok())
+        .filter_map(|c| match prop_of(c) {
+            0 => None,
+            p => Some((lwc1(p + 48) as f64, lwc1(p + 56) as f64)),
+        })
+        .collect()
+}
+
 fn prop_of(i: i64) -> i32 {
     let (info, total) = characters();
     if info == 0 || i < 0 || i as i32 >= total {
@@ -358,6 +370,58 @@ fn register(engine: &mut Engine) {
     engine.register_fn("pad_x", |k: i64| lwc1(lw(g::levelpads) + (k as i32) * 28 + 12) as f64);
     engine.register_fn("pad_y", |k: i64| lwc1(lw(g::levelpads) + (k as i32) * 28 + 16) as f64);
     engine.register_fn("pad_z", |k: i64| lwc1(lw(g::levelpads) + (k as i32) * 28 + 20) as f64);
+    // what a script would otherwise work out in loops of its own, which are slow in a script (a loop over the pads of a level and the characters can
+    // take milliseconds): the distances are across the level (x and z), as the scripts' own `hypot` of x and z
+    // the pad nearest a place (-1: the level has none)
+    engine.register_fn("nearest_pad", |x: f64, z: f64| -> i64 {
+        let pads = lw(g::levelpads);
+        let mut best = (-1i64, f64::MAX);
+        for k in 0..lw(g::numpads) {
+            let (px, pz) = (lwc1(pads + k * 28 + 12) as f64, lwc1(pads + k * 28 + 20) as f64);
+            let d = (px - x) * (px - x) + (pz - z) * (pz - z);
+            if d < best.1 {
+                best = (k as i64, d);
+            }
+        }
+        best.0
+    });
+    // for each pad of the level, how far it is from the nearest of the characters `chars` (a list of their numbers; 1e9 when none of them is there)
+    engine.register_fn("pad_distances", |chars: rhai::Array| -> rhai::Array {
+        let at = char_places(&chars);
+        let pads = lw(g::levelpads);
+        (0..lw(g::numpads))
+            .map(|k| {
+                let (px, pz) = (lwc1(pads + k * 28 + 12) as f64, lwc1(pads + k * 28 + 20) as f64);
+                let d = at.iter().map(|&(x, z)| (px - x) * (px - x) + (pz - z) * (pz - z)).fold(f64::MAX, f64::min);
+                rhai::Dynamic::from_float(if d == f64::MAX { 1.0e9 } else { d.sqrt() })
+            })
+            .collect()
+    });
+    // the character of the list `chars` nearest a place (-1: none of them is there)
+    engine.register_fn("nearest_char", |x: f64, z: f64, chars: rhai::Array| -> i64 {
+        let mut best = (-1i64, f64::MAX);
+        for c in chars.iter().filter_map(|c| c.as_int().ok()) {
+            let p = prop_of(c);
+            if p == 0 {
+                continue;
+            }
+            let (cx, cz) = (lwc1(p + 48) as f64, lwc1(p + 56) as f64);
+            let d = (cx - x) * (cx - x) + (cz - z) * (cz - z);
+            if d < best.1 {
+                best = (c, d);
+            }
+        }
+        best.0
+    });
+    // how far apart two characters are
+    engine.register_fn("char_distance", |i: i64, j: i64| -> f64 {
+        let (a, b) = (prop_of(i), prop_of(j));
+        if a == 0 || b == 0 {
+            return 1.0e9;
+        }
+        let (dx, dz) = ((lwc1(a + 48) - lwc1(b + 48)) as f64, (lwc1(a + 56) - lwc1(b + 56)) as f64);
+        (dx * dx + dz * dz).sqrt()
+    });
     // messages, sounds, blows and the end of the match
     engine.register_fn("message", |i: i64, text: &str| {
         if (0..lw(g::lvnumplayers) as i64).contains(&i) {
@@ -617,7 +681,10 @@ fn call_all<A: rhai::FuncArgs + Clone, T: Clone + std::any::Any>(name: &str, arg
             }
             let Host { engine, ast, scope, name: script, state, .. } = host;
             let options = rhai::CallFnOptions::new().eval_ast(false).rewind_scope(false).bind_this_ptr(state);
-            match engine.call_fn_with_options::<rhai::Dynamic>(options, scope, ast, name, args.clone()) {
+            let started = timing::start();
+            let answer = engine.call_fn_with_options::<rhai::Dynamic>(options, scope, ast, name, args.clone());
+            timing::note(started, script, name);
+            match answer {
                 Ok(v) => match v.try_cast::<T>() {
                     Some(v) => out.push(v),
                     None => eprintln!("[script] {script}: {name}: the answer is not of the kind the game asks for"),
@@ -634,6 +701,72 @@ fn call_all<A: rhai::FuncArgs + Clone, T: Clone + std::any::Any>(name: &str, arg
         refresh_active();
     }
     out
+}
+
+/// How long the scripts take (a test aid for the makers of mods: `TS_SCRIPTPROF=1`): the time of each function of each script, written every ten
+/// seconds as the time a frame (all its calls in a frame), the time of its longest call, and how many calls, the slowest first.
+mod timing {
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+    use std::sync::OnceLock;
+    use std::time::{Duration, Instant};
+
+    const EVERY: Duration = Duration::from_secs(10);
+
+    #[derive(Default)]
+    struct Spent {
+        total: Duration,
+        longest: Duration,
+        calls: u64,
+    }
+
+    struct Book {
+        since: Instant,
+        frames_then: u64,
+        spent: HashMap<(String, String), Spent>,
+    }
+
+    thread_local! {
+        static BOOK: RefCell<Option<Book>> = const { RefCell::new(None) };
+    }
+
+    fn on() -> bool {
+        static ON: OnceLock<bool> = OnceLock::new();
+        *ON.get_or_init(|| std::env::var_os("TS_SCRIPTPROF").is_some())
+    }
+
+    pub fn start() -> Option<Instant> {
+        on().then(Instant::now)
+    }
+
+    pub fn note(started: Option<Instant>, script: &str, function: &str) {
+        let Some(started) = started else { return };
+        let took = started.elapsed();
+        BOOK.with(|b| {
+            let mut b = b.borrow_mut();
+            let book = b.get_or_insert_with(|| Book { since: Instant::now(), frames_then: ts_sdk::frame_count() as u64, spent: HashMap::new() });
+            let e = book.spent.entry((script.to_string(), function.to_string())).or_default();
+            e.total += took;
+            e.longest = e.longest.max(took);
+            e.calls += 1;
+            if book.since.elapsed() >= EVERY {
+                let frames = (ts_sdk::frame_count() as u64).saturating_sub(book.frames_then).max(1);
+                let mut rows: Vec<_> = book.spent.drain().collect();
+                rows.sort_by(|a, b| b.1.total.cmp(&a.1.total));
+                eprintln!("[scriptprof] the last {:.0} s, {} frames:", book.since.elapsed().as_secs_f64(), frames);
+                for ((script, function), e) in rows {
+                    eprintln!(
+                        "[scriptprof]   {script} {function}: {:.3} ms a frame, longest call {:.2} ms, {} calls",
+                        e.total.as_secs_f64() * 1e3 / frames as f64,
+                        e.longest.as_secs_f64() * 1e3,
+                        e.calls
+                    );
+                }
+                book.since = Instant::now();
+                book.frames_then = ts_sdk::frame_count() as u64;
+            }
+        });
+    }
 }
 
 fn has(name: &str) -> bool {
@@ -1036,12 +1169,13 @@ pub fn script_hud_box(player: i32) -> Option<(i32, i32)> {
 /// The flames of the characters a script has set alight: a flame is kept on each living one, and the flame of one that is not alight (or is
 /// dead) is put out at once.
 fn flames(info: i32, total: i32) {
-    let frame = ts_sdk::frame_count() as i32;
+    // (the flames move with the game's time, in seconds: the program's own count of pictures ran them 2.75 times too fast at 165 pictures a second)
+    let t = super::boot::gameframe_f() / 60.0;
     for i in 0..total.min(FLAME_CHARS) {
         let wanted = fx_read(i, |f| f.flame).unwrap_or(false);
         let prop = lw(info + i * 0x1210 + 3020);
         if wanted && prop != 0 && is_alive(i as i64) {
-            flame(i, prop, frame);
+            flame(i, prop, t);
         } else {
             flame_out(i);
         }
@@ -1087,8 +1221,7 @@ fn flame_out(i: i32) {
 }
 
 /// Keep a green flame on the character `i` whose prop is `prop`: groups of manual particles whose points are put by hand each tick.
-fn flame(i: i32, prop: i32, frame: i32) {
-    let t = frame as f32 / 60.0;
+fn flame(i: i32, prop: i32, t: f32) {
     // (each character's flame moves on its own)
     let own = i as f32 * 1.37;
     let (cx, cy, cz) = (lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));

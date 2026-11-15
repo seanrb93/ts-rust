@@ -12,7 +12,7 @@ mode deathmatch
 ```
 
 The script of a mode is read from `scripts/<file>` of the mod (or next to `modes.txt`) and starts when the match starts; a script of a mod is read when the program starts.  A script with an error is reported in the log (`[script]`) and stops; the match goes on without it.
-`TS_SCRIPTLOG=1` shows what the script says with `log(...)`.
+`TS_SCRIPTLOG=1` shows what the script says with `log(...)`.  `TS_SCRIPTPROF=1` writes every ten seconds how long each function of each script took: its time a frame (all its calls in a frame together), its longest call and how many calls, the slowest first.  A script whose `on_tick` takes more than a few milliseconds slows the whole game down.
 
 ## The functions of the script
 
@@ -55,6 +55,8 @@ Characters are numbered from 0, the players first, then the computer characters.
 `setting(name, default)` (a value of the `[settings]` of the mod's `mod.ini`: a number of the default's kind, true or false for yes and no, or text; the default when the file does not have it), `setting(name)` (the same, `()` when it is not there), and for the script of a mode the options of its variant (`option` in `modes.txt`) as the Options page left them, in place of the settings of the same names,
 `dt()` (frames of 1/60 second since the last call), `rand_int(n)` (0 to n-1, by the game's random numbers), `env_int(name, default)` (a number from the environment: test aids),
 `pad_count()`, `pad_x(k)`, `pad_y(k)`, `pad_z(k)` (the pads of the level: the places computer characters go between).
+
+A loop in a script is slow: going through the 330 pads of a level for each of ten characters takes milliseconds.  The game does these for a script, across the level (x and z): `nearest_pad(x, z)` (the pad nearest a place, -1 when the level has none), `pad_distances(chars)` (a list with, for each pad, how far it is from the nearest of the characters of the list `chars`; 1e9 when none of them is there), `nearest_char(x, z, chars)` (the character of the list nearest a place, -1 when none is there) and `char_distance(i, j)`.  `example_mods/virus_mode` uses them to choose where its survivors run.
 The buttons of a player's controller: `buttons(p)` (held) and `pressed(p)` (newly pressed), in the bits of the PlayStation 2 pad (select 0x100, start 0x800, up 0x1000, right 0x2000, down 0x4000, left 0x8000, L2 1, R2 2, L1 4, R1 8, triangle 0x10, circle 0x20, cross 0x40, square 0x80).
 The pads and links as the original's pad editor sees them: `pad_used(k)` (not deleted), `pad_extref(k)` (the pad's own number, which links and the files use), `pad_flags(k)`, `link_count()`, `link_used(i)`, `link_from(i)` and `link_to(i)` (the numbers of its pads), `pad_file()` (the name of the file the pads were loaded from), `pad_file_bytes()` (the pads and links as that file has them, without the deleted ones), `level()`.
 The props: `aim_point(p)` (where the view of a player meets the level, `[x, y, z]`: 3 ahead when it meets nothing within 50), `prop_nearest(x, y, z, most)` (the external reference of the prop nearest a place, -1 for none), `prop_exists(e)`, `prop_kind(e)`, `prop_x(e)`, `prop_y(e)`, `prop_z(e)`, `prop_angle(e)` (by the prop's external reference), `prop_kind_editable(kind)` (a kind the original's prop editor can make: the characters of 0 to 158 and things such as crates from 159), `prop_kind_name(kind)`.
