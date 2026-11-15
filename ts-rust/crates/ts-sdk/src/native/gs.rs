@@ -176,8 +176,9 @@ pub fn wait_frame(hz: f64) -> f64 {
     let last = g.get_or_insert_with(Instant::now);
     let target = *last + period;
     let dt;
-    if std::env::var_os("TS_NOPACE").is_some() {
+    if no_pace() {
         dt = period.as_secs_f64();
+        pace_blanks(dt * VBLANK_HZ);
     } else if PACED_BY_PRESENT.load(std::sync::atomic::Ordering::Relaxed) {
         // with vsync the wait for the picture paces the game: a frame stands for the whole number of monitor periods it took (so
         // a steady lock gives even steps), and a program that is not held back by the presentation is held to the rate anyway
@@ -218,8 +219,9 @@ pub fn wait_vsync() -> u32 {
         });
     }
     // (test aid: as fast as the machine can, one blank for each frame, so that a run does not depend on the clock)
-    if std::env::var_os("TS_NOPACE").is_some() {
+    if no_pace() {
         perf::add_ticks(1);
+        pace_blanks(1.0);
         return 1;
     }
     let period = Duration::from_secs_f64(1.0 / VBLANK_HZ / skew());
@@ -246,7 +248,26 @@ pub fn wait_vsync() -> u32 {
 }
 
 /// Seconds since start expressed in 60 Hz frames, wrapped by the caller.
+/// `TS_NOPACE` (a test aid): as fast as the machine can, one blank for each frame, so that a run does not depend on the clock.
+fn no_pace() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("TS_NOPACE").is_some())
+}
+
+/// The blanks the frames have stood for, with `TS_NOPACE` (an f64).
+static PACE_BLANKS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+fn pace_blanks(n: f64) {
+    let now = f64::from_bits(PACE_BLANKS.load(std::sync::atomic::Ordering::Relaxed)) + n;
+    PACE_BLANKS.store(now.to_bits(), std::sync::atomic::Ordering::Relaxed);
+}
+
 pub fn now_frames() -> f32 {
+    // (with `TS_NOPACE` the game's clock is the blanks the frames stood for, not the real time: a frame that took long, as one a screenshot
+    // was taken of, counted several ticks and the run went another way from there)
+    if no_pace() {
+        return f64::from_bits(PACE_BLANKS.load(std::sync::atomic::Ordering::Relaxed)) as f32;
+    }
     static START: Mutex<Option<Instant>> = Mutex::new(None);
     let mut g = START.lock().unwrap();
     let s = g.get_or_insert_with(Instant::now);
@@ -481,7 +502,14 @@ pub mod perf {
             let n = a.frames as f64;
             let ms = |v: f64| v / n * 1000.0;
             let logic = (el - a.wait - a.sync).max(0.0);
-            a.fps = format!("{:.0} FPS", a.dframes as f64 / el);
+            // (and how fast the game runs, when it cannot keep up: a slow script or bot can leave the pictures smooth with the game at a third
+            // of its speed; a pause, with no ticks at all, says nothing)
+            let speed = a.ticks / el / 60.0;
+            a.fps = if speed > 0.0 && speed < 0.95 {
+                format!("{:.0} FPS  game speed {:.0}%", a.dframes as f64 / el, speed * 100.0)
+            } else {
+                format!("{:.0} FPS", a.dframes as f64 / el)
+            };
             a.report = format!(
                 "{:.0} display FPS | {:.1} game FPS  (frame {:.1} ms, worst {:.1} ms)
 game {:.1}  waiting for gfx {:.1}  idle {:.1} ms
