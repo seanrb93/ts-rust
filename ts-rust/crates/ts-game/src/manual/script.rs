@@ -1175,9 +1175,59 @@ fn flames(info: i32, total: i32) {
         let wanted = fx_read(i, |f| f.flame).unwrap_or(false);
         let prop = lw(info + i * 0x1210 + 3020);
         if wanted && prop != 0 && is_alive(i as i64) {
-            flame(i, prop, t);
+            if seen_by_a_view(prop) {
+                flame(i, prop, t);
+            } else {
+                flame_hide(i);
+            }
         } else {
             flame_out(i);
+        }
+    }
+}
+
+/// Whether a view of the players draws one of the rooms of the prop `prop` (its room and the others it reaches into): the game draws a character
+/// only then, while particles are drawn wherever they are, so the flame of a character the game did not draw showed on its own, through the
+/// places the rooms the view does not see would be.
+fn seen_by_a_view(prop: i32) -> bool {
+    let count = lw(prop + 184).clamp(0, 10);
+    let rooms: Vec<i32> = std::iter::once(lw(prop + 12)).chain((0..count).map(|k| lw(prop + 144 + 4 * k))).filter(|&r| r > 0).collect();
+    (0..lw(g::lvnumplayers).max(1)).any(|p| {
+        let data = lw((p << 2) + g::roomdata);
+        data != 0
+            && rooms.iter().any(|&room| {
+                // (the game draws the rooms that are fewer than 25 portals from the view: `bgroomsdrawn`'s list)
+                (lw(room * 20 + data) as u32) < 25
+            })
+    })
+}
+
+/// How high the flame of a character may rise: the room above its feet up to the first ceiling, at most `FLAME_TOP`.  A flame taller than the
+/// room it is in (a character in the pipes under Building Site) rose through the floor above, where it showed with no character under it.
+const FLAME_TOP: f32 = 2.6;
+
+fn headroom(prop: i32) -> f32 {
+    let frame = Frame::new(32);
+    let sp = frame.sp();
+    let y = lwc1(prop + 52);
+    swc1(sp, lwc1(prop + 48));
+    swc1(sp + 4, y);
+    swc1(sp + 8, lwc1(prop + 56));
+    // (the highest floor under the top of the flame: the character's own, or the floor of a room above it)
+    let floor = moveFindFloor(sp, 0, 0, FLAME_TOP, 0.1);
+    if floor > y + 0.2 {
+        (floor - y).min(FLAME_TOP)
+    } else {
+        FLAME_TOP
+    }
+}
+
+/// A flame that is not to be seen now: its groups are kept, with no particles.
+fn flame_hide(i: i32) {
+    for layer in 0..FLAME_LAYERS.len() {
+        let group = flame_group(i, layer);
+        if group != 0 {
+            sw(group + 24, 0);
         }
     }
 }
@@ -1225,6 +1275,8 @@ fn flame(i: i32, prop: i32, t: f32) {
     // (each character's flame moves on its own)
     let own = i as f32 * 1.37;
     let (cx, cy, cz) = (lwc1(prop + 48), lwc1(prop + 52), lwc1(prop + 56));
+    // (under a low ceiling the flame is squashed to fit, the half of a particle's size below it; the tallest layer, the embers, reaches 2.4)
+    let squash = ((headroom(prop) - 0.35) / 2.4).clamp(0.15, 1.0);
     for (layer, &(kind, age, count)) in FLAME_LAYERS.iter().enumerate() {
         let mut group = flame_group(i, layer);
         if group == 0 {
@@ -1282,7 +1334,7 @@ fn flame(i: i32, prop: i32, t: f32) {
             };
             let place = group + 992 + 12 * k;
             swc1(place, cx + x);
-            swc1(place + 4, cy + y);
+            swc1(place + 4, cy + y * squash);
             swc1(place + 8, cz + z);
             let [r, g, b] = rgb.map(|v: f32| v.clamp(0.0, 255.0) as i32);
             swc1(group + 2192 + 4 * k, ((b << 16) | (g << 8) | r) as f32);
