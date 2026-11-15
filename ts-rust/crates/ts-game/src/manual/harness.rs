@@ -23,10 +23,27 @@ pub fn harness_player() {
     }
     let Ok(n) = std::env::var("TS_PLAYERCHR").map(|v| v.trim().parse::<i32>()) else { return };
     let Ok(n) = n else { return };
+    if !usable_character(n, "TS_PLAYERCHR / --character") {
+        return;
+    }
     let id = signonGet(0);
     if id >= 0 && (0..128).contains(&n) {
         sw(lw(g::signonarray) + id * 2936 + 32 + 84, n);
     }
+}
+
+/// A character of the table that a test may ask for: one of the game's or one a mod added, with a name that is not "-" (the entries the game
+/// never offers, whose models do not load); a message says why one is not.
+fn usable_character(n: i32, from: &str) -> bool {
+    let count = super::chartable::GAME_CHARACTERS + super::chartable::added_characters();
+    let named = (0..count).contains(&n) && {
+        let text = lw((lh(n * 44 + super::chartable::CHRS_TABLE) << 2) + lw((lw(g::cur_language) << 2) + g::languages));
+        text != 0 && ts_rt::cstr(text).trim() != "-"
+    };
+    if !named {
+        eprintln!("[harness] {from}: {n} is not a character the game offers (0 to {}, without the ones named \"-\"): left out", count - 1);
+    }
+    named
 }
 
 /// Make the bots the characters `TS_BOTCHRS` names (at the start of `enemyRestart`, which reads their number from the game's parameters; `enemySetup` reads who they are).
@@ -36,6 +53,8 @@ pub fn harness_bots() {
     if bots.is_empty() {
         return;
     }
+    // (an entry of the table that is not a character, such as 25 (named "-"), has a model the game cannot load: it is left out)
+    let bots: Vec<f32> = bots.into_iter().filter(|&b| usable_character(b as i32, "TS_BOTCHRS / --bots")).collect();
     let parms = g::curgameparms;
     let players = lw(g::lvnumplayers).max(1);
     let n = bots.len().min(10);

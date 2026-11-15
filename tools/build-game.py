@@ -27,6 +27,10 @@ def main():
     os.makedirs(PLAY, exist_ok=True)
     built = os.path.join(ROOT, 'build', 'cargo', 'release', EXE)
     shutil.copyfile(built, os.path.join(PLAY, EXE))
+    # (the names of the functions, for the backtraces of ts-rust-crash.log: without the file beside the program they are "<unknown>")
+    symbols = os.path.join(ROOT, 'build', 'cargo', 'release', 'ts_rust.pdb')
+    if os.path.exists(symbols):
+        shutil.copyfile(symbols, os.path.join(PLAY, 'ts_rust.pdb'))
     print(f'the game: {os.path.join(PLAY, EXE)}')
     # (the program was called ts-port before: an old copy would only confuse)
     for old in ('ts-port.exe', 'ts-port'):
