@@ -623,6 +623,7 @@ pub fn obInstGfx(a0: i32, a1: i32) {
     let model = lw(a0);
     if !prop_hidden_from(lw(lw(g::currentplayer)), lw(a0 + 244)) {
         if (flags & 256) == 0 {
+            prop_drawn(lw(a0 + 244));
             let buffer = lw(model + 40);
             let mut blend = -1;
             let mut dither = -1;

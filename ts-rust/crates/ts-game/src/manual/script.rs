@@ -23,7 +23,7 @@ mod camera;
 pub use camera::{script_camera_on, script_camera_view};
 use std::cell::RefCell;
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -1175,7 +1175,7 @@ fn flames(info: i32, total: i32) {
         let wanted = fx_read(i, |f| f.flame).unwrap_or(false);
         let prop = lw(info + i * 0x1210 + 3020);
         if wanted && prop != 0 && is_alive(i as i64) {
-            if seen_by_a_view(prop) {
+            if drawn_lately(prop) {
                 flame(i, prop, t);
             } else {
                 flame_hide(i);
@@ -1186,20 +1186,28 @@ fn flames(info: i32, total: i32) {
     }
 }
 
-/// Whether a view of the players draws one of the rooms of the prop `prop` (its room and the others it reaches into): the game draws a character
-/// only then, while particles are drawn wherever they are, so the flame of a character the game did not draw showed on its own, through the
-/// places the rooms the view does not see would be.
-fn seen_by_a_view(prop: i32) -> bool {
-    let count = lw(prop + 184).clamp(0, 10);
-    let rooms: Vec<i32> = std::iter::once(lw(prop + 12)).chain((0..count).map(|k| lw(prop + 144 + 4 * k))).filter(|&r| r > 0).collect();
-    (0..lw(g::lvnumplayers).max(1)).any(|p| {
-        let data = lw((p << 2) + g::roomdata);
-        data != 0
-            && rooms.iter().any(|&room| {
-                // (the game draws the rooms that are fewer than 25 portals from the view: `bgroomsdrawn`'s list)
-                (lw(room * 20 + data) as u32) < 25
-            })
-    })
+/// The program's picture at which each prop of the level was last drawn (by its place in the level's props), from `obInstGfx`.
+static PROP_DRAWN: [AtomicU64; 1024] = [const { AtomicU64::new(0) }; 1024];
+
+fn prop_index(prop: i32) -> Option<usize> {
+    let offset = prop - lw(g::levelprops);
+    (offset >= 0 && offset % 592 == 0).then(|| (offset / 592) as usize).filter(|&i| i < PROP_DRAWN.len())
+}
+
+pub fn note_prop_drawn(prop: i32) {
+    if let Some(i) = prop_index(prop) {
+        PROP_DRAWN[i].store(ts_sdk::frame_count() + 1, Ordering::Relaxed);
+    }
+}
+
+/// Whether the game drew the model of the character prop `prop` in the last pictures: particles are drawn wherever they are, while the game
+/// leaves a character out more often than a test of its rooms could tell (only the room it stands in counts, and only when that room's box
+/// on the screen is not empty, and only the first 100 props of a room are drawn), so a flame kept on a character the game did not draw
+/// moved round the level on its own.
+fn drawn_lately(prop: i32) -> bool {
+    let Some(i) = prop_index(prop) else { return false };
+    let at = PROP_DRAWN[i].load(Ordering::Relaxed);
+    at != 0 && ts_sdk::frame_count() + 1 <= at + 2
 }
 
 /// How high the flame of a character may rise: the room above its feet up to the first ceiling, at most `FLAME_TOP`.  A flame taller than the

@@ -153,6 +153,16 @@ pub fn punch_label_begin(prop: i32) -> bool {
     }
 }
 
+/// The model of the prop `prop` is drawn in a view now (`obInstGfx`, after its own checks): the flames of scripts are kept only on characters
+/// the game draws.
+#[inline]
+pub fn prop_drawn(prop: i32) {
+    #[cfg(feature = "extensions")]
+    note_prop_drawn(prop);
+    #[cfg(not(feature = "extensions"))]
+    let _ = prop;
+}
+
 /// The picture of the prop has been drawn: the mark of a mirrored arm ends.
 #[inline]
 pub fn punch_label_end(mirrored: bool) {
