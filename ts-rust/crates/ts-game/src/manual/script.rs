@@ -47,6 +47,8 @@ struct Fx {
     passive: bool,
     /// a part of the character's own top speed (a computer character that goes to a pad)
     speed: f32,
+    /// a part of the speed a player moves at (its sticks, as the game takes them)
+    move_speed: f32,
     /// the pad a computer character goes to (-1: the game's choice)
     pad: i32,
     /// a place a computer character runs at when it is going to a pad
@@ -72,7 +74,7 @@ struct Fx {
 
 impl Default for Fx {
     fn default() -> Self {
-        Fx { flame: false, tint: None, passive: false, speed: 1.0, pad: -1, steer: None, radar: None, hold_fire: false, fire_mode: -1, spread: 1.0, react: 1.0, run_to: None, uses_ammo: false, out: false }
+        Fx { flame: false, tint: None, passive: false, speed: 1.0, move_speed: 1.0, pad: -1, steer: None, radar: None, hold_fire: false, fire_mode: -1, spread: 1.0, react: 1.0, run_to: None, uses_ammo: false, out: false }
     }
 }
 
@@ -462,6 +464,13 @@ fn register(engine: &mut Engine) {
     });
     engine.register_fn("bot_speed", |i: i64, s: f64| {
         fx_of(i, |f| f.speed = s as f32);
+    });
+    // (any character: a player moves by that part of its sticks, a computer character runs at that part of its speed)
+    engine.register_fn("speed", |i: i64, s: f64| {
+        fx_of(i, |f| {
+            f.speed = s as f32;
+            f.move_speed = s as f32;
+        });
     });
     engine.register_fn("bot_pad", |i: i64, k: i64| {
         fx_of(i, |f| f.pad = k as i32);
@@ -1119,6 +1128,16 @@ pub fn script_table_kind(kind: i32) -> i32 {
 /// The table `script_table_kind` was asked about has been drawn.
 pub fn script_table_done() {
     SCRIPTED_TABLE.with(|t| t.set(false));
+}
+
+/// The part of its speed the player whose character record is `record` moves at, when a script has slowed it (`speed`).
+pub fn script_player_move_scale(record: i32) -> Option<f32> {
+    if !ACTIVE.load(Ordering::Relaxed) {
+        return None;
+    }
+    let i = (record - lw(g::chrinfo)) / 0x1210;
+    let s = fx_read(i, |f| f.move_speed)?;
+    ((s - 1.0).abs() > 1.0e-3).then_some(s.max(0.0))
 }
 
 /// A script answers `hud_box`: the box of the rank shows what it says, and the score does not slide out of it at a kill (`hudGfx`).

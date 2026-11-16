@@ -163,6 +163,21 @@ pub fn prop_drawn(prop: i32) {
     let _ = prop;
 }
 
+/// The part of its speed the player whose character record is `chr` moves at, when a script slows it (`playerTick`, on the sticks before the
+/// game limits how fast they change); none in the original.
+#[inline]
+pub fn player_move_scale(chr: i32) -> Option<f32> {
+    #[cfg(feature = "extensions")]
+    {
+        script_player_move_scale(chr)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = chr;
+        None
+    }
+}
+
 /// The picture of the prop has been drawn: the mark of a mirrored arm ends.
 #[inline]
 pub fn punch_label_end(mirrored: bool) {

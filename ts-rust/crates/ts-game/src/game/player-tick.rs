@@ -919,6 +919,10 @@ fn update_player(sp: i32, p: i32, chr: i32) -> i32 {
     );
 
     // The sticks move by no more than the limits that follow them, and make the distances for this frame.
+    if let Some(part) = player_move_scale(chr) {
+        walk = ps2float::mul(walk, part);
+        strafe = ps2float::mul(strafe, part);
+    }
     let walk_limit = lwc1(p + 1784);
     if ps2float::add(walk_limit, step) < walk {
         walk = ps2float::add(walk_limit, step);
