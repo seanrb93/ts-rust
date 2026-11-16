@@ -94,6 +94,48 @@ pub(super) fn register(engine: &mut rhai::Engine) {
             sw(record(i) + 260, combo as i32);
         }
     });
+    // giving weapons, players and computer characters alike: owning one with all its ammunition, owning none but the fists, and taking one into the hands (as the game does
+    // when a player picks the next weapon: its gun is put away and the new one made)
+    engine.register_fn("give_weapon", |i: i64, combo: i64| {
+        if prop_of(i) != 0 && (1..combo_count() as i64).contains(&combo) {
+            own_set(record(i), combo as i32);
+            gunSetAmmoToMax(record(i), combo as i32);
+        }
+    });
+    engine.register_fn("take_weapons", |i: i64| {
+        if prop_of(i) != 0 {
+            for c in 1..combo_count() {
+                own_unset(record(i), c);
+            }
+        }
+    });
+    engine.register_fn("switch_weapon", |i: i64, combo: i64| {
+        if prop_of(i) != 0 && (0..combo_count() as i64).contains(&combo) && own_get(record(i), combo as i32) != 0 {
+            sw(record(i) + 260, combo as i32);
+        }
+    });
+    engine.register_fn("weapon_count", || combo_count() as i64);
+    // the name of a weapon, as the message of its pickup has it
+    engine.register_fn("weapon_name", |combo: i64| -> String {
+        if !(1..combo_count() as i64).contains(&combo) {
+            return String::new();
+        }
+        let c = combo as i32;
+        let strings = lw((lw(g::cur_language) << 2) + g::languages);
+        let at = pickup_name(c, lw((lh((c << 3) + (GUNCOMBOS + 6)) << 2) + strings));
+        if at == 0 {
+            return String::new();
+        }
+        let mut text = Vec::new();
+        for k in 0..60 {
+            let b = lbu(at + k) as u8;
+            if b == 0 {
+                break;
+            }
+            text.push(b);
+        }
+        String::from_utf8_lossy(&text).to_string()
+    });
     // the gun in the right hand of a weapon (-1 for none: the fists)
     engine.register_fn("weapon_gun", |combo: i64| if (0..combo_count() as i64).contains(&combo) { lh(GUNCOMBOS + 8 * combo as i32 + 4) as i64 } else { -1 });
     engine.register_fn("weapon_rank", |combo: i64| if (0..combo_count() as i64).contains(&combo) { lh(GUNCOMBOS + 8 * combo as i32) as i64 } else { 0 });

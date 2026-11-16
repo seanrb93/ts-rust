@@ -273,6 +273,18 @@ pub fn own_set(chr: i32, combo: i32) {
     mm_set(OWNED_AT, chr, mm_get(OWNED_AT, chr).unwrap_or(0) | 1 << bit);
 }
 
+/// The character `chr` no longer owns the combination (a script's `take_weapons`).
+pub fn own_unset(chr: i32, combo: i32) {
+    if combo < GAME_COMBOS || !cfg!(feature = "extended-tables") {
+        sw(chr + 488 + 4 * combo, 0);
+        return;
+    }
+    let bit = (combo - GAME_COMBOS).clamp(0, 63);
+    if let Some(bits) = mm_get(OWNED_AT, chr) {
+        mm_set(OWNED_AT, chr, bits & !(1 << bit));
+    }
+}
+
 /// A game starts: nobody owns an added pair.
 pub fn own_clear_all() {
     if cfg!(feature = "extended-tables") {

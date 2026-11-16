@@ -673,6 +673,7 @@ pub fn propDamage(a0: i32, a1: i32, a2: i32, a3: i32, a4: i32, a5: i32, a6: i32,
             if a1 != 0 {
                 if lw(a1 + 8) == 8 {
                     let s1_4 = lw(a1 + 352);
+                    kill_noted(lw(s5_1), lw(s1_4));
                     let mut a1_26 = lw(a1 + 356);
                     let a0_34 = s1_4 + 32 + (lw(s5_1) << 1);
                     sh(a0_34, lhu(a0_34) + 1);

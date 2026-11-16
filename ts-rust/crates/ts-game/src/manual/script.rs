@@ -70,11 +70,15 @@ struct Fx {
     /// the character does not come back into the match when it dies (a player's button does not bring it back, a computer character is not
     /// put back in)
     out: bool,
+    /// the character that killed it, as the game counts the kill (`propDamage`), until it is back in the match
+    killed_by: i32,
+    /// it was alive at the last tick of the scripts
+    was_alive: bool,
 }
 
 impl Default for Fx {
     fn default() -> Self {
-        Fx { flame: false, tint: None, passive: false, speed: 1.0, move_speed: 1.0, pad: -1, steer: None, radar: None, hold_fire: false, fire_mode: -1, spread: 1.0, react: 1.0, run_to: None, uses_ammo: false, out: false }
+        Fx { flame: false, tint: None, passive: false, speed: 1.0, move_speed: 1.0, pad: -1, steer: None, radar: None, hold_fire: false, fire_mode: -1, spread: 1.0, react: 1.0, run_to: None, uses_ammo: false, out: false, killed_by: -1, was_alive: true }
     }
 }
 
@@ -87,6 +91,8 @@ struct State {
     dt: f32,
     /// the score and the rank are left off the screen
     hide_score: bool,
+    /// the weapons lying in the level are hidden and cannot be picked up, and a weapon a character drops is gone (`weapon_pickups(false)`)
+    no_weapon_pickups: bool,
 }
 
 struct Host {
@@ -108,7 +114,7 @@ thread_local! {
     static MODEL_ADDITIONS: RefCell<Vec<(usize, Vec<f64>)>> = RefCell::new(Vec::new());
     /// The models last made (a game asks for the size and then the file).
     static MODELS_MADE: RefCell<HashMap<String, Arc<Vec<u8>>>> = RefCell::new(HashMap::new());
-    static STATE: RefCell<State> = RefCell::new(State { fx: Vec::new(), started: false, last_game_frame: 0, in_hud: false, dt: 1.0, hide_score: false });
+    static STATE: RefCell<State> = RefCell::new(State { fx: Vec::new(), started: false, last_game_frame: 0, in_hud: false, dt: 1.0, hide_score: false, no_weapon_pickups: false });
     static HOSTS: RefCell<Vec<Host>> = RefCell::new(Vec::new());
     /// The table of scores being drawn is the page of the scores, which a script's `result_key` and `result_text` change.
     static SCRIPTED_TABLE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -269,6 +275,10 @@ fn register(engine: &mut Engine) {
     engine.register_fn("killer", |i: i64| -> i64 {
         if prop_of(i) == 0 {
             return -1;
+        }
+        // (a computer character's record keeps no killer: the kill the game counted is kept for it)
+        if let Some(k) = fx_read(i as i32, |f| f.killed_by).filter(|&k| k >= 0) {
+            return if k as i64 == i { -1 } else { k as i64 };
         }
         let by = lw(record(i) + 256);
         let total = characters().1 as i64;
@@ -513,6 +523,7 @@ fn register(engine: &mut Engine) {
     });
     // the score and the rank of the player are not shown on the screen (a mode with no use for them)
     engine.register_fn("hide_score", |on: bool| STATE.with(|s| s.borrow_mut().hide_score = on));
+    engine.register_fn("weapon_pickups", |on: bool| STATE.with(|s| s.borrow_mut().no_weapon_pickups = !on));
     // the glow at the edge of the screen (only in `on_hud`): red, green, blue and alpha of 0 to 127
     engine.register_fn("hud_glow", |r: i64, g: i64, b: i64, a: i64| {
         if STATE.with(|s| s.borrow().in_hud) {
@@ -643,6 +654,7 @@ pub fn script_reset() {
         s.started = false;
         s.last_game_frame = 0;
         s.hide_score = false;
+        s.no_weapon_pickups = false;
     });
     TRIED.store(false, Ordering::Relaxed);
     refresh_active();
@@ -909,7 +921,24 @@ pub fn script_tick() {
         return;
     }
     let _: Vec<()> = call_all("on_tick", ());
+    // (a character back in the match has no killer)
+    for i in 0..total.min(64) {
+        let now = is_alive(i as i64);
+        fx_of(i as i64, |f| {
+            if now && !f.was_alive {
+                f.killed_by = -1;
+            }
+            f.was_alive = now;
+        });
+    }
     flames(info, total);
+}
+
+/// The game counted a kill of the character `victim` by the character `killer` (their numbers; the same for a character that killed itself).
+pub fn script_note_kill(victim: i32, killer: i32) {
+    if ACTIVE.load(Ordering::Relaxed) && (0..64).contains(&victim) {
+        fx_of(victim as i64, |f| f.killed_by = killer);
+    }
 }
 
 /// The scripts have been started for the match (`on_start` ran): the hooks of a match wait for it, as their state is made there (in a network game the
@@ -1005,6 +1034,25 @@ pub fn script_radar_colour(i: i32) -> Option<i32> {
 /// The screen leaves out the score and the rank (`hudGfx`).
 pub fn script_hides_score() -> bool {
     ACTIVE.load(Ordering::Relaxed) && STATE.with(|s| s.borrow().hide_score)
+}
+
+/// The pickup prop `prop` is a weapon and a script has the weapons off (`weapon_pickups(false)`): one of the level is hidden and cannot be taken, as a taken one is but with
+/// no time to come back, and one a character dropped is deleted.  `pickupPropTick` does nothing more with it.
+pub fn script_pickup_skipped(prop: i32) -> bool {
+    if !ACTIVE.load(Ordering::Relaxed) || !STATE.with(|s| s.borrow().no_weapon_pickups) {
+        return false;
+    }
+    let data = lw(prop + 352);
+    if data == 0 || lw(data) != 2 {
+        return false;
+    }
+    // (a dropped one has a slot of the pickups made in a match at +92; the level's have -1)
+    if lw(data + 92) != -1 {
+        pickupPropDelete(prop);
+    } else {
+        sw(prop + 16, lw(prop + 16) & !3);
+    }
+    true
 }
 
 /// The character of the record `record` (a record of the characters, +0 its number) is kept out of the match by a script (`keep_out`): when it is

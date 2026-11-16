@@ -153,6 +153,29 @@ pub fn punch_label_begin(prop: i32) -> bool {
     }
 }
 
+/// The game counts a kill (`propDamage`): the scripts keep who killed whom (`killer`).
+#[inline]
+pub fn kill_noted(victim: i32, killer: i32) {
+    #[cfg(feature = "extensions")]
+    script_note_kill(victim, killer);
+    #[cfg(not(feature = "extensions"))]
+    let _ = (victim, killer);
+}
+
+/// The pickup prop `prop` is left alone by `pickupPropTick` (a weapon while a script has them off: hidden, or deleted when dropped).
+#[inline]
+pub fn pickup_skipped(prop: i32) -> bool {
+    #[cfg(feature = "extensions")]
+    {
+        script_pickup_skipped(prop)
+    }
+    #[cfg(not(feature = "extensions"))]
+    {
+        let _ = prop;
+        false
+    }
+}
+
 /// The model of the prop `prop` is drawn in a view now (`obInstGfx`, after its own checks): the flames of scripts are kept only on characters
 /// the game draws.
 #[inline]

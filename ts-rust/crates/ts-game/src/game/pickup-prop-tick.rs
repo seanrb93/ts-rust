@@ -36,6 +36,9 @@ fn drop_bag_reset(holder: i32) {
 /// The tick of the pickup prop `a0` (@ 0x26a330): a pickup that times out fades and is deleted; it turns or bobs; and then every character is tested for touching it and, when one
 /// does, the pickup does its effect by its kind (`lw(data)`: 1 a bag, 2 a weapon, 4 armour, 8 health, 32 ammo).
 pub fn pickupPropTick(a0: i32) {
+    if pickup_skipped(a0) {
+        return;
+    }
     let data = lw(a0 + 352);
     let owner_kind;
     if lw(a0 + 488) == 0 {
