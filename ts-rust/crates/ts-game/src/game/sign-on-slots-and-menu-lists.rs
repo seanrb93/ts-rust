@@ -118,9 +118,15 @@ pub fn hudRankGfx(team: i32, y: i32, across: i32) {
     sw(sp, 0);
     let label = lw(texts + 3256);
     // (extensions: a mode's script may show something else in the box, such as the lives left)
+    // (and the box is made wide enough for it)
     #[cfg(feature = "extensions")]
-    let (label, text) = script_hud_box(lw(lw(g::currentplayer))).unwrap_or((label, text));
-    drawValueBox(label, text, x, y, 54, 22, lw(record + 20), 0x7f7f7f80);
+    let (label, text, width) = match script_hud_box(lw(lw(g::currentplayer))) {
+        Some((label, text)) => (label, text, hud_box_width(text, 54)),
+        None => (label, text, 54),
+    };
+    #[cfg(not(feature = "extensions"))]
+    let width = 54;
+    drawValueBox(label, text, x, y, width, 22, lw(record + 20), 0x7f7f7f80);
 }
 
 /// Work out the sizes of the menu item `item` and of the two items it is joined to (at +8 and +16) and their places (`menuitemCalcPos`) (@ 0x20cc28).

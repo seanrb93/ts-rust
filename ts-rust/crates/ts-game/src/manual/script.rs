@@ -1233,6 +1233,18 @@ pub fn script_hud_box(player: i32) -> Option<(i32, i32)> {
     None
 }
 
+/// How wide the box of the rank has to be for the value `text` a script put in it: the game's `least`, or wider when the text is (measured in the font
+/// and the size `drawValueBox` writes it in, with 4 to spare on each side), so that a value such as "12/16" stays inside the box.
+pub fn hud_box_width(text: i32, least: i32) -> i32 {
+    let old = textSelect(3);
+    let flags = lbu(g::fontflags);
+    sb(g::fontflags, flags & 254);
+    let measured = textWidth(text);
+    sb(g::fontflags, flags);
+    textSelect(old);
+    least.max(measured + 8)
+}
+
 /// The flames of the characters a script has set alight: a flame is kept on each living one, and the flame of one that is not alight (or is
 /// dead) is put out at once.
 fn flames(info: i32, total: i32) {
