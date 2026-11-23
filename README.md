@@ -13,6 +13,16 @@ ts-rust/target/release/ts-rust.exe --level Village   # straight into a level (no
 ```
 
 The play folder holds the program, the image of the game's disc, and what the game makes there (`ts-rust.ini`, `saves/`, `mods/`).
+
+## The game's disc
+
+The game is read straight from an image of your own disc in the play folder; nothing needs to be extracted.
+
+- A cue sheet and its BIN file (a dump of the CD in raw 2352-byte sectors, MODE2/2352 as PS2 dumps are, or MODE1), or a CHD (`chdman createcd -i game.cue -o game.chd`, or `createdvd` from an ISO). A CHD is about a third of the size.
+- When the folder has several, a `.chd` is used before a `.cue`, and the first by name of each.
+- Without an image, or with one that is not TimeSplitters (no `PAK/BG.PAK` on it), the program says so and stops.
+- Mods are unchanged: their files stand in for the disc's as before, and a mod's music (`MUSIC/<number>.opus`, `.mp3`, ...) plays in place of the disc's.
+- `ts-rust --extract-disc <folder>` writes the disc's files to a folder, for the Python tools that read the game's packs; the mod kit does this by itself, once, into `mods/.cache/disc`.
 Settings are in `ts-rust.ini` (commented, made on the first start) and in the Audio and Video Options pages; `--set key=value` changes one for a run.
 Other options: `--players N`, `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[:frames]`.
 Controls: keyboard and mouse (WASD, the mouse looks and fires, the wheel changes weapon) or any gamepad; the button pictures follow the controller. F11 switches window and borderless, F10 quits.
