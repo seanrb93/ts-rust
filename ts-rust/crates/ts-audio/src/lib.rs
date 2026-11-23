@@ -17,7 +17,7 @@ mod spu;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 
-pub use music::{msc_to_wav, MusicCmd};
+pub use music::{msc_to_wav, MusicCmd, Stream};
 
 /// IOP RAM staging area (the game copies sample data EE -> IOP -> SPU2).
 pub const IOP_RAM_SIZE: usize = 2 << 20;

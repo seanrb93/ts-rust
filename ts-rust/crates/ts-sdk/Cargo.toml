@@ -10,6 +10,8 @@ ts-audio = { path = "../ts-audio" }
 libm = "0.2"
 # what a machine sends to bring the others back into step
 miniz_oxide = "0.8"
+# the game's disc as a CHD image
+chd = "0.4"
 
 [features]
 calltrace = ["ts-rt/calltrace"]

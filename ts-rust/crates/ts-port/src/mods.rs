@@ -172,8 +172,9 @@ struct Entry {
     size: u32,
 }
 
-fn read_pack(path: &Path) -> Option<(Vec<u8>, Vec<Entry>)> {
-    let d = std::fs::read(path).ok()?;
+/// The game's own pack `pack` (`BG.PAK`) from the disc, whatever the mods change: its bytes and its directory.
+fn read_pack(pack: &str) -> Option<(Vec<u8>, Vec<Entry>)> {
+    let d = ts_sdk::image_read_file(&format!("PAK/{pack}"))?;
     if d.len() < 16 || &d[0..4] != b"P4CK" {
         return None;
     }
@@ -198,8 +199,7 @@ pub fn publish_pack_names() {
     use std::io::{Read, Seek, SeekFrom};
     let mut names = std::collections::HashSet::new();
     for pack in PACKS {
-        let Some(path) = ts_sdk::disc_host_path(&format!(r"\PAK\{pack};1")) else { continue };
-        let Ok(mut f) = std::fs::File::open(&path) else { continue };
+        let Some(mut f) = ts_sdk::disc_open(&format!(r"\PAK\{pack};1")) else { continue };
         let mut head = [0u8; 12];
         if f.read_exact(&mut head).is_err() || &head[0..4] != b"P4CK" {
             continue;
@@ -218,9 +218,24 @@ pub fn publish_pack_names() {
     ts_game::set_pack_names(names);
 }
 
+/// The names of the files of the game's own pack `pack` (only its directory is read).
+fn pack_names(pack: &str) -> Option<Vec<Vec<u8>>> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut f = ts_sdk::ImageReader::open(&format!("PAK/{pack}"))?;
+    let mut head = [0u8; 12];
+    f.read_exact(&mut head).ok()?;
+    if &head[0..4] != b"P4CK" {
+        return None;
+    }
+    let mut dir = vec![0u8; u32::from_le_bytes(head[8..12].try_into().unwrap()) as usize];
+    f.seek(SeekFrom::Start(u32::from_le_bytes(head[4..8].try_into().unwrap()) as u64)).ok()?;
+    f.read_exact(&mut dir).ok()?;
+    Some(dir.chunks_exact(60).map(|e| e[..e[..48].iter().position(|&c| c == 0).unwrap_or(48)].to_vec()).collect())
+}
+
 /// Build `out` from the pack `src` with the files of `changes` (name in the pack -> host file) replaced or added.
-fn build_pack(src: &Path, changes: &BTreeMap<String, PathBuf>, out: &Path) -> Result<(), String> {
-    let (d, entries) = read_pack(src).ok_or_else(|| format!("{} is not a pack", src.display()))?;
+fn build_pack(src: &str, changes: &BTreeMap<String, PathBuf>, out: &Path) -> Result<(), String> {
+    let (d, entries) = read_pack(src).ok_or_else(|| format!("{src} is not a pack of the disc"))?;
     let dir_at = u32::from_le_bytes(d[4..8].try_into().unwrap()) as usize;
     let mut data = d[..dir_at].to_vec();
     let mut entries: Vec<(Vec<u8>, u32, u32)> = entries.into_iter().map(|e| (e.name, e.offset, e.size)).collect();
@@ -260,9 +275,9 @@ fn build_pack(src: &Path, changes: &BTreeMap<String, PathBuf>, out: &Path) -> Re
 
 /// What of an original sound decides how a replacement is made: its sample rate (the game's table says how fast to play it, not the file) and the
 /// flags of its first and last block (a sound that loops has 4 and 3).
-fn original_sound(packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>, game_dir: &Path, name: &str) -> Option<(u32, u8, u8)> {
+fn original_sound(packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>, name: &str) -> Option<(u32, u8, u8)> {
     for pack in ["SFX.PAK", "FRONTEND.PAK"] {
-        let (d, entries) = packs.entry(pack).or_insert_with(|| read_pack(&game_dir.join("PAK").join(pack))).as_ref()?;
+        let (d, entries) = packs.entry(pack).or_insert_with(|| read_pack(pack)).as_ref()?;
         if let Some(e) = entries.iter().find(|e| e.name == name.as_bytes()) {
             let b = d.get(e.offset as usize..(e.offset + e.size) as usize)?;
             if b.len() < 0x60 || &b[..4] != b"VAGp" {
@@ -280,7 +295,7 @@ const MAX_SOUND: usize = 133_000;
 
 /// A sound given as Opus or WAV is made into the game's `.vag` in `mods/.cache/converted/`: mono, at the sample rate of the sound it
 /// replaces (22050 Hz for a new one), with the same looping.  Returns the name of the file in the pack and the converted file.
-fn convert_sound(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) -> Option<(String, PathBuf)> {
+fn convert_sound(cache: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) -> Option<(String, PathBuf)> {
     let (stem, _) = rel.rsplit_once('.')?;
     let first = stem.split('/').next().unwrap_or("");
     let inner_stem = if PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/') { &stem[first.len() + 1..] } else { stem };
@@ -296,7 +311,7 @@ fn convert_sound(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, host:
     if out.is_file() && newer(&out, host) {
         return Some((rel_name, out));
     }
-    let (rate, f_first, f_last) = original_sound(packs, game_dir, &name).unwrap_or((22050, 0, 1));
+    let (rate, f_first, f_last) = original_sound(packs, &name).unwrap_or((22050, 0, 1));
     let (pcm, from) = match ts_audio::codec::read_audio(host) {
         Ok(x) => x,
         Err(e) => {
@@ -321,8 +336,8 @@ fn convert_sound(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, host:
 }
 
 /// The size of a texture of the game (its `.qpm` header), to tell a mod that its picture has another size.
-fn original_texture_size(packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>, game_dir: &Path, name: &str) -> Option<(usize, usize)> {
-    let (d, entries) = packs.entry("MISC.PAK").or_insert_with(|| read_pack(&game_dir.join("PAK").join("MISC.PAK"))).as_ref()?;
+fn original_texture_size(packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>, name: &str) -> Option<(usize, usize)> {
+    let (d, entries) = packs.entry("MISC.PAK").or_insert_with(|| read_pack("MISC.PAK")).as_ref()?;
     let e = entries.iter().find(|e| e.name == name.as_bytes())?;
     let b = d.get(e.offset as usize..(e.offset + e.size.min(64)) as usize)?;
     let text = String::from_utf8_lossy(b);
@@ -347,7 +362,7 @@ fn canon_texture(inner: &str) -> String {
     inner.to_string()
 }
 
-fn register_picture(game_dir: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) {
+fn register_picture(mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) {
     let Some((stem, _)) = rel.rsplit_once('.') else { return };
     let first = stem.split('/').next().unwrap_or("");
     let inner = canon_texture(if PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/') { &stem[first.len() + 1..] } else { stem });
@@ -355,7 +370,7 @@ fn register_picture(game_dir: &Path, mod_name: &str, rel: &str, host: &Path, pac
     let name = format!("{inner}.qpm");
     // (a texture of the mod's own: the mod has a .qpm of that name beside the picture, a small one the game's loader takes; the picture is shown in its place at any size)
     let own = host.with_extension("qpm").is_file();
-    if original_texture_size(packs, game_dir, &name).is_none() && !own {
+    if original_texture_size(packs, &name).is_none() && !own {
         eprintln!("[mods] {mod_name}: {name} is not a texture of the game: {rel} is not used");
         return;
     }
@@ -365,7 +380,7 @@ fn register_picture(game_dir: &Path, mod_name: &str, rel: &str, host: &Path, pac
 
 /// A picture given as PNG is made into the game's texture format in `mods/.cache/converted/`.  Returns the name of the texture in the pack and the
 /// converted file.
-fn convert_texture(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) -> Option<(String, PathBuf)> {
+fn convert_texture(cache: &Path, mod_name: &str, rel: &str, host: &Path, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) -> Option<(String, PathBuf)> {
     let (stem, _) = rel.rsplit_once('.')?;
     let first = stem.split('/').next().unwrap_or("");
     let has_pack = PACKS.iter().any(|p| p.eq_ignore_ascii_case(first)) && stem.contains('/');
@@ -390,7 +405,7 @@ fn convert_texture(game_dir: &Path, cache: &Path, mod_name: &str, rel: &str, hos
             return None;
         }
     };
-    match original_texture_size(packs, game_dir, &name) {
+    match original_texture_size(packs, &name) {
         Some((ow, oh)) if (ow, oh) != (w, h) => eprintln!("[mods] {mod_name}: {rel} is {w}x{h}, the texture it replaces is {ow}x{oh} (on a model the picture is stretched over the same surface; a picture the game draws as a sprite, such as the HUD's, is drawn at its new size)"),
         Some(_) => {}
         None => eprintln!("[mods] {mod_name}: {name} is not a texture of the game: it is added (a model has to ask for it by name)"),
@@ -459,7 +474,7 @@ pub fn load(game_dir: &Path) {
     // the packs' contents, to find where a file without a pack name belongs
     let contents: Vec<(&str, Vec<Vec<u8>>)> = PACKS
         .iter()
-        .filter_map(|p| read_pack(&game_dir.join("PAK").join(p)).map(|(_, e)| (*p, e.into_iter().map(|e| e.name).collect())))
+        .filter_map(|p| pack_names(p).map(|names| (*p, names)))
         .collect();
     let mut original_packs: BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>> = BTreeMap::new();
     for m in &mods {
@@ -511,10 +526,10 @@ pub fn load(game_dir: &Path) {
                 overlay.push((key, host));
                 count += 1;
             } else if lower.ends_with(".png") && std::env::var_os("TS_PNG_QPM").is_none() {
-                register_picture(game_dir, &m.name, &lower, &host, &mut original_packs);
+                register_picture(&m.name, &lower, &host, &mut original_packs);
                 count += 1;
             } else if lower.ends_with(".png") {
-                if let Some((name, file)) = convert_texture(game_dir, &cache, &m.name, &lower, &host, &mut original_packs) {
+                if let Some((name, file)) = convert_texture(&cache, &m.name, &lower, &host, &mut original_packs) {
                     let (pack, inner) = match name.split_once('/').and_then(|(f, rest)| PACKS.iter().find(|p| p.eq_ignore_ascii_case(f)).map(|p| (*p, rest.to_string()))) {
                         Some(x) => x,
                         None => ("MISC.PAK", name.clone()),
@@ -523,7 +538,7 @@ pub fn load(game_dir: &Path) {
                     count += 1;
                 }
             } else if audio {
-                if let Some((name, file)) = convert_sound(game_dir, &cache, &m.name, &lower, &host, &mut original_packs) {
+                if let Some((name, file)) = convert_sound(&cache, &m.name, &lower, &host, &mut original_packs) {
                     let (pack, inner) = match name.split_once('/').and_then(|(f, rest)| PACKS.iter().find(|p| p.eq_ignore_ascii_case(f)).map(|p| (*p, rest.to_string()))) {
                         Some(x) => x,
                         None => match contents.iter().find(|(_, names)| names.iter().any(|n| *n == name.as_bytes())) {
@@ -550,14 +565,14 @@ pub fn load(game_dir: &Path) {
         }
         eprintln!("[mods] {}: {count} file(s)", m.name);
     }
-    add_levels(game_dir, &cache, &level_lists, &mut pack_changes, &mut original_packs);
+    add_levels(&cache, &level_lists, &mut pack_changes, &mut original_packs);
     for (pack, changes) in &pack_changes {
         let out = cache.join(pack);
         let key = cache.join(format!("{pack}.key"));
         let want = stamp(changes);
         if std::fs::read_to_string(&key).ok().as_deref() != Some(want.as_str()) || !out.is_file() {
             eprintln!("[mods] building {pack} ({} file(s))...", changes.len());
-            if let Err(e) = build_pack(&game_dir.join("PAK").join(pack), changes, &out) {
+            if let Err(e) = build_pack(pack, changes, &out) {
                 eprintln!("[mods] {pack}: {e}");
                 continue;
             }
@@ -574,7 +589,7 @@ pub fn load(game_dir: &Path) {
 
 /// The levels of the mods (`levels.txt`, one per line: `level <number 31..99> "<name>" like <level> [tune <track>] [modes dm,bagtag,ctb,escort,ko,ls]`):
 /// they are told to the game, and a level that has no files of the mod's own gets copies of the files of the level it is like.
-fn add_levels(game_dir: &Path, cache: &Path, lists: &[(String, PathBuf)], pack_changes: &mut BTreeMap<&str, BTreeMap<String, PathBuf>>, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) {
+fn add_levels(cache: &Path, lists: &[(String, PathBuf)], pack_changes: &mut BTreeMap<&str, BTreeMap<String, PathBuf>>, packs: &mut BTreeMap<&'static str, Option<(Vec<u8>, Vec<Entry>)>>) {
     let mut levels: Vec<ts_sdk::CustomLevel> = Vec::new();
     for (mod_name, file) in lists {
         let text = std::fs::read_to_string(file).unwrap_or_default();
@@ -659,7 +674,7 @@ fn add_levels(game_dir: &Path, cache: &Path, lists: &[(String, PathBuf)], pack_c
                 if pack_changes.get(pack).map_or(false, |c| c.contains_key(&new)) {
                     continue;
                 }
-                let Some((d, entries)) = packs.entry(pack).or_insert_with(|| read_pack(&game_dir.join("PAK").join(pack))).as_ref() else { continue };
+                let Some((d, entries)) = packs.entry(pack).or_insert_with(|| read_pack(pack)).as_ref() else { continue };
                 let Some(e) = entries.iter().find(|e| e.name == old.as_bytes()) else { continue };
                 let Some(bytes) = d.get(e.offset as usize..(e.offset + e.size) as usize) else { continue };
                 let dir = cache.join("levels");

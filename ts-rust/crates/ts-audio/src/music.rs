@@ -13,10 +13,16 @@ const SRC_RATE: f32 = 44100.0;
 /// an Opus file's rate
 const OPUS_RATE: f32 = 48000.0;
 
+/// A file to read in turn: a file of the host, or one of the disc image.
+pub trait Stream: Read + std::io::Seek + Send {}
+impl<T: Read + std::io::Seek + Send> Stream for T {}
+
 /// Commands of the original stream driver (as issued by the game's `stream_RPC`).
 pub enum MusicCmd {
     /// Open a file (host path); does not start playing.
     Open(PathBuf),
+    /// Open a `.MSC` stream (a file of the disc image); does not start playing.
+    OpenMsc(Box<dyn Stream>),
     Close,
     /// Start or resume playback.
     Start,
@@ -98,8 +104,7 @@ fn any_decoder(path: PathBuf, first: crate::anyfmt::AnyReader, looping: Arc<Atom
     }
 }
 
-fn decoder(path: PathBuf, looping: Arc<AtomicBool>, tx: std::sync::mpsc::SyncSender<Vec<f32>>) {
-    let Ok(mut f) = std::fs::File::open(&path) else { return };
+fn decoder(mut f: Box<dyn Stream>, looping: Arc<AtomicBool>, tx: std::sync::mpsc::SyncSender<Vec<f32>>) {
     let mut sl = State::default();
     let mut sr = State::default();
     let mut buf = vec![0u8; CHUNK * 2];
@@ -199,8 +204,21 @@ impl Music {
                     }
                 } else {
                     self.src_rate = SRC_RATE;
-                    std::thread::spawn(move || decoder(path, looping, tx));
+                    match std::fs::File::open(&path) {
+                        Ok(f) => {
+                            std::thread::spawn(move || decoder(Box::new(f), looping, tx));
+                        }
+                        Err(e) => eprintln!("[audio] {}: {e}", path.display()),
+                    }
                 }
+                self.rx = Some(rx);
+            }
+            MusicCmd::OpenMsc(stream) => {
+                self.close();
+                let (tx, rx) = sync_channel(3);
+                let looping = self.looping.clone();
+                self.src_rate = SRC_RATE;
+                std::thread::spawn(move || decoder(stream, looping, tx));
                 self.rx = Some(rx);
             }
             MusicCmd::Close => self.close(),

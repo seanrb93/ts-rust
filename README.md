@@ -1,7 +1,7 @@
 # ts-rust
 
 A native PC port of the PS2 game *TimeSplitters*. The game's MIPS code is hand-decompiled to Rust and runs natively; there is no emulator.
-Put the `PAK` and `MUSIC` folders of the game (Version 2.0, SLUS 20090) next to the program. The original executable is not needed: its code is Rust here, and its data is in this repository.
+Put an image of the game's disc (Version 2.0, SLUS 20090: a `.cue` and its `.bin`, or a `.chd`) next to the program. The original executable is not needed: its code is Rust here, and its data is in this repository.
 
 ## Build and run
 
@@ -12,7 +12,7 @@ python tools/build-game.py --kit       # also builds tools/modkit.exe (needs pyi
 ts-rust/target/release/ts-rust.exe --level Village   # straight into a level (no option: the front end)
 ```
 
-The play folder holds the program, the game's `PAK/` and `MUSIC/`, and what the game makes there (`ts-rust.ini`, `saves/`, `mods/`).
+The play folder holds the program, the image of the game's disc, and what the game makes there (`ts-rust.ini`, `saves/`, `mods/`).
 Settings are in `ts-rust.ini` (commented, made on the first start) and in the Audio and Video Options pages; `--set key=value` changes one for a run.
 Other options: `--players N`, `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[:frames]`.
 Controls: keyboard and mouse (WASD, the mouse looks and fires, the wheel changes weapon) or any gamepad; the button pictures follow the controller. F11 switches window and borderless, F10 quits.
@@ -57,7 +57,7 @@ Every function passes except a short list of known artefacts (`docs/decompilatio
 
 ## Linux, Steam Deck and Windows builds
 
-GitHub Actions builds the game (`.github/workflows/linux.yml` and `windows.yml`; Actions tab, Run workflow). Unpack the artifact next to `PAK/` and `MUSIC/`
+GitHub Actions builds the game (`.github/workflows/linux.yml` and `windows.yml`; Actions tab, Run workflow). Unpack the artifact next to the image of the disc
 (the game's own files are not in the repository or the artifacts). The Linux build is untried on real hardware; on a Steam Deck, unpack it in Desktop mode and add `ts-rust` to Steam as a non-Steam game.
 
 ## Documents

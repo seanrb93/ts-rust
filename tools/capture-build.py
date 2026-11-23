@@ -3,7 +3,7 @@
     python tools/capture-build.py [--out DIR] [--shadow]
 
 Copies the Rust workspace to DIR (the temporary folder by default), puts a call to `ts_rt::capture::hook` at the start of every decompiled function of
-`ts-game/src/game`, and builds the program there.  The source folders are not changed.  Copy `SLUS_200.90`, `PAK` and `MUSIC` next to the program, then, for
+`ts-game/src/game`, and builds the program there.  The source folders are not changed.  Copy `SLUS_200.90` and an image of the disc next to the program, then, for
 instance:
 
     TS_CAPTURE=obMergeChunkPolys:0+3 ts-rust --headless --level Village --frames 10

@@ -1,4 +1,4 @@
-"""Where the game is (its PAK and MUSIC folders and the program), where the mods go, and which mod is being worked on: found by itself, asked once, remembered."""
+"""Where the game is (the image of its disc and the program), where the mods go, and which mod is being worked on: found by itself, asked once, remembered."""
 import json
 import os
 import sys
@@ -39,7 +39,10 @@ def save(data):
 
 
 def has_game_files(folder):
-    return bool(folder) and os.path.isfile(os.path.join(folder, 'PAK', 'OB.PAK'))
+    """The folder has the image of the game's disc (a .chd, or a .cue and its .bin), or the game's PAK folder."""
+    if not (folder and os.path.isdir(folder)):
+        return False
+    return os.path.isfile(os.path.join(folder, 'PAK', 'OB.PAK')) or any(n.lower().endswith(('.chd', '.cue')) for n in os.listdir(folder))
 
 
 def port_exe(folder):
@@ -63,7 +66,7 @@ def _candidates():
 
 
 class Setup:
-    """The game folder (the one with `PAK`, `MUSIC` and the program, which is also where `mods` is), asked for once."""
+    """The game folder (the one with the image of the disc and the program, which is also where `mods` is), asked for once."""
 
     def __init__(self):
         self.data = load()
@@ -80,7 +83,7 @@ class Setup:
             self._remember()
             return True
         ui.heading('Where is the game?')
-        ui.say('I need the folder that has the game program (ts-rust.exe) and the game\'s PAK and MUSIC folders.')
+        ui.say('I need the folder that has the game program (ts-rust.exe) and the image of the game\'s disc (.chd, or .cue and .bin).')
         folder = ui.pick_file('Choose the game folder', folder=True)
         if not folder:
             return False
@@ -89,7 +92,7 @@ class Setup:
             self.port_dir = folder
         self.game_dir = folder if has_game_files(folder) else self.game_dir
         if not has_game_files(self.game_dir):
-            ui.fail('That folder has no PAK/OB.PAK, so it is not the game folder.')
+            ui.fail('That folder has no image of the game\'s disc, so it is not the game folder.')
             self.game_dir = ''
             return False
         self._remember()
@@ -99,6 +102,18 @@ class Setup:
         self.data['port_dir'] = self.port_dir
         self.data['game_dir'] = self.game_dir
         save(self.data)
+
+    def pak_dir(self):
+        """A folder with the game's PAK folder: the game folder when it has one, else the files of the disc image, written once into the mods' cache
+        by the program (`--extract-disc`)."""
+        if os.path.isfile(os.path.join(self.game_dir, 'PAK', 'OB.PAK')):
+            return self.game_dir
+        out = os.path.join(self.mods_dir, '.cache', 'disc')
+        if not os.path.isfile(os.path.join(out, 'PAK', 'OB.PAK')):
+            import subprocess
+            ui.say('Reading the game\'s files from the image of its disc (once)...')
+            subprocess.run([port_exe(self.port_dir), '--game-dir', self.game_dir, '--extract-disc', out], check=False)
+        return out
 
     @property
     def mods_dir(self):

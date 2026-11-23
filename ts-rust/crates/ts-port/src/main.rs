@@ -1,6 +1,6 @@
 //! TimeSplitters native PC port launcher.
 //!
-//! usage: ts-rust [--game-dir <dir containing PAK/ and MUSIC/; default: the program's folder>] [--level NAME] [--players N]
+//! usage: ts-rust [--game-dir <dir containing the image of the disc (.cue and .bin, or .chd); default: the program's folder>] [--level NAME] [--players N]
 //!                 [--headless] [--frames N] [--screenshot FRAME file.png]
 //!
 //! Opens a window by default; `--headless` (implied by `--screenshot`) renders offscreen only.
@@ -59,7 +59,7 @@ fn apply_uploads(n: u64) {
 static PREV_FRAME: Mutex<Option<ts_gfx::scene::Frame>> = Mutex::new(None);
 static SHOT_RENDERER: Mutex<Option<ts_render::Renderer>> = Mutex::new(None);
 
-/// The folder of the program: the game's files (`PAK`, `MUSIC`) and the saves are kept there.
+/// The folder of the program: the image of the game's disc, the mods and the saves are kept there.
 fn exe_dir() -> PathBuf {
     std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())).unwrap_or_else(|| PathBuf::from("."))
 }
@@ -612,6 +612,7 @@ fn main() {
         ts_rt::calltrace::dump_now();
     }));
     let mut game_dir: Option<PathBuf> = None;
+    let mut extract_to: Option<PathBuf> = None;
     let mut max_frames: Option<u64> = None;
     let mut level: Option<String> = None;
     let mut players: Option<String> = None;
@@ -679,6 +680,8 @@ fn main() {
                     audio::enable_wav(&p);
                 }
             }
+            // the files of the disc image written to a folder (for the tools that read the game's packs, such as the mod kit)
+            "--extract-disc" => extract_to = it.next().map(Into::into),
             "--msc-to-wav" => {
                 // tools/convert_music.py: a music stream of the game as a WAV file
                 let (Some(from), Some(to)) = (it.next(), it.next()) else {
@@ -759,15 +762,31 @@ fn main() {
     }
     let windowed = force_window || !(headless || !SHOTS.lock().unwrap().is_empty());
     WINDOWED.store(windowed, std::sync::atomic::Ordering::Relaxed);
-    // the game's files have to be in the program's own folder (`--game-dir` is for testing)
+    // the image of the game's disc has to be in the program's own folder (`--game-dir` is for testing)
     let game_dir = game_dir.unwrap_or_else(exe_dir);
-    if !game_dir.join("PAK").is_dir() {
-        fatal(&format!("The game's files are missing.
+    let Some(image) = ts_sdk::find_image(&game_dir) else {
+        fatal(&format!("The game's disc is missing.
 
-Put the PAK and MUSIC folders of the game in the same folder as the program:
+Put an image of the disc of TimeSplitters (a .cue file and its .bin file, or a .chd file) in the same folder as the program:
 {}", game_dir.display()));
+    };
+    if let Err(e) = ts_sdk::set_disc_image(&image) {
+        fatal(&format!("The image of the game's disc cannot be read.
+
+{e}"));
     }
-    eprintln!("[port] game directory: {}", game_dir.display());
+    eprintln!("[port] disc image: {}", image.display());
+    if let Some(to) = extract_to {
+        for (name, _) in ts_sdk::image_files() {
+            let out = to.join(&name);
+            let written = out.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|_| std::fs::write(&out, ts_sdk::image_read_file(&name).unwrap_or_default()));
+            if let Err(e) = written {
+                eprintln!("{}: {e}", out.display());
+                std::process::exit(1);
+            }
+        }
+        std::process::exit(0);
+    }
 
     ts_rt::init_memory();
     // The game's initialised data (strings, tables, defaults) is part of the program: no copy of the original executable is needed.
@@ -786,7 +805,6 @@ Put the PAK and MUSIC folders of the game in the same folder as the program:
     config::load(&overrides);
     #[cfg(feature = "extensions")]
     ts_game::set_text_scale((config::get().hud_scale * 1000.0).round() as i32);
-    ts_sdk::set_disc_root(&game_dir);
     ts_gfx::hd::set_loader(texmod::load_hd);
     icons::init();
     mods::load(&exe_dir());
@@ -1070,12 +1088,8 @@ fn compat_parts(game_dir: &std::path::Path) -> [u32; 3] {
     feed(&mut program, &ts_sdk::net::PROTOCOL.to_le_bytes());
     // (the game's packs: their names and sizes)
     let mut packs = START;
-    if let Ok(rd) = std::fs::read_dir(game_dir.join("PAK")) {
-        let mut v: Vec<_> = rd
-            .flatten()
-            .filter_map(|e| Some((e.file_name().to_string_lossy().to_ascii_uppercase(), e.metadata().ok()?.len())))
-            .filter(|(n, _)| n.ends_with(".PAK"))
-            .collect();
+    {
+        let mut v: Vec<_> = ts_sdk::image_folder("PAK").into_iter().filter(|(n, _)| n.ends_with(".PAK")).map(|(n, l)| (n, l as u64)).collect();
         v.sort();
         for (n, l) in v {
             feed(&mut packs, n.as_bytes());

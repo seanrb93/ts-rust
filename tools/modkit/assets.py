@@ -77,7 +77,7 @@ def _opus(exe, src, dst):
 
 def sound_names(ctx):
     import pakls
-    _, es = pakls.entries(os.path.join(ctx.setup.game_dir, 'PAK', 'SFX.PAK'))
+    _, es = pakls.entries(os.path.join(ctx.setup.pak_dir(), 'PAK', 'SFX.PAK'))
     return sorted(n for n, _, _ in es if n.lower().endswith('.vag'))
 
 
@@ -140,7 +140,7 @@ def export_textures(ctx):
         return
     ui.say('Making the pictures (a minute or two)...')
     old = sys.argv
-    sys.argv = ['extract_textures', os.path.join(ctx.setup.game_dir, 'PAK'), out]
+    sys.argv = ['extract_textures', os.path.join(ctx.setup.pak_dir(), 'PAK'), out]
     try:
         extract_textures.main()
     except SystemExit as e:

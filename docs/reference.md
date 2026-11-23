@@ -6,10 +6,12 @@ A native PC port of the PS2 game *TimeSplitters*. The game's MIPS (R5900) code i
 decompiled to Rust**; it is not run in an emulator and the PS2 hardware (EE, GS, VUs, DMA, SPU2, IOP) is not emulated.
 Hardware services are replaced by native ones.
 
-You need your own copy of the game's assets: its `PAK/` and `MUSIC/` folders have to be in the same folder as the executable
-(`ts-rust.exe`); without them the program says so and stops.  The saves are in a `saves/` folder there too.
+You need your own copy of the game: an image of its disc has to be in the same folder as the executable (`ts-rust.exe`), a cue sheet and its BIN file
+(a CD image of raw 2352-byte sectors, or of 2048-byte ones) or a CHD (`chdman createcd`, or `createdvd`); without one the program says so and stops.  The program reads
+the files of the disc through its ISO 9660 directory (`ts-sdk/src/native/image.rs`); a CHD comes before a cue sheet, and of several the first by name is used.
+`ts-rust --extract-disc <folder>` writes the files of the image to a folder, for the tools that read the game's packs (the mod kit does it by itself, into `mods/.cache/disc`).  The saves are in a `saves/` folder there too.
 The original executable (`SLUS_200.90`) is **not** needed: all of its code is Rust here, and its data (the tables, strings and defaults, and the graphics microcode) is part of the repository.
-**Never commit the game's `PAK/` and `MUSIC/` or `saves/`.**
+**Never commit the image of the game's disc, its files, or `saves/`.**
 
 ## Build
 
@@ -35,7 +37,7 @@ ts-rust/target/release/ts-rust.exe                      # front end, in a window
 ts-rust/target/release/ts-rust.exe --level Village      # jump into a level
 ```
 
-The executable's folder holds `PAK/` and `MUSIC/` from the disc.  The game's initialised data (strings, tables, defaults) is part of the program (`ts-rt/data/game-data.bin`, copied to its addresses at start; `TS_GAME_EXE=<SLUS_200.90>` reads it from the original executable instead, to compare).  A crash or GPU error is written to `ts-rust-crash.log` next to the port.
+The executable's folder holds the image of the disc.  The game's initialised data (strings, tables, defaults) is part of the program (`ts-rt/data/game-data.bin`, copied to its addresses at start; `TS_GAME_EXE=<SLUS_200.90>` reads it from the original executable instead, to compare).  A crash or GPU error is written to `ts-rust-crash.log` next to the port.
 
 Options: `--game-dir DIR`, `--level NAME`, `--players N`, `--save-dir DIR` (virtual memory card, default `saves/` in the executable's folder; `--game-dir` and `--save-dir` are for testing),
 `--headless`, `--frames N`, `--screenshot FRAME file.png`, `--press FRAME:button[+button][:frames]`,
@@ -356,8 +358,8 @@ drawn (about 70 ms for 4096x4096).  The game's own palette tricks do not reach a
 `example_mods/sample_mod/` is a small working mod (a texture, a sound, a music stream and `patches.txt`).
 `tools/make_hd_sample.py <extracted textures> <mods folder>` makes an HD sample mod from ten wall textures of the Tomb (16 times as big, teal and grainy: easy to see); it is written next to the game, not into the repository.
 
-`tools/convert_music.py <game folder>` turns the game's own music (`MUSIC/*.MSC`, 344 MB) into Opus files next to them (about 110 MB at 128 kbit/s, the default: the originals are ADPCM at 403 kbit/s; `--bitrate N` changes it); the port plays an
-`.opus` when there is one beside the `.MSC`, and also when there is no `.MSC` at all, so the originals can be removed (`--delete-originals` does it).  It needs ffmpeg.
+`tools/convert_music.py <folder>` turns the game's own music (`MUSIC/*.MSC` of a folder that `--extract-disc` wrote, 344 MB) into Opus files next to them (about 110 MB at 128 kbit/s, the default: the originals are ADPCM at 403 kbit/s; `--bitrate N` changes it).
+In a mod (`MUSIC/<number>.opus`) they are played in place of the disc's.  It needs ffmpeg.
 
 The packs are never changed: when the mods change, the changed packs are built again in `mods/.cache/` and the game reads those (a new
 file is added to the pack's directory, a replaced one points to the new data).  Mods are applied in alphabetical order, a later one wins.  The

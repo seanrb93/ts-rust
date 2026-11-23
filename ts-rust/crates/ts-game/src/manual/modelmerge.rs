@@ -267,8 +267,7 @@ fn add_to_part(f: &[u8], part: usize, added: &[Placed]) -> Option<Vec<u8>> {
 fn read_pack() -> HashMap<String, (u64, usize)> {
     use std::io::{Read, Seek, SeekFrom};
     let mut out = HashMap::new();
-    let Some(path) = ts_sdk::disc_host_path(r"\PAK\OB.PAK;1") else { return out };
-    let Ok(mut file) = std::fs::File::open(path) else { return out };
+    let Some(mut file) = ts_sdk::disc_open(r"\PAK\OB.PAK;1") else { return out };
     let mut head = [0u8; 12];
     if file.read_exact(&mut head).is_err() || &head[..4] != b"P4CK" {
         return out;
@@ -290,7 +289,7 @@ fn read_model(file: &str) -> Option<Vec<u8>> {
     use std::io::{Read, Seek, SeekFrom};
     let mut pack = PACK.lock().unwrap();
     let (place, length) = *pack.get_or_insert_with(read_pack).get(file)?;
-    let mut f = std::fs::File::open(ts_sdk::disc_host_path(r"\PAK\OB.PAK;1")?).ok()?;
+    let mut f = ts_sdk::disc_open(r"\PAK\OB.PAK;1")?;
     f.seek(SeekFrom::Start(place)).ok()?;
     let mut data = vec![0u8; length];
     f.read_exact(&mut data).ok()?;

@@ -5,7 +5,7 @@
     python tools/build-game.py --kit       also build tools/modkit.exe (needs pyinstaller; it is not put in the play folder)
 
 Cargo builds in `build/cargo/` (set in `ts-rust/.cargo/config.toml`), so its many files stay out of the play folder, `ts-rust/target/release/`, which then holds only the program (`ts-rust.exe`),
-the game's `PAK/` and `MUSIC/` (yours to put there), and what the game makes there (`ts-rust.ini`, `saves/`, `mods/`).
+the image of the game's disc (yours to put there: a `.chd`, or a `.cue` and its `.bin`), and what the game makes there (`ts-rust.ini`, `saves/`, `mods/`).
 """
 import os
 import shutil
@@ -41,9 +41,8 @@ def main():
             sys.exit(1)
         kit = 'modkit.exe' if os.name == 'nt' else 'modkit'
         print(f'the mod kit: {os.path.join(ROOT, "tools", kit)}')
-    for name in ('PAK', 'MUSIC'):
-        if not os.path.isdir(os.path.join(PLAY, name)):
-            print(f'note: the game needs its {name}/ folder in {PLAY}')
+    if not any(n.lower().endswith(('.chd', '.cue')) for n in os.listdir(PLAY)):
+        print(f'note: the game needs an image of its disc (.chd, or .cue and .bin) in {PLAY}')
 
 
 if __name__ == '__main__':

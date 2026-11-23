@@ -55,7 +55,7 @@ def export(ctx, game):
     if show:
         show_list(game)
     n = pick_character(game, 'Which character')
-    d, es = pakls.entries(os.path.join(ctx.setup.game_dir, 'PAK', 'OB.PAK'))
+    d, es = pakls.entries(os.path.join(ctx.setup.pak_dir(), 'PAK', 'OB.PAK'))
     name = f'ob/chrs/chr{n + 1:02d}.raw'
     hit = [(o, s) for nm, o, s in es if nm == name]
     if not hit:
@@ -91,7 +91,7 @@ def make(ctx, game):
     model_file = f'ob/chrs/c_{slug}{tag[:4]}.raw'
     tex_base = 9000 + (int(tag[4:8], 16) % 1500) * 20
     try:
-        entry = obchar.make_character(ctx.setup.game_dir, mesh, mod.folder, name, base, number, scale, 1.95, skeleton, tex_base, model_file, voice, write_entry=False)
+        entry = obchar.make_character(ctx.setup.pak_dir(), mesh, mod.folder, name, base, number, scale, 1.95, skeleton, tex_base, model_file, voice, write_entry=False)
     except SystemExit as e:
         ui.fail(str(e))
         return

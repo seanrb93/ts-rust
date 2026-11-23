@@ -1,11 +1,10 @@
-"""Turn the game's music (MUSIC/*.MSC, raw ADPCM, about 13 MB for a track) into Opus files (about 1 MB), which the game uses in place of the .MSC next to them.
+"""Turn the game's music (MUSIC/*.MSC, raw ADPCM, about 13 MB for a track) into Opus files (about 1 MB), for a mod that plays them in place of the disc's.
 
-    python tools/convert_music.py <game folder> [--bitrate 128] [--delete-originals]
+    python tools/convert_music.py <folder> [--bitrate 128] [--delete-originals]
 
-The game folder is the one with ts-rust.exe and MUSIC/.  Each MUSIC/NNNN.MSC is decoded by `ts-rust.exe --msc-to-wav` and encoded with ffmpeg
+The folder is one that `ts-rust --extract-disc <folder>` wrote (the files of the disc image), with MUSIC/; put the Opus files in a mod (MUSIC/NNNN.opus) to have them played in place of the disc's.  Each MUSIC/NNNN.MSC is decoded by `ts-rust.exe --msc-to-wav` and encoded with ffmpeg
 (libopus; ffmpeg has to be on the PATH, or imageio_ffmpeg installed) as MUSIC/NNNN.opus, stereo, 44.1 kHz, at the bitrate (kbit/s, default 128) in variable
-bit rate.  The port plays an .opus when there is one next to the .MSC; with `--delete-originals` the .MSC is removed once its Opus file is
-made (keep a copy of the game's files if you want to go back).
+bit rate.  With `--delete-originals` the .MSC is removed once its Opus file is made.
 """
 import os
 import shutil

@@ -1,10 +1,11 @@
-//! CD/DVD drive replacement: a *virtual disc* that serves the game's files from a directory on the host.
+//! CD/DVD drive replacement: a *virtual disc* that serves the game's files from an image of its disc (`image.rs`), with the files of mods
+//! standing in for some of them.
 //!
-//! The original game located files through an ISO9660 directory walk and then read raw 2048-byte sectors by logical
-//! sector number (LSN).  On PC the directory is served from the file system: every file the game asks for gets a
-//! synthetic sector range, and `sceCdRead` maps sector numbers back to host files.
+//! The original game located files through an ISO9660 directory walk and then read raw 2048-byte sectors by logical sector number (LSN).
+//! Every file the game asks for gets a sector range of its own here, and `sceCdRead` maps sector numbers back to the file.
 #![allow(non_snake_case)]
 
+use super::image::{image_file, image_read, ImageReader};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -12,15 +13,21 @@ use ts_rt::*;
 
 const SECTOR: u64 = 2048;
 
+/// Where a file the game reads is: a file of the host (a mod's) or a file of the disc image (its first sector).
+#[derive(Clone, PartialEq)]
+enum Where {
+    Host(PathBuf),
+    Image(u32),
+}
+
 struct DiscFile {
     lsn: u32,
     sectors: u32,
-    path: PathBuf,
+    at: Where,
     size: u64,
 }
 
 struct Disc {
-    root: PathBuf,
     files: Vec<DiscFile>,
     next_lsn: u32,
 }
@@ -34,53 +41,57 @@ pub fn set_disc_overlay(files: Vec<(String, PathBuf)>) {
     *OVERLAY.lock().unwrap() = files;
 }
 
-/// Point the virtual disc at the directory that holds `SLUS_200.90`, `PAK/`, `MUSIC/`, ...
-pub fn set_disc_root(root: &Path) {
-    *DISC.lock().unwrap() = Some(Disc { root: root.to_path_buf(), files: Vec::new(), next_lsn: 0x400 });
+/// Read the game's disc from the image `image` (a `.chd` or a `.cue`).
+pub fn set_disc_image(image: &Path) -> Result<(), String> {
+    super::image::open_image(image)?;
+    *DISC.lock().unwrap() = Some(Disc { files: Vec::new(), next_lsn: 0x400 });
+    Ok(())
 }
 
-/// Resolve a disc path (`\PAK\ANIM.PAK;1`, optionally prefixed by `cdrom0:`) case-insensitively to a host file.
-fn resolve(root: &Path, name: &str) -> Option<PathBuf> {
+fn key(name: &str) -> String {
     let name = name.strip_prefix("cdrom0:").unwrap_or(name);
     let name = name.split(';').next().unwrap_or(name);
-    let key = name.split(['\\', '/']).filter(|c| !c.is_empty()).collect::<Vec<_>>().join("/").to_ascii_lowercase();
-    if let Some((_, p)) = OVERLAY.lock().unwrap().iter().find(|(k, _)| *k == key) {
-        return Some(p.clone());
-    }
-    // a music stream converted to Opus (tools/convert_music.py) is used in place of the .MSC file next to it
-    if key.ends_with(".msc") {
-        // (or in another format: the first of these that is there)
-        for ext in ["opus", "ogg", "flac", "mp3", "m4a", "aac", "wav"] {
-            let other = format!("{}{}", &name[..name.len() - 3], ext);
-            if let Some(p) = resolve_plain(root, &other) {
-                return Some(p);
-            }
-        }
-    }
-    resolve_plain(root, name)
+    name.split(['\\', '/']).filter(|c| !c.is_empty()).collect::<Vec<_>>().join("/").to_ascii_lowercase()
 }
 
-/// The file of this name in the folder `root` (the case of the letters does not matter).
-fn resolve_plain(root: &Path, name: &str) -> Option<PathBuf> {
-    let mut cur = root.to_path_buf();
-    for comp in name.split(['\\', '/']).filter(|c| !c.is_empty()) {
-        let mut found = None;
-        for e in std::fs::read_dir(&cur).ok()? {
-            let e = e.ok()?;
-            if e.file_name().to_string_lossy().eq_ignore_ascii_case(comp) {
-                found = Some(e.path());
-                break;
-            }
-        }
-        cur = found?;
-    }
-    cur.is_file().then_some(cur)
+fn overlay(key: &str) -> Option<PathBuf> {
+    OVERLAY.lock().unwrap().iter().find(|(k, _)| k == key).map(|(_, p)| p.clone())
 }
 
-/// Host path of a disc file (for streaming readers that bypass the sector interface).
+/// Resolve a disc path (`\PAK\ANIM.PAK;1`, optionally prefixed by `cdrom0:`, the case of the letters does not matter): a mod's file, or the disc's.
+fn resolve(name: &str) -> Option<(Where, u64)> {
+    let key = key(name);
+    let host = overlay(&key).or_else(|| {
+        // a music stream a mod gives in another format (Opus, ...) is used in place of the .MSC of that name
+        let stem = key.strip_suffix(".msc")?;
+        ["opus", "ogg", "flac", "mp3", "m4a", "aac", "wav"].iter().find_map(|ext| overlay(&format!("{stem}.{ext}")))
+    });
+    if let Some(p) = host {
+        let size = std::fs::metadata(&p).ok()?.len();
+        return Some((Where::Host(p), size));
+    }
+    image_file(&key).map(|(lba, size)| (Where::Image(lba), size as u64))
+}
+
+/// The host file of a mod that stands in for a disc file (for the music streamer, which reads a host file by its kind), or None for the disc's own.
 pub fn disc_host_path(name: &str) -> Option<PathBuf> {
-    let g = DISC.lock().unwrap();
-    resolve(&g.as_ref()?.root, name)
+    match resolve(name)? {
+        (Where::Host(p), _) => Some(p),
+        _ => None,
+    }
+}
+
+/// A disc file (a mod's in its place) to read in turn.
+pub fn disc_open(name: &str) -> Option<Box<dyn ts_audio::Stream>> {
+    match resolve(name)? {
+        (Where::Host(p), _) => std::fs::File::open(p).ok().map(|f| Box::new(f) as Box<dyn ts_audio::Stream>),
+        (Where::Image(_), _) => ImageReader::open(&key(name)).map(|r| Box::new(r) as Box<dyn ts_audio::Stream>),
+    }
+}
+
+/// The size of a disc file (a mod's in its place).
+pub fn disc_size(name: &str) -> Option<u64> {
+    resolve(name).map(|(_, size)| size)
 }
 
 /// Find a file on the virtual disc.  Returns (first LSN, size in bytes).
@@ -90,19 +101,18 @@ pub fn disc_find(name: &str) -> Option<(u32, u32)> {
     if std::env::var_os("TS_CDLOG").is_some() {
         eprintln!("[cd] find {name}");
     }
-    let path = resolve(&d.root, name)?;
-    if let Some(f) = d.files.iter().find(|f| f.path == path) {
+    let (at, size) = resolve(name)?;
+    if let Some(f) = d.files.iter().find(|f| f.at == at) {
         return Some((f.lsn, f.size as u32));
     }
-    let size = std::fs::metadata(&path).ok()?.len();
     let sectors = size.div_ceil(SECTOR) as u32;
     let lsn = d.next_lsn;
     d.next_lsn += sectors + 16;
-    d.files.push(DiscFile { lsn, sectors, path, size });
+    d.files.push(DiscFile { lsn, sectors, at, size });
     Some((lsn, size as u32))
 }
 
-/// Read `count` sectors starting at `lsn` into game memory at `dst`.
+/// Read `count` sectors starting at `lsn` into game memory at `dst` (past the end of the file, zeros).
 pub fn disc_read(lsn: u32, count: u32, dst: i32) -> bool {
     let g = DISC.lock().unwrap();
     let Some(d) = g.as_ref() else { return false };
@@ -110,20 +120,33 @@ pub fn disc_read(lsn: u32, count: u32, dst: i32) -> bool {
         eprintln!("[cd] read of unmapped LSN {lsn:#x} x{count}");
         return false;
     };
-    let Ok(mut fh) = std::fs::File::open(&f.path) else { return false };
-    let off = (lsn - f.lsn) as u64 * SECTOR;
-    if fh.seek(SeekFrom::Start(off)).is_err() {
-        return false;
-    }
+    let first = lsn - f.lsn;
     let want = count as usize * SECTOR as usize;
     let buf = host_slice(dst, want);
-    let mut got = 0;
-    while got < want {
-        match fh.read(&mut buf[got..]) {
-            Ok(0) | Err(_) => break,
-            Ok(n) => got += n,
+    let got = match &f.at {
+        Where::Image(lba) => {
+            // (whole sectors of the file only)
+            let n = (f.sectors - first).min(count) as usize * SECTOR as usize;
+            if !image_read(lba + first, &mut buf[..n]) {
+                return false;
+            }
+            n
         }
-    }
+        Where::Host(path) => {
+            let Ok(mut fh) = std::fs::File::open(path) else { return false };
+            if fh.seek(SeekFrom::Start(first as u64 * SECTOR)).is_err() {
+                return false;
+            }
+            let mut got = 0;
+            while got < want {
+                match fh.read(&mut buf[got..]) {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => got += n,
+                }
+            }
+            got
+        }
+    };
     buf[got..].fill(0);
     true
 }
@@ -243,7 +266,7 @@ pub fn sceOpen(args: &[i64]) -> i32 {
         // (opened for writing)
         Some(0)
     } else {
-        disc_host_path(plain).and_then(|p| std::fs::metadata(p).ok()).map(|m| m.len())
+        disc_size(plain)
     };
     if std::env::var_os("TS_FILELOG").is_some() {
         eprintln!("[file] sceOpen {name} flags {flags:#x} -> {}", size.map_or("missing".to_string(), |s| format!("{s} bytes")));

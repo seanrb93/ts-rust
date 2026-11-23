@@ -41,14 +41,14 @@ pub fn sceSifCallRpc(args: &[i64]) -> i32 {
         reply = match cmd {
             0x8020 => {
                 let name = cstr(send);
-                match crate::native::cd::disc_host_path(&name) {
-                    Some(p) => {
-                        if std::env::var_os("TS_AUDLOG").is_some() {
-                            eprintln!("[audio] music {name} -> {}", p.display());
-                        }
-                        ts_audio::stream_command(MusicCmd::Open(p))
-                    }
-                    None => {
+                // (a mod's file in place of the disc's is opened by its kind; the disc's own is a .MSC)
+                if std::env::var_os("TS_AUDLOG").is_some() {
+                    eprintln!("[audio] music {name} -> {:?}", crate::native::cd::disc_host_path(&name));
+                }
+                match (crate::native::cd::disc_host_path(&name), crate::native::cd::disc_open(&name)) {
+                    (Some(p), _) => ts_audio::stream_command(MusicCmd::Open(p)),
+                    (None, Some(stream)) => ts_audio::stream_command(MusicCmd::OpenMsc(stream)),
+                    _ => {
                         eprintln!("[audio] cannot open music file {name}");
                         0
                     }
